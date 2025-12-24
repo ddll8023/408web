@@ -1,0 +1,66 @@
+# Spring Boot 应用配置
+spring:
+  application:
+    name: web408-backend
+
+  # 数据源配置
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/web408?useSSL=false&serverTimezone=Asia/Shanghai&characterEncoding=utf8&allowPublicKeyRetrieval=true&useUnicode=true
+    username: root
+    password: admin123
+
+  # 文件上传配置
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 100MB
+      max-request-size: 100MB
+
+# MyBatis 配置
+mybatis:
+  # Mapper XML文件路径
+  mapper-locations: classpath:mapper/*.xml
+  # 类型别名包路径（修复：统一使用pojo.entity包）
+  type-aliases-package: com.web408.pojo.entity
+  configuration:
+    # 开启驼峰命名转换
+    map-underscore-to-camel-case: true
+    # 开启二级缓存
+    cache-enabled: false
+    # 日志实现
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+
+# JWT 配置
+jwt:
+  # JWT密钥（生产环境需使用强随机密钥，至少256位）
+  secret: 3f8b9e2a7c1d4f6e8a9b3c5d7e9f1a3b5c7d9e1f3a5b7c9d1e3f5a7b9c1d3e5f
+  # Token永不过期
+  # Token请求头名称
+  header: Authorization
+  # Token前缀
+  prefix: Bearer 
+
+# 文件上传路径配置
+file:
+  upload:
+    # 图片上传存储路径（相对于项目根目录）
+    path: uploads/images/
+
+# 服务器配置
+server:
+  port: 8081
+  servlet:
+    context-path: /
+    encoding:
+      charset: UTF-8
+      enabled: true
+      force: true
+
+# 日志配置
+logging:
+  level:
+    root: INFO
+    com.web408: DEBUG
+    com.web408.mapper: DEBUG
+

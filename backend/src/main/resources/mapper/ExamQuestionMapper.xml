@@ -1,0 +1,256 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.web408.mapper.ExamQuestionMapper">
+
+    <!-- 结果映射 -->
+    <resultMap id="BaseResultMap" type="com.web408.pojo.entity.ExamQuestion">
+        <id column="id" property="id"/>
+        <result column="year" property="year"/>
+        <result column="question_number" property="questionNumber"/>
+        <result column="question_type" property="questionType"/>
+        <result column="title" property="title"/>
+        <result column="content" property="content"/>
+        <result column="options" property="options"/>
+        <result column="answer" property="answer"/>
+        <result column="category" property="category" typeHandler="com.web408.config.JsonStringListTypeHandler"/>
+        <result column="subject_id" property="subjectId"/>
+        <result column="difficulty" property="difficulty"/>
+        <result column="author_id" property="authorId"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+    </resultMap>
+
+    <!-- 插入真题 -->
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO exam_question (year, question_number, question_type, title, content, options, answer, category, subject_id, difficulty, author_id)
+        VALUES (#{year}, #{questionNumber}, #{questionType}, #{title}, #{content}, #{options}, #{answer}, #{category, typeHandler=com.web408.config.JsonStringListTypeHandler}, #{subjectId}, #{difficulty}, #{authorId})
+    </insert>
+
+    <!-- 根据ID查询 -->
+    <select id="findById" resultMap="BaseResultMap">
+        SELECT id, year, question_number, question_type, title, content, options, answer, category, subject_id, difficulty, author_id, create_time, update_time
+        FROM exam_question
+        WHERE id = #{id}
+    </select>
+
+    <!-- 根据年份和题号查询（用于唯一性校验） -->
+    <select id="findByYearAndNumber" resultMap="BaseResultMap">
+        SELECT id, year, question_number, question_type, title, content, options, answer, category, subject_id, difficulty, author_id, create_time, update_time
+        FROM exam_question
+        WHERE year = #{year} AND question_number = #{questionNumber}
+    </select>
+
+    <!-- 查询所有 -->
+    <select id="findAll" resultMap="BaseResultMap">
+        SELECT id, year, question_number, question_type, title, content, options, answer, category, subject_id, difficulty, author_id, create_time, update_time
+        FROM exam_question
+        ORDER BY year DESC, question_number ASC
+    </select>
+
+    <!-- 根据年份查询 -->
+    <select id="findByYear" resultMap="BaseResultMap">
+        SELECT id, year, question_number, question_type, title, content, options, answer, category, subject_id, difficulty, author_id, create_time, update_time
+        FROM exam_question
+        WHERE year = #{year}
+        <if test="category != null and category != ''">
+            AND JSON_CONTAINS(category, JSON_QUOTE(#{category}))
+        </if>
+        <if test="subjectId != null">
+            AND subject_id = #{subjectId}
+        </if>
+        ORDER BY question_number ASC
+    </select>
+
+    <!-- 根据分类查询 -->
+    <select id="findByCategory" resultMap="BaseResultMap">
+        SELECT id, year, question_number, question_type, title, content, options, answer, category, subject_id, difficulty, author_id, create_time, update_time
+        FROM exam_question
+        WHERE JSON_CONTAINS(category, JSON_QUOTE(#{category}))
+        ORDER BY year DESC, question_number ASC
+    </select>
+
+    <!-- 根据科目和分类查询真题列表（用于分类统计导出） -->
+    <select id="findBySubjectAndCategory" resultMap="BaseResultMap">
+        SELECT id, year, question_number, question_type, title, content, options, answer, category, subject_id, difficulty, author_id, create_time, update_time
+        FROM exam_question
+        WHERE category IS NOT NULL
+          AND JSON_LENGTH(category) > 0
+          AND JSON_CONTAINS(category, JSON_QUOTE(#{category}))
+        <if test="subjectId != null">
+            AND subject_id = #{subjectId}
+        </if>
+        ORDER BY year ASC, question_number ASC
+    </select>
+
+    <!-- 更新真题 -->
+    <update id="update">
+        UPDATE exam_question
+        SET year = #{year},
+            question_number = #{questionNumber},
+            question_type = #{questionType},
+            title = #{title},
+            content = #{content},
+            options = #{options},
+            answer = #{answer},
+            subject_id = #{subjectId},
+            category = #{category, typeHandler=com.web408.config.JsonStringListTypeHandler},
+            difficulty = #{difficulty}
+        WHERE id = #{id}
+    </update>
+
+    <!-- 删除真题 -->
+    <delete id="deleteById">
+        DELETE FROM exam_question
+        WHERE id = #{id}
+    </delete>
+
+    <select id="findAllForIndex" resultMap="BaseResultMap">
+        SELECT id, year, question_number, title, category
+        FROM exam_question
+        <where>
+            <if test="category != null and category != ''">
+                AND JSON_CONTAINS(category, JSON_QUOTE(#{category}))
+            </if>
+        </where>
+        ORDER BY year DESC, question_number ASC
+    </select>
+
+    <!-- 分页查询真题（支持年份、分类、关键词筛选和排序） -->
+    <select id="findByPage" resultMap="BaseResultMap">
+        SELECT id, year, question_number, question_type, title, content, options, answer, category, subject_id, difficulty, author_id, create_time, update_time
+        FROM exam_question
+        <where>
+            <if test="year != null">
+                AND year = #{year}
+            </if>
+            <if test="category != null and category != ''">
+                AND JSON_CONTAINS(category, JSON_QUOTE(#{category}))
+            </if>
+            <if test="subjectId != null">
+                AND subject_id = #{subjectId}
+            </if>
+            <!-- 筛选无分类的题目：category为null或空数组 -->
+            <if test="noCategory != null and noCategory == true">
+                AND (category IS NULL OR JSON_LENGTH(category) = 0)
+            </if>
+            <!-- 关键词搜索：匹配title或content字段 -->
+            <if test="keyword != null and keyword != ''">
+                AND (title LIKE CONCAT('%', #{keyword}, '%') OR content LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+        </where>
+        <!-- 动态排序：支持前端指定排序字段和方向，否则使用默认排序 -->
+        <choose>
+            <when test="sortField != null and sortField != ''">
+                ORDER BY
+                <choose>
+                    <when test="sortField == 'year'">year</when>
+                    <when test="sortField == 'updateTime'">update_time</when>
+                    <when test="sortField == 'questionNumber'">question_number</when>
+                    <otherwise>update_time</otherwise>
+                </choose>
+                <choose>
+                    <when test="sortOrder != null and sortOrder.toLowerCase() == 'asc'">ASC</when>
+                    <otherwise>DESC</otherwise>
+                </choose>
+            </when>
+            <otherwise>
+                <!-- 管理端默认按更新时间从新到旧排序 -->
+                ORDER BY update_time DESC
+            </otherwise>
+        </choose>
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <!-- 统计真题总数（支持年份、分类、科目、关键词筛选） -->
+    <select id="count" resultType="long">
+        SELECT COUNT(*)
+        FROM exam_question
+        <where>
+            <if test="year != null">
+                AND year = #{year}
+            </if>
+            <if test="category != null and category != ''">
+                AND JSON_CONTAINS(category, JSON_QUOTE(#{category}))
+            </if>
+            <if test="subjectId != null">
+                AND subject_id = #{subjectId}
+            </if>
+            <!-- 筛选无分类的题目 -->
+            <if test="noCategory != null and noCategory == true">
+                AND (category IS NULL OR JSON_LENGTH(category) = 0)
+            </if>
+            <!-- 关键词搜索：匹配title或content字段 -->
+            <if test="keyword != null and keyword != ''">
+                AND (title LIKE CONCAT('%', #{keyword}, '%') OR content LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+        </where>
+    </select>
+
+    <!-- 根据科目ID查询该科目下实际存在真题的分类列表（从JSON数组中展开）
+         分类按考频（题目数量）从大到小排序，同考频下按分类名称升序排序 -->
+    <select id="findCategoriesBySubject" resultType="string">
+        SELECT cats.cat_value
+        FROM exam_question e
+        INNER JOIN JSON_TABLE(
+            e.category,
+            '$[*]' COLUMNS(cat_value VARCHAR(50) PATH '$')
+        ) AS cats
+        WHERE e.subject_id = #{subjectId}
+          AND e.category IS NOT NULL
+          AND JSON_LENGTH(e.category) > 0
+        GROUP BY cats.cat_value
+        ORDER BY COUNT(*) DESC, cats.cat_value ASC
+    </select>
+
+    <select id="findYearStats" resultType="com.web408.pojo.vo.ExamYearStatVO">
+        SELECT year, COUNT(*) AS count
+        FROM exam_question
+        <where>
+            <if test="category != null and category != ''">
+                AND JSON_CONTAINS(category, JSON_QUOTE(#{category}))
+            </if>
+        </where>
+        GROUP BY year
+        ORDER BY year DESC
+    </select>
+
+    <!-- 查询指定科目的所有真题（用于导出） -->
+    <select id="findAllBySubject" resultMap="BaseResultMap">
+        SELECT id, year, question_number, question_type, title, content, options, answer, category, subject_id, difficulty, author_id, create_time, update_time
+        FROM exam_question
+        WHERE subject_id = #{subjectId}
+        ORDER BY year DESC, question_number ASC
+    </select>
+
+    <!-- 查询真题分类统计信息（包含年份-题号列表） -->
+    <select id="findCategoryStats" resultType="com.web408.pojo.vo.ExamCategoryStatVO">
+        SELECT 
+            e.subject_id AS subjectId,
+            s.name AS subjectName,
+            cats.cat_value AS category,
+            COUNT(*) AS count,
+            SUM(CASE WHEN e.question_type = 'CHOICE' THEN 1 ELSE 0 END) AS choiceCount,
+            SUM(CASE WHEN e.question_type IS NULL OR e.question_type != 'CHOICE' THEN 1 ELSE 0 END) AS subjectiveCount,
+            GROUP_CONCAT(
+                CONCAT(e.year, '-', COALESCE(e.question_number, 0))
+                ORDER BY e.year DESC, e.question_number ASC
+                SEPARATOR ','
+            ) AS questionsStr
+        FROM exam_question e
+        INNER JOIN subject s ON e.subject_id = s.id
+        INNER JOIN JSON_TABLE(
+            e.category,
+            '$[*]' COLUMNS(cat_value VARCHAR(100) PATH '$')
+        ) AS cats
+        WHERE e.category IS NOT NULL
+          AND JSON_LENGTH(e.category) > 0
+          <if test="subjectId != null">
+              AND e.subject_id = #{subjectId}
+          </if>
+        GROUP BY e.subject_id, s.name, cats.cat_value
+        ORDER BY count DESC, e.subject_id ASC, cats.cat_value ASC
+    </select>
+
+</mapper>

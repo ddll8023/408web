@@ -1,0 +1,123 @@
+/**
+ * Markdown 编辑器/查看器共享样式
+ * 遵循 DRY 原则：避免重复代码
+ * 
+ * 使用方式：在组件中 @use 'styles/markdown-shared' as md;
+ * 然后调用 @include md.markdown-content-styles;
+ */
+
+// 导入全局变量（@use 模块需要显式导入）
+@use '../../../styles/variables' as *;
+
+// SVG 自适应容器样式
+@mixin svg-block-styles {
+  .custom-svg-block {
+    max-width: 100%;
+    overflow: hidden;
+    display: flex;
+    justify-content: center;
+    margin: $spacing-sm 0;
+    
+    svg {
+      max-width: 100% !important;
+      width: 100% !important;
+      height: auto !important;
+      display: block;
+    }
+  }
+}
+
+// SVG 全局样式
+@mixin svg-global-styles($selector) {
+  #{$selector} svg {
+    max-width: 100% !important;
+    height: auto !important;
+    display: block;
+    margin: $spacing-sm auto;
+  }
+}
+
+// 代码块样式
+@mixin code-block-styles($selector) {
+  #{$selector} pre {
+    border-radius: $border-radius-base;
+    background-color: $color-bg-light;
+  }
+}
+
+// 表格样式
+@mixin table-styles($selector) {
+  #{$selector} table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: $spacing-sm 0;
+    
+    th,
+    td {
+      border: 1px solid $color-border-light;
+      padding: $spacing-xs $spacing-gap;
+    }
+  }
+}
+
+// KaTeX 公式样式
+@mixin katex-styles($selector) {
+  #{$selector} .katex {
+    font-size: 1.1em;
+  }
+
+  #{$selector} .katex-display {
+    margin: $spacing-sm 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+
+  #{$selector} .katex-mathml {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(1px, 1px, 1px, 1px);
+    white-space: nowrap;
+  }
+}
+
+// KaTeX 包裹器样式（仅 Viewer 使用）
+@mixin katex-wrapper-styles {
+  .katex-display-wrapper {
+    display: block;
+    text-align: center;
+    margin: $spacing-sm 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+
+  .katex-inline-wrapper {
+    display: inline;
+  }
+
+  .katex-error {
+    color: $color-danger;
+    font-family: monospace;
+    background-color: rgba(255, 0, 0, 0.1);
+    padding: 2px 4px;
+    border-radius: 3px;
+  }
+}
+
+// 完整的 Markdown 内容样式（用于预览区）
+@mixin markdown-content-styles($selector) {
+  @include code-block-styles($selector);
+  @include table-styles($selector);
+  @include katex-styles($selector);
+  @include svg-block-styles;
+  @include svg-global-styles($selector);
+}
+
+// Viewer 专用样式（包含 KaTeX 包裹器）
+@mixin markdown-viewer-styles($selector) {
+  @include markdown-content-styles($selector);
+  @include katex-wrapper-styles;
+}

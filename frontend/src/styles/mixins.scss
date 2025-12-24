@@ -1,0 +1,175 @@
+/**
+ * Sass Mixins 混入文件
+ * 定义可复用的样式片段
+ * 遵循YAGNI原则：只定义实际需要的mixin
+ */
+
+// 导入变量文件，因为 mixin 中需要使用变量
+@use './variables.scss' as *;
+
+// 响应式布局 mixin
+@mixin mobile {
+  @media (max-width: $breakpoint-mobile) {
+    @content;
+  }
+}
+
+// Flex布局快捷方式
+@mixin flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@mixin flex-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+@mixin flex-column {
+  display: flex;
+  flex-direction: column;
+}
+
+// 禁用用户选择
+@mixin no-select {
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+}
+
+// 滚动条样式
+@mixin scrollbar($width: 8px) {
+  &::-webkit-scrollbar {
+    width: $width;
+    height: $width;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: $border-radius-base;
+    
+    &:hover {
+      background-color: rgba(0, 0, 0, 0.3);
+    }
+  }
+  
+  &::-webkit-scrollbar-track {
+    background-color: transparent;
+  }
+}
+
+
+// ========================================
+// 管理页面公共样式 Mixins
+// 用于 ExamManage、MockManage 等管理页面
+// ========================================
+
+// 管理页面容器
+@mixin admin-manage-container {
+  max-width: $container-width-xl;
+  margin: 0 auto;
+  padding: $spacing-md $spacing-sm;
+  min-height: calc(100vh - #{$nav-height});
+}
+
+// 管理卡片
+@mixin admin-manage-card {
+  box-shadow: $box-shadow-light;
+}
+
+// 卡片头部
+@mixin admin-card-header {
+  @include flex-between;
+  
+  h2 {
+    margin: 0;
+    font-size: $font-size-xl + 2px;
+    color: $color-text-primary;
+    font-weight: $font-weight-bold;
+  }
+
+  .header-actions {
+    display: flex;
+    gap: $spacing-xs;
+  }
+}
+
+// 筛选栏
+@mixin admin-filter-bar {
+  margin-bottom: $spacing-md;
+  padding: $spacing-sm;
+  background-color: $color-bg-light;
+  border-radius: $border-radius-base;
+}
+
+// 分页容器
+@mixin admin-pagination {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: $spacing-md;
+}
+
+// 返回顶部按钮
+@mixin admin-back-top {
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  background-color: $color-accent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+
+// 标题文本（可点击）
+@mixin admin-title-text {
+  cursor: pointer;
+  &:hover {
+    color: $color-primary;
+  }
+}
+
+// 管理页面移动端响应式
+@mixin admin-mobile-filter {
+  @include mobile {
+    :deep(.el-form) {
+      display: block;
+      
+      .el-form-item {
+        display: block;
+        margin-bottom: $spacing-sm;
+        
+        .el-input-number,
+        .el-select {
+          width: 100% !important;
+        }
+      }
+    }
+  }
+}
+
+
+// ========================================
+// 编辑弹窗公共样式 Mixins
+// 用于 ExamEditDialog、MockEditDialog
+// ========================================
+
+// 编辑器表单项样式 - 修复标签与编辑器对齐
+@mixin editor-form-item {
+  align-items: flex-start !important;
+  
+  :deep(.el-form-item__label) {
+    padding-top: 10px;
+    line-height: 20px;
+  }
+  
+  :deep(.el-form-item__content) {
+    flex: 1;
+    min-width: 0;
+    line-height: normal;
+  }
+}

@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<!--
+科目Mapper XML配置
+用途：科目数据的SQL映射
+遵循KISS原则：清晰的SQL语句
+-->
+<mapper namespace="com.web408.mapper.SubjectMapper">
+
+    <!-- 结果映射 -->
+    <resultMap id="SubjectResultMap" type="com.web408.pojo.entity.Subject">
+        <id property="id" column="id"/>
+        <result property="name" column="name"/>
+        <result property="code" column="code"/>
+        <result property="description" column="description"/>
+        <result property="orderNum" column="order_num"/>
+        <result property="enabled" column="enabled"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateTime" column="update_time"/>
+    </resultMap>
+
+    <!-- 查询所有科目 -->
+    <select id="findAll" resultMap="SubjectResultMap">
+        SELECT id, name, code, description, order_num, enabled, create_time, update_time
+        FROM subject
+        ORDER BY order_num ASC
+    </select>
+
+    <!-- 查询所有启用的科目 -->
+    <select id="findAllEnabled" resultMap="SubjectResultMap">
+        SELECT id, name, code, description, order_num, enabled, create_time, update_time
+        FROM subject
+        WHERE enabled = TRUE
+        ORDER BY order_num ASC
+    </select>
+
+    <!-- 根据ID查询科目 -->
+    <select id="findById" resultMap="SubjectResultMap">
+        SELECT id, name, code, description, order_num, enabled, create_time, update_time
+        FROM subject
+        WHERE id = #{id}
+    </select>
+
+    <!-- 根据编码查询科目 -->
+    <select id="findByCode" resultMap="SubjectResultMap">
+        SELECT id, name, code, description, order_num, enabled, create_time, update_time
+        FROM subject
+        WHERE code = #{code}
+    </select>
+
+    <!-- 创建科目 -->
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO subject (name, code, description, order_num, enabled)
+        VALUES (#{name}, #{code}, #{description}, #{orderNum}, #{enabled})
+    </insert>
+
+    <!-- 更新科目 -->
+    <update id="update">
+        UPDATE subject
+        SET name = #{name},
+            code = #{code},
+            description = #{description},
+            order_num = #{orderNum},
+            enabled = #{enabled}
+        WHERE id = #{id}
+    </update>
+
+    <!-- 删除科目 -->
+    <delete id="deleteById">
+        DELETE FROM subject WHERE id = #{id}
+    </delete>
+
+    <!-- 检查科目名称是否存在 -->
+    <select id="existsByName" resultType="int">
+        SELECT COUNT(*)
+        FROM subject
+        WHERE name = #{name}
+        <if test="excludeId != null">
+            AND id != #{excludeId}
+        </if>
+    </select>
+
+    <!-- 检查科目编码是否存在 -->
+    <select id="existsByCode" resultType="int">
+        SELECT COUNT(*)
+        FROM subject
+        WHERE code = #{code}
+        <if test="excludeId != null">
+            AND id != #{excludeId}
+        </if>
+    </select>
+
+    <!-- 查询所有启用的科目（带题目统计） -->
+    <select id="findAllEnabledWithStats" resultType="com.web408.pojo.vo.SubjectVO">
+        SELECT 
+            s.id,
+            s.name,
+            s.code,
+            s.description,
+            s.order_num AS orderNum,
+            s.enabled,
+            (SELECT COUNT(*) FROM exam_question eq WHERE eq.subject_id = s.id) AS questionCount
+        FROM subject s
+        WHERE s.enabled = TRUE
+        ORDER BY s.order_num ASC
+    </select>
+
+</mapper>
+

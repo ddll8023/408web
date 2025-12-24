@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<!--
+章节Mapper XML配置
+用途：章节数据的SQL映射
+遵循KISS原则：清晰的SQL语句
+-->
+<mapper namespace="com.web408.mapper.ChapterMapper">
+
+    <!-- 结果映射 -->
+    <resultMap id="ChapterResultMap" type="com.web408.pojo.entity.Chapter">
+        <id property="id" column="id"/>
+        <result property="subjectId" column="subject_id"/>
+        <result property="parentId" column="parent_id"/>
+        <result property="name" column="name"/>
+        <result property="orderNum" column="order_num"/>
+        <result property="enabled" column="enabled"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateTime" column="update_time"/>
+    </resultMap>
+
+    <!-- 根据科目ID查询所有章节 -->
+    <select id="findBySubjectId" resultMap="ChapterResultMap">
+        SELECT id, subject_id, parent_id, name, order_num, enabled, create_time, update_time
+        FROM chapter
+        WHERE subject_id = #{subjectId}
+        ORDER BY order_num ASC
+    </select>
+
+    <!-- 根据科目ID查询所有启用的章节 -->
+    <select id="findEnabledBySubjectId" resultMap="ChapterResultMap">
+        SELECT id, subject_id, parent_id, name, order_num, enabled, create_time, update_time
+        FROM chapter
+        WHERE subject_id = #{subjectId}
+          AND enabled = TRUE
+        ORDER BY order_num ASC
+    </select>
+
+    <!-- 根据ID查询章节 -->
+    <select id="findById" resultMap="ChapterResultMap">
+        SELECT id, subject_id, parent_id, name, order_num, enabled, create_time, update_time
+        FROM chapter
+        WHERE id = #{id}
+    </select>
+
+    <!-- 根据父章节ID查询子章节 -->
+    <select id="findByParentId" resultMap="ChapterResultMap">
+        SELECT id, subject_id, parent_id, name, order_num, enabled, create_time, update_time
+        FROM chapter
+        WHERE subject_id = #{subjectId}
+        <choose>
+            <when test="parentId == null">
+                AND parent_id IS NULL
+            </when>
+            <otherwise>
+                AND parent_id = #{parentId}
+            </otherwise>
+        </choose>
+        ORDER BY order_num ASC
+    </select>
+
+    <!-- 创建章节 -->
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO chapter (subject_id, parent_id, name, order_num, enabled)
+        VALUES (#{subjectId}, #{parentId}, #{name}, #{orderNum}, #{enabled})
+    </insert>
+
+    <!-- 更新章节 -->
+    <update id="update">
+        UPDATE chapter
+        SET subject_id = #{subjectId},
+            parent_id = #{parentId},
+            name = #{name},
+            order_num = #{orderNum},
+            enabled = #{enabled}
+        WHERE id = #{id}
+    </update>
+
+    <!-- 删除章节 -->
+    <delete id="deleteById">
+        DELETE FROM chapter WHERE id = #{id}
+    </delete>
+
+    <!-- 根据科目ID删除所有章节 -->
+    <delete id="deleteBySubjectId">
+        DELETE FROM chapter WHERE subject_id = #{subjectId}
+    </delete>
+
+    <!-- 检查章节名称是否存在 -->
+    <select id="existsByName" resultType="int">
+        SELECT COUNT(*)
+        FROM chapter
+        WHERE name = #{name}
+          AND subject_id = #{subjectId}
+        <choose>
+            <when test="parentId == null">
+                AND parent_id IS NULL
+            </when>
+            <otherwise>
+                AND parent_id = #{parentId}
+            </otherwise>
+        </choose>
+        <if test="excludeId != null">
+            AND id != #{excludeId}
+        </if>
+    </select>
+
+</mapper>
+

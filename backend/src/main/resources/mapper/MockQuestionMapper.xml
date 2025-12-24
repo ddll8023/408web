@@ -1,0 +1,246 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.web408.mapper.MockQuestionMapper">
+
+    <!-- 结果映射 -->
+    <resultMap id="BaseResultMap" type="com.web408.pojo.entity.MockQuestion">
+        <id column="id" property="id"/>
+        <result column="source" property="source"/>
+        <result column="question_number" property="questionNumber"/>
+        <result column="question_type" property="questionType"/>
+        <result column="title" property="title"/>
+        <result column="content" property="content"/>
+        <result column="options" property="options"/>
+        <result column="answer" property="answer"/>
+        <result column="category" property="category" typeHandler="com.web408.config.JsonStringListTypeHandler"/>
+        <result column="subject_id" property="subjectId"/>
+        <result column="difficulty" property="difficulty"/>
+        <result column="author_id" property="authorId"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+    </resultMap>
+
+    <!-- 插入模拟题 -->
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO mock_question (source, question_number, question_type, title, content, options, answer, category, subject_id, difficulty, author_id)
+        VALUES (#{source}, #{questionNumber}, #{questionType}, #{title}, #{content}, #{options}, #{answer}, #{category, typeHandler=com.web408.config.JsonStringListTypeHandler}, #{subjectId}, #{difficulty}, #{authorId})
+    </insert>
+
+    <!-- 根据ID查询 -->
+    <select id="findById" resultMap="BaseResultMap">
+        SELECT id, source, question_number, question_type, title, content, options, answer, category, subject_id, difficulty, author_id, create_time, update_time
+        FROM mock_question
+        WHERE id = #{id}
+    </select>
+
+    <!-- 根据来源和题号查询（用于唯一性校验） -->
+    <select id="findBySourceAndNumber" resultMap="BaseResultMap">
+        SELECT id, source, question_number, question_type, title, content, options, answer, category, subject_id, difficulty, author_id, create_time, update_time
+        FROM mock_question
+        WHERE source = #{source} AND question_number = #{questionNumber}
+    </select>
+
+    <!-- 根据来源、标题和题号查询（用于唯一性校验：source + title + question_number 组合唯一） -->
+    <!-- 空字符串统一视为NULL处理，使用MySQL的NULL安全等于运算符 <=> -->
+    <select id="findBySourceTitleAndNumber" resultMap="BaseResultMap">
+        SELECT id, source, question_number, question_type, title, content, options, answer, category, subject_id, difficulty, author_id, create_time, update_time
+        FROM mock_question
+        WHERE source = #{source}
+          AND NULLIF(title, '') &lt;=&gt; NULLIF(#{title}, '')
+          AND question_number &lt;=&gt; #{questionNumber}
+    </select>
+
+    <!-- 查询所有 -->
+    <select id="findAll" resultMap="BaseResultMap">
+        SELECT id, source, question_number, question_type, title, content, options, answer, category, subject_id, difficulty, author_id, create_time, update_time
+        FROM mock_question
+        ORDER BY source ASC, question_number ASC
+    </select>
+
+    <!-- 根据来源查询 -->
+    <select id="findBySource" resultMap="BaseResultMap">
+        SELECT id, source, question_number, question_type, title, content, options, answer, category, subject_id, difficulty, author_id, create_time, update_time
+        FROM mock_question
+        WHERE source = #{source}
+        <if test="category != null and category != ''">
+            AND JSON_CONTAINS(category, JSON_QUOTE(#{category}))
+        </if>
+        <if test="subjectId != null">
+            AND subject_id = #{subjectId}
+        </if>
+        ORDER BY question_number ASC
+    </select>
+
+    <!-- 根据分类查询 -->
+    <select id="findByCategory" resultMap="BaseResultMap">
+        SELECT id, source, question_number, question_type, title, content, options, answer, category, subject_id, difficulty, author_id, create_time, update_time
+        FROM mock_question
+        WHERE JSON_CONTAINS(category, JSON_QUOTE(#{category}))
+        ORDER BY source ASC, question_number ASC
+    </select>
+
+    <!-- 更新模拟题 -->
+    <update id="update">
+        UPDATE mock_question
+        SET source = #{source},
+            question_number = #{questionNumber},
+            question_type = #{questionType},
+            title = #{title},
+            content = #{content},
+            options = #{options},
+            answer = #{answer},
+            subject_id = #{subjectId},
+            category = #{category, typeHandler=com.web408.config.JsonStringListTypeHandler},
+            difficulty = #{difficulty}
+        WHERE id = #{id}
+    </update>
+
+    <!-- 删除模拟题 -->
+    <delete id="deleteById">
+        DELETE FROM mock_question
+        WHERE id = #{id}
+    </delete>
+
+    <!-- 分页查询模拟题（支持来源、分类、关键词筛选和排序） -->
+    <select id="findByPage" resultMap="BaseResultMap">
+        SELECT id, source, question_number, question_type, title, content, options, answer, category, subject_id, difficulty, author_id, create_time, update_time
+        FROM mock_question
+        <where>
+            <if test="source != null and source != ''">
+                AND source = #{source}
+            </if>
+            <if test="category != null and category != ''">
+                AND JSON_CONTAINS(category, JSON_QUOTE(#{category}))
+            </if>
+            <if test="subjectId != null">
+                AND subject_id = #{subjectId}
+            </if>
+            <!-- 筛选无分类的题目：category为null或空数组 -->
+            <if test="noCategory != null and noCategory == true">
+                AND (category IS NULL OR JSON_LENGTH(category) = 0)
+            </if>
+            <!-- 关键词搜索：匹配title或content字段 -->
+            <if test="keyword != null and keyword != ''">
+                AND (title LIKE CONCAT('%', #{keyword}, '%') OR content LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+        </where>
+        <!-- 动态排序 -->
+        <choose>
+            <when test="sortField != null and sortField != ''">
+                ORDER BY
+                <choose>
+                    <when test="sortField == 'source'">source</when>
+                    <when test="sortField == 'updateTime'">update_time</when>
+                    <when test="sortField == 'questionNumber'">question_number</when>
+                    <otherwise>update_time</otherwise>
+                </choose>
+                <choose>
+                    <when test="sortOrder != null and sortOrder.toLowerCase() == 'asc'">ASC</when>
+                    <otherwise>DESC</otherwise>
+                </choose>
+            </when>
+            <otherwise>
+                <!-- 管理端默认按更新时间从新到旧排序 -->
+                ORDER BY update_time DESC
+            </otherwise>
+        </choose>
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <!-- 统计模拟题总数（支持关键词筛选） -->
+    <select id="count" resultType="long">
+        SELECT COUNT(*)
+        FROM mock_question
+        <where>
+            <if test="source != null and source != ''">
+                AND source = #{source}
+            </if>
+            <if test="category != null and category != ''">
+                AND JSON_CONTAINS(category, JSON_QUOTE(#{category}))
+            </if>
+            <if test="subjectId != null">
+                AND subject_id = #{subjectId}
+            </if>
+            <!-- 筛选无分类的题目 -->
+            <if test="noCategory != null and noCategory == true">
+                AND (category IS NULL OR JSON_LENGTH(category) = 0)
+            </if>
+            <!-- 关键词搜索：匹配title或content字段 -->
+            <if test="keyword != null and keyword != ''">
+                AND (title LIKE CONCAT('%', #{keyword}, '%') OR content LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+        </where>
+    </select>
+
+    <!-- 根据科目ID查询该科目下实际存在模拟题的分类列表 -->
+    <select id="findCategoriesBySubject" resultType="string">
+        SELECT cats.cat_value
+        FROM mock_question m
+        INNER JOIN JSON_TABLE(
+            m.category,
+            '$[*]' COLUMNS(cat_value VARCHAR(50) PATH '$')
+        ) AS cats
+        WHERE m.subject_id = #{subjectId}
+          AND m.category IS NOT NULL
+          AND JSON_LENGTH(m.category) > 0
+        GROUP BY cats.cat_value
+        ORDER BY COUNT(*) DESC, cats.cat_value ASC
+    </select>
+
+    <!-- 根据科目ID查询该科目下实际存在模拟题的分类列表（带题目数量统计） -->
+    <select id="findCategoryStatsBySubject" resultType="com.web408.pojo.vo.CategoryStatVO">
+        SELECT cats.cat_value AS name, COUNT(*) AS questionCount
+        FROM mock_question m
+        INNER JOIN JSON_TABLE(
+            m.category,
+            '$[*]' COLUMNS(cat_value VARCHAR(50) PATH '$')
+        ) AS cats
+        WHERE m.subject_id = #{subjectId}
+          AND m.category IS NOT NULL
+          AND JSON_LENGTH(m.category) > 0
+        GROUP BY cats.cat_value
+        ORDER BY COUNT(*) DESC, cats.cat_value ASC
+    </select>
+
+    <!-- 查询来源统计 -->
+    <select id="findSourceStats" resultType="map">
+        SELECT source, COUNT(*) AS count
+        FROM mock_question
+        <where>
+            <if test="category != null and category != ''">
+                AND JSON_CONTAINS(category, JSON_QUOTE(#{category}))
+            </if>
+        </where>
+        GROUP BY source
+        ORDER BY source ASC
+    </select>
+
+    <!-- 查询所有不重复的来源机构列表 -->
+    <select id="findAllSources" resultType="string">
+        SELECT DISTINCT source
+        FROM mock_question
+        WHERE source IS NOT NULL AND source != ''
+        ORDER BY source ASC
+    </select>
+
+    <!-- 按科目统计模拟题数量 -->
+    <select id="countBySubject" resultType="map">
+        SELECT subject_id AS subjectId, COUNT(*) AS count
+        FROM mock_question
+        WHERE subject_id IS NOT NULL
+        GROUP BY subject_id
+    </select>
+
+    <!-- 根据来源查询所有不重复的标题列表 -->
+    <select id="findTitlesBySource" resultType="string">
+        SELECT DISTINCT title
+        FROM mock_question
+        WHERE source = #{source}
+          AND title IS NOT NULL
+          AND title != ''
+        ORDER BY title ASC
+    </select>
+
+</mapper>

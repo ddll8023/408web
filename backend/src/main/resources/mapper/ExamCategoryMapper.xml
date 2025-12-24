@@ -1,0 +1,411 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<!--
+分类标签Mapper XML配置
+用途：分类标签数据的SQL映射
+遵循KISS原则：清晰的SQL语句
+-->
+<mapper namespace="com.web408.mapper.ExamCategoryMapper">
+
+    <!-- 基础结果映射 -->
+    <resultMap id="BaseResultMap" type="com.web408.pojo.entity.ExamCategory">
+        <id property="id" column="id"/>
+        <result property="subjectId" column="subject_id"/>
+        <result property="parentId" column="parent_id"/>
+        <result property="name" column="name"/>
+        <result property="code" column="code"/>
+        <result property="description" column="description"/>
+        <result property="orderNum" column="order_num"/>
+        <result property="enabled" column="enabled"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateTime" column="update_time"/>
+    </resultMap>
+
+    <!-- VO结果映射（包含科目名称和引用统计） -->
+    <resultMap id="VOResultMap" type="com.web408.pojo.vo.ExamCategoryVO">
+        <id property="id" column="id"/>
+        <result property="subjectId" column="subject_id"/>
+        <result property="subjectName" column="subject_name"/>
+        <result property="parentId" column="parent_id"/>
+        <result property="parentName" column="parent_name"/>
+        <result property="name" column="name"/>
+        <result property="code" column="code"/>
+        <result property="description" column="description"/>
+        <result property="orderNum" column="order_num"/>
+        <result property="enabled" column="enabled"/>
+        <result property="questionCount" column="question_count"/>
+    </resultMap>
+
+    <!-- 查询所有分类（带科目名称和引用统计，支持按题目类型筛选） -->
+    <select id="findAll" resultMap="VOResultMap">
+        SELECT 
+            c.id,
+            c.subject_id,
+            s.name AS subject_name,
+            c.parent_id,
+            p.name AS parent_name,
+            c.name,
+            c.code,
+            c.description,
+            c.order_num,
+            c.enabled,
+            <choose>
+                <!-- 模拟题统计 -->
+                <when test="questionType == 'mock'">
+                    (
+                        SELECT COUNT(*)
+                        FROM mock_question mq
+                        WHERE mq.subject_id = c.subject_id
+                          AND mq.category IS NOT NULL
+                          AND JSON_CONTAINS(mq.category, JSON_QUOTE(c.name))
+                    ) AS question_count
+                </when>
+                <!-- 默认：真题统计 -->
+                <otherwise>
+                    (
+                        SELECT COUNT(*)
+                        FROM exam_question eq
+                        WHERE eq.subject_id = c.subject_id
+                          AND eq.category IS NOT NULL
+                          AND JSON_CONTAINS(eq.category, JSON_QUOTE(c.name))
+                    ) AS question_count
+                </otherwise>
+            </choose>
+        FROM exam_category c
+        LEFT JOIN subject s ON c.subject_id = s.id
+        LEFT JOIN exam_category p ON c.parent_id = p.id
+        ORDER BY s.order_num ASC, COALESCE(c.parent_id, c.id) ASC, c.parent_id IS NOT NULL ASC, c.order_num ASC
+    </select>
+
+    <!-- 按科目查询所有分类（支持按题目类型筛选） -->
+    <select id="findBySubjectId" resultMap="VOResultMap">
+        SELECT 
+            c.id,
+            c.subject_id,
+            s.name AS subject_name,
+            c.parent_id,
+            p.name AS parent_name,
+            c.name,
+            c.code,
+            c.description,
+            c.order_num,
+            c.enabled,
+            <choose>
+                <!-- 模拟题统计 -->
+                <when test="questionType == 'mock'">
+                    (
+                        SELECT COUNT(*)
+                        FROM mock_question mq
+                        WHERE mq.subject_id = c.subject_id
+                          AND mq.category IS NOT NULL
+                          AND JSON_CONTAINS(mq.category, JSON_QUOTE(c.name))
+                    ) AS question_count
+                </when>
+                <!-- 默认：真题统计 -->
+                <otherwise>
+                    (
+                        SELECT COUNT(*)
+                        FROM exam_question eq
+                        WHERE eq.subject_id = c.subject_id
+                          AND eq.category IS NOT NULL
+                          AND JSON_CONTAINS(eq.category, JSON_QUOTE(c.name))
+                    ) AS question_count
+                </otherwise>
+            </choose>
+        FROM exam_category c
+        LEFT JOIN subject s ON c.subject_id = s.id
+        LEFT JOIN exam_category p ON c.parent_id = p.id
+        WHERE c.subject_id = #{subjectId}
+        ORDER BY COALESCE(c.parent_id, c.id) ASC, c.parent_id IS NOT NULL ASC, c.order_num ASC
+    </select>
+
+    <!-- 按科目查询启用的分类（用于选择器，包含真实引用统计） -->
+    <select id="findEnabledBySubjectId" resultMap="VOResultMap">
+        SELECT 
+            c.id,
+            c.subject_id,
+            s.name AS subject_name,
+            c.parent_id,
+            p.name AS parent_name,
+            c.name,
+            c.code,
+            c.description,
+            c.order_num,
+            c.enabled,
+            (
+                SELECT COUNT(*)
+                FROM exam_question eq
+                WHERE eq.subject_id = c.subject_id
+                  AND eq.category IS NOT NULL
+                  AND JSON_CONTAINS(eq.category, JSON_QUOTE(c.name))
+            ) AS question_count
+        FROM exam_category c
+        LEFT JOIN subject s ON c.subject_id = s.id
+        LEFT JOIN exam_category p ON c.parent_id = p.id
+        WHERE c.subject_id = #{subjectId}
+          AND c.enabled = TRUE
+        ORDER BY c.order_num ASC
+    </select>
+
+    <!-- 按科目查询顶级分类（parent_id IS NULL） -->
+    <select id="findRootCategoriesBySubjectId" resultMap="VOResultMap">
+        SELECT 
+            c.id,
+            c.subject_id,
+            s.name AS subject_name,
+            c.parent_id,
+            NULL AS parent_name,
+            c.name,
+            c.code,
+            c.description,
+            c.order_num,
+            c.enabled,
+            (
+                SELECT COUNT(*)
+                FROM exam_question eq
+                WHERE eq.subject_id = c.subject_id
+                  AND eq.category IS NOT NULL
+                  AND JSON_CONTAINS(eq.category, JSON_QUOTE(c.name))
+            ) AS question_count
+        FROM exam_category c
+        LEFT JOIN subject s ON c.subject_id = s.id
+        WHERE c.subject_id = #{subjectId}
+          AND c.parent_id IS NULL
+        ORDER BY c.order_num ASC
+    </select>
+
+    <!-- 按科目查询二级分类（用于三级分类支持：二级分类也可作为父分类） -->
+    <select id="findSecondLevelCategoriesBySubjectId" resultMap="VOResultMap">
+        SELECT 
+            c.id,
+            c.subject_id,
+            s.name AS subject_name,
+            c.parent_id,
+            p.name AS parent_name,
+            c.name,
+            c.code,
+            c.description,
+            c.order_num,
+            c.enabled,
+            0 AS question_count
+        FROM exam_category c
+        LEFT JOIN subject s ON c.subject_id = s.id
+        LEFT JOIN exam_category p ON c.parent_id = p.id
+        WHERE c.subject_id = #{subjectId}
+          AND c.parent_id IS NOT NULL
+          AND p.parent_id IS NULL
+        ORDER BY p.order_num ASC, c.order_num ASC
+    </select>
+
+    <!-- 查询指定父分类下的子分类 -->
+    <select id="findByParentId" resultMap="VOResultMap">
+        SELECT 
+            c.id,
+            c.subject_id,
+            s.name AS subject_name,
+            c.parent_id,
+            p.name AS parent_name,
+            c.name,
+            c.code,
+            c.description,
+            c.order_num,
+            c.enabled,
+            (
+                SELECT COUNT(*)
+                FROM exam_question eq
+                WHERE eq.subject_id = c.subject_id
+                  AND eq.category IS NOT NULL
+                  AND JSON_CONTAINS(eq.category, JSON_QUOTE(c.name))
+            ) AS question_count
+        FROM exam_category c
+        LEFT JOIN subject s ON c.subject_id = s.id
+        LEFT JOIN exam_category p ON c.parent_id = p.id
+        WHERE c.parent_id = #{parentId}
+        ORDER BY c.order_num ASC
+    </select>
+
+    <!-- 查询指定父分类下的启用子分类 -->
+    <select id="findEnabledByParentId" resultMap="VOResultMap">
+        SELECT 
+            c.id,
+            c.subject_id,
+            s.name AS subject_name,
+            c.parent_id,
+            p.name AS parent_name,
+            c.name,
+            c.code,
+            c.description,
+            c.order_num,
+            c.enabled,
+            0 AS question_count
+        FROM exam_category c
+        LEFT JOIN subject s ON c.subject_id = s.id
+        LEFT JOIN exam_category p ON c.parent_id = p.id
+        WHERE c.parent_id = #{parentId}
+          AND c.enabled = TRUE
+        ORDER BY c.order_num ASC
+    </select>
+
+    <!-- 检查分类是否有子分类 -->
+    <select id="countByParentId" resultType="int">
+        SELECT COUNT(*) FROM exam_category WHERE parent_id = #{parentId}
+    </select>
+
+    <!-- 根据ID查询 -->
+    <select id="findById" resultMap="BaseResultMap">
+        SELECT id, subject_id, parent_id, name, code, description, order_num, enabled, create_time, update_time
+        FROM exam_category
+        WHERE id = #{id}
+    </select>
+
+    <!-- 根据科目和名称查询 -->
+    <select id="findBySubjectAndName" resultMap="BaseResultMap">
+        SELECT id, subject_id, parent_id, name, code, description, order_num, enabled, create_time, update_time
+        FROM exam_category
+        WHERE subject_id = #{subjectId} AND name = #{name}
+    </select>
+
+    <!-- 根据科目和编码查询 -->
+    <select id="findBySubjectAndCode" resultMap="BaseResultMap">
+        SELECT id, subject_id, parent_id, name, code, description, order_num, enabled, create_time, update_time
+        FROM exam_category
+        WHERE subject_id = #{subjectId} AND code = #{code}
+    </select>
+
+    <!-- 检查名称是否存在 -->
+    <select id="existsByName" resultType="int">
+        SELECT COUNT(*)
+        FROM exam_category
+        WHERE subject_id = #{subjectId} AND name = #{name}
+        <if test="excludeId != null">
+            AND id != #{excludeId}
+        </if>
+    </select>
+
+    <!-- 检查编码是否存在 -->
+    <select id="existsByCode" resultType="int">
+        SELECT COUNT(*)
+        FROM exam_category
+        WHERE subject_id = #{subjectId} AND code = #{code}
+        <if test="excludeId != null">
+            AND id != #{excludeId}
+        </if>
+    </select>
+
+    <!-- 插入分类 -->
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO exam_category (subject_id, parent_id, name, code, description, order_num, enabled)
+        VALUES (#{subjectId}, #{parentId}, #{name}, #{code}, #{description}, #{orderNum}, #{enabled})
+    </insert>
+
+    <!-- 更新分类 -->
+    <update id="update">
+        UPDATE exam_category
+        SET subject_id = #{subjectId},
+            parent_id = #{parentId},
+            name = #{name},
+            code = #{code},
+            description = #{description},
+            order_num = #{orderNum},
+            enabled = #{enabled}
+        WHERE id = #{id}
+    </update>
+
+    <!-- 删除分类 -->
+    <delete id="deleteById">
+        DELETE FROM exam_category WHERE id = #{id}
+    </delete>
+
+    <!-- 统计真题引用数量 -->
+    <select id="countExamQuestionsByCategory" resultType="int">
+        SELECT COUNT(*)
+        FROM exam_question
+        WHERE subject_id = #{subjectId}
+          AND category IS NOT NULL
+          AND JSON_CONTAINS(category, JSON_QUOTE(#{categoryName}))
+    </select>
+
+    <!-- 统计模拟题引用数量 -->
+    <select id="countMockQuestionsByCategory" resultType="int">
+        SELECT COUNT(*)
+        FROM mock_question
+        WHERE subject_id = #{subjectId}
+          AND category IS NOT NULL
+          AND JSON_CONTAINS(category, JSON_QUOTE(#{categoryName}))
+    </select>
+
+    <!-- 统计去重后的题目总数（按科目，支持题目类型筛选） -->
+    <select id="countDistinctQuestionsBySubject" resultType="int">
+        <choose>
+            <!-- 模拟题统计 -->
+            <when test="questionType == 'mock'">
+                SELECT COUNT(*)
+                FROM mock_question
+                WHERE subject_id = #{subjectId}
+                  AND category IS NOT NULL
+                  AND JSON_LENGTH(category) > 0
+            </when>
+            <!-- 默认：真题统计 -->
+            <otherwise>
+                SELECT COUNT(*)
+                FROM exam_question
+                WHERE subject_id = #{subjectId}
+                  AND category IS NOT NULL
+                  AND JSON_LENGTH(category) > 0
+            </otherwise>
+        </choose>
+    </select>
+
+    <!-- 统计去重后的题目总数（全局，支持题目类型筛选） -->
+    <select id="countDistinctQuestionsTotal" resultType="int">
+        <choose>
+            <!-- 模拟题统计 -->
+            <when test="questionType == 'mock'">
+                SELECT COUNT(*)
+                FROM mock_question
+                WHERE category IS NOT NULL
+                  AND JSON_LENGTH(category) > 0
+            </when>
+            <!-- 默认：真题统计 -->
+            <otherwise>
+                SELECT COUNT(*)
+                FROM exam_question
+                WHERE category IS NOT NULL
+                  AND JSON_LENGTH(category) > 0
+            </otherwise>
+        </choose>
+    </select>
+
+    <!-- 
+        批量更新真题表中的分类名称
+        当分类名称变更时，同步更新所有引用该分类的题目
+        使用 JSON_SET 和 JSON_SEARCH 实现 JSON 数组中的值替换
+    -->
+    <update id="updateExamQuestionCategoryName">
+        UPDATE exam_question
+        SET category = JSON_SET(
+            category,
+            JSON_UNQUOTE(JSON_SEARCH(category, 'one', #{oldName})),
+            #{newName}
+        )
+        WHERE subject_id = #{subjectId}
+          AND category IS NOT NULL
+          AND JSON_CONTAINS(category, JSON_QUOTE(#{oldName}))
+    </update>
+
+    <!-- 批量更新模拟题表中的分类名称 -->
+    <update id="updateMockQuestionCategoryName">
+        UPDATE mock_question
+        SET category = JSON_SET(
+            category,
+            JSON_UNQUOTE(JSON_SEARCH(category, 'one', #{oldName})),
+            #{newName}
+        )
+        WHERE subject_id = #{subjectId}
+          AND category IS NOT NULL
+          AND JSON_CONTAINS(category, JSON_QUOTE(#{oldName}))
+    </update>
+
+</mapper>
