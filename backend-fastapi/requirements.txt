@@ -1,0 +1,27 @@
+# FastAPI Backend Dependencies
+# 408Web 后端项目依赖管理
+
+# Web Framework
+fastapi[standard]
+uvicorn[standard]
+httpx
+
+# Data Validation & Settings
+pydantic
+pydantic-settings
+
+# ORM & Database
+sqlmodel
+aiosqlite
+
+# Authentication
+python-jose[cryptography]
+passlib[bcrypt]
+
+# File Handling
+python-multipart
+aiofiles
+
+# Development & Testing
+pytest
+pytest-asyncio

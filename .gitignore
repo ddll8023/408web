@@ -1,0 +1,11 @@
+.claude
+.github
+.idea
+
+backend-fastapi/.conda
+backend-fastapi/nul
+backend-fastapi/logs
+
+frontend/node_modules
+
+nul

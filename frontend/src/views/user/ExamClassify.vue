@@ -213,7 +213,31 @@ const groupedQuestions = computed(() => {
       : ['未分类']
 
     categories.forEach((cat) => {
-      if (filterCategory.value && cat !== filterCategory.value) return
+      // 如果选中了分类，进行匹配判断
+      if (filterCategory.value) {
+        // 优先精确匹配
+        if (cat === filterCategory.value) {
+          // 精确匹配，使用 filterCategory 作为分组名
+          if (!groupsMap.has(filterCategory.value)) {
+            groupsMap.set(filterCategory.value, [])
+          }
+          groupsMap.get(filterCategory.value).push(exam)
+          return
+        }
+        // 如果精确匹配失败，检查其他分类是否包含 filterCategory（部分匹配）
+        // 只对非精确匹配的分类进行部分匹配检查
+        if (cat.includes(filterCategory.value)) {
+          if (!groupsMap.has(cat)) {
+            groupsMap.set(cat, [])
+          }
+          groupsMap.get(cat).push(exam)
+          return
+        }
+        // 不匹配，跳过该分类
+        return
+      }
+
+      // 没有 filterCategory 时，正常按原分类分组
       if (!groupsMap.has(cat)) {
         groupsMap.set(cat, [])
       }
