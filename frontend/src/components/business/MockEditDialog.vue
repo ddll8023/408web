@@ -359,9 +359,20 @@ const handleCancel = () => {
 }
 </script>
 
-<style lang="scss" scoped>
-/* 使用公共 mixin 替代重复样式 */
+<style scoped>
+/* 编辑器表单项样式 - 修复标签与编辑器对齐 */
 .editor-form-item {
-  @include editor-form-item;
+  align-items: flex-start !important;
+}
+
+.editor-form-item :deep(.el-form-item__label) {
+  padding-top: 10px;
+  line-height: 20px;
+}
+
+.editor-form-item :deep(.el-form-item__content) {
+  flex: 1;
+  min-width: 0;
+  line-height: normal;
 }
 </style>

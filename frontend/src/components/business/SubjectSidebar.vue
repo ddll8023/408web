@@ -1,50 +1,64 @@
 <template>
-  <!-- 
+  <!--
     科目侧边栏组件（重构版）
     功能：展示科目列表和多级分类树
     遵循KISS原则：使用递归组件简化多级分类渲染
     遵循SOLID原则：分类树渲染逻辑委托给 CategoryTreeItem 组件
   -->
-  <aside class="sidebar-container" :class="{ collapsed: isCollapsed }">
-    <div class="sidebar-header">
-      <transition name="fade">
-        <h3 v-if="!isCollapsed">科目导航</h3>
+  <aside
+    class="sidebar-container flex flex-col flex-shrink-0 h-full border-r border-black/5 transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] bg-[#FBF7F2]"
+    :class="{ 'w-16': isCollapsed, 'w-[260px]': !isCollapsed }"
+  >
+    <div class="sidebar-header flex items-center justify-between px-4 py-0 border-b border-black/3 flex-shrink-0 gap-2 h-14">
+      <transition name="fade" mode="out-in">
+        <h3 v-if="!isCollapsed" class="text-base font-semibold text-gray-900 whitespace-nowrap overflow-hidden flex-1 m-0">科目导航</h3>
       </transition>
-      <div class="header-actions">
-        <div class="collapse-all-btn" @click="collapseAll" v-if="!isCollapsed">
-          <el-icon><Fold /></el-icon>
+      <div class="header-actions flex items-center gap-2 flex-shrink-0">
+        <div
+          class="collapse-all-btn flex items-center gap-1 px-2 py-1 rounded cursor-pointer text-gray-400 text-xs transition-all whitespace-nowrap"
+          @click="collapseAll"
+          v-if="!isCollapsed"
+        >
+          <el-icon class="text-sm"><Fold /></el-icon>
           <span>全部折叠</span>
         </div>
-        <div class="toggle-btn" @click="toggleCollapse">
+        <div
+          class="toggle-btn w-7 h-7 flex items-center justify-center rounded cursor-pointer text-gray-400 transition-all flex-shrink-0"
+          @click="toggleCollapse"
+        >
           <el-icon><component :is="isCollapsed ? 'Expand' : 'Fold'" /></el-icon>
         </div>
       </div>
     </div>
-    
-    <el-scrollbar class="sidebar-scroll">
-      <div class="subject-list">
+
+    <el-scrollbar class="sidebar-scroll flex-1 py-3">
+      <div class="subject-list px-2">
         <div
           v-for="sub in subjects"
           :key="sub.id"
-          class="subject-group"
+          class="subject-group mb-1"
         >
-          <div 
-            class="subject-item"
-            :class="{ 
-              active: activeSubjectId === sub.id,
+          <div
+            class="subject-item mx-0 mb-0.5 rounded-lg cursor-pointer transition-all duration-200 px-2 py-0"
+            :class="{
+              'active bg-[rgba(139,111,71,0.08)]': activeSubjectId === sub.id,
+              'hover:bg-black/3': activeSubjectId !== sub.id
             }"
           >
-            <div class="item-content" @click="onToggleExpand(sub)">
-              <div class="icon-area">
-                <el-icon class="expand-icon" :class="{ 'is-expanded': expandedSubjectId === sub.id }">
+            <div class="item-content flex items-center h-11 px-2 w-full" @click="onToggleExpand(sub)">
+              <div class="icon-area flex items-center justify-center w-6 h-6 mr-1 rounded transition-colors duration-200">
+                <el-icon
+                  class="expand-icon text-sm text-gray-400 transition-transform duration-300 ease"
+                  :class="{ 'rotate-90': expandedSubjectId === sub.id }"
+                >
                   <CaretRight />
                 </el-icon>
               </div>
-              <transition name="fade">
-                <span v-if="!isCollapsed" class="item-label">{{ sub.name }}</span>
+              <transition name="fade" mode="out-in">
+                <span v-if="!isCollapsed" class="item-label flex-1 text-base font-medium text-gray-900 whitespace-nowrap overflow-hidden text-ellipsis">{{ sub.name }}</span>
               </transition>
-              <transition name="fade">
-                <span v-if="!isCollapsed && sub.questionCount > 0" class="count-badge">
+              <transition name="fade" mode="out-in">
+                <span v-if="!isCollapsed && sub.questionCount > 0" class="count-badge text-xs text-gray-400 bg-black/5 px-1.5 py-0.5 rounded-full ml-auto">
                   {{ sub.questionCount }}
                 </span>
               </transition>
@@ -55,18 +69,18 @@
           <el-collapse-transition>
             <div
               v-if="getCategoryTree(sub.id).length > 0 && !isCollapsed && expandedSubjectId === sub.id"
-              class="category-list"
+              class="category-list py-0.5 px-0 mt-0.5"
             >
               <!-- 旧版兼容：字符串分类 -->
               <template v-for="cat in getCategoryTree(sub.id)" :key="cat.id || cat">
                 <div
                   v-if="typeof cat === 'string'"
-                  class="category-item legacy-category"
+                  class="category-item legacy-category flex items-center h-9 px-3 py-0 mb-0.5 rounded cursor-pointer text-sm text-gray-500 relative transition-all duration-200"
                   :class="{ active: activeSubjectId === sub.id && filterCategory === cat }"
                   @click.stop="onCategorySelect(sub, cat)"
                 >
-                  <span class="dot-indicator"></span>
-                  <span class="category-label">{{ cat }}</span>
+                  <span class="dot-indicator w-1 h-1 rounded-full bg-gray-400 mr-2 transition-all duration-200 opacity-60"></span>
+                  <span class="category-label flex-1 whitespace-nowrap overflow-hidden text-ellipsis">{{ cat }}</span>
                 </div>
                 <!-- 新版：使用递归组件渲染多级分类树 -->
                 <CategoryTreeItem
@@ -206,252 +220,8 @@ const collapseAll = () => {
 }
 </script>
 
-<style lang="scss" scoped>
-/* 侧边栏容器 */
-.sidebar-container {
-  width: 260px;
-  height: 100%;
-  background-color: $color-primary;
-  display: flex;
-  flex-direction: column;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  border-right: 1px solid rgba(0, 0, 0, 0.05);
-  z-index: 10;
-  flex-shrink: 0;
-  
-  &.collapsed {
-    width: 64px;
-    
-    .subject-item {
-      justify-content: center;
-      padding: 0;
-      
-      .item-content {
-        justify-content: center;
-      }
-      
-      .item-icon {
-        margin-right: 0;
-        font-size: 20px;
-      }
-    }
-  }
-}
-
-.sidebar-header {
-  height: 56px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 16px;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.03);
-  flex-shrink: 0;
-  gap: 8px;
-  
-  h3 {
-    margin: 0;
-    font-size: 16px;
-    color: $color-text-primary;
-    font-weight: 600;
-    white-space: nowrap;
-    overflow: hidden;
-    flex: 1;
-  }
-  
-  .header-actions {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex-shrink: 0;
-  }
-  
-  .collapse-all-btn {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    padding: 4px 8px;
-    border-radius: 4px;
-    cursor: pointer;
-    color: $color-text-secondary;
-    font-size: 13px;
-    transition: all 0.2s;
-    white-space: nowrap;
-    
-    .el-icon {
-      font-size: 14px;
-    }
-    
-    &:hover {
-      background-color: rgba(0, 0, 0, 0.05);
-      color: $color-accent;
-    }
-  }
-
-  .toggle-btn {
-    width: 28px;
-    height: 28px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 4px;
-    cursor: pointer;
-    color: $color-text-secondary;
-    transition: all 0.2s;
-    flex-shrink: 0;
-    
-    &:hover {
-      background-color: rgba(0, 0, 0, 0.05);
-      color: $color-primary;
-    }
-  }
-}
-
-.sidebar-scroll {
-  flex: 1;
-  padding: 12px 0;
-}
-
-.subject-list {
-  padding: 0 8px;
-}
-
-.subject-group {
-  margin-bottom: 4px;
-}
-
-.subject-item {
-  padding: 0 8px;
-  margin-bottom: 2px;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  
-  .item-content {
-    display: flex;
-    align-items: center;
-    height: 44px;
-    padding: 0 8px;
-    width: 100%;
-  }
-
-  .icon-area {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 24px;
-    height: 24px;
-    margin-right: 4px;
-    border-radius: 4px;
-    transition: background-color 0.2s;
-    
-    &:hover {
-      background-color: rgba(0, 0, 0, 0.05);
-    }
-  }
-  
-  .item-label {
-    flex: 1;
-    font-size: 15px;
-    color: $color-text-primary;
-    font-weight: 500;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .expand-icon {
-    font-size: 14px;
-    transition: transform 0.3s ease;
-    color: $color-text-secondary;
-    
-    &.is-expanded {
-      transform: rotate(90deg);
-    }
-  }
-
-  .count-badge {
-    font-size: 12px;
-    color: $color-text-secondary;
-    background-color: rgba(0,0,0,0.05);
-    padding: 2px 6px;
-    border-radius: 10px;
-  }
-  
-  &:hover {
-    background-color: rgba(0, 0, 0, 0.03);
-  }
-  
-  &.active {
-    background-color: rgba($color-accent, 0.08);
-    
-    .item-label, .count-badge, .expand-icon {
-      color: $color-accent;
-      font-weight: 600;
-    }
-  }
-}
-
-/* 分类列表容器 */
-.category-list {
-  margin-top: 2px;
-  padding: 2px 0 6px 0;
-}
-
-/* 旧版兼容：字符串分类样式 */
-.category-item.legacy-category {
-  display: flex;
-  align-items: center;
-  height: 36px;
-  padding: 0 12px 0 38px;
-  margin-bottom: 2px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 13px;
-  color: $color-text-regular;
-  transition: all 0.2s ease;
-  position: relative;
-  
-  .dot-indicator {
-    width: 4px;
-    height: 4px;
-    border-radius: 50%;
-    background-color: $color-text-secondary;
-    margin-right: 8px;
-    transition: all 0.2s;
-    opacity: 0.6;
-  }
-  
-  .category-label {
-    flex: 1;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  
-  &:hover {
-    background-color: rgba(0, 0, 0, 0.03);
-    color: $color-text-primary;
-    
-    .dot-indicator {
-      background-color: $color-text-secondary;
-      transform: scale(1.2);
-    }
-  }
-  
-  &.active {
-    background-color: transparent;
-    color: $color-accent;
-    font-weight: 500;
-    
-    .dot-indicator {
-      background-color: $color-accent;
-      transform: scale(1.5);
-      opacity: 1;
-    }
-  }
-}
-
-/* 动画效果 */
+<style scoped>
+/* 动画效果 - 保留 transition 类用于 Vue transition 组件 */
 .fade-enter-active,
 .fade-leave-active {
   transition: opacity 0.2s ease;
@@ -462,21 +232,26 @@ const collapseAll = () => {
   opacity: 0;
 }
 
-/* 响应式布局 */
-@include mobile {
+/* 旋转动画类 */
+.rotate-90 {
+  transform: rotate(90deg);
+}
+
+/* 响应式布局 - 移动端 */
+@media (max-width: 768px) {
   .sidebar-container {
-    width: 100%;
+    width: 100% !important;
     height: auto;
     border-right: none;
     border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-    
-    &.collapsed {
-      width: 100%;
-    }
-    
-    .sidebar-scroll {
-      max-height: 300px; // Limit height on mobile
-    }
+  }
+
+  .sidebar-container.collapsed {
+    width: 100% !important;
+  }
+
+  .sidebar-scroll {
+    max-height: 300px;
   }
 }
 </style>

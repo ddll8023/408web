@@ -169,11 +169,10 @@ const handleLogout = () => {
 }
 </script>
 
-<style lang="scss" scoped>
+<style scoped>
 /**
  * 导航栏组件样式
- * 使用Sass变量和mixins统一管理主题
- * 注：变量和mixins已通过Vite全局注入，无需手动导入
+ * 已迁移到 Tailwind CSS
  */
 
 /* 导航栏容器 */
@@ -182,23 +181,23 @@ const handleLogout = () => {
   top: 0;
   left: 0;
   right: 0;
-  height: $nav-height;
-  // 毛玻璃效果：使用主色调半透明背景 + 背景模糊
+  height: 60px;
+  /* 毛玻璃效果：使用主色调半透明背景 + 背景模糊 */
   background: rgba(251, 247, 242, 0.85);
   backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px); // Safari 浏览器兼容
-  // 微妙的底部边框，增强层次感
+  -webkit-backdrop-filter: blur(10px);
+  /* 微妙的底部边框，增强层次感 */
   border-bottom: 1px solid rgba(0, 0, 0, 0.08);
-  box-shadow: $box-shadow-base;
-  z-index: $z-index-nav;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
 }
 
 /* 导航内容容器 */
 .nav-container {
-  max-width: $container-width-xl;
+  max-width: 1400px;
   height: 100%;
   margin: 0 auto;
-  padding: 0 $spacing-lg;
+  padding: 0 32px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -210,94 +209,94 @@ const handleLogout = () => {
   align-items: center;
   position: relative;
   background: transparent;
-  flex-shrink: 0; // 防止被压缩
-  
-  .search-type-select {
-    width: 90px;
-    
-    :deep(.el-input__wrapper) {
-      border: none;
-      box-shadow: none !important;
-      background: transparent;
-      padding-left: 0;
-      
-      .el-input__inner {
-        color: $color-text-regular;
-        font-size: $font-size-base;
-        
-        &::placeholder {
-          color: $color-text-secondary;
-        }
-      }
-      
-      .el-input__suffix {
-        color: $color-text-secondary;
-      }
-    }
-    
-    :deep(.el-select__caret) {
-      color: $color-text-secondary;
-      transition: $transition-fast;
-    }
-    
-    &:hover :deep(.el-select__caret) {
-      color: $color-accent;
-    }
-  }
-  
-  // 分隔线
-  .search-divider {
-    width: 1px;
-    height: 20px;
-    background: rgba(0, 0, 0, 0.12);
-    margin: 0 $spacing-xs;
-  }
-  
-  .search-input {
-    width: 180px;
-    transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    
-    :deep(.el-input__wrapper) {
-      border: none;
-      box-shadow: none !important;
-      background: transparent;
-      padding-right: 4px;
-      
-      .el-input__inner {
-        color: $color-text-primary;
-        font-size: $font-size-base;
-        
-        &::placeholder {
-          color: $color-text-secondary;
-          transition: $transition-fast;
-        }
-      }
-    }
-    
-    // 聚焦时展开
-    &:focus-within {
-      width: 220px;
-    }
-  }
-  
-  .search-icon {
-    cursor: pointer;
-    color: $color-text-secondary;
-    font-size: 16px;
-    padding: 6px;
-    border-radius: 50%;
-    transition: all 0.2s ease;
-    
-    &:hover {
-      color: $color-accent;
-      background: $color-accent-light;
-      transform: scale(1.1);
-    }
-    
-    &:active {
-      transform: scale(0.95);
-    }
-  }
+  flex-shrink: 0;
+}
+
+.nav-search .search-type-select {
+  width: 90px;
+}
+
+.nav-search .search-type-select :deep(.el-input__wrapper) {
+  border: none;
+  box-shadow: none !important;
+  background: transparent;
+  padding-left: 0;
+}
+
+.nav-search .search-type-select :deep(.el-input__inner) {
+  color: #666;
+  font-size: 14px;
+}
+
+.nav-search .search-type-select :deep(.el-input__inner)::placeholder {
+  color: #999;
+}
+
+.nav-search .search-type-select :deep(.el-input__suffix) {
+  color: #999;
+}
+
+.nav-search .search-type-select :deep(.el-select__caret) {
+  color: #999;
+  transition: all 0.15s ease;
+}
+
+.nav-search .search-type-select:hover :deep(.el-select__caret) {
+  color: #8B6F47;
+}
+
+/* 分隔线 */
+.search-divider {
+  width: 1px;
+  height: 20px;
+  background: rgba(0, 0, 0, 0.12);
+  margin: 0 8px;
+}
+
+.search-input {
+  width: 180px;
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.search-input :deep(.el-input__wrapper) {
+  border: none;
+  box-shadow: none !important;
+  background: transparent;
+  padding-right: 4px;
+}
+
+.search-input :deep(.el-input__inner) {
+  color: #333;
+  font-size: 14px;
+}
+
+.search-input :deep(.el-input__inner)::placeholder {
+  color: #999;
+  transition: all 0.15s ease;
+}
+
+/* 聚焦时展开 */
+.search-input:focus-within {
+  width: 220px;
+}
+
+.search-icon {
+  cursor: pointer;
+  color: #999;
+  font-size: 16px;
+  padding: 6px;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+}
+
+.search-icon:hover {
+  color: #8B6F47;
+  background: rgba(139, 111, 71, 0.1);
+  transform: scale(1.1);
+}
+
+.search-icon:active {
+  transform: scale(0.95);
 }
 
 /* 导航菜单 - 居中 */
@@ -305,112 +304,115 @@ const handleLogout = () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: $spacing-lg;
-  flex: 1; // 占据中间空间实现居中
+  gap: 32px;
+  flex: 1;
 }
 
 /* 导航链接 */
 .nav-link {
-  color: $color-text-primary;
+  color: #333;
   text-decoration: none;
-  font-size: $font-size-medium;
-  padding: $spacing-xs + 2px $spacing-md; // 增加内边距
-  border-radius: $border-radius-base;
-  transition: $transition-base;
+  font-size: 16px;
+  padding: 10px 24px;
+  border-radius: 4px;
+  transition: all 0.3s ease;
   cursor: pointer;
-  @include no-select;
-  
-  &:not(.disabled):hover {
-    background-color: rgba(0, 0, 0, 0.05);
-  }
-  
-  &.disabled {
-    color: $color-disabled;
-    cursor: not-allowed;
-  }
-  
-  /* 激活状态 */
-  &.router-link-active:not(.disabled) {
-    background-color: rgba(0, 0, 0, 0.08);
-    color: $color-text-primary;
-  }
-  
-  /* 下拉菜单触发器样式 */
-  &.dropdown-trigger {
-    display: inline-flex;
-    align-items: center;
-    cursor: pointer;
-    @include no-select;
-    
-    .el-icon {
-      margin-left: 6px; // 增加图标间距
-      font-size: 12px;
-      transition: transform $transition-fast;
-    }
-    
-    &:hover .el-icon {
-      transform: translateY(1px);
-    }
-  }
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.nav-link:not(.disabled):hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.nav-link.disabled {
+  color: #7f8c8d;
+  cursor: not-allowed;
+}
+
+/* 激活状态 */
+.nav-link.router-link-active:not(.disabled) {
+  background-color: rgba(0, 0, 0, 0.08);
+  color: #333;
+}
+
+/* 下拉菜单触发器样式 */
+.nav-link.dropdown-trigger {
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.nav-link.dropdown-trigger .el-icon {
+  margin-left: 6px;
+  font-size: 12px;
+  transition: transform 0.15s ease;
+}
+
+.nav-link.dropdown-trigger:hover .el-icon {
+  transform: translateY(1px);
 }
 
 /* 用户信息区域 - 靠右 */
 .nav-user {
   display: flex;
   align-items: center;
-  gap: $spacing-sm;
-  flex-shrink: 0; // 防止被压缩
+  gap: 16px;
+  flex-shrink: 0;
 }
 
 .username {
-  color: $color-text-primary;
-  font-size: $font-size-base;
+  color: #333;
+  font-size: 14px;
   cursor: pointer;
-  padding: $spacing-xs $spacing-sm; // 增加内边距
-  margin-right: $spacing-xs; // 与按钮保持间距
-  border-radius: $border-radius-base;
-  transition: $transition-base;
-  @include no-select;
-  
-  &:hover {
-    background-color: rgba(0, 0, 0, 0.05);
-    color: $color-accent;
-  }
+  padding: 8px 16px;
+  margin-right: 8px;
+  border-radius: 4px;
+  transition: all 0.3s ease;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.username:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+  color: #8B6F47;
 }
 
 /* 响应式布局 */
-@include mobile {
+@media (max-width: 768px) {
   .nav-container {
-    padding: 0 $spacing-sm;
+    padding: 0 16px;
   }
 
   .nav-search {
-    margin: 0 $spacing-sm;
-    
-    .search-input {
-      width: 120px;
-      
-      &:focus-within {
-        width: 150px;
-      }
-    }
+    margin: 0 16px;
+  }
+
+  .search-input {
+    width: 120px;
+  }
+
+  .search-input:focus-within {
+    width: 150px;
   }
 
   .nav-menu {
-    gap: $spacing-sm;
+    gap: 16px;
   }
 
   .nav-link {
-    font-size: $font-size-base;
-    padding: $spacing-xs $spacing-sm;
+    font-size: 14px;
+    padding: 8px 16px;
   }
 
   .username {
     display: none;
   }
-  
+
   .nav-user {
-    gap: $spacing-xs;
+    gap: 8px;
   }
 }
 </style>

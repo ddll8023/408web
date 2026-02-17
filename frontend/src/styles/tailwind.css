@@ -1,0 +1,110 @@
+@import "tailwindcss";
+
+/* ==================== 基础样式重置 ==================== */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html,
+body {
+  width: 100%;
+  height: 100%;
+  font-family: 'Helvetica Neue', Helvetica, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', Arial, sans-serif;
+  font-size: 14px;
+  color: #333;
+  background-color: #FBF7F2;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#app {
+  width: 100%;
+  min-height: 100%;
+}
+
+/* ==================== 通用样式类 ==================== */
+
+/* 主内容区域 */
+.main-content {
+  min-height: 100vh;
+}
+
+.main-content.with-nav {
+  padding-top: 60px;
+}
+
+/* 文本颜色工具类 */
+.text-primary {
+  color: #333;
+}
+
+.text-regular {
+  color: #666;
+}
+
+.text-secondary {
+  color: #999;
+}
+
+/* Flex布局工具类 */
+.flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.flex-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* KaTeX 数学公式样式 */
+.katex {
+  font: normal 1em KaTeX_Main, 'Times New Roman', serif;
+  line-height: 1.2;
+}
+
+.katex .mord,
+.katex .mop,
+.katex .mbin,
+.katex .mrel,
+.katex .mopen,
+.katex .mclose,
+.katex .mpunct,
+.katex .minner {
+  line-height: 1.2;
+}
+
+.katex-display > .katex {
+  white-space: normal;
+}
+
+/* Element Plus Dialog 覆盖 */
+.el-dialog__footer .el-button + .el-button {
+  margin-left: 12px;
+}
+
+/* ==================== 滚动条样式 ==================== */
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(0, 0, 0, 0.3);
+}
+
+::-webkit-scrollbar-track {
+  background-color: transparent;
+}

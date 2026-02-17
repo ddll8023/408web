@@ -8,38 +8,42 @@
   <div class="category-tree-item">
     <!-- 当前分类节点 -->
     <div
-      class="category-item"
-      :class="{ 
-        active: isActive,
-        expanded: isExpanded,
-        'has-children': hasChildren
+      class="category-item flex items-center h-[36px] pr-3 mb-[2px] rounded-[6px] cursor-pointer text-[13px] text-gray-600 transition-all duration-200 relative hover:bg-black/5"
+      :class="{
+        'bg-gray-50 text-gray-900': isActive,
+        'text-gray-900 font-medium': hasChildren && isExpanded,
+        'text-[#8B6F47] font-medium': isActive
       }"
       :style="{ paddingLeft: `${baseIndent + level * indentStep}px` }"
       @click.stop="handleClick"
     >
       <!-- 展开/折叠图标（有子分类时显示） -->
-      <span 
+      <span
         v-if="hasChildren"
-        class="expand-icon-wrapper"
+        class="expand-icon-wrapper flex items-center justify-center w-4 h-4 mr-1 rounded-[3px] flex-shrink-0 hover:bg-black/5"
         @click.stop="toggleExpand"
       >
-        <el-icon class="category-expand-icon" :class="{ 'is-expanded': isExpanded }">
+        <el-icon class="category-expand-icon text-[12px] transition-transform duration-300 text-gray-400" :class="{ 'rotate-90': isExpanded, 'text-[#8B6F47]': isActive || (hasChildren && isExpanded) }">
           <CaretRight />
         </el-icon>
       </span>
       <!-- 无子分类时显示圆点指示器 -->
-      <span v-else class="dot-indicator" :class="{ small: level > 0 }"></span>
-      
+      <span
+        v-else
+        class="dot-indicator w-1 h-1 rounded-full bg-gray-400 mr-2 transition-all duration-200 opacity-60 flex-shrink-0"
+        :class="{ 'w-[3px] h-[3px]': level > 0, 'bg-[#8B6F47] scale-150 opacity-100': isActive }"
+      ></span>
+
       <!-- 分类名称 -->
-      <span class="category-label">{{ category.name }}</span>
-      
+      <span class="category-label flex-1 truncate" :class="{ 'text-[#8B6F47]': isActive }">{{ category.name }}</span>
+
       <!-- 题目数量标签 -->
-      <span v-if="totalCount > 0" class="category-count">{{ totalCount }}</span>
+      <span v-if="totalCount > 0" class="category-count text-[11px] text-gray-400 bg-black/5 px-[5px] py-0.5 rounded-[8px] ml-1 flex-shrink-0">{{ totalCount }}</span>
     </div>
 
     <!-- 子分类列表（递归渲染） -->
     <el-collapse-transition>
-      <div v-if="hasChildren && isExpanded" class="sub-category-list">
+      <div v-if="hasChildren && isExpanded" class="sub-category-list mt-[2px] pb-1">
         <CategoryTreeItem
           v-for="child in category.children"
           :key="child.id"
@@ -176,126 +180,8 @@ const handleChildToggleExpand = (categoryId) => {
 }
 </script>
 
-<style lang="scss" scoped>
-/* 分类树节点容器 - 作为递归结构的包装 */
-.category-tree-item {
-  width: 100%;
-}
-
-.category-item {
-  display: flex;
-  align-items: center;
-  height: 36px;
-  padding-right: 12px;
-  margin-bottom: 2px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 13px;
-  color: $color-text-regular;
-  transition: all 0.2s ease;
-  position: relative;
-  
-  .dot-indicator {
-    width: 4px;
-    height: 4px;
-    border-radius: 50%;
-    background-color: $color-text-secondary;
-    margin-right: 8px;
-    transition: all 0.2s;
-    opacity: 0.6;
-    flex-shrink: 0;
-    
-    &.small {
-      width: 3px;
-      height: 3px;
-    }
-  }
-  
-  .expand-icon-wrapper {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 16px;
-    height: 16px;
-    margin-right: 4px;
-    border-radius: 3px;
-    flex-shrink: 0;
-    
-    &:hover {
-      background-color: rgba(0, 0, 0, 0.08);
-    }
-  }
-  
-  .category-expand-icon {
-    font-size: 12px;
-    transition: transform 0.3s ease;
-    color: $color-text-secondary;
-    
-    &.is-expanded {
-      transform: rotate(90deg);
-    }
-  }
-  
-  .category-label {
-    flex: 1;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  
-  .category-count {
-    font-size: 11px;
-    color: $color-text-secondary;
-    background-color: rgba(0, 0, 0, 0.04);
-    padding: 1px 5px;
-    border-radius: 8px;
-    margin-left: 4px;
-    flex-shrink: 0;
-  }
-  
-  &:hover {
-    background-color: rgba(0, 0, 0, 0.03);
-    color: $color-text-primary;
-    
-    .dot-indicator {
-      background-color: $color-text-secondary;
-      transform: scale(1.2);
-    }
-  }
-  
-  &.active {
-    background-color: transparent;
-    color: $color-accent;
-    font-weight: 500;
-    
-    .dot-indicator {
-      background-color: $color-accent;
-      transform: scale(1.5);
-      opacity: 1;
-    }
-    
-    .category-expand-icon {
-      color: $color-accent;
-    }
-  }
-  
-  // 有子分类的父分类样式
-  &.has-children {
-    font-weight: 500;
-    
-    &.expanded {
-      color: $color-text-primary;
-      
-      .category-expand-icon {
-        color: $color-accent;
-      }
-    }
-  }
-}
-
-// 子分类列表容器
-.sub-category-list {
-  margin-top: 2px;
-  padding-bottom: 4px;
+<style scoped>
+.rotate-90 {
+  transform: rotate(90deg);
 }
 </style>

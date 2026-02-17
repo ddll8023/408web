@@ -12,7 +12,7 @@ import App from './App.vue'
 import router from './router'
 
 // 导入全局样式（包含全局重置和通用样式）
-import '@/styles/global.scss'
+import '@/styles/tailwind.css'
 
 // 创建Vue应用实例
 const app = createApp(App)

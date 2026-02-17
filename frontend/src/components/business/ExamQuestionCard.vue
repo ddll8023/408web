@@ -215,15 +215,16 @@ const correctOptionKeys = computed(() => {
 })
 </script>
 
-<style lang="scss" scoped>
+<style scoped>
 /**
  * 题目卡片样式 - 卡片分层式布局
  * 设计理念：题目与答案独立卡片，增强视觉层次感
  * 遵循项目设计规范：米色主题 + 深棕色强调色
  * Source: 基于 KISS/YAGNI/SOLID 原则重构
+ * 已迁移至 Tailwind CSS
  */
 
-/* 答题反馈动画 */
+/* 答题反馈动画 - CSS 动画无法用 Tailwind 完全替代 */
 @keyframes shake {
   0%, 100% { transform: translateX(0); }
   10%, 30%, 50%, 70%, 90% { transform: translateX(-4px); }
@@ -234,363 +235,6 @@ const correctOptionKeys = computed(() => {
   0% { transform: scale(1); }
   50% { transform: scale(1.02); background-color: rgba(103, 194, 58, 0.15); }
   100% { transform: scale(1); }
-}
-
-.exam-question-card {
-  /* 题目卡片（白色） */
-  &__question-card {
-    position: relative;                     // 相对定位，用于定位复制按钮
-    background-color: $color-bg-white;     // 纯白色
-    border: 1px solid $color-border-light; // #dfe2e5
-    border-radius: $border-radius-base;    // 4px
-    box-shadow: $box-shadow-light;         // 0 2px 4px rgba(0, 0, 0, 0.08)
-    padding: $spacing-md;                  // 24px
-    margin-bottom: $spacing-md;            // 24px（与答案卡片间距）
-    transition: $transition-base;          // 0.3s
-    
-    &:hover {
-      box-shadow: $box-shadow-base;        // 0 2px 8px rgba(0, 0, 0, 0.1) - hover增强阴影
-    }
-  }
-  
-  &__question-content {
-    width: 100%;                           // 确保容器占满宽度
-    overflow: hidden;                      // 防止内容溢出
-    
-    // Markdown纯净模式，无额外padding
-    :deep(.v-md-editor-preview) {
-      padding: 0;
-      background-color: transparent;
-    }
-
-    :deep(.github-markdown-body) {
-      padding: 0;                          // 收紧 GitHub Markdown 默认内边距
-    }
-    
-    // SVG自适应约束 - 防止题目中的SVG溢出
-    :deep(svg) {
-      max-width: 100% !important;
-      height: auto !important;
-      display: block;
-      margin: $spacing-sm auto;            // 居中显示，上下留间距
-    }
-    
-    // 图片居中
-    :deep(img) {
-      display: block;
-      margin-left: auto;
-      margin-right: auto;
-    }
-    
-    // 表格居中
-    :deep(table) {
-      margin-left: auto;
-      margin-right: auto;
-    }
-  }
-
-  /* 选项列表（紧凑） */
-  &__option-list {
-    list-style: none;
-    margin: $spacing-xs 0 0 0;             // 8px顶部间距（紧凑）
-    padding: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;                              // 8px行距
-  }
-
-  &__option-row {
-    display: flex;
-    align-items: center;                   // 垂直居中
-    gap: 6px;                              // 6px字母与内容间距
-    padding: 4px 10px 4px 8px;             // 内边距
-    min-height: 44px;                      // 最小高度保持视觉一致
-    border: 1px solid $color-border-light; // 浅灰边框增加区分度
-    border-left: 3px solid $color-accent-light; // 左侧浅棕色指示条
-    border-radius: $border-radius-base;    // 4px
-    background-color: $color-bg-white;     // 白色背景
-    transition: $transition-fast;          // 0.15s
-
-    &:hover {
-      border-color: $color-border-light;
-      border-left-color: $color-accent;    // 左侧指示条高亮
-      background-color: $color-accent-light; // rgba(139, 111, 71, 0.1)
-    }
-
-    // 可点击状态（答案未显示时）
-    &--clickable {
-      cursor: pointer;
-      
-      &:hover {
-        border-left-color: $color-accent;
-        background-color: $color-accent-light;
-        
-        .exam-question-card__option-letter {
-          background-color: $color-accent;
-          color: $color-bg-white;          // hover时字母反色
-          border-color: $color-accent;
-        }
-      }
-      
-      &:active {
-        background-color: rgba($color-accent, 0.15);
-      }
-    }
-
-    // 用户选中的选项（答案未显示时的视觉反馈）
-    &--selected {
-      border-color: rgba($color-primary, 0.3);
-      border-left-color: $color-primary;   // 左侧指示条蓝色
-      background-color: rgba(64, 158, 255, 0.1);
-      
-      .exam-question-card__option-letter {
-        border-color: $color-primary;
-        color: $color-primary;
-        background-color: rgba(64, 158, 255, 0.1);
-      }
-    }
-
-    // 用户选择的错误选项（显示答案时）
-    &--wrong {
-      animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
-      border-color: rgba($color-danger, 0.3);
-      border-left-color: $color-danger;    // 左侧指示条红色
-      background-color: rgba(245, 108, 108, 0.1);
-      
-      .exam-question-card__option-letter {
-        border-color: $color-danger;
-        color: $color-danger;
-        background-color: rgba(245, 108, 108, 0.1);
-      }
-    }
-
-    // 正确答案（显示答案时）
-    &--correct {
-      border-color: rgba($color-success, 0.3);
-      border-left-color: $color-success;   // 左侧指示条绿色
-      background-color: rgba(103, 194, 58, 0.08);
-      
-      .exam-question-card__option-letter {
-        border-color: $color-success;
-        color: $color-success;
-        background-color: rgba(103, 194, 58, 0.1);
-      }
-    }
-
-    // 用户选中的正确选项（显示答案时的视觉反馈）
-    &--selected-correct {
-      animation: pulse-success 0.6s ease-out both;
-      border-color: rgba($color-success, 0.3);
-      border-left-color: $color-success;
-      background-color: rgba(103, 194, 58, 0.12);
-      
-      .exam-question-card__option-letter {
-        background-color: $color-success;
-        color: #fff;
-        border-color: $color-success;
-      }
-    }
-  }
-
-  &__option-letter {
-    flex-shrink: 0;
-    width: 22px;                           // 22px（稍大提升可点击性）
-    height: 22px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: 1.5px solid $color-accent;     // 深棕色圆圈
-    color: $color-accent;
-    border-radius: 50%;
-    font-weight: $font-weight-bold;        // 600
-    font-size: 12px;                       // 12px
-    line-height: 1;
-    background-color: $color-bg-white;     // 白色背景增强对比度
-    transition: $transition-fast;
-  }
-
-  &__option-body {
-    flex: 1;
-    min-width: 0;
-    line-height: 1.4;
-    overflow: hidden;
-    display: flex;
-    align-items: center;
-    
-    // 强制紧凑：移除 MarkdownViewer 内部所有额外间距
-    :deep(.markdown-viewer) {
-      width: 100%;
-      min-height: auto !important;         // 移除最小高度限制
-    }
-    
-    :deep(.v-md-editor-preview) {
-      padding: 0 !important;               // 移除内边距
-      min-height: auto !important;
-    }
-    
-    :deep(.github-markdown-body) {
-      padding: 0 !important;
-      font-size: $font-size-base;          // 14px
-    }
-    
-    :deep(p) {
-      margin: 0 !important;
-      padding: 0 !important;
-      line-height: 1.5;
-    }
-    
-    :deep(img) {
-      max-height: 80px !important;         // 选项图片极小
-      margin: 2px 0 !important;
-    }
-
-    :deep(svg) {
-      max-width: 100% !important;
-      height: auto !important;
-      max-height: 60px !important;         // SVG也限制高度
-      display: block;
-      margin: 2px auto !important;
-    }
-  }
-
-  &__option-text {
-    white-space: pre-line;                 // 保留原始换行
-    color: $color-text-primary;
-    font-size: $font-size-base;
-    margin: 0;                             // 去除额外间距，保持高度紧凑
-  }
-
-  /* 答案卡片（米色主题） */
-  .answer-card {
-    background-color: rgba(251, 247, 242, 0.5); // 米色半透明 #FBF7F2
-    border: 1px solid rgba(139, 111, 71, 0.2);  // 深棕色淡边框
-    border-left: 4px solid $color-accent;       // 左侧强调条（深棕色）
-    border-radius: $border-radius-base;         // 4px
-    padding: $spacing-sm;                       // 16px
-    box-shadow: $box-shadow-light;              // 0 2px 4px rgba(0, 0, 0, 0.08)
-    transition: $transition-base;               // 0.3s
-
-    .answer-header {
-      display: flex;
-      align-items: center;
-      gap: $spacing-xs;                         // 8px
-      margin-bottom: $spacing-sm;               // 16px
-
-      .answer-icon {
-        font-size: $font-size-large;            // 18px
-        color: $color-accent;                   // 深棕色
-      }
-      
-      span {
-        font-size: $font-size-base;             // 14px
-        font-weight: $font-weight-medium;       // 500
-        color: $color-text-primary;             // #333
-      }
-    }
-
-    .answer-content {
-      padding: $spacing-sm;                     // 16px
-      background-color: $color-bg-white;        // 白色内容区
-      border-radius: $border-radius-small;      // 2px
-      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05); // 轻微内阴影
-      overflow: hidden;                         // 防止内容溢出
-      
-      // SVG自适应约束 - 防止答案中的SVG溢出
-      :deep(svg) {
-        max-width: 100% !important;
-        height: auto !important;
-        display: block;
-        margin: $spacing-sm auto;              // 居中显示，上下留间距
-      }
-      
-      // 图片居中
-      :deep(img) {
-        display: block;
-        margin-left: auto;
-        margin-right: auto;
-      }
-      
-      // 表格居中
-      :deep(table) {
-        margin-left: auto;
-        margin-right: auto;
-      }
-    }
-
-    .answer-placeholder {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: $spacing-xs;                         // 8px
-      padding: $spacing-md;                     // 24px
-      background-color: rgba(255, 255, 255, 0.8);
-      border-radius: $border-radius-small;      // 2px
-      border: 2px dashed $color-border-base;    // #dcdfe6
-      color: $color-text-secondary;             // #999
-      font-size: $font-size-base;               // 14px
-      
-      .el-icon {
-        font-size: $font-size-large;            // 18px
-      }
-    }
-  }
-
-  /* 密度：comfortable（稍大） */
-  &[data-density='comfortable'] {
-    .question-card {
-      padding: $spacing-lg;                     // 32px（更宽松）
-    }
-    
-    .option-row {
-      padding: 6px 10px;                        // 适度上下内边距
-    }
-    
-    .option-list {
-      gap: $spacing-sm;                         // 16px行距
-      margin-top: $spacing-md;                  // 24px顶部间距
-    }
-    
-    .option-letter {
-      width: 22px;                              // 稍大
-      height: 22px;
-      font-size: $font-size-small;              // 12px
-    }
-    
-    .option-body {
-      line-height: 1.5;                         // 稍微放松行高
-    }
-  }
-
-  /* 移动端优化 */
-  @include mobile {
-    .question-card,
-    .answer-card {
-      padding: $spacing-sm;                     // 16px（缩小内边距）
-    }
-    
-    .question-card {
-      margin-bottom: $spacing-sm;               // 16px（缩小卡片间距）
-    }
-    
-    .exam-question-card__option-row {
-      padding: 2px 6px 2px 4px;                 // 移动端极度紧凑
-      gap: 4px;
-    }
-    
-    .exam-question-card__option-letter {
-      width: 20px;                              // 移动端稍小
-      height: 20px;
-      font-size: 11px;
-    }
-    
-    .exam-question-card__option-body {
-      line-height: 1.3;                         // 移动端更紧凑行高
-    }
-    
-    .exam-question-card__option-list {
-      gap: 3px;                                 // 移动端更紧凑间距
-    }
-  }
 }
 
 /* ==================== 答案展开/收起过渡动画 ==================== */
@@ -609,7 +253,7 @@ const correctOptionKeys = computed(() => {
 .answer-expand-enter-to {
   opacity: 1;
   transform: translateY(0);
-  max-height: 1000px; // 足够大的值覆盖大多数内容
+  max-height: 1000px;
 }
 
 .answer-expand-leave-from {
@@ -624,6 +268,363 @@ const correctOptionKeys = computed(() => {
   max-height: 0;
 }
 
+/* 题目卡片（白色） */
+.exam-question-card__question-card {
+  position: relative;
+  background-color: #fff;
+  border: 1px solid #dfe2e5;
+  border-radius: 4px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+  padding: 24px;
+  margin-bottom: 24px;
+  transition: all 0.3s ease;
+}
+
+.exam-question-card__question-card:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.exam-question-card__question-content {
+  width: 100%;
+  overflow: hidden;
+}
+
+/* Markdown纯净模式，无额外padding */
+.exam-question-card__question-content :deep(.v-md-editor-preview) {
+  padding: 0;
+  background-color: transparent;
+}
+
+.exam-question-card__question-content :deep(.github-markdown-body) {
+  padding: 0;
+}
+
+/* SVG自适应约束 - 防止题目中的SVG溢出 */
+.exam-question-card__question-content :deep(svg) {
+  max-width: 100% !important;
+  height: auto !important;
+  display: block;
+  margin: 16px auto;
+}
+
+/* 图片居中 */
+.exam-question-card__question-content :deep(img) {
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* 表格居中 */
+.exam-question-card__question-content :deep(table) {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* 选项列表（紧凑） */
+.exam-question-card__option-list {
+  list-style: none;
+  margin: 8px 0 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.exam-question-card__option-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px 4px 8px;
+  min-height: 44px;
+  border: 1px solid #dfe2e5;
+  border-left: 3px solid rgba(139, 111, 71, 0.1);
+  border-radius: 4px;
+  background-color: #fff;
+  transition: all 0.15s ease;
+}
+
+.exam-question-card__option-row:hover {
+  border-color: #dfe2e5;
+  border-left-color: #8B6F47;
+  background-color: rgba(139, 111, 71, 0.1);
+}
+
+/* 可点击状态（答案未显示时） */
+.exam-question-card__option-row--clickable {
+  cursor: pointer;
+}
+
+.exam-question-card__option-row--clickable:hover {
+  border-left-color: #8B6F47;
+  background-color: rgba(139, 111, 71, 0.1);
+}
+
+.exam-question-card__option-row--clickable:hover .exam-question-card__option-letter {
+  background-color: #8B6F47;
+  color: #fff;
+  border-color: #8B6F47;
+}
+
+.exam-question-card__option-row--clickable:active {
+  background-color: rgba(139, 111, 71, 0.15);
+}
+
+/* 用户选中的选项（答案未显示时的视觉反馈） */
+.exam-question-card__option-row--selected {
+  border-color: rgba(251, 247, 242, 0.3);
+  border-left-color: #FBF7F2;
+  background-color: rgba(64, 158, 255, 0.1);
+}
+
+.exam-question-card__option-row--selected .exam-question-card__option-letter {
+  border-color: #FBF7F2;
+  color: #FBF7F2;
+  background-color: rgba(64, 158, 255, 0.1);
+}
+
+/* 用户选择的错误选项（显示答案时） */
+.exam-question-card__option-row--wrong {
+  animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+  border-color: rgba(245, 108, 108, 0.3);
+  border-left-color: #f56c6c;
+  background-color: rgba(245, 108, 108, 0.1);
+}
+
+.exam-question-card__option-row--wrong .exam-question-card__option-letter {
+  border-color: #f56c6c;
+  color: #f56c6c;
+  background-color: rgba(245, 108, 108, 0.1);
+}
+
+/* 正确答案（显示答案时） */
+.exam-question-card__option-row--correct {
+  border-color: rgba(103, 194, 58, 0.3);
+  border-left-color: #67c23a;
+  background-color: rgba(103, 194, 58, 0.08);
+}
+
+.exam-question-card__option-row--correct .exam-question-card__option-letter {
+  border-color: #67c23a;
+  color: #67c23a;
+  background-color: rgba(103, 194, 58, 0.1);
+}
+
+/* 用户选中的正确选项（显示答案时的视觉反馈） */
+.exam-question-card__option-row--selected-correct {
+  animation: pulse-success 0.6s ease-out both;
+  border-color: rgba(103, 194, 58, 0.3);
+  border-left-color: #67c23a;
+  background-color: rgba(103, 194, 58, 0.12);
+}
+
+.exam-question-card__option-row--selected-correct .exam-question-card__option-letter {
+  background-color: #67c23a;
+  color: #fff;
+  border-color: #67c23a;
+}
+
+.exam-question-card__option-letter {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid #8B6F47;
+  color: #8B6F47;
+  border-radius: 50%;
+  font-weight: 600;
+  font-size: 12px;
+  line-height: 1;
+  background-color: #fff;
+  transition: all 0.15s ease;
+}
+
+.exam-question-card__option-body {
+  flex: 1;
+  min-width: 0;
+  line-height: 1.4;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+}
+
+/* 强制紧凑：移除 MarkdownViewer 内部所有额外间距 */
+.exam-question-card__option-body :deep(.markdown-viewer) {
+  width: 100%;
+  min-height: auto !important;
+}
+
+.exam-question-card__option-body :deep(.v-md-editor-preview) {
+  padding: 0 !important;
+  min-height: auto !important;
+}
+
+.exam-question-card__option-body :deep(.github-markdown-body) {
+  padding: 0 !important;
+  font-size: 14px;
+}
+
+.exam-question-card__option-body :deep(p) {
+  margin: 0 !important;
+  padding: 0 !important;
+  line-height: 1.5;
+}
+
+.exam-question-card__option-body :deep(img) {
+  max-height: 80px !important;
+  margin: 2px 0 !important;
+}
+
+.exam-question-card__option-body :deep(svg) {
+  max-width: 100% !important;
+  height: auto !important;
+  max-height: 60px !important;
+  display: block;
+  margin: 2px auto !important;
+}
+
+.exam-question-card__option-text {
+  white-space: pre-line;
+  color: #333;
+  font-size: 14px;
+  margin: 0;
+}
+
+/* 答案卡片（米色主题） */
+.answer-card {
+  background-color: rgba(251, 247, 242, 0.5);
+  border: 1px solid rgba(139, 111, 71, 0.2);
+  border-left: 4px solid #8B6F47;
+  border-radius: 4px;
+  padding: 16px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s ease;
+}
+
+.answer-card .answer-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.answer-card .answer-header .answer-icon {
+  font-size: 18px;
+  color: #8B6F47;
+}
+
+.answer-card .answer-header span {
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
+}
+
+.answer-card .answer-content {
+  padding: 16px;
+  background-color: #fff;
+  border-radius: 2px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+}
+
+/* SVG自适应约束 - 防止答案中的SVG溢出 */
+.answer-card .answer-content :deep(svg) {
+  max-width: 100% !important;
+  height: auto !important;
+  display: block;
+  margin: 16px auto;
+}
+
+/* 图片居中 */
+.answer-card .answer-content :deep(img) {
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* 表格居中 */
+.answer-card .answer-content :deep(table) {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.answer-card .answer-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 24px;
+  background-color: rgba(255, 255, 255, 0.8);
+  border-radius: 2px;
+  border: 2px dashed #dcdfe6;
+  color: #999;
+  font-size: 14px;
+}
+
+.answer-card .answer-placeholder .el-icon {
+  font-size: 18px;
+}
+
+/* 密度：comfortable（稍大） */
+.exam-question-card[data-density='comfortable'] .question-card,
+.exam-question-card[data-density='comfortable'] .exam-question-card__question-card {
+  padding: 32px;
+}
+
+.exam-question-card[data-density='comfortable'] .option-row,
+.exam-question-card[data-density='comfortable'] .exam-question-card__option-row {
+  padding: 6px 10px;
+}
+
+.exam-question-card[data-density='comfortable'] .option-list,
+.exam-question-card[data-density='comfortable'] .exam-question-card__option-list {
+  gap: 16px;
+  margin-top: 24px;
+}
+
+.exam-question-card[data-density='comfortable'] .option-letter,
+.exam-question-card[data-density='comfortable'] .exam-question-card__option-letter {
+  width: 22px;
+  height: 22px;
+  font-size: 12px;
+}
+
+.exam-question-card[data-density='comfortable'] .option-body,
+.exam-question-card[data-density='comfortable'] .exam-question-card__option-body {
+  line-height: 1.5;
+}
+
+/* 移动端优化 */
+@media (max-width: 768px) {
+  .exam-question-card__question-card,
+  .answer-card {
+    padding: 16px;
+  }
+
+  .exam-question-card__question-card {
+    margin-bottom: 16px;
+  }
+
+  .exam-question-card__option-row {
+    padding: 2px 6px 2px 4px;
+    gap: 4px;
+  }
+
+  .exam-question-card__option-letter {
+    width: 20px;
+    height: 20px;
+    font-size: 11px;
+  }
+
+  .exam-question-card__option-body {
+    line-height: 1.3;
+  }
+
+  .exam-question-card__option-list {
+    gap: 3px;
+  }
+}
 </style>
 
 

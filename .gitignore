@@ -2,6 +2,8 @@
 .github
 .idea
 
+backend/target
+
 backend-fastapi/.conda
 backend-fastapi/nul
 backend-fastapi/logs
