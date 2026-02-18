@@ -194,13 +194,16 @@ onUnmounted(() => {
 })
 </script>
 
-<style lang="scss" scoped>
-@use 'sass:color';
+<style scoped>
+/**
+ * 自定义可输入下拉选择组件样式
+ * 已迁移至纯CSS
+ */
 
 .custom-input-select {
   position: relative;
   width: 100%;
-  font-size: $font-size-base;
+  font-size: 14px;
 }
 
 .select-trigger {
@@ -208,48 +211,49 @@ onUnmounted(() => {
   width: 100%;
   display: flex;
   align-items: center;
-  background-color: $color-bg-white;
-  border: 1px solid $color-border;
-  border-radius: $border-radius-base;
-  transition: all $transition-fast;
+  background-color: #fff;
+  border: 1px solid #dcdfe6;
+  border-radius: 4px;
+  transition: all 0.15s ease;
+}
 
-  &:hover {
-    border-color: color.adjust($color-border, $lightness: -10%);
-    
-    .icon-clear {
-      display: block;
-    }
-    .icon-arrow {
-      display: none;
-    }
-  }
+.select-trigger:hover {
+  border-color: #c8c9cc;
+}
 
-  &.is-focused {
-    border-color: $color-accent;
-    box-shadow: 0 0 0 2px color.adjust($color-accent, $alpha: -0.8);
-  }
+.select-trigger:hover .icon-clear {
+  display: block;
+}
+
+.select-trigger:hover .icon-arrow {
+  display: none;
+}
+
+.select-trigger.is-focused {
+  border-color: #8B6F47;
+  box-shadow: 0 0 0 2px rgba(139, 111, 71, 0.2);
 }
 
 .select-input {
   width: 100%;
-  height: 32px; // 默认高度
-  padding: 0 $spacing-sm;
-  padding-right: 30px; // 为图标留出空间
+  height: 32px;
+  padding: 0 16px;
+  padding-right: 30px;
   border: none;
   background: transparent;
-  color: $color-text-primary;
+  color: #333;
   font-size: inherit;
   outline: none;
-  cursor: pointer; // 始终显示手型
+  cursor: pointer;
+}
 
-  &::placeholder {
-    color: #a8abb2;
-  }
+.select-input::placeholder {
+  color: #a8abb2;
 }
 
 .suffix-wrapper {
   position: absolute;
-  right: $spacing-sm;
+  right: 16px;
   top: 50%;
   transform: translateY(-50%);
   display: flex;
@@ -260,13 +264,13 @@ onUnmounted(() => {
 }
 
 .icon-arrow {
-  transition: transform $transition-fast;
+  transition: transform 0.15s ease;
   display: flex;
   align-items: center;
-  
-  &.is-reverse {
-    transform: rotate(180deg);
-  }
+}
+
+.icon-arrow.is-reverse {
+  transform: rotate(180deg);
 }
 
 .arrow-down {
@@ -278,13 +282,13 @@ onUnmounted(() => {
 }
 
 .icon-clear {
-  display: none; // 默认隐藏，hover时显示
+  display: none;
   cursor: pointer;
   font-size: 14px;
-  
-  &:hover {
-    color: $color-text-primary;
-  }
+}
+
+.icon-clear:hover {
+  color: #333;
 }
 
 /* 下拉菜单 */
@@ -295,9 +299,9 @@ onUnmounted(() => {
   z-index: 1000;
   width: 100%;
   margin-top: 4px;
-  background-color: $color-bg-white;
-  border: 1px solid $color-border;
-  border-radius: $border-radius-base;
+  background-color: #fff;
+  border: 1px solid #dcdfe6;
+  border-radius: 4px;
   box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
   max-height: 200px;
   overflow-y: auto;
@@ -310,25 +314,25 @@ onUnmounted(() => {
 }
 
 .select-dropdown__item {
-  padding: 0 $spacing-sm;
+  padding: 0 16px;
   height: 34px;
   line-height: 34px;
   cursor: pointer;
-  color: $color-text-primary;
+  color: #333;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  transition: background-color $transition-fast;
+  transition: background-color 0.15s ease;
+}
 
-  &:hover {
-    background-color: #f5f7fa;
-  }
+.select-dropdown__item:hover {
+  background-color: #f5f7fa;
+}
 
-  &.is-selected {
-    color: $color-accent;
-    font-weight: $font-weight-medium;
-    background-color: #f5f7fa;
-  }
+.select-dropdown__item.is-selected {
+  color: #8B6F47;
+  font-weight: 500;
+  background-color: #f5f7fa;
 }
 
 .select-dropdown__empty {

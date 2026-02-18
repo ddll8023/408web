@@ -189,74 +189,79 @@ onMounted(async () => {
 })
 </script>
 
-<style lang="scss" scoped>
+<style scoped>
+/**
+ * 模拟题列表页面样式
+ * 使用 Tailwind CSS
+ */
+
 .mock-list-container {
-  min-height: calc(100vh - #{$nav-height});
-  padding: $spacing-md;
-  background-color: $color-primary;
+  min-height: calc(100vh - 60px);
+  padding: 16px;
+  background-color: #FBF7F2;
 }
 
 .list-card {
-  max-width: $container-width-lg;
+  max-width: 1200px;
   margin: 0 auto;
-  box-shadow: $box-shadow-light;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
 }
 
 .list-header {
-  @include flex-between;
-  margin-bottom: $spacing-md;
-  
-  .header-left {
-    display: flex;
-    align-items: center;
-    gap: $spacing-sm;
-    
-    h2 {
-      margin: 0;
-      font-size: $font-size-xl;
-      color: $color-text-primary;
-      font-weight: $font-weight-bold;
-    }
-  }
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.list-header .header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.list-header .header-left h2 {
+  margin: 0;
+  font-size: 20px;
+  color: #333;
+  font-weight: 600;
 }
 
 .filter-bar {
-  margin-bottom: $spacing-md;
-  padding: $spacing-sm;
-  background-color: $color-bg-light;
-  border-radius: $border-radius-base;
+  margin-bottom: 16px;
+  padding: 8px;
+  background-color: #efefef;
+  border-radius: 4px;
 }
 
 .mock-list {
   display: flex;
   flex-direction: column;
-  gap: $spacing-md;
+  gap: 16px;
 }
 
-@include mobile {
+@media (max-width: 768px) {
   .mock-list-container {
-    padding: $spacing-sm;
+    padding: 8px;
   }
-  
+
   .list-header {
     flex-direction: column;
     align-items: flex-start;
-    gap: $spacing-sm;
+    gap: 8px;
   }
-  
-  .filter-bar {
-    :deep(.el-form) {
-      display: block;
-      
-      .el-form-item {
-        display: block;
-        margin-bottom: $spacing-sm;
-        
-        .el-select {
-          width: 100% !important;
-        }
-      }
-    }
+
+  .filter-bar :deep(.el-form) {
+    display: block;
+  }
+
+  .filter-bar :deep(.el-form .el-form-item) {
+    display: block;
+    margin-bottom: 8px;
+  }
+
+  .filter-bar :deep(.el-form .el-form-item .el-select) {
+    width: 100% !important;
   }
 }
 </style>

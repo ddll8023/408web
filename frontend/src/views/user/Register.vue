@@ -161,37 +161,39 @@ const goToLogin = () => {
 }
 </script>
 
-<style lang="scss" scoped>
+<style scoped>
 /**
  * 注册页面样式
- * 使用Sass变量和mixins统一管理主题
+ * 使用 Tailwind CSS
  * 注：变量和mixins已通过Vite全局注入，无需手动导入
  */
 
 .register-container {
-  @include flex-center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   min-height: 100vh;
-  background-color: $color-primary; // 使用主题米色背景
+  background-color: #FBF7F2; /* $color-primary */
 }
 
 .register-card {
-  width: $container-width-sm;
-  box-shadow: $box-shadow-base;
+  width: 450px; /* $container-width-sm */
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); /* $box-shadow-base */
 }
 
 .card-header {
   text-align: center;
-  
-  h2 {
-    margin: 0 0 $spacing-xs 0;
-    color: $color-text-primary;
-    font-weight: $font-weight-bold;
-  }
-  
-  span {
-    color: $color-text-secondary;
-    font-size: $font-size-base;
-  }
+}
+
+.card-header h2 {
+  margin: 0 0 8px 0; /* $spacing-xs */
+  color: #333; /* $color-text-primary */
+  font-weight: 600; /* $font-weight-bold */
+}
+
+.card-header span {
+  color: #666; /* $color-text-secondary */
+  font-size: 14px; /* $font-size-base */
 }
 </style>
 

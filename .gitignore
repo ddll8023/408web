@@ -9,5 +9,5 @@ backend-fastapi/nul
 backend-fastapi/logs
 
 frontend/node_modules
-
+frontend/dist
 nul

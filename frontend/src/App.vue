@@ -42,20 +42,20 @@ const showNavigation = computed(() => {
 })
 </script>
 
-<style lang="scss">
+<style scoped>
 /**
  * 应用根组件样式
- * 使用Sass变量统一管理主题
+ * 使用 Tailwind CSS
  * 注：变量和mixins已通过Vite全局注入，无需手动导入
  */
 
 /* 主内容区域 */
 .main-content {
   min-height: 100vh;
-  
-  /* 有导航栏时，添加顶部padding */
-  &.with-nav {
-    padding-top: $nav-height;
-  }
+}
+
+/* 有导航栏时，添加顶部padding */
+.main-content.with-nav {
+  padding-top: 60px; /* $nav-height */
 }
 </style>

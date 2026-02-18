@@ -19,14 +19,7 @@ export default defineConfig({
   // CSS预处理器配置
   css: {
     postcss: './postcss.config.js',
-    preprocessorOptions: {
-      scss: {
-        additionalData: `
-          @use "@/styles/variables.scss" as *;
-          @use "@/styles/mixins.scss" as *;
-        `
-      }
-    }
+    // SCSS全局注入已移除，组件已迁移到Tailwind CSS
   },
   
   // 开发服务器配置

@@ -126,154 +126,162 @@ onMounted(() => {
 })
 </script>
 
-<style lang="scss" scoped>
+<style scoped>
+/**
+ * 模拟题索引页面样式
+ * 使用 Tailwind CSS
+ */
+
 .mock-index-container {
-  min-height: calc(100vh - #{$nav-height});
-  padding: $spacing-lg $spacing-md;
-  background-color: $color-primary;
-  @include flex-center;
+  min-height: calc(100vh - 60px);
+  padding: 32px 16px;
+  background-color: #FBF7F2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .index-content {
   width: 100%;
-  max-width: $container-width-lg;
+  max-width: 1200px;
 }
 
 /* 头部介绍 */
 .index-header {
   text-align: center;
-  padding: $spacing-lg 0;
-  
-  .index-title {
-    margin: 0 0 $spacing-md 0;
-    font-size: $font-size-xxl;
-    color: $color-text-primary;
-    font-weight: $font-weight-bold;
-  }
-  
-  .index-description {
-    margin: 0;
-    font-size: $font-size-medium;
-    color: $color-text-regular;
-    line-height: 1.8;
-    max-width: 800px;
-    margin: 0 auto;
-  }
+  padding: 32px 0;
+}
+
+.index-header .index-title {
+  margin: 0 0 24px 0;
+  font-size: 28px;
+  color: #333;
+  font-weight: 600;
+}
+
+.index-header .index-description {
+  margin: 0;
+  font-size: 16px;
+  color: #666;
+  line-height: 1.8;
+  max-width: 800px;
+  margin: 0 auto;
 }
 
 /* 来源卡片网格 */
 .source-cards {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: $spacing-md;
-  margin: $spacing-lg 0;
+  gap: 16px;
+  margin: 32px 0;
 }
 
 .source-card {
-  padding: $spacing-md;
-  background-color: $color-bg-white;
-  border-radius: $border-radius-base;
-  border: 2px solid $color-border-light;
+  padding: 16px;
+  background-color: #fff;
+  border-radius: 4px;
+  border: 2px solid #dfe2e5;
   cursor: pointer;
-  transition: all $transition-base;
-  @include flex-column;
-  
-  &:hover {
-    border-color: $color-accent;
-    box-shadow: 0 4px 12px rgba(139, 111, 71, 0.15);
-    transform: translateY(-4px);
-    
-    .source-name {
-      color: $color-accent;
-    }
-  }
-  
-  .source-card-header {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    
-    .source-name {
-      margin: 0;
-      font-size: $font-size-xl;
-      font-weight: $font-weight-bold;
-      color: $color-text-primary;
-      transition: color $transition-base;
-      text-align: center;
-    }
-  }
-  
-  .source-card-body {
-    flex: 1;
-    padding: $spacing-sm 0;
-    
-    .source-stat {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: $spacing-xs - 2px;
-      
-      .stat-icon {
-        font-size: $font-size-large;
-        color: $color-accent;
-      }
-      
-      .stat-text {
-        font-size: $font-size-base;
-        color: $color-text-regular;
-      }
-    }
-  }
-  
-  .source-card-footer {
-    display: flex;
-    justify-content: center;
-    padding-top: $spacing-sm;
-    
-    .button-icon {
-      margin-left: $spacing-xs - 4px;
-      transition: transform $transition-base;
-    }
-  }
-  
-  &:hover .button-icon {
-    transform: translateX(4px);
-  }
+  transition: all 0.3s ease;
+  display: flex;
+  flex-direction: column;
+}
+
+.source-card:hover {
+  border-color: #8B6F47;
+  box-shadow: 0 4px 12px rgba(139, 111, 71, 0.15);
+  transform: translateY(-4px);
+}
+
+.source-card:hover .source-name {
+  color: #8B6F47;
+}
+
+.source-card .source-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.source-card .source-card-header .source-name {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: #333;
+  transition: color 0.3s ease;
+  text-align: center;
+}
+
+.source-card .source-card-body {
+  flex: 1;
+  padding: 8px 0;
+}
+
+.source-card .source-card-body .source-stat {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.source-card .source-card-body .source-stat .stat-icon {
+  font-size: 18px;
+  color: #8B6F47;
+}
+
+.source-card .source-card-body .source-stat .stat-text {
+  font-size: 14px;
+  color: #666;
+}
+
+.source-card .source-card-footer {
+  display: flex;
+  justify-content: center;
+  padding-top: 8px;
+}
+
+.source-card .source-card-footer .button-icon {
+  margin-left: 4px;
+  transition: transform 0.3s ease;
+}
+
+.source-card:hover .button-icon {
+  transform: translateX(4px);
 }
 
 /* 底部提示 */
 .index-footer {
-  margin-top: $spacing-lg;
-  
-  .footer-tips {
-    margin: 0;
-    padding-left: $spacing-md;
-    color: $color-text-regular;
-    line-height: 1.8;
-    
-    li {
-      margin: $spacing-xs - 2px 0;
-    }
-  }
+  margin-top: 32px;
+}
+
+.index-footer .footer-tips {
+  margin: 0;
+  padding-left: 16px;
+  color: #666;
+  line-height: 1.8;
+}
+
+.index-footer .footer-tips li {
+  margin: 6px 0;
 }
 
 /* 响应式布局 */
-@include mobile {
+@media (max-width: 768px) {
   .mock-index-container {
-    padding: $spacing-md $spacing-sm;
+    padding: 16px 8px;
   }
-  
+
   .index-header .index-title {
-    font-size: $font-size-xl;
+    font-size: 20px;
   }
-  
+
   .source-cards {
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: $spacing-sm;
+    gap: 8px;
   }
-  
+
   .source-card .source-card-header .source-name {
-    font-size: $font-size-large;
+    font-size: 18px;
   }
 }
 </style>

@@ -1050,18 +1050,18 @@ onMounted(async () => {
 })
 </script>
 
-<style lang="scss" scoped>
+<style scoped>
 /**
  * 真题页面样式
- * 使用Sass变量和mixins统一管理主题
- * 注：变量和mixins已通过Vite全局注入，无需手动导入
+ * 使用 Tailwind CSS
  */
 
 .exam-page-container {
-  height: calc(100vh - #{$nav-height});
+  height: calc(100vh - 60px);
   overflow: hidden;
-  @include flex-column;
-  background-color: $color-primary; // 使用主题米色背景
+  display: flex;
+  flex-direction: column;
+  background-color: #FBF7F2;
 }
 
 /* 主要内容区域 */
@@ -1075,101 +1075,101 @@ onMounted(async () => {
 /* 右侧内容区域 */
 .content-area {
   flex: 1;
-  width: 0; // 防止 Flex 子元素溢出
-  padding: 0; // 移除间隔
+  width: 0;
+  padding: 0;
   overflow-y: auto;
-  @include scrollbar;
-  background-color: $color-primary; // 使用主题米色背景
+  background-color: #FBF7F2;
 }
 
 .content-header {
-  @include flex-between;
-  margin-bottom: $spacing-sm;
-  
-  .header-left {
-    flex: 1;
-    
-    h2 {
-      margin: 0;
-      font-size: $font-size-xl + 2px; // 22px
-      color: $color-text-primary;
-      font-weight: $font-weight-bold;
-    }
-  }
-  
-  .header-actions {
-    display: flex;
-    gap: $spacing-xs;
-  }
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.content-header .header-left {
+  flex: 1;
+}
+
+.content-header .header-left h2 {
+  margin: 0;
+  font-size: 22px;
+  color: #333;
+  font-weight: 600;
+}
+
+.content-header .header-actions {
+  display: flex;
+  gap: 8px;
 }
 
 .content-card {
-  min-height: calc(100vh - #{$nav-height} - 40px);
-  box-shadow: none; // 移除阴影，与背景融合
-  background-color: $color-primary; // 使用主题米色背景
-  border: none; // 移除边框，与背景融合
-  
-  // 给卡片内容添加内边距
-  :deep(.el-card__body) {
-    padding: $spacing-md;
-  }
+  min-height: calc(100vh - 60px - 40px);
+  box-shadow: none;
+  background-color: #FBF7F2;
+  border: none;
+}
+
+.content-card :deep(.el-card__body) {
+  padding: 16px;
 }
 
 /* 欢迎区域样式 */
 .welcome-section {
-  margin-top: $spacing-sm;
-  padding: $spacing-md;
-  background: linear-gradient(135deg, $color-primary 0%, #F5EFE6 100%);
-  border-radius: $border-radius-base;
+  margin-top: 8px;
+  padding: 16px;
+  background: linear-gradient(135deg, #FBF7F2 0%, #F5EFE6 100%);
+  border-radius: 4px;
   border: 2px solid #E8DCC8;
   min-height: 300px;
-  
-  .welcome-header {
-    display: flex;
-    align-items: center;
-    gap: $spacing-xs;
-    
-    .welcome-icon {
-      font-size: $font-size-xl;
-      color: $color-accent; // 使用深棕色强调色
-    }
-    
-    h3 {
-      margin: 0;
-      font-size: $font-size-large;
-      font-weight: $font-weight-bold;
-      color: $color-text-primary;
-    }
-  }
-  
-  .welcome-content {
-    padding: $spacing-md 0;
-    
-    p {
-      margin: 0;
-      line-height: 1.8;
-      font-size: $font-size-base;
-      color: $color-text-primary;
-      text-align: justify;
-      text-indent: 2em; // 首行缩进
-    }
-  }
-  
-  .welcome-tip {
-    display: flex;
-    align-items: center;
-    gap: $spacing-xs - 2px;
-    padding: $spacing-sm;
-    margin-top: $spacing-md;
-    background-color: rgba(255, 255, 255, 0.6);
-    border-radius: $border-radius-small;
-    color: $color-text-secondary;
-    font-size: $font-size-small;
-    
-    .el-icon {
-      animation: arrow-move 1.5s ease-in-out infinite;
-    }
-  }
+}
+
+.welcome-section .welcome-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.welcome-section .welcome-header .welcome-icon {
+  font-size: 20px;
+  color: #8B6F47;
+}
+
+.welcome-section .welcome-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #333;
+}
+
+.welcome-section .welcome-content {
+  padding: 16px 0;
+}
+
+.welcome-section .welcome-content p {
+  margin: 0;
+  line-height: 1.8;
+  font-size: 14px;
+  color: #333;
+  text-align: justify;
+  text-indent: 2em;
+}
+
+.welcome-section .welcome-tip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px;
+  margin-top: 16px;
+  background-color: rgba(255, 255, 255, 0.6);
+  border-radius: 2px;
+  color: #666;
+  font-size: 12px;
+}
+
+.welcome-section .welcome-tip .el-icon {
+  animation: arrow-move 1.5s ease-in-out infinite;
 }
 
 @keyframes arrow-move {
@@ -1183,29 +1183,24 @@ onMounted(async () => {
 
 /* ========================= 年份视图样式 ========================= */
 
-.year-view {
-  /* 题目列表 */
-  .exam-list-year {
-    display: flex;
-    flex-direction: column;
-    gap: $spacing-lg;
-    width: 100%;
-    max-width: 80%; // 左对齐限制列表宽度至 80%
-  }
-
-
+.year-view .exam-list-year {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  width: 100%;
+  max-width: 80%;
 }
 
 /* 响应式布局 */
-@include mobile {
+@media (max-width: 768px) {
   .content-header {
     flex-direction: column;
     align-items: flex-start;
-    gap: $spacing-sm;
+    gap: 8px;
   }
-  
+
   .content-area {
-    width: 100%; // 移动端隐藏侧边栏时取消左边距
+    width: 100%;
   }
 }
 </style>

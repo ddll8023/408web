@@ -342,37 +342,54 @@ onMounted(() => {
 })
 </script>
 
-<style lang="scss" scoped>
+<style scoped>
 /**
  * 科目管理页面样式
- * 使用公共管理页面 mixins 减少重复代码
+ * 移除 SCSS，使用普通 CSS
  */
 .subject-manage-container {
-  @include admin-manage-container;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 24px 16px;
+  min-height: calc(100vh - 60px);
 }
 
 .manage-card {
-  @include admin-manage-card;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
 }
 
 .card-header {
-  @include admin-card-header;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.card-header h2 {
+  margin: 0;
+  font-size: 22px;
+  color: #333;
+  font-weight: 600;
+}
+
+.header-actions {
+  display: flex;
+  gap: 8px;
 }
 
 .form-tip {
-  font-size: $font-size-small;
-  color: $color-text-secondary;
+  font-size: 12px;
+  color: #999;
   margin-top: 4px;
 }
 
-@include mobile {
+@media (max-width: 768px) {
   .subject-manage-container {
-    padding: $spacing-sm $spacing-xs;
+    padding: 16px 8px;
   }
 
   .card-header {
     flex-direction: column;
-    gap: $spacing-sm;
+    gap: 16px;
     align-items: flex-start;
   }
 }

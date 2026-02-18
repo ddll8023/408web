@@ -123,65 +123,67 @@ defineProps({
 defineEmits(['copy', 'edit', 'delete'])
 </script>
 
-<style lang="scss" scoped>
+<style scoped>
 .exam-item-header {
-  @include flex-between;
-  margin-bottom: $spacing-md;
-  padding-bottom: $spacing-sm;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.03); // 极淡的分隔线
-  
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.03); /* 极淡的分隔线 */
+
   .question-info {
     flex: 1;
-    
+
     .question-title {
       margin: 0 0 8px 0;
-      font-size: 18px; // 稍微加大标题
-      color: $color-text-primary;
+      font-size: 18px; /* 稍微加大标题 */
+      color: #333;
       font-weight: 600;
       display: flex;
       align-items: center;
       gap: 12px;
-      
+
       .question-number {
-        color: $color-accent; // 使用强调色
-        font-family: 'Roboto Mono', monospace; // 数字使用等宽字体（如果支持）
+        color: #8B6F47; /* 使用强调色 */
+        font-family: 'Roboto Mono', monospace; /* 数字使用等宽字体（如果支持） */
       }
 
       .question-subtitle {
         margin-left: 12px;
         font-size: 16px;
         font-weight: normal;
-        color: $color-text-secondary;
+        color: #999;
       }
     }
-    
+
     .question-meta {
       display: flex;
       gap: 8px;
       flex-wrap: wrap;
     }
   }
-  
+
   .question-actions {
     display: flex;
     gap: 4px;
     opacity: 0.8;
     transition: opacity 0.2s;
-    
+
     &:hover {
       opacity: 1;
     }
   }
 
-  @include mobile {
+  @media (max-width: 768px) {
     flex-direction: column;
     align-items: flex-start;
-    gap: $spacing-xs;
-    
+    gap: 8px;
+
     .question-title {
-      font-size: $font-size-base;
+      font-size: 14px;
     }
-    
+
     .question-actions {
       width: 100%;
       justify-content: flex-start;

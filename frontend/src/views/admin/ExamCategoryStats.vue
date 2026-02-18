@@ -199,52 +199,53 @@ onMounted(() => {
 })
 </script>
 
-<style lang="scss" scoped>
+<style scoped>
 .stats-container {
-  max-width: $container-width-xl;
+  max-width: 1400px;
   margin: 0 auto;
-  padding: $spacing-md $spacing-sm;
-  min-height: calc(100vh - #{$nav-height});
+  padding: 24px 16px;
+  min-height: calc(100vh - 60px);
 }
 
 .stats-card {
-  box-shadow: $box-shadow-light;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
 }
 
 .card-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  h2 {
-    margin: 0;
-    font-size: $font-size-xl + 2px;
-    color: $color-text-primary;
-    font-weight: $font-weight-bold;
-  }
+}
+
+.card-header h2 {
+  margin: 0;
+  font-size: 22px;
+  color: #333;
+  font-weight: 600;
 }
 
 .filter-bar {
-  margin-bottom: $spacing-lg;
-  padding: $spacing-md;
-  background-color: $color-bg-light;
-  border-radius: $border-radius-base;
+  margin-bottom: 24px;
+  padding: 16px;
+  background-color: #efefef;
+  border-radius: 4px;
   display: flex;
   align-items: center;
 }
 
 .filter-label {
-  margin-right: $spacing-sm;
+  margin-right: 8px;
   font-weight: bold;
-  color: $color-text-regular;
+  color: #666;
 }
 
 .stats-footer {
-  margin-top: $spacing-lg;
-  padding-top: $spacing-md;
-  border-top: 1px solid $color-border-light;
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid #dfe2e5;
   text-align: right;
-  font-size: $font-size-large;
-  color: $color-text-primary;
+  font-size: 18px;
+  color: #333;
 }
 
 /* 题目分布标签样式 */
@@ -257,7 +258,7 @@ onMounted(() => {
 }
 
 .no-data {
-  color: $color-text-secondary;
-  font-size: $font-size-small;
+  color: #999;
+  font-size: 12px;
 }
 </style>

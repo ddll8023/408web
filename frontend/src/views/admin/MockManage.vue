@@ -400,43 +400,76 @@ watch(() => route.query.keyword, (newKeyword) => {
 })
 </script>
 
-<style lang="scss" scoped>
+<style scoped>
 /**
  * 模拟题管理页面样式
- * 使用公共管理页面 mixins 减少重复代码
+ * 移除 SCSS，使用普通 CSS
  */
 .mock-manage-container {
-  @include admin-manage-container;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 24px 16px;
+  min-height: calc(100vh - 60px);
 }
 
 .manage-card {
-  @include admin-manage-card;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
 }
 
 .card-header {
-  @include admin-card-header;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.card-header h2 {
+  margin: 0;
+  font-size: 22px;
+  color: #333;
+  font-weight: 600;
+}
+
+.header-actions {
+  display: flex;
+  gap: 8px;
 }
 
 .filter-bar {
-  @include admin-filter-bar;
-  @include admin-mobile-filter;
+  margin-bottom: 24px;
+  padding: 16px;
+  background-color: #efefef;
+  border-radius: 4px;
 }
 
 .pagination-wrapper {
-  @include admin-pagination;
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 24px;
 }
 
 .back-top-inner {
-  @include admin-back-top;
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  background-color: #8B6F47;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
 }
 
 .title-text {
-  @include admin-title-text;
+  cursor: pointer;
 }
 
-@include mobile {
+.title-text:hover {
+  color: #FBF7F2;
+}
+
+@media (max-width: 768px) {
   .mock-manage-container {
-    padding: $spacing-sm $spacing-xs;
+    padding: 16px 8px;
   }
 }
 </style>

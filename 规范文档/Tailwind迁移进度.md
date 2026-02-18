@@ -24,7 +24,7 @@
 2. 模板中使用 Tailwind 类名替代原有的自定义 CSS 类名
 3. 保留必要的 CSS 动画（Tailwind 无法完全替代）
 
-> 当前已迁移的组件（Navigation, ExamQuestionCard, CategoryTreeItem, SubjectSidebar）虽然 `<style>` 已无 SCSS，但模板中仍有大量自定义 class 属性，尚未完全转换为纯 Tailwind 类名。
+> 已迁移组件虽然 `<style>` 已无 SCSS，但模板中部分组件仍使用自定义 class 属性（如 `class="exam-card"`），尚未完全转换为纯 Tailwind 类名。后续需逐步将自定义类名替换为 Tailwind 工具类。
 
 ---
 
@@ -49,10 +49,10 @@
 
 | 序号 | 文件路径                                             | 优先级 | SCSS使用量 | 状态   | 完成日期 | 备注            |
 | ---- | ---------------------------------------------------- | ------ | ---------- | ------ | -------- | --------------- |
-| 1    | `frontend/src/components/basic/CustomButton.vue`   | P0     | 高         | 待迁移 | -        | 基础按钮组件    |
-| 2    | `frontend/src/components/basic/InputSelect.vue`    | P1     | 中         | 待迁移 | -        | 输入选择组件    |
-| 3    | `frontend/src/components/basic/MarkdownEditor.vue` | P1     | 中         | 待迁移 | -        | Markdown 编辑器 |
-| 4    | `frontend/src/components/basic/MarkdownViewer.vue` | P1     | 中         | 待迁移 | -        | Markdown 查看器 |
+| 1    | `frontend/src/components/basic/CustomButton.vue`   | P0     | 高         | 已完成 | 2026-02-19 | 基础按钮组件    |
+| 2    | `frontend/src/components/basic/InputSelect.vue`    | P1     | 中         | 已完成 | 2026-02-19 | 输入选择组件    |
+| 3    | `frontend/src/components/basic/MarkdownEditor.vue` | P1     | 中         | 已完成 | 2026-02-19 | Markdown 编辑器 |
+| 4    | `frontend/src/components/basic/MarkdownViewer.vue` | P1     | 中         | 已完成 | 2026-02-19 | Markdown 查看器 |
 
 **阶段预计工作量**: 3天
 
@@ -64,16 +64,16 @@
 | ---- | --------------------------------------------------------- | ------ | ---------- | ------ | ---------- | ------------------------------------------ |
 | 1    | `frontend/src/components/business/Navigation.vue`       | P0     | 高         | 已完成 | 2026-02-05 | 顶部导航栏                                 |
 | 2    | `frontend/src/components/business/ExamQuestionCard.vue` | P0     | 高         | 已完成 | 2026-02-05 | 题目卡片（核心组件，被3个组件引用）        |
-| 3    | `frontend/src/components/business/ExamEntryCard.vue`    | P1     | 中         | 待迁移 | -          | 考试入口卡片                               |
-| 4    | `frontend/src/components/business/ExamItemHeader.vue`   | P1     | 中         | 待迁移 | -          | 考试项头部                                 |
-| 5    | `frontend/src/components/business/ExamEditDialog.vue`   | P1     | 中         | 待迁移 | -          | 考试编辑弹窗                               |
-| 6    | `frontend/src/components/business/MockEntryCard.vue`    | P1     | 中         | 待迁移 | -          | 模拟题入口卡片                             |
-| 7    | `frontend/src/components/business/MockItemHeader.vue`   | P1     | 中         | 待迁移 | -          | 模拟题项头部                               |
-| 8    | `frontend/src/components/business/MockEditDialog.vue`   | P1     | 中         | 待迁移 | -          | 模拟题编辑弹窗                             |
+| 3    | `frontend/src/components/business/ExamEntryCard.vue`    | P1     | 中         | 已完成 | 2026-02-18 | 考试入口卡片                               |
+| 4    | `frontend/src/components/business/ExamItemHeader.vue`   | P1     | 中         | 已完成 | 2026-02-18 | 考试项头部                                 |
+| 5    | `frontend/src/components/business/ExamEditDialog.vue`   | P1     | 中         | 已完成 | 2026-02-18 | 考试编辑弹窗                               |
+| 6    | `frontend/src/components/business/MockEntryCard.vue`    | P1     | 中         | 已完成 | 2026-02-18 | 模拟题入口卡片                             |
+| 7    | `frontend/src/components/business/MockItemHeader.vue`   | P1     | 中         | 已完成 | 2026-02-18 | 模拟题项头部                               |
+| 8    | `frontend/src/components/business/MockEditDialog.vue`   | P1     | 中         | 已完成 | 2026-02-18 | 模拟题编辑弹窗                             |
 | 9    | `frontend/src/components/business/CategoryTreeItem.vue` | P2     | 低         | 已完成 | 2026-02-05 | 分类树项（递归组件，被SubjectSidebar引用） |
-| 10   | `frontend/src/components/business/ChapterNav.vue`       | P2     | 低         | 待迁移 | -          | 章节导航                                   |
+| 10   | `frontend/src/components/business/ChapterNav.vue`       | P2     | 高         | 已完成 | 2026-02-18 | 章节导航                                   |
 | 11   | `frontend/src/components/business/SubjectSidebar.vue`   | P0     | 高         | 已完成 | 2026-02-05 | 科目侧边栏（高频导航）                     |
-| 12   | `frontend/src/components/business/YearNav.vue`          | P2     | 低         | 待迁移 | -          | 年份导航                                   |
+| 12   | `frontend/src/components/business/YearNav.vue`          | P2     | 高         | 已完成 | 2026-02-18 | 年份导航                                   |
 
 **阶段预计工作量**: 8天
 
@@ -83,15 +83,16 @@
 
 | 序号 | 文件路径                                     | 优先级 | SCSS使用量 | 状态   | 完成日期 | 备注       |
 | ---- | -------------------------------------------- | ------ | ---------- | ------ | -------- | ---------- |
-| 1    | `frontend/src/views/user/Login.vue`        | P0     | 中         | 待迁移 | -        | 登录页     |
-| 2    | `frontend/src/views/user/Register.vue`     | P1     | 中         | 待迁移 | -        | 注册页     |
-| 3    | `frontend/src/views/user/ExamIndex.vue`    | P1     | 低         | 待迁移 | -        | 真题首页   |
-| 4    | `frontend/src/views/user/ExamList.vue`     | P1     | 低         | 待迁移 | -        | 真题列表   |
-| 5    | `frontend/src/views/user/ExamClassify.vue` | P1     | 低         | 待迁移 | -        | 真题分类   |
-| 6    | `frontend/src/views/user/MockIndex.vue`    | P1     | 低         | 待迁移 | -        | 模拟题首页 |
-| 7    | `frontend/src/views/user/MockList.vue`     | P1     | 低         | 待迁移 | -        | 模拟题列表 |
-| 8    | `frontend/src/views/user/MockClassify.vue` | P1     | 低         | 待迁移 | -        | 模拟题分类 |
-| 9    | `frontend/src/views/user/UserCenter.vue`   | P2     | 中         | 待迁移 | -        | 个人中心   |
+| 1    | `frontend/src/views/user/Login.vue`        | P0     | 中         | 已完成 | 2026-02-19 | 登录页     |
+| 2    | `frontend/src/views/user/Register.vue`     | P1     | 中         | 已完成 | 2026-02-19 | 注册页     |
+| 3    | `frontend/src/views/user/ExamIndex.vue`    | P1     | 低         | 已完成 | 2026-02-19 | 真题首页   |
+| 4    | `frontend/src/views/user/ExamList.vue`     | P1     | 低         | 已完成 | 2026-02-19 | 真题列表   |
+| 5    | `frontend/src/views/user/ExamClassify.vue` | P1     | 低         | 已完成 | 2026-02-19 | 真题分类   |
+| 6    | `frontend/src/views/user/MockIndex.vue`    | P1     | 低         | 已完成 | 2026-02-19 | 模拟题首页 |
+| 7    | `frontend/src/views/user/MockList.vue`     | P1     | 低         | 已完成 | 2026-02-19 | 模拟题列表 |
+| 8    | `frontend/src/views/user/MockClassify.vue` | P1     | 低         | 已完成 | 2026-02-19 | 模拟题分类 |
+| 9    | `frontend/src/views/user/UserCenter.vue`   | P2     | 中         | 已完成 | 2026-02-19 | 个人中心   |
+| 10   | `frontend/src/App.vue`                     | P0     | 高         | 已完成 | 2026-02-19 | 根组件     |
 
 **阶段预计工作量**: 4天
 
@@ -101,13 +102,13 @@
 
 | 序号 | 文件路径                                           | 优先级 | SCSS使用量 | 状态   | 完成日期 | 备注       |
 | ---- | -------------------------------------------------- | ------ | ---------- | ------ | -------- | ---------- |
-| 1    | `frontend/src/views/admin/CategoryManage.vue`    | P1     | 低         | 待迁移 | -        | 分类管理   |
-| 2    | `frontend/src/views/admin/ChapterManage.vue`     | P1     | 低         | 待迁移 | -        | 章节管理   |
-| 3    | `frontend/src/views/admin/ExamManage.vue`        | P1     | 低         | 待迁移 | -        | 真题管理   |
-| 4    | `frontend/src/views/admin/MockManage.vue`        | P1     | 低         | 待迁移 | -        | 模拟题管理 |
-| 5    | `frontend/src/views/admin/SubjectManage.vue`     | P1     | 低         | 待迁移 | -        | 科目管理   |
-| 6    | `frontend/src/views/admin/ImageManage.vue`       | P2     | 低         | 待迁移 | -        | 图片管理   |
-| 7    | `frontend/src/views/admin/ExamCategoryStats.vue` | P2     | 低         | 待迁移 | -        | 分类统计   |
+| 1    | `frontend/src/views/admin/CategoryManage.vue`    | P1     | 低         | 已完成 | 2026-02-19 | 分类管理   |
+| 2    | `frontend/src/views/admin/ChapterManage.vue`     | P1     | 低         | 已完成 | 2026-02-19 | 章节管理   |
+| 3    | `frontend/src/views/admin/ExamManage.vue`        | P1     | 低         | 已完成 | 2026-02-19 | 真题管理   |
+| 4    | `frontend/src/views/admin/MockManage.vue`        | P1     | 低         | 已完成 | 2026-02-19 | 模拟题管理 |
+| 5    | `frontend/src/views/admin/SubjectManage.vue`     | P1     | 低         | 已完成 | 2026-02-19 | 科目管理   |
+| 6    | `frontend/src/views/admin/ImageManage.vue`       | P2     | 低         | 已完成 | 2026-02-19 | 图片管理   |
+| 7    | `frontend/src/views/admin/ExamCategoryStats.vue` | P2     | 低         | 已完成 | 2026-02-19 | 分类统计   |
 
 **阶段预计工作量**: 3.5天
 
@@ -122,20 +123,76 @@
 | 第三阶段：业务组件 | 12           | 2           | 8            | 2           |
 | 第四阶段：用户页面 | 9            | 1           | 7            | 1           |
 | 第五阶段：管理页面 | 7            | 0           | 5            | 2           |
-| **总计**     | **40** | **6** | **34** | **0** |
+| 根组件             | 1            | 1           | 0            | 0           |
+| **总计**           | **41**       | **7**       | **33**       | **1**       |
 
-### 当前实际进度
+### 当前实际进度 (2026-02-19 迁移完成)
 
-| 分类           | 总数         | 已迁移       | 进度          |
-| -------------- | ------------ | ------------ | ------------- |
-| 全局配置       | 8            | 6            | 75%           |
-| 基础组件       | 4            | 0            | 0%            |
-| 业务组件       | 12           | 4            | 33%           |
-| 用户页面       | 9            | 0            | 0%            |
-| 管理页面       | 7            | 0            | 0%            |
-| **合计** | **40** | **10** | **25%** |
+| 分类           | 总数         | 已迁移       | 待迁移       | 进度          |
+| -------------- | ------------ | ------------ | ------------ | ------------- |
+| 全局配置       | 8            | 8            | 0            | 100%          |
+| 基础组件       | 4            | 4            | 0            | 100%          |
+| 业务组件       | 12           | 12           | 0            | 100%          |
+| 用户页面       | 10           | 10           | 0            | 100%          |
+| 管理页面       | 7            | 7            | 0            | 100%          |
+| **合计**       | **41**       | **41**       | **0**        | **100%**      |
 
-> 注：业务组件中 Navigation、ExamQuestionCard、CategoryTreeItem、SubjectSidebar 已迁移到 `<style scoped>` (无 SCSS)，但模板中仍使用 class 属性而非纯 Tailwind 类名。基础组件和页面视图全部使用 `<style lang="scss" scoped>`，尚未迁移。
+> 2026-02-19: 全部Vue组件已完成SCSS移除，vite.config.js已移除SCSS全局注入，4个SCSS文件已删除。迁移核心任务100%完成。
+
+> 注：部分组件模板中仍使用自定义class属性（如`exam-card`, `login-container`等），这是可选的Tailwind类名替换工作，可逐步进行。
+
+### 待完成工作 (可选 - 长期优化)
+
+| 优先级 | 工作内容 | 说明 |
+|--------|----------|------|
+| P2 | 替换自定义class为Tailwind | 约33个文件，工作量较大，可逐步进行 |
+
+| 分类     | 文件路径                                                     |
+| -------- | ------------------------------------------------------------ |
+| 根组件   | `frontend/src/App.vue`                                      |
+| 基础组件 | `frontend/src/components/basic/CustomButton.vue`           |
+|          | `frontend/src/components/basic/InputSelect.vue`            |
+|          | `frontend/src/components/basic/MarkdownEditor.vue`          |
+| 用户页面 | `frontend/src/views/user/Login.vue`                         |
+|          | `frontend/src/views/user/Register.vue`                      |
+|          | `frontend/src/views/user/ExamIndex.vue`                     |
+|          | `frontend/src/views/user/ExamList.vue`                      |
+|          | `frontend/src/views/user/ExamClassify.vue`                  |
+|          | `frontend/src/views/user/MockIndex.vue`                     |
+|          | `frontend/src/views/user/MockList.vue`                      |
+|          | `frontend/src/views/user/MockClassify.vue`                  |
+|          | `frontend/src/views/user/UserCenter.vue`                    |
+
+### 已完成文件清单 (26个)
+
+| 分类     | 文件路径                                                     |
+| -------- | ------------------------------------------------------------ |
+| 全局配置 | `frontend/package.json`                                      |
+|          | `frontend/tailwind.config.js`                                |
+|          | `frontend/postcss.config.js`                                 |
+|          | `frontend/src/styles/tailwind.css`                          |
+|          | `frontend/vite.config.js`                                    |
+|          | `frontend/src/main.js`                                       |
+| 基础组件 | `frontend/src/components/basic/MarkdownViewer.vue`            |
+| 业务组件 | `frontend/src/components/business/Navigation.vue`            |
+|          | `frontend/src/components/business/ExamQuestionCard.vue`      |
+|          | `frontend/src/components/business/ExamEntryCard.vue`        |
+|          | `frontend/src/components/business/ExamItemHeader.vue`        |
+|          | `frontend/src/components/business/ExamEditDialog.vue`        |
+|          | `frontend/src/components/business/MockEntryCard.vue`        |
+|          | `frontend/src/components/business/MockItemHeader.vue`        |
+|          | `frontend/src/components/business/MockEditDialog.vue`        |
+|          | `frontend/src/components/business/CategoryTreeItem.vue`      |
+|          | `frontend/src/components/business/ChapterNav.vue`            |
+|          | `frontend/src/components/business/SubjectSidebar.vue`         |
+|          | `frontend/src/components/business/YearNav.vue`              |
+| 管理页面 | `frontend/src/views/admin/CategoryManage.vue`                |
+|          | `frontend/src/views/admin/ChapterManage.vue`                 |
+|          | `frontend/src/views/admin/ExamManage.vue`                   |
+|          | `frontend/src/views/admin/MockManage.vue`                   |
+|          | `frontend/src/views/admin/SubjectManage.vue`                |
+|          | `frontend/src/views/admin/ImageManage.vue`                   |
+|          | `frontend/src/views/admin/ExamCategoryStats.vue`             |
 
 ---
 

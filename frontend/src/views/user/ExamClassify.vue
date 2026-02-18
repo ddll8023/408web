@@ -820,12 +820,18 @@ const handleDelete = async (id) => {
 
 </script>
 
-<style lang="scss" scoped>
+<style scoped>
+/**
+ * 真题分类浏览页面样式
+ * 使用 Tailwind CSS
+ */
+
 .exam-classify-page-container {
-  height: calc(100vh - #{$nav-height});
+  height: calc(100vh - 60px);
   overflow: hidden;
-  @include flex-column;
-  background-color: $color-primary; // 使用主题米色背景
+  display: flex;
+  flex-direction: column;
+  background-color: #FBF7F2;
 }
 
 .main-content-wrapper {
@@ -835,110 +841,103 @@ const handleDelete = async (id) => {
   overflow: hidden;
 }
 
-
-
 /* 右侧内容区 */
 .content-area {
   flex: 1;
-  width: 0; // 防止 Flex 子元素溢出
+  width: 0;
   padding: 0;
-  overflow-y: auto; // 全局滚动
-  @include scrollbar;
-  background-color: $color-primary; // 使用主题米色背景
+  overflow-y: auto;
+  background-color: #FBF7F2;
 }
 
 .content-card {
-  min-height: calc(100vh - #{$nav-height} - 40px);
-  box-shadow: none; // 移除阴影，与背景融合
-  background-color: $color-primary; // 使用主题米色背景
-  border: none; // 移除边框，与背景融合
-  
-  // 给卡片内容添加内边距（对齐 ExamList.vue）
-  :deep(.el-card__body) {
-    padding: $spacing-md;
-  }
-  
-  :deep(.el-card__header) {
-    padding: $spacing-md;
-    padding-bottom: $spacing-sm; // 减少 header 下方间隔
-    border-bottom: 1px solid $color-border-light;
-    background-color: transparent;
-  }
+  min-height: calc(100vh - 60px - 40px);
+  box-shadow: none;
+  background-color: #FBF7F2;
+  border: none;
+}
+
+.content-card :deep(.el-card__body) {
+  padding: 16px;
+}
+
+.content-card :deep(.el-card__header) {
+  padding: 16px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #dfe2e5;
+  background-color: transparent;
 }
 
 .card-header {
-  @include flex-between;
-  
-  .header-left {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    flex: 1;
-    
-    h2 {
-      margin: 0;
-      font-size: $font-size-xl + 2px;
-      color: $color-text-primary;
-    }
-  }
-  
-  .header-actions {
-    display: flex;
-    gap: $spacing-xs;
-  }
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
+.card-header .header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+}
+
+.card-header .header-left h2 {
+  margin: 0;
+  font-size: 22px;
+  color: #333;
+}
+
+.card-header .header-actions {
+  display: flex;
+  gap: 8px;
+}
 
 .questions-pane {
   padding: 0;
 }
 
-// 分组列表样式（对齐 ExamList.vue 的 .exam-list-year）
+/* 分组列表样式 */
 .exam-list-grouped {
   display: flex;
   flex-direction: column;
-  gap: $spacing-lg;
+  gap: 24px;
   width: 100%;
   max-width: 80%;
 }
-
-
 
 .category-group-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: $spacing-sm 0;
-  margin-top: $spacing-md;
-  margin-bottom: $spacing-sm;
-  border-bottom: 1px solid $color-border-light;
-  
-  &:first-child {
-    margin-top: 0;
-  }
+  padding: 8px 0;
+  margin-top: 16px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid #dfe2e5;
+}
+
+.category-group-header:first-child {
+  margin-top: 0;
 }
 
 .category-title {
   margin: 0;
-  font-size: $font-size-large;
+  font-size: 18px;
   font-weight: 600;
-  color: $color-text-primary;
+  color: #333;
 }
-
-
 
 .load-more-container {
   display: flex;
   justify-content: center;
-  padding: $spacing-lg 0;
-  margin-top: $spacing-md;
+  padding: 32px 0;
+  margin-top: 16px;
 }
 
 .back-top-inner {
   width: 40px;
   height: 40px;
   border-radius: 999px;
-  background-color: $color-accent;
+  background-color: #8B6F47;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -947,26 +946,26 @@ const handleDelete = async (id) => {
 }
 
 /* 响应式布局 */
-@include mobile {
+@media (max-width: 768px) {
   .exam-classify-page-container {
-    padding: $spacing-sm;
+    padding: 8px;
   }
-  
+
   .main-content-wrapper {
     flex-direction: column;
     align-items: stretch;
   }
 
   .content-area {
-    width: 100%; // 移动端恢复宽度
+    width: 100%;
   }
-  
+
   .exam-list-grouped {
-    max-width: 100%; // 移动端取消宽度限制
+    max-width: 100%;
   }
-  
+
   .exam-item-card {
-    padding: $spacing-sm;
+    padding: 8px;
   }
 }
 </style>

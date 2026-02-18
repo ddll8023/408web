@@ -91,104 +91,157 @@ const handleClick = (event) => {
 }
 </script>
 
-<style lang="scss" scoped>
+<style scoped>
 /**
  * 自定义按钮样式
- * 基于项目的Sass变量系统
- * 注：变量已通过Vite全局注入，无需手动导入
+ * 已迁移至纯CSS，保留必要的动画
+ * 按钮类型通过动态class实现：custom-btn--type
  */
-
-// 导入 Sass color 模块，用于颜色调整函数
-@use 'sass:color';
 
 /* 基础按钮样式 */
 .custom-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: $spacing-xs - 2px; // 6px
-  padding: $spacing-xs + 2px $spacing-sm; // 10px 16px
-  border: 1px solid $color-border;
-  border-radius: $border-radius-base;
-  font-size: $font-size-base;
-  font-weight: $font-weight-medium;
+  gap: 6px;
+  padding: 10px 16px;
+  border: 1px solid #dcdfe6;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 500;
   line-height: 1.5;
   cursor: pointer;
-  transition: $transition-fast;
+  transition: all 0.15s ease;
   outline: none;
   white-space: nowrap;
   user-select: none;
-  
+
   /* 默认样式 */
-  background-color: $color-bg-white;
-  color: $color-text-primary;
-  border-color: rgba(0, 0, 0, 0.15); // 浅色主题使用深色边框
-  
-  &:hover:not(.is-disabled):not(.is-loading) {
-    color: $color-accent;
-    border-color: $color-accent;
-    background-color: $color-accent-light;
-  }
-  
-  &:active:not(.is-disabled):not(.is-loading) {
-    opacity: 0.8;
-  }
+  background-color: #fff;
+  color: #333;
+  border-color: rgba(0, 0, 0, 0.15);
+}
+
+.custom-btn:hover:not(.is-disabled):not(.is-loading) {
+  color: #8B6F47;
+  border-color: #8B6F47;
+  background-color: rgba(139, 111, 71, 0.1);
+}
+
+.custom-btn:active:not(.is-disabled):not(.is-loading) {
+  opacity: 0.8;
 }
 
 /* Primary类型 */
 .custom-btn--primary {
-  background-color: $color-accent; // 使用深色强调色
-  border-color: $color-accent;
-  color: $color-text-white;
-  
-  &:hover:not(.is-disabled):not(.is-loading) {
-    // 使用 color.adjust 调整亮度，变亮10%
-    background-color: color.adjust($color-accent, $lightness: 10%);
-    border-color: color.adjust($color-accent, $lightness: 10%);
-    color: $color-text-white;
-  }
+  background-color: #8B6F47;
+  border-color: #8B6F47;
+  color: #fff;
 }
 
-/* 文本按钮基础样式 mixin */
-@mixin text-btn-base {
+.custom-btn--primary:hover:not(.is-disabled):not(.is-loading) {
+  background-color: #a88559;
+  border-color: #a88559;
+  color: #fff;
+}
+
+/* 文本按钮基础样式 */
+.custom-btn--text,
+.custom-btn--text-primary,
+.custom-btn--text-danger,
+.custom-btn--text-warning {
   border-color: transparent;
   background-color: transparent;
-  padding-left: $spacing-xs;
-  padding-right: $spacing-xs;
+  padding-left: 8px;
+  padding-right: 8px;
 }
 
 /* 文本按钮类型配置 */
-$text-btn-types: (
-  'text': ($color-accent, $color-accent-light),
-  'text-primary': (#409eff, rgba(64, 158, 255, 0.1)),
-  'text-danger': ($color-danger, rgba(245, 108, 108, 0.1)),
-  'text-warning': ($color-warning, rgba(230, 162, 60, 0.1))
-);
+.custom-btn--text {
+  color: #8B6F47;
+}
 
-/* 批量生成文本按钮样式 */
-@each $type, $colors in $text-btn-types {
-  .custom-btn--#{$type} {
-    @include text-btn-base;
-    color: nth($colors, 1);
-    
-    &:hover:not(.is-disabled):not(.is-loading) {
-      background-color: nth($colors, 2);
-      border-color: transparent;
-    }
-  }
+.custom-btn--text:hover:not(.is-disabled):not(.is-loading) {
+  background-color: rgba(139, 111, 71, 0.1);
+  border-color: transparent;
+}
+
+.custom-btn--text-primary {
+  color: #409eff;
+}
+
+.custom-btn--text-primary:hover:not(.is-disabled):not(.is-loading) {
+  background-color: rgba(64, 158, 255, 0.1);
+  border-color: transparent;
+}
+
+.custom-btn--text-danger {
+  color: #f56c6c;
+}
+
+.custom-btn--text-danger:hover:not(.is-disabled):not(.is-loading) {
+  background-color: rgba(245, 108, 108, 0.1);
+  border-color: transparent;
+}
+
+.custom-btn--text-warning {
+  color: #e6a23c;
+}
+
+.custom-btn--text-warning:hover:not(.is-disabled):not(.is-loading) {
+  background-color: rgba(230, 162, 60, 0.1);
+  border-color: transparent;
+}
+
+/* Success类型 */
+.custom-btn--success {
+  background-color: #67c23a;
+  border-color: #67c23a;
+  color: #fff;
+}
+
+.custom-btn--success:hover:not(.is-disabled):not(.is-loading) {
+  background-color: #85ce61;
+  border-color: #85ce61;
+  color: #fff;
+}
+
+/* Danger类型 */
+.custom-btn--danger {
+  background-color: #f56c6c;
+  border-color: #f56c6c;
+  color: #fff;
+}
+
+.custom-btn--danger:hover:not(.is-disabled):not(.is-loading) {
+  background-color: #f78989;
+  border-color: #f78989;
+  color: #fff;
+}
+
+/* Warning类型 */
+.custom-btn--warning {
+  background-color: #e6a23c;
+  border-color: #e6a23c;
+  color: #fff;
+}
+
+.custom-btn--warning:hover:not(.is-disabled):not(.is-loading) {
+  background-color: #ebb563;
+  border-color: #ebb563;
+  color: #fff;
 }
 
 /* 尺寸变体 */
 .custom-btn--small {
-  padding: $spacing-xs - 2px $spacing-gap; // 6px 12px
-  font-size: $font-size-small;
+  padding: 6px 12px;
+  font-size: 12px;
 }
 
 .custom-btn--medium {
-  padding: $spacing-xs + 2px $spacing-sm; // 10px 16px
-  font-size: $font-size-base;
+  padding: 10px 16px;
+  font-size: 14px;
 }
-
 
 /* 加载状态 */
 .custom-btn.is-loading {

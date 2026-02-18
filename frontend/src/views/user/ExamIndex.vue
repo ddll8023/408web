@@ -147,163 +147,166 @@ onMounted(() => {
 })
 </script>
 
-<style lang="scss" scoped>
+<style scoped>
 /**
  * 真题索引页面样式
- * 使用Sass变量和mixins统一管理主题
+ * 使用 Tailwind CSS
  */
 
 .exam-index-container {
-  min-height: calc(100vh - #{$nav-height});
-  padding: $spacing-lg $spacing-md;
-  background-color: $color-primary;
-  @include flex-center;
+  min-height: calc(100vh - 60px);
+  padding: 32px 16px;
+  background-color: #FBF7F2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .index-content {
   width: 100%;
-  max-width: $container-width-lg;
+  max-width: 1200px;
 }
 
 /* 头部介绍 */
 .index-header {
   text-align: center;
-  padding: $spacing-lg 0;
-  
-  .index-title {
-    margin: 0 0 $spacing-md 0;
-    font-size: $font-size-xxl;
-    color: $color-text-primary;
-    font-weight: $font-weight-bold;
-  }
-  
-  .index-description {
-    margin: 0;
-    font-size: $font-size-medium;
-    color: $color-text-regular;
-    line-height: 1.8;
-    max-width: 800px;
-    margin: 0 auto;
-  }
+  padding: 32px 0;
+}
+
+.index-header .index-title {
+  margin: 0 0 24px 0;
+  font-size: 28px;
+  color: #333;
+  font-weight: 600;
+}
+
+.index-header .index-description {
+  margin: 0;
+  font-size: 16px;
+  color: #666;
+  line-height: 1.8;
+  max-width: 800px;
+  margin: 0 auto;
 }
 
 /* 年份卡片网格 */
 .year-cards {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: $spacing-md;
-  margin: $spacing-lg 0;
+  gap: 16px;
+  margin: 32px 0;
 }
 
 .year-card {
-  padding: $spacing-md;
-  background-color: $color-bg-white;
-  border-radius: $border-radius-base;
-  border: 2px solid $color-border-light;
+  padding: 16px;
+  background-color: #fff;
+  border-radius: 4px;
+  border: 2px solid #dfe2e5;
   cursor: pointer;
-  transition: all $transition-base;
-  @include flex-column;
-  
-  &:hover {
-    border-color: $color-accent;
-    box-shadow: 0 4px 12px rgba(139, 111, 71, 0.15);
-    transform: translateY(-4px);
-    
-    .year-number {
-      color: $color-accent;
-    }
-  }
-  
-  .year-card-header {
-    display: flex;
-    align-items: baseline;
-    justify-content: center;
-    gap: $spacing-xs - 2px;
-    
-    .year-number {
-      margin: 0;
-      font-size: 48px;
-      font-weight: $font-weight-bold;
-      color: $color-text-primary;
-      transition: color $transition-base;
-      line-height: 1;
-    }
-    
-    .year-label {
-      font-size: $font-size-large;
-      color: $color-text-secondary;
-    }
-  }
-  
-  .year-card-body {
-    flex: 1;
-    padding: $spacing-sm 0;
-    
-    .year-stat {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: $spacing-xs - 2px;
-      
-      .stat-icon {
-        font-size: $font-size-large;
-        color: $color-accent;
-      }
-      
-      .stat-text {
-        font-size: $font-size-base;
-        color: $color-text-regular;
-      }
-    }
-  }
-  
-  .year-card-footer {
-    display: flex;
-    justify-content: center;
-    padding-top: $spacing-sm;
-    
-    .button-icon {
-      margin-left: $spacing-xs - 4px;
-      transition: transform $transition-base;
-    }
-  }
-  
-  &:hover .button-icon {
-    transform: translateX(4px);
-  }
+  transition: all 0.3s ease;
+  display: flex;
+  flex-direction: column;
+}
+
+.year-card:hover {
+  border-color: #8B6F47;
+  box-shadow: 0 4px 12px rgba(139, 111, 71, 0.15);
+  transform: translateY(-4px);
+}
+
+.year-card:hover .year-number {
+  color: #8B6F47;
+}
+
+.year-card .year-card-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 6px;
+}
+
+.year-card .year-card-header .year-number {
+  margin: 0;
+  font-size: 48px;
+  font-weight: 600;
+  color: #333;
+  transition: color 0.3s ease;
+  line-height: 1;
+}
+
+.year-card .year-card-header .year-label {
+  font-size: 18px;
+  color: #666;
+}
+
+.year-card .year-card-body {
+  flex: 1;
+  padding: 8px 0;
+}
+
+.year-card .year-card-body .year-stat {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.year-card .year-card-body .year-stat .stat-icon {
+  font-size: 18px;
+  color: #8B6F47;
+}
+
+.year-card .year-card-body .year-stat .stat-text {
+  font-size: 14px;
+  color: #666;
+}
+
+.year-card .year-card-footer {
+  display: flex;
+  justify-content: center;
+  padding-top: 8px;
+}
+
+.year-card .year-card-footer .button-icon {
+  margin-left: 4px;
+  transition: transform 0.3s ease;
+}
+
+.year-card:hover .button-icon {
+  transform: translateX(4px);
 }
 
 /* 底部提示 */
 .index-footer {
-  margin-top: $spacing-lg;
-  
-  .footer-tips {
-    margin: 0;
-    padding-left: $spacing-md;
-    color: $color-text-regular;
-    line-height: 1.8;
-    
-    li {
-      margin: $spacing-xs - 2px 0;
-    }
-  }
+  margin-top: 32px;
+}
+
+.index-footer .footer-tips {
+  margin: 0;
+  padding-left: 16px;
+  color: #666;
+  line-height: 1.8;
+}
+
+.index-footer .footer-tips li {
+  margin: 6px 0;
 }
 
 /* 响应式布局 */
-@include mobile {
+@media (max-width: 768px) {
   .exam-index-container {
-    padding: $spacing-md $spacing-sm;
+    padding: 16px 8px;
   }
-  
+
   .index-header .index-title {
-    font-size: $font-size-xl;
+    font-size: 20px;
   }
-  
+
   .year-cards {
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: $spacing-sm;
+    gap: 8px;
   }
-  
+
   .year-card .year-card-header .year-number {
     font-size: 36px;
   }

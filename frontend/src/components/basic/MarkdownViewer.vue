@@ -286,13 +286,10 @@ watch(
 )
 </script>
 
-<style lang="scss" scoped>
-/* 使用共享的 Markdown 样式 - @use 必须在最前面 */
-@use './styles/markdown-shared' as md;
-
+<style scoped>
 /**
  * Markdown查看器组件样式
- * 使用Sass变量统一管理主题
+ * 移除 SCSS，使用普通 CSS
  * 注：变量和mixins已通过Vite全局注入，无需手动导入
  */
 
@@ -303,32 +300,9 @@ watch(
 
 /* 优化Markdown渲染样式 */
 :deep(.v-md-editor-preview) {
-  background-color: $color-bg-white;
-  padding: $spacing-sm;
-  border-radius: $border-radius-base;
-  
-  // 图片样式优化
-  img {
-    max-width: 100%;
-    height: auto;
-    border-radius: $border-radius-small;
-    
-    // 限制最大高度，防止大图撑开
-    @if (v-bind(maxImageHeight)) {
-      max-height: v-bind(maxImageHeight);
-      object-fit: contain; // 保持比例
-    }
-    
-    // 启用预览时的鼠标样式
-    &[src] {
-      cursor: v-bind("enableImagePreview ? 'zoom-in' : 'default'");
-      transition: transform 0.2s;
-      
-      &:hover {
-        opacity: 0.95;
-      }
-    }
-  }
+  background-color: #fff;
+  padding: 16px;
+  border-radius: 4px;
 }
 
 /* plain 变体：用于嵌入式场景，去除额外留白与背景 */
@@ -341,8 +315,5 @@ watch(
   padding: 0;
   border-radius: 0;
 }
-
-/* 应用共享的 Markdown 样式 */
-@include md.markdown-viewer-styles(':deep(.v-md-editor-preview)');
 </style>
 

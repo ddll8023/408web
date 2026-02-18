@@ -198,9 +198,7 @@ watch(() => props.activeYear, (newYear) => {
 }, { immediate: true })
 </script>
 
-<style lang="scss" scoped>
-@use 'sass:color';
-
+<style scoped>
 /**
  * 年份导航栏组件样式
  * 优化版：Flex布局，Paper主题
@@ -209,7 +207,7 @@ watch(() => props.activeYear, (newYear) => {
 .year-nav-container {
   width: 280px;
   height: 100%;
-  background-color: $color-primary; // 米色背景
+  background-color: #FBF7F2; /* 米色背景 */
   border-right: 1px solid rgba(0, 0, 0, 0.05);
   display: flex;
   flex-direction: column;
@@ -219,11 +217,11 @@ watch(() => props.activeYear, (newYear) => {
 
   &.collapsed {
     width: 56px;
-    
+
     .year-nav-header {
       justify-content: center;
       padding: 0;
-      
+
       .toggle-btn {
         margin: 0;
       }
@@ -240,7 +238,7 @@ watch(() => props.activeYear, (newYear) => {
   border-bottom: 1px solid rgba(0, 0, 0, 0.05);
   flex-shrink: 0;
   gap: 8px;
-  
+
   .toggle-btn {
     width: 32px;
     height: 32px;
@@ -249,10 +247,10 @@ watch(() => props.activeYear, (newYear) => {
     justify-content: center;
     border-radius: 6px;
     cursor: pointer;
-    color: $color-accent;
+    color: #8B6F47;
     transition: all 0.2s;
     flex-shrink: 0;
-    
+
     &:hover {
       background-color: rgba(0, 0, 0, 0.05);
     }
@@ -261,19 +259,19 @@ watch(() => props.activeYear, (newYear) => {
   .header-title {
     font-weight: 600;
     font-size: 16px;
-    color: $color-accent;
+    color: #8B6F47;
     white-space: nowrap;
     overflow: hidden;
     flex: 1;
   }
-  
+
   .header-actions {
     display: flex;
     align-items: center;
     gap: 8px;
     flex-shrink: 0;
   }
-  
+
   .collapse-all-btn {
     display: flex;
     align-items: center;
@@ -281,18 +279,18 @@ watch(() => props.activeYear, (newYear) => {
     padding: 4px 8px;
     border-radius: 4px;
     cursor: pointer;
-    color: $color-text-secondary;
+    color: #999;
     font-size: 13px;
     transition: all 0.2s;
     white-space: nowrap;
-    
+
     .el-icon {
       font-size: 14px;
     }
-    
+
     &:hover {
       background-color: rgba(0, 0, 0, 0.05);
-      color: $color-accent;
+      color: #8B6F47;
     }
   }
 }
@@ -300,7 +298,24 @@ watch(() => props.activeYear, (newYear) => {
 .year-list-scroll {
   flex: 1;
   overflow-y: auto;
-  @include scrollbar(4px);
+  /* 自定义滚动条 */
+  &::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: 4px;
+
+    &:hover {
+      background-color: rgba(0, 0, 0, 0.3);
+    }
+  }
+
+  &::-webkit-scrollbar-track {
+    background-color: transparent;
+  }
   padding: 12px 8px;
 }
 
@@ -314,7 +329,7 @@ watch(() => props.activeYear, (newYear) => {
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s ease;
-  
+
   .title-content {
     display: flex;
     align-items: center;
@@ -322,7 +337,7 @@ watch(() => props.activeYear, (newYear) => {
     padding: 0 8px;
     width: 100%;
   }
-  
+
   .icon-area {
     display: flex;
     align-items: center;
@@ -332,21 +347,21 @@ watch(() => props.activeYear, (newYear) => {
     margin-right: 4px;
     border-radius: 4px;
     transition: background-color 0.2s;
-    
+
     &:hover {
       background-color: rgba(0, 0, 0, 0.05);
     }
   }
-  
+
   &:hover {
     background-color: rgba(0, 0, 0, 0.03);
   }
-  
+
   &.active {
-    background-color: rgba($color-accent, 0.08);
-    
+    background-color: rgba(139, 111, 71, 0.08);
+
     .year-text, .count-badge, .expand-icon {
-      color: $color-accent;
+      color: #8B6F47;
       font-weight: 600;
     }
   }
@@ -354,8 +369,8 @@ watch(() => props.activeYear, (newYear) => {
   .expand-icon {
     font-size: 14px;
     transition: transform 0.3s ease;
-    color: $color-text-secondary;
-    
+    color: #999;
+
     &.is-expanded {
       transform: rotate(90deg);
     }
@@ -364,12 +379,12 @@ watch(() => props.activeYear, (newYear) => {
   .year-text {
     flex: 1;
     font-size: 15px;
-    color: $color-text-primary;
+    color: #333;
   }
-  
+
   .count-badge {
     font-size: 12px;
-    color: $color-text-secondary;
+    color: #999;
     background-color: rgba(0,0,0,0.05);
     padding: 2px 6px;
     border-radius: 10px;
@@ -385,51 +400,51 @@ watch(() => props.activeYear, (newYear) => {
   display: flex;
   align-items: center;
   height: 36px;
-  padding: 0 12px 0 36px; // Indent
+  padding: 0 12px 0 36px; /* Indent */
   margin-bottom: 2px;
   border-radius: 6px;
   cursor: pointer;
   font-size: 13px;
-  color: $color-text-regular;
+  color: #666;
   transition: all 0.2s ease;
-  
+
   .exam-icon {
     margin-right: 8px;
     font-size: 14px;
     opacity: 0.7;
   }
-  
+
   .exam-title {
     flex: 1;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
-  
+
   &:hover {
     background-color: rgba(0, 0, 0, 0.03);
-    color: $color-text-primary;
+    color: #333;
   }
 
   &.active {
-    background-color: transparent; // 透明背景
-    color: $color-accent;
+    background-color: transparent; /* 透明背景 */
+    color: #8B6F47;
     font-weight: 500;
     position: relative;
-    
+
     .exam-icon {
-      color: $color-accent;
+      color: #8B6F47;
       opacity: 1;
     }
-    
-    // 左侧指示条
+
+    /* 左侧指示条 */
     &::before {
       content: '';
       position: absolute;
       left: 24px;
       height: 14px;
       width: 2px;
-      background-color: $color-accent;
+      background-color: #8B6F47;
       border-radius: 2px;
     }
   }
@@ -440,14 +455,14 @@ watch(() => props.activeYear, (newYear) => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: $spacing-xs;
-  padding: $spacing-lg;
-  color: $color-text-secondary;
-  font-size: $font-size-small;
-  
+  gap: 8px;
+  padding: 32px;
+  color: #999;
+  font-size: 12px;
+
   .el-icon {
-    font-size: $font-size-xl;
-    color: $color-warning;
+    font-size: 20px;
+    color: #e6a23c;
   }
 }
 
@@ -462,17 +477,17 @@ watch(() => props.activeYear, (newYear) => {
 }
 
 /* 响应式布局 */
-@include mobile {
+@media (max-width: 768px) {
   .year-nav-container {
     width: 100%;
     height: auto;
     border-right: none;
     border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-    
+
     &.collapsed {
       width: 100%;
     }
-    
+
     .year-list-scroll {
       max-height: 300px;
     }

@@ -788,12 +788,18 @@ const handleDelete = async (id) => {
 }
 </script>
 
-<style lang="scss" scoped>
+<style scoped>
+/**
+ * 模拟题分类浏览页面样式
+ * 使用 Tailwind CSS
+ */
+
 .mock-classify-page-container {
-  height: calc(100vh - #{$nav-height});
+  height: calc(100vh - 60px);
   overflow: hidden;
-  @include flex-column;
-  background-color: $color-primary;
+  display: flex;
+  flex-direction: column;
+  background-color: #FBF7F2;
 }
 
 .main-content-wrapper {
@@ -803,68 +809,66 @@ const handleDelete = async (id) => {
   overflow: hidden;
 }
 
-
-
 /* 右侧内容区 */
 .content-area {
   flex: 1;
   width: 0;
   padding: 0;
   overflow-y: auto;
-  @include scrollbar;
-  background-color: $color-primary;
+  background-color: #FBF7F2;
 }
 
 .content-card {
-  min-height: calc(100vh - #{$nav-height} - 40px);
+  min-height: calc(100vh - 60px - 40px);
   box-shadow: none;
-  background-color: $color-primary;
+  background-color: #FBF7F2;
   border: none;
-  
-  :deep(.el-card__body) {
-    padding: $spacing-md;
-  }
-  
-  :deep(.el-card__header) {
-    padding: $spacing-md;
-    padding-bottom: $spacing-sm;
-    border-bottom: 1px solid $color-border-light;
-    background-color: transparent;
-  }
+}
+
+.content-card :deep(.el-card__body) {
+  padding: 16px;
+}
+
+.content-card :deep(.el-card__header) {
+  padding: 16px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #dfe2e5;
+  background-color: transparent;
 }
 
 .card-header {
-  @include flex-between;
-  
-  .header-left {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    flex: 1;
-    
-    h2 {
-      margin: 0;
-      font-size: $font-size-xl + 2px;
-      color: $color-text-primary;
-    }
-  }
-  
-  .header-actions {
-    display: flex;
-    gap: $spacing-xs;
-  }
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
+.card-header .header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+}
+
+.card-header .header-left h2 {
+  margin: 0;
+  font-size: 22px;
+  color: #333;
+}
+
+.card-header .header-actions {
+  display: flex;
+  gap: 8px;
+}
 
 .questions-pane {
   padding: 0;
 }
 
-// 分组列表样式
+/* 分组列表样式 */
 .mock-list-grouped {
   display: flex;
   flex-direction: column;
-  gap: $spacing-lg;
+  gap: 24px;
   width: 100%;
   max-width: 80%;
 }
@@ -873,57 +877,57 @@ const handleDelete = async (id) => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: $spacing-sm 0;
-  margin-top: $spacing-md;
-  margin-bottom: $spacing-sm;
-  border-bottom: 1px solid $color-border-light;
-  
-  &:first-child {
-    margin-top: 0;
-  }
+  padding: 8px 0;
+  margin-top: 16px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid #dfe2e5;
+}
+
+.category-group-header:first-child {
+  margin-top: 0;
 }
 
 .category-title {
   margin: 0;
-  font-size: $font-size-large;
+  font-size: 18px;
   font-weight: 600;
-  color: $color-text-primary;
+  color: #333;
 }
 
-// 模拟题卡片页面级样式覆盖（组件基础样式在 MockEntryCard.vue 中）
+/* 模拟题卡片页面级样式覆盖 */
 :deep(.mock-entry-card) {
-  background-color: $color-primary;
-  
-  // 从管理页面"查看"按钮跳转过来时的高亮效果
-  &.highlight-card {
-    animation: highlightPulse 2s ease-out;
-    border-color: $color-accent;
-    box-shadow: 0 0 20px rgba($color-accent, 0.3);
-  }
+  background-color: #FBF7F2;
 }
 
-// 高亮脉冲动画
+/* 从管理页面"查看"按钮跳转过来时的高亮效果 */
+:deep(.mock-entry-card.highlight-card) {
+  animation: highlightPulse 2s ease-out;
+  border-color: #8B6F47;
+  box-shadow: 0 0 20px rgba(139, 111, 71, 0.3);
+}
+
+/* 高亮脉冲动画 */
 @keyframes highlightPulse {
   0%, 100% {
-    box-shadow: 0 0 20px rgba($color-accent, 0.3);
+    box-shadow: 0 0 20px rgba(139, 111, 71, 0.3);
   }
   50% {
-    box-shadow: 0 0 30px rgba($color-accent, 0.5);
+    box-shadow: 0 0 30px rgba(139, 111, 71, 0.5);
   }
 }
 
 .load-more-container {
   display: flex;
   justify-content: center;
-  padding: $spacing-lg 0;
-  margin-top: $spacing-md;
+  padding: 32px 0;
+  margin-top: 16px;
 }
 
 .back-top-inner {
   width: 40px;
   height: 40px;
   border-radius: 999px;
-  background-color: $color-accent;
+  background-color: #8B6F47;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -932,11 +936,11 @@ const handleDelete = async (id) => {
 }
 
 /* 响应式布局 */
-@include mobile {
+@media (max-width: 768px) {
   .mock-classify-page-container {
-    padding: $spacing-sm;
+    padding: 8px;
   }
-  
+
   .main-content-wrapper {
     flex-direction: column;
     align-items: stretch;

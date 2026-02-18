@@ -179,9 +179,7 @@ watch(() => props.activeChapterId, (newId) => {
 }, { immediate: true })
 </script>
 
-<style lang="scss" scoped>
-@use "sass:color";
-
+<style scoped>
 /**
  * 章节导航栏组件样式
  * 设计：米色背景、圆角卡片风格、Element Plus 图标
@@ -190,23 +188,25 @@ watch(() => props.activeChapterId, (newId) => {
 .chapter-nav {
   position: fixed;
   left: 0;
-  top: $nav-height;
+  top: 60px;
   width: 280px;
-  height: calc(100vh - #{$nav-height});
-  background-color: $color-primary; // 米色背景
+  height: calc(100vh - 60px);
+  background-color: #FBF7F2;
+  /* 米色背景 */
   border-right: 1px solid rgba(0, 0, 0, 0.06);
   box-shadow: 2px 0 8px rgba(0, 0, 0, 0.02);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  @include flex-column;
-  z-index: $z-index-nav - 1;
+  display: flex;
+  flex-direction: column;
+  z-index: 999;
 
   &.collapsed {
     width: 56px;
-    
+
     .chapter-nav-header {
       justify-content: center;
-      padding: $spacing-sm 0;
-      
+      padding: 16px 0;
+
       .collapse-icon {
         margin-right: 0;
       }
@@ -215,28 +215,30 @@ watch(() => props.activeChapterId, (newId) => {
 }
 
 .chapter-nav-header {
-  @include flex-center;
+  display: flex;
+  align-items: center;
   justify-content: flex-start;
-  padding: $spacing-sm $spacing-md;
+  padding: 16px 24px;
   border-bottom: 1px solid rgba(0, 0, 0, 0.06);
   cursor: pointer;
   user-select: none;
-  color: $color-accent; // 棕色文字
+  color: #8B6F47;
+  /* 棕色文字 */
   height: 56px;
   box-sizing: border-box;
-  
+
   &:hover {
     background-color: rgba(0, 0, 0, 0.03);
-    
+
     .collapse-icon {
       transform: scale(1.1);
     }
   }
 
   .collapse-icon {
-    margin-right: $spacing-sm;
+    margin-right: 16px;
     transition: transform 0.2s ease;
-    color: $color-accent;
+    color: #8B6F47;
   }
 
   .header-title {
@@ -250,24 +252,39 @@ watch(() => props.activeChapterId, (newId) => {
 .chapter-list {
   flex: 1;
   overflow-y: auto;
-  @include scrollbar(4px);
-  padding: $spacing-sm;
+  /* 自定义滚动条样式 */
+  padding: 16px;
+}
+.chapter-list::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+.chapter-list::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+}
+.chapter-list::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(0, 0, 0, 0.3);
+}
+.chapter-list::-webkit-scrollbar-track {
+  background-color: transparent;
 }
 
 .chapter-item {
   margin-bottom: 2px;
 
   .chapter-title {
-    @include flex-center;
+    display: flex;
+    align-items: center;
     justify-content: flex-start;
     padding: 10px 12px;
     margin-bottom: 2px;
     border-radius: 8px;
     cursor: pointer;
     user-select: none;
-    color: $color-accent;
+    color: #8B6F47;
     transition: all 0.2s ease;
-    
+
     &:hover {
       background-color: rgba(0, 0, 0, 0.04);
     }
@@ -276,9 +293,9 @@ watch(() => props.activeChapterId, (newId) => {
       margin-right: 8px;
       font-size: 14px;
       transition: transform 0.3s ease;
-      color: $color-accent;
+      color: #8B6F47;
       opacity: 0.8;
-      
+
       &.is-expanded {
         transform: rotate(90deg);
       }
@@ -297,14 +314,14 @@ watch(() => props.activeChapterId, (newId) => {
       transition: all 0.2s ease;
       opacity: 0;
       cursor: pointer;
-      
+
       &:hover {
-        color: $color-accent;
+        color: #8B6F47;
         transform: scale(1.2);
       }
-      
+
       &.is-favorite {
-        color: $color-accent;
+        color: #8B6F47;
         opacity: 1;
       }
     }
@@ -314,16 +331,16 @@ watch(() => props.activeChapterId, (newId) => {
     opacity: 1;
   }
 
-  // 激活状态的章节(作为整体)
+  /* 激活状态的章节(作为整体) */
   &.active > .chapter-title {
     background-color: rgba(0, 0, 0, 0.06);
-    color: color.adjust($color-accent, $lightness: -10%);
+    color: #6B5333;
     font-weight: 600;
   }
 
   .sub-chapters {
     padding: 2px 0 4px 0;
-    // 简单的展开动画提示
+    /* 简单的展开动画提示 */
     animation: slideDown 0.2s ease-out;
     transform-origin: top;
   }
@@ -337,13 +354,14 @@ watch(() => props.activeChapterId, (newId) => {
     border-radius: 6px;
     cursor: pointer;
     user-select: none;
-    color: $color-text-primary;
+    color: #333;
     font-size: 14px;
     transition: all 0.2s ease;
-    
+
     &:hover {
       background-color: rgba(0, 0, 0, 0.04);
-      padding-left: 38px; // 悬停微动效
+      padding-left: 38px;
+      /* 悬停微动效 */
     }
 
     .dot {
@@ -362,16 +380,16 @@ watch(() => props.activeChapterId, (newId) => {
 
     .sub-favorite {
       font-size: 14px;
-      margin-left: $spacing-xs;
+      margin-left: 8px;
     }
 
     &.active {
-      background-color: rgba($color-accent, 0.08);
+      background-color: rgba(139, 111, 71, 0.08);
       font-weight: 600;
-      color: $color-accent;
-      
+      color: #8B6F47;
+
       .dot {
-        background-color: $color-accent;
+        background-color: #8B6F47;
         transform: scale(1.5);
       }
     }
@@ -390,15 +408,11 @@ watch(() => props.activeChapterId, (newId) => {
 }
 
 /* 响应式布局 */
-@include mobile {
+@media (max-width: 768px) {
   .chapter-nav {
     width: 240px;
-    
+
     &.collapsed {
-      width: 0; // 移动端折叠时完全隐藏或保留小条？原设计是40px，这里改0可能更干净，或者保持最小宽度
-      transform: translateX(-100%); // 或者直接移出
-      
-      // 如果需要保留按钮，可以另做处理。这里保持原逻辑的一致性，使用小宽度
       width: 48px;
       transform: none;
     }

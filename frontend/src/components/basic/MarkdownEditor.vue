@@ -348,111 +348,195 @@ onUnmounted(() => {
 })
 </script>
 
-<style lang="scss" scoped>
-/* 使用共享的 Markdown 样式 - @use 必须在最前面 */
-@use './styles/markdown-shared' as md;
-
+<style scoped>
 /**
  * Markdown编辑器组件样式（左右分栏布局）
  * 左侧：编辑区  右侧：预览区（使用 MarkdownViewer）
- * 使用Sass变量统一管理主题
- * 注：变量和mixins已通过Vite全局注入，无需手动导入
+ * 已迁移至纯CSS，保留共享样式
  */
 
 .markdown-editor-split {
   display: flex;
   width: 100%;
-  // 高度通过 style 绑定动态设置，避免固定高度导致空白
-  gap: 0; // 无间隙，紧贴
-  border: 1px solid $color-border-light;
-  border-radius: $border-radius-base;
+  gap: 0;
+  border: 1px solid #dfe2e5;
+  border-radius: 4px;
   overflow: hidden;
-  box-shadow: $box-shadow-light;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
 }
 
 .editor-pane {
   flex: 1;
-  min-width: 0; // 允许收缩
-  height: 100%; // 确保高度填满
-  border-right: 1px solid $color-border-light;
-  
-  :deep(.v-md-editor) {
-    height: 100% !important; // 强制高度为 100%
-    border: none; // 移除内部边框，统一使用外部边框
-    border-radius: 0;
-    box-shadow: none;
-  }
+  min-width: 0;
+  height: 100%;
+  border-right: 1px solid #dfe2e5;
+}
+
+.editor-pane :deep(.v-md-editor) {
+  height: 100% !important;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
 }
 
 .preview-pane {
   flex: 1;
-  min-width: 0; // 允许收缩
-  height: 100%; // 确保高度填满
+  min-width: 0;
+  height: 100%;
   display: flex;
   flex-direction: column;
-  background-color: $color-bg-white;
+  background-color: #fff;
 }
 
 .preview-header {
-  height: 40px; // 与工具栏相同高度
+  height: 40px;
   display: flex;
   align-items: center;
-  padding: 0 $spacing-sm;
-  background-color: $color-bg-white; // 与编辑器工具栏相同背景
-  border-bottom: 1px solid $color-border-light;
-  font-size: $font-size-base;
-  font-weight: $font-weight-medium;
-  color: $color-text-primary; // 使用主文本色，更醒目
+  padding: 0 16px;
+  background-color: #fff;
+  border-bottom: 1px solid #dfe2e5;
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
 }
 
 .preview-content {
   flex: 1;
-  min-height: 0; // 关键：允许 flex 子项收缩到小于内容高度
-  overflow-y: auto; // 超出时显示滚动条
-  overflow-x: hidden; // 隐藏横向滚动条
-  padding: $spacing-sm;
-  
-  @include scrollbar; // 使用项目统一的滚动条样式
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 16px;
+}
+
+/* 自定义滚动条样式 */
+.preview-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.preview-content::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+.preview-content::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+
+.preview-content::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
 }
 
 /* 优化编辑器样式 */
 :deep(.v-md-editor) {
-  border-radius: $border-radius-base;
-  box-shadow: $box-shadow-light;
+  border-radius: 4px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
 }
 
 /* 优化工具栏样式 */
 :deep(.v-md-editor__toolbar) {
-  background-color: $color-bg-white;
-  border-bottom: 1px solid $color-border-light;
+  background-color: #fff;
+  border-bottom: 1px solid #dfe2e5;
 }
 
 /* 公式按钮图标样式 */
-:deep(.v-md-icon-formula) {
-  &::before {
-    content: '∑'; // 使用求和符号作为公式图标
-    font-size: 18px;
-    font-weight: bold;
-  }
+:deep(.v-md-icon-formula)::before {
+  content: '∑';
+  font-size: 18px;
+  font-weight: bold;
 }
 
 /* 优化编辑区样式 */
 :deep(.v-md-editor__left-area) {
-  background-color: $color-bg-white;
+  background-color: #fff;
 }
 
 /* 优化预览区样式 */
 :deep(.v-md-editor__preview) {
-  background-color: $color-bg-white;
+  background-color: #fff;
 }
 
-/* 应用共享的 Markdown 样式 */
-@include md.markdown-content-styles(':deep(.v-md-editor__preview)');
+/* 共享 Markdown 内容样式 */
+:deep(.v-md-editor__preview) pre {
+  border-radius: 4px;
+  background-color: #efefef;
+}
+
+:deep(.v-md-editor__preview) table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 16px 0;
+}
+
+:deep(.v-md-editor__preview) table th,
+:deep(.v-md-editor__preview) table td {
+  border: 1px solid #dfe2e5;
+  padding: 8px 12px;
+}
+
+:deep(.v-md-editor__preview) .katex {
+  font-size: 1.1em;
+}
+
+:deep(.v-md-editor__preview) .katex-display {
+  margin: 16px 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+:deep(.v-md-editor__preview) .katex-mathml {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(1px, 1px, 1px, 1px);
+  white-space: nowrap;
+}
+
+:deep(.v-md-editor__preview) svg {
+  max-width: 100% !important;
+  height: auto !important;
+  display: block;
+  margin: 16px auto;
+}
+
+:deep(.v-md-editor__preview) .custom-svg-block {
+  max-width: 100%;
+  overflow: hidden;
+  display: flex;
+  justify-content: center;
+  margin: 16px 0;
+}
+
+:deep(.v-md-editor__preview) .custom-svg-block svg {
+  max-width: 100% !important;
+  width: 100% !important;
+  height: auto !important;
+  display: block;
+}
 
 /* 滚动条样式 */
 :deep(.v-md-editor__left-area-title),
 :deep(.v-md-editor__preview-wrapper) {
-  @include scrollbar;
+  scrollbar-width: thin;
+  scrollbar-color: #c1c1c1 #f1f1f1;
+}
+
+:deep(.v-md-editor__left-area-title)::-webkit-scrollbar,
+:deep(.v-md-editor__preview-wrapper)::-webkit-scrollbar {
+  width: 8px;
+}
+
+:deep(.v-md-editor__left-area-title)::-webkit-scrollbar-track,
+:deep(.v-md-editor__preview-wrapper)::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+:deep(.v-md-editor__left-area-title)::-webkit-scrollbar-thumb,
+:deep(.v-md-editor__preview-wrapper)::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
 }
 </style>
 

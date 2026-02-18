@@ -84,65 +84,67 @@ defineProps({
 defineEmits(['copy', 'edit', 'delete'])
 </script>
 
-<style lang="scss" scoped>
-// 样式与 ExamItemHeader 保持一致
+<style scoped>
+/* 样式与 ExamItemHeader 保持一致 */
 .mock-item-header {
-  @include flex-between;
-  margin-bottom: $spacing-md;
-  padding-bottom: $spacing-sm;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
   border-bottom: 1px solid rgba(0, 0, 0, 0.03);
-  
+
   .question-info {
     flex: 1;
-    
+
     .question-title {
       margin: 0 0 8px 0;
       font-size: 18px;
-      color: $color-text-primary;
+      color: #333;
       font-weight: 600;
       display: flex;
       align-items: center;
       gap: 8px;
-      
+
       .title-separator {
-        color: $color-text-secondary;
+        color: #999;
         font-weight: normal;
       }
-      
+
       .question-number {
-        color: $color-accent;
+        color: #8B6F47;
         font-family: 'Roboto Mono', monospace;
       }
     }
-    
+
     .question-meta {
       display: flex;
       gap: 8px;
       flex-wrap: wrap;
     }
   }
-  
+
   .question-actions {
     display: flex;
     gap: 4px;
     opacity: 0.8;
     transition: opacity 0.2s;
     flex-shrink: 0;
-    
-    &:hover {
-      opacity: 1;
-    }
   }
 
-  @include mobile {
+  .question-actions:hover {
+    opacity: 1;
+  }
+
+  @media (max-width: 768px) {
     flex-direction: column;
     align-items: flex-start;
-    gap: $spacing-xs;
-    
+    gap: 8px;
+
     .question-title {
-      font-size: $font-size-base;
+      font-size: 14px;
     }
-    
+
     .question-actions {
       width: 100%;
       justify-content: flex-start;
