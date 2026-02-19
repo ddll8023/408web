@@ -1,8 +1,8 @@
 <template>
   <!-- 模拟题卡片组件：与 ExamEntryCard 保持样式一致 -->
-  <div class="mock-entry-card">
+  <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6 cursor-pointer hover:shadow-md transition-all duration-300 scroll-mt-8">
     <!-- 题目头部 -->
-    <MockItemHeader 
+    <MockItemHeader
       :mock="mock"
       :is-admin="isAdmin"
       @copy="(cmd) => $emit('copy', cmd)"
@@ -10,7 +10,7 @@
       @delete="(id) => $emit('delete', id)"
     />
     <!-- 题目内容与答案 -->
-    <div class="mock-entry-content">
+    <div class="mt-6">
       <ExamQuestionCard
         :exam="mock"
         :show-answer="showAnswer"
@@ -41,39 +41,28 @@ defineEmits(['copy', 'edit', 'delete', 'toggle-answer'])
 </script>
 
 <style scoped>
-/* 样式与 ExamEntryCard 保持一致 */
-.mock-entry-card {
-  padding: 24px;
-  border-radius: 4px;
-  border: 1px solid #dfe2e5;
-  scroll-margin-top: 32px;
-  transition: all 0.3s ease;
-}
+/**
+ * 模拟题卡片组件样式
+ * 使用纯CSS样式，兼容Tailwind CSS 4
+ */
 
-.mock-entry-card:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-  border-color: rgba(139, 111, 71, 0.3);
-}
-
-/* 高亮效果（从管理页面跳转时） */
+/* 高亮效果（从管理页面跳转时） - 需要保留全局选择器样式 */
 .mock-entry-card:global(.highlight-card) {
   animation: highlightPulse 2s ease-out;
   border-color: #8B6F47;
   box-shadow: 0 0 20px rgba(139, 111, 71, 0.3);
 }
 
-.mock-entry-card .mock-entry-content {
-  margin-top: 24px;
-}
-
 @keyframes highlightPulse {
-  0%, 100% { box-shadow: 0 0 20px rgba(139, 111, 71, 0.3); }
-  50% { box-shadow: 0 0 30px rgba(139, 111, 71, 0.5); }
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(139, 111, 71, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 30px rgba(139, 111, 71, 0.5);
+  }
 }
 
 @media (max-width: 768px) {
-  .mock-entry-card {
-    padding: 16px;
-  }
+  /* 响应式样式已通过 Tailwind 的 sm: 前缀处理 */
 }
 </style>

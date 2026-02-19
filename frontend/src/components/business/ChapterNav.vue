@@ -1,30 +1,30 @@
 <template>
-  <div class="chapter-nav" :class="{ collapsed: isCollapsed }">
+  <div class="chapter-nav fixed left-0 top-[60px] w-[280px] h-[calc(100vh-60px)] bg-[#FBF7F2] border-r border-black/[0.06] shadow-[2px_0_8px_rgba(0,0,0,0.02)] transition-all duration-300 flex flex-col z-[999]" :class="{ collapsed: isCollapsed }">
     <!-- 顶部标题栏 -->
-    <div class="chapter-nav-header" @click="toggleCollapse">
-      <el-icon class="collapse-icon" :size="20">
+    <div class="chapter-nav-header flex items-center justify-start px-6 py-4 border-b border-black/[0.06] cursor-pointer select-none text-[#8B6F47] h-14 box-border hover:bg-black/[0.03]" @click="toggleCollapse">
+      <el-icon class="collapse-icon mr-4 transition-transform duration-200 text-[#8B6F47]" :size="20">
         <DArrowRight v-if="isCollapsed" />
         <DArrowLeft v-else />
       </el-icon>
-      <span class="header-title" v-show="!isCollapsed">隐藏章节栏</span>
+      <span class="header-title font-semibold text-[15px] whitespace-nowrap overflow-hidden" v-show="!isCollapsed">隐藏章节栏</span>
     </div>
 
     <!-- 章节列表 -->
-    <div class="chapter-list" v-show="!isCollapsed">
+    <div class="chapter-list flex-1 overflow-y-auto p-4" v-show="!isCollapsed">
       <div
         v-for="chapter in chapters"
         :key="chapter.id"
-        class="chapter-item"
+        class="chapter-item mb-0.5"
         :class="{ active: activeChapterId === chapter.id, expanded: expandedChapters.includes(chapter.id) }"
       >
         <!-- 章节标题 -->
-        <div class="chapter-title" @click="toggleChapter(chapter.id)">
-          <el-icon class="expand-icon" :class="{ 'is-expanded': expandedChapters.includes(chapter.id) }">
+        <div class="chapter-title flex items-center justify-start px-3 py-2.5 mb-0.5 rounded-lg cursor-pointer select-none text-[#8B6F47] transition-all duration-200 hover:bg-black/[0.04]" @click="toggleChapter(chapter.id)">
+          <el-icon class="expand-icon mr-2 text-sm transition-transform duration-300 text-[#8B6F47] opacity-80" :class="{ 'is-expanded': expandedChapters.includes(chapter.id) }">
             <CaretRight />
           </el-icon>
-          <span class="chapter-name" @click.stop="handleChapterClick(chapter)">{{ chapter.name }}</span>
+          <span class="chapter-name flex-1 text-[15px] font-medium leading-[1.4]" @click.stop="handleChapterClick(chapter)">{{ chapter.name }}</span>
           <el-icon
-            class="favorite-icon"
+            class="favorite-icon text-sm text-black/25 transition-all duration-200 opacity-0 cursor-pointer hover:text-[#8B6F47] hover:scale-120"
             :class="{ 'is-favorite': isFavorite(chapter.id) }"
             @click.stop="handleToggleFavorite(chapter)"
           >
@@ -35,18 +35,18 @@
         <!-- 子章节列表 -->
         <div
           v-show="expandedChapters.includes(chapter.id)"
-          class="sub-chapters"
+          class="sub-chapters py-0.5 pb-1"
         >
           <div
             v-for="subChapter in chapter.children"
             :key="subChapter.id"
-            class="sub-chapter-item"
+            class="sub-chapter-item relative flex items-center py-2 pl-8 pr-3 m-0.5 rounded-md cursor-pointer select-none text-gray-800 text-sm transition-all duration-200 hover:bg-black/[0.04] hover:pl-9"
             :class="{ active: activeChapterId === subChapter.id }"
           >
-            <span class="dot"></span>
-            <span class="sub-name" @click="handleSubChapterClick(subChapter)">{{ subChapter.name }}</span>
+            <span class="dot w-1 h-1 rounded-full bg-black/20 mr-2.5 transition-all duration-200"></span>
+            <span class="sub-name flex-1 cursor-pointer" @click="handleSubChapterClick(subChapter)">{{ subChapter.name }}</span>
             <el-icon
-              class="favorite-icon sub-favorite"
+              class="favorite-icon sub-favorite text-xs ml-2"
               :class="{ 'is-favorite': isFavorite(subChapter.id) }"
               @click.stop="handleToggleFavorite(subChapter)"
             >
@@ -182,218 +182,102 @@ watch(() => props.activeChapterId, (newId) => {
 <style scoped>
 /**
  * 章节导航栏组件样式
- * 设计：米色背景、圆角卡片风格、Element Plus 图标
+ * 主要使用Tailwind类名，保留必要的自定义样式和动画
  */
 
-.chapter-nav {
-  position: fixed;
-  left: 0;
-  top: 60px;
-  width: 280px;
-  height: calc(100vh - 60px);
-  background-color: #FBF7F2;
-  /* 米色背景 */
-  border-right: 1px solid rgba(0, 0, 0, 0.06);
-  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.02);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  display: flex;
-  flex-direction: column;
-  z-index: 999;
+/* 导航栏容器 - 使用Tailwind类名在template中已实现 */
 
-  &.collapsed {
-    width: 56px;
-
-    .chapter-nav-header {
-      justify-content: center;
-      padding: 16px 0;
-
-      .collapse-icon {
-        margin-right: 0;
-      }
-    }
-  }
+.chapter-nav.collapsed {
+  @apply w-14;
 }
 
-.chapter-nav-header {
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  padding: 16px 24px;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
-  cursor: pointer;
-  user-select: none;
-  color: #8B6F47;
-  /* 棕色文字 */
-  height: 56px;
-  box-sizing: border-box;
-
-  &:hover {
-    background-color: rgba(0, 0, 0, 0.03);
-
-    .collapse-icon {
-      transform: scale(1.1);
-    }
-  }
-
-  .collapse-icon {
-    margin-right: 16px;
-    transition: transform 0.2s ease;
-    color: #8B6F47;
-  }
-
-  .header-title {
-    font-weight: 600;
-    font-size: 15px;
-    white-space: nowrap;
-    overflow: hidden;
-  }
+.chapter-nav.collapsed .chapter-nav-header {
+  @apply justify-center py-4;
 }
 
-.chapter-list {
-  flex: 1;
-  overflow-y: auto;
-  /* 自定义滚动条样式 */
-  padding: 16px;
+.chapter-nav.collapsed .chapter-nav-header .collapse-icon {
+  @apply mr-0;
 }
+
+/* 章节导航头部 - 使用Tailwind类名在template中已实现 */
+
+/* 折叠图标 */
+.chapter-nav-header .collapse-icon {
+  @apply mr-4 transition-transform duration-200 text-[#8B6F47];
+}
+
+.chapter-nav-header:hover .collapse-icon {
+  @apply scale-110;
+}
+
+/* 章节列表容器 */
 .chapter-list::-webkit-scrollbar {
-  width: 4px;
-  height: 4px;
+  @apply w-1 h-1;
 }
+
 .chapter-list::-webkit-scrollbar-thumb {
-  background-color: rgba(0, 0, 0, 0.2);
-  border-radius: 4px;
+  @apply bg-black/20 rounded;
 }
+
 .chapter-list::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(0, 0, 0, 0.3);
+  @apply bg-black/30;
 }
+
 .chapter-list::-webkit-scrollbar-track {
-  background-color: transparent;
+  @apply bg-transparent;
 }
 
-.chapter-item {
-  margin-bottom: 2px;
+/* 章节项 - 使用Tailwind类名在template中已实现 */
 
-  .chapter-title {
-    display: flex;
-    align-items: center;
-    justify-content: flex-start;
-    padding: 10px 12px;
-    margin-bottom: 2px;
-    border-radius: 8px;
-    cursor: pointer;
-    user-select: none;
-    color: #8B6F47;
-    transition: all 0.2s ease;
+/* 章节标题 - 使用Tailwind类名在template中已实现 */
 
-    &:hover {
-      background-color: rgba(0, 0, 0, 0.04);
-    }
+/* 展开图标旋转 */
+.chapter-title .expand-icon.is-expanded {
+  @apply rotate-90;
+}
 
-    .expand-icon {
-      margin-right: 8px;
-      font-size: 14px;
-      transition: transform 0.3s ease;
-      color: #8B6F47;
-      opacity: 0.8;
+/* 收藏图标 */
+.chapter-item .favorite-icon {
+  @apply text-black/25 transition-all duration-200 opacity-0 cursor-pointer;
+}
 
-      &.is-expanded {
-        transform: rotate(90deg);
-      }
-    }
+.chapter-item:hover .favorite-icon {
+  @apply opacity-100;
+}
 
-    .chapter-name {
-      flex: 1;
-      font-size: 15px;
-      font-weight: 500;
-      line-height: 1.4;
-    }
+.chapter-item .favorite-icon:hover {
+  @apply text-[#8B6F47] scale-120;
+}
 
-    .favorite-icon {
-      font-size: 16px;
-      color: rgba(0, 0, 0, 0.25);
-      transition: all 0.2s ease;
-      opacity: 0;
-      cursor: pointer;
+.chapter-item .favorite-icon.is-favorite {
+  @apply text-[#8B6F47] opacity-100;
+}
 
-      &:hover {
-        color: #8B6F47;
-        transform: scale(1.2);
-      }
+/* 激活状态的章节 */
+.chapter-item.active > .chapter-title {
+  @apply bg-black/[0.06] text-[#6B5333] font-semibold;
+}
 
-      &.is-favorite {
-        color: #8B6F47;
-        opacity: 1;
-      }
-    }
-  }
+/* 子章节列表动画 */
+.chapter-item .sub-chapters {
+  @apply py-0.5 pb-1;
+  animation: slideDown 0.2s ease-out;
+  transform-origin: top;
+}
 
-  &:hover .favorite-icon {
-    opacity: 1;
-  }
+/* 子章节项 - 使用Tailwind类名在template中已实现 */
 
-  /* 激活状态的章节(作为整体) */
-  &.active > .chapter-title {
-    background-color: rgba(0, 0, 0, 0.06);
-    color: #6B5333;
-    font-weight: 600;
-  }
+.chapter-item .sub-chapter-item .dot {
+  @apply w-1 h-1 rounded-full bg-black/20 mr-2.5 transition-all duration-200;
+}
 
-  .sub-chapters {
-    padding: 2px 0 4px 0;
-    /* 简单的展开动画提示 */
-    animation: slideDown 0.2s ease-out;
-    transform-origin: top;
-  }
+/* 子章节激活状态 */
+.chapter-item .sub-chapter-item.active {
+  @apply bg-[rgba(139,111,71,0.08)] font-semibold text-[#8B6F47];
+}
 
-  .sub-chapter-item {
-    position: relative;
-    display: flex;
-    align-items: center;
-    padding: 8px 12px 8px 34px;
-    margin: 2px 0;
-    border-radius: 6px;
-    cursor: pointer;
-    user-select: none;
-    color: #333;
-    font-size: 14px;
-    transition: all 0.2s ease;
-
-    &:hover {
-      background-color: rgba(0, 0, 0, 0.04);
-      padding-left: 38px;
-      /* 悬停微动效 */
-    }
-
-    .dot {
-      width: 4px;
-      height: 4px;
-      border-radius: 50%;
-      background-color: rgba(0, 0, 0, 0.2);
-      margin-right: 10px;
-      transition: all 0.2s ease;
-    }
-
-    .sub-name {
-      flex: 1;
-      cursor: pointer;
-    }
-
-    .sub-favorite {
-      font-size: 14px;
-      margin-left: 8px;
-    }
-
-    &.active {
-      background-color: rgba(139, 111, 71, 0.08);
-      font-weight: 600;
-      color: #8B6F47;
-
-      .dot {
-        background-color: #8B6F47;
-        transform: scale(1.5);
-      }
-    }
-  }
+.chapter-item .sub-chapter-item.active .dot {
+  @apply bg-[#8B6F47] scale-150;
 }
 
 @keyframes slideDown {
@@ -410,12 +294,11 @@ watch(() => props.activeChapterId, (newId) => {
 /* 响应式布局 */
 @media (max-width: 768px) {
   .chapter-nav {
-    width: 240px;
+    @apply w-60;
+  }
 
-    &.collapsed {
-      width: 48px;
-      transform: none;
-    }
+  .chapter-nav.collapsed {
+    @apply w-12 -translate-x-0;
   }
 }
 </style>

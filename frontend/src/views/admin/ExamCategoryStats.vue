@@ -1,9 +1,9 @@
 <template>
-  <div class="stats-container">
-    <el-card class="stats-card">
+  <div class="max-w-[1400px] mx-auto p-4 md:p-6 min-h-[calc(100vh-60px)]">
+    <el-card class="shadow-sm">
       <template #header>
-        <div class="card-header">
-          <h2>真题分类统计</h2>
+        <div class="flex items-center justify-between">
+          <h2 class="m-0 text-xl text-[#333] font-semibold">真题分类统计</h2>
           <el-dropdown trigger="click" @command="handleExportCommand">
             <CustomButton type="success">
               <el-icon style="margin-right: 6px"><Download /></el-icon>
@@ -21,8 +21,8 @@
       </template>
 
       <!-- 筛选条件 -->
-      <div class="filter-bar">
-        <span class="filter-label">科目筛选:</span>
+      <div class="mb-6 p-4 bg-[#efefef] rounded flex items-center">
+        <span class="font-bold text-[#666] mr-2">科目筛选:</span>
         <el-select
           v-model="statsSubjectId"
           placeholder="全部科目"
@@ -53,17 +53,17 @@
         <el-table-column prop="count" label="总题数" width="120" sortable />
         <el-table-column label="题目分布" min-width="360">
           <template #default="{ row }">
-            <div class="question-tags">
+            <div class="flex flex-wrap gap-1 max-h-20 overflow-y-auto">
               <el-tag
                 v-for="q in row.questions"
                 :key="q"
                 size="small"
                 type="info"
-                class="question-tag"
+                class="mr-1 mb-1"
               >
                 {{ q }}
               </el-tag>
-              <span v-if="!row.questions || row.questions.length === 0" class="no-data">
+              <span v-if="!row.questions || row.questions.length === 0" class="text-xs text-[#999]">
                 暂无数据
               </span>
             </div>
@@ -71,7 +71,7 @@
         </el-table-column>
       </el-table>
       
-      <div class="stats-footer">
+      <div class="mt-6 pt-4 border-t border-[#dfe2e5] text-right text-lg text-[#333]">
         <strong>总计题目：{{ totalQuestions }}</strong>
       </div>
     </el-card>
@@ -200,65 +200,8 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.stats-container {
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: 24px 16px;
-  min-height: calc(100vh - 60px);
-}
-
-.stats-card {
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
-}
-
-.card-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.card-header h2 {
-  margin: 0;
-  font-size: 22px;
-  color: #333;
-  font-weight: 600;
-}
-
-.filter-bar {
-  margin-bottom: 24px;
-  padding: 16px;
-  background-color: #efefef;
-  border-radius: 4px;
-  display: flex;
-  align-items: center;
-}
-
-.filter-label {
-  margin-right: 8px;
-  font-weight: bold;
-  color: #666;
-}
-
-.stats-footer {
-  margin-top: 24px;
-  padding-top: 16px;
-  border-top: 1px solid #dfe2e5;
-  text-align: right;
-  font-size: 18px;
-  color: #333;
-}
-
-/* 题目分布标签样式 */
-.question-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  max-height: 80px;
-  overflow-y: auto;
-}
-
-.no-data {
-  color: #999;
-  font-size: 12px;
-}
+/**
+ * 真题分类统计页面样式
+ * 已迁移至 Tailwind CSS
+ */
 </style>

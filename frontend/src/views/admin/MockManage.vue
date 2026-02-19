@@ -1,10 +1,10 @@
 <template>
-  <div class="mock-manage-container">
-    <el-card class="manage-card">
+  <div class="max-w-[1400px] mx-auto px-4 py-6 min-h-[calc(100vh-60px)]">
+    <el-card class="shadow-sm">
       <template #header>
-        <div class="card-header">
-          <h2>模拟题管理</h2>
-          <div class="header-actions">
+        <div class="flex items-center justify-between">
+          <h2 class="m-0 text-xl text-[#333] font-semibold">模拟题管理</h2>
+          <div class="flex gap-2">
             <CustomButton type="primary" @click="handleAdd">
               <el-icon style="margin-right: 6px"><Plus /></el-icon>
               新增模拟题
@@ -14,7 +14,7 @@
       </template>
 
       <!-- 筛选条件 -->
-      <div class="filter-bar">
+      <div class="mb-6 p-4 bg-[#efefef] rounded">
         <el-form inline>
           <el-form-item label="来源机构">
             <el-select
@@ -90,15 +90,15 @@
         </el-table-column>
         <el-table-column prop="title" label="标题" show-overflow-tooltip min-width="250">
           <template #default="{ row }">
-            <span class="title-text">{{ row.title }}</span>
+            <span class="cursor-pointer hover:!text-[#FBF7F2]">{{ row.title }}</span>
           </template>
         </el-table-column>
         <el-table-column label="分类" width="200">
           <template #default="{ row }">
-            <el-tag 
-              v-for="cat in (Array.isArray(row.category) ? row.category : [])" 
-              :key="cat" 
-              size="small" 
+            <el-tag
+              v-for="cat in (Array.isArray(row.category) ? row.category : [])"
+              :key="cat"
+              size="small"
               type="info"
               style="margin-right: 4px; margin-bottom: 4px;"
             >
@@ -123,7 +123,7 @@
           <template #default="{ row }">
             <CustomButton type="text" size="small" @click="handleView(row)">查看</CustomButton>
             <CustomButton type="text-primary" size="small" @click="handleEdit(row)">编辑</CustomButton>
-            <CustomButton 
+            <CustomButton
               type="text-danger"
               size="small"
               :loading="row.deleteLoading"
@@ -136,7 +136,7 @@
       </el-table>
 
       <!-- 分页 -->
-      <div class="pagination-wrapper">
+      <div class="flex justify-end mt-6">
         <el-pagination
           v-model:current-page="pagination.page"
           v-model:page-size="pagination.size"
@@ -150,7 +150,7 @@
     </el-card>
 
     <el-backtop :right="32" :bottom="32">
-      <div class="back-top-inner">
+      <div class="w-10 h-10 rounded-full bg-[#8B6F47] flex items-center justify-center text-white shadow-lg">
         <el-icon><ArrowUp /></el-icon>
       </div>
     </el-backtop>
@@ -403,72 +403,12 @@ watch(() => route.query.keyword, (newKeyword) => {
 <style scoped>
 /**
  * 模拟题管理页面样式
- * 移除 SCSS，使用普通 CSS
+ * 大部分样式已迁移到Tailwind类
  */
-.mock-manage-container {
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: 24px 16px;
-  min-height: calc(100vh - 60px);
-}
 
-.manage-card {
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
-}
-
-.card-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.card-header h2 {
-  margin: 0;
-  font-size: 22px;
-  color: #333;
-  font-weight: 600;
-}
-
-.header-actions {
-  display: flex;
-  gap: 8px;
-}
-
-.filter-bar {
-  margin-bottom: 24px;
-  padding: 16px;
-  background-color: #efefef;
-  border-radius: 4px;
-}
-
-.pagination-wrapper {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: 24px;
-}
-
-.back-top-inner {
-  width: 40px;
-  height: 40px;
-  border-radius: 999px;
-  background-color: #8B6F47;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #fff;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
-}
-
-.title-text {
-  cursor: pointer;
-}
-
-.title-text:hover {
-  color: #FBF7F2;
-}
-
+/* 响应式布局 */
 @media (max-width: 768px) {
-  .mock-manage-container {
+  .max-w-\[1400px\] {
     padding: 16px 8px;
   }
 }

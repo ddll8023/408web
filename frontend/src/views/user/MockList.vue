@@ -1,15 +1,15 @@
 <template>
-  <div class="mock-list-container">
-    <el-card class="list-card" v-loading="loading">
+  <div class="min-h-[calc(100vh-60px)] p-4 bg-[#FBF7F2]">
+    <el-card class="max-w-[1200px] mx-auto shadow-[0_2px_4px_rgba(0,0,0,0.08)]">
       <!-- 顶部操作栏 -->
-      <div class="list-header">
-        <div class="header-left">
+      <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center gap-2">
           <CustomButton type="text" :icon="ArrowLeft" @click="goBack">
             返回
           </CustomButton>
-          <h2>{{ source }} - 模拟题</h2>
+          <h2 class="m-0 text-[#333] font-semibold text-xl">{{ source }} - 模拟题</h2>
         </div>
-        <div class="header-actions" v-if="isAdmin">
+        <div class="flex gap-2" v-if="isAdmin">
           <CustomButton type="primary" @click="handleCreate">
             创建模拟题
           </CustomButton>
@@ -17,14 +17,14 @@
       </div>
 
       <!-- 筛选条件 -->
-      <div class="filter-bar">
+      <div class="mb-4 p-2 bg-[#efefef] rounded">
         <el-form inline>
           <el-form-item label="科目">
             <el-select
               v-model="filters.subjectId"
               placeholder="全部科目"
               clearable
-              style="width: 150px"
+              class="w-[150px]"
             >
               <el-option
                 v-for="subject in subjectOptions"
@@ -39,7 +39,7 @@
               v-model="filters.difficulty"
               placeholder="全部难度"
               clearable
-              style="width: 120px"
+              class="w-[120px]"
             >
               <el-option label="简单" value="EASY" />
               <el-option label="中等" value="MEDIUM" />
@@ -53,7 +53,7 @@
       </div>
 
       <!-- 题目列表 -->
-      <div v-if="mockList.length > 0" class="mock-list">
+      <div v-if="mockList.length > 0" class="flex flex-col gap-4">
         <ExamQuestionCard
           v-for="mock in mockList"
           :key="mock.id"
@@ -194,74 +194,4 @@ onMounted(async () => {
  * 模拟题列表页面样式
  * 使用 Tailwind CSS
  */
-
-.mock-list-container {
-  min-height: calc(100vh - 60px);
-  padding: 16px;
-  background-color: #FBF7F2;
-}
-
-.list-card {
-  max-width: 1200px;
-  margin: 0 auto;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
-}
-
-.list-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 16px;
-}
-
-.list-header .header-left {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.list-header .header-left h2 {
-  margin: 0;
-  font-size: 20px;
-  color: #333;
-  font-weight: 600;
-}
-
-.filter-bar {
-  margin-bottom: 16px;
-  padding: 8px;
-  background-color: #efefef;
-  border-radius: 4px;
-}
-
-.mock-list {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-@media (max-width: 768px) {
-  .mock-list-container {
-    padding: 8px;
-  }
-
-  .list-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 8px;
-  }
-
-  .filter-bar :deep(.el-form) {
-    display: block;
-  }
-
-  .filter-bar :deep(.el-form .el-form-item) {
-    display: block;
-    margin-bottom: 8px;
-  }
-
-  .filter-bar :deep(.el-form .el-form-item .el-select) {
-    width: 100% !important;
-  }
-}
 </style>

@@ -1,6 +1,6 @@
 <template>
-  <div class="mock-classify-page-container">
-    <div class="main-content-wrapper">
+  <div class="h-[calc(100vh-60px)] overflow-hidden flex flex-col bg-[#FBF7F2]">
+    <div class="flex-1 flex relative overflow-hidden">
       <!-- 左侧科目导航栏 -->
       <SubjectSidebar
         v-model:is-collapsed="isNavCollapsed"
@@ -16,43 +16,42 @@
       />
 
       <!-- 右侧内容区域 -->
-      <div class="content-area">
-        <el-card class="content-card">
+      <div class="flex-1 w-0 overflow-y-auto bg-[#FBF7F2]">
+        <el-card class="min-h-[calc(100vh-60px-40px)] shadow-none bg-[#FBF7F2] border-none">
           <template #header>
-            <div class="card-header">
-              <div class="header-left">
-                <h2>{{ currentTitle }}</h2>
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-3 flex-1">
+                <h2 class="m-0 text-[#333] font-semibold text-xl">{{ currentTitle }}</h2>
                 <el-tag v-if="displayTotal > 0" type="info" size="small">共 {{ displayTotal }} 题</el-tag>
               </div>
-              <div class="header-actions" v-if="activeSubjectId">
-                <el-select 
-                  v-model="filterQuestionType" 
-                  size="small" 
-                  style="width: 100px; margin-right: 8px"
+              <div class="flex gap-2" v-if="activeSubjectId">
+                <el-select
+                  v-model="filterQuestionType"
+                  size="small"
+                  class="w-[100px] mr-2"
                 >
                   <el-option label="全部题型" value="ALL" />
                   <el-option label="选择题" value="CHOICE" />
                   <el-option label="主观题" value="ESSAY" />
                 </el-select>
-
               </div>
             </div>
           </template>
 
-          <div class="questions-pane">
-            <div v-loading="questionsLoading" class="question-list-container">
+          <div>
+            <div v-loading="questionsLoading">
               <!-- 普通分组列表 -->
-              <div v-if="groupedQuestions.length > 0" class="mock-list-grouped">
+              <div v-if="groupedQuestions.length > 0" class="flex flex-col gap-6 max-w-[80%]">
                 <template v-for="group in groupedQuestions" :key="group.category">
                   <!-- 分组头 -->
-                  <div class="category-group-header">
-                    <h3 class="category-title">{{ group.category }}</h3>
+                  <div class="flex items-center justify-between py-2 mt-4 mb-2 border-b border-[#dfe2e5]">
+                    <h3 class="m-0 text-[#333] font-semibold text-lg">{{ group.category }}</h3>
                     <el-tag size="small" type="info">{{ group.items.length }} 题</el-tag>
                   </div>
                   <!-- 题目卡片 -->
                   <MockEntryCard
-                    v-for="mock in group.items" 
-                    :key="mock.id" 
+                    v-for="mock in group.items"
+                    :key="mock.id"
                     :id="`mock-${mock.id}`"
                     :mock="mock"
                     :is-admin="isAdmin"
@@ -65,16 +64,16 @@
                   />
                 </template>
               </div>
-              <el-empty 
+              <el-empty
                 v-if="groupedQuestions.length === 0"
-                :description="activeSubjectId ? '该科目暂无模拟题' : '请选择左侧科目'" 
+                :description="activeSubjectId ? '该科目暂无模拟题' : '请选择左侧科目'"
               />
-              
+
               <!-- 加载更多按钮 -->
-              <div class="load-more-container" v-if="hasMore">
-                <CustomButton 
-                  :loading="questionsLoading" 
-                  type="primary" 
+              <div v-if="hasMore" class="flex justify-center py-8 mt-4">
+                <CustomButton
+                  :loading="questionsLoading"
+                  type="primary"
                   @click="loadQuestions(false)"
                 >
                   {{ questionsLoading ? '加载中...' : '加载更多模拟题' }}
@@ -95,7 +94,7 @@
           :right="32"
           :bottom="32"
         >
-          <div class="back-top-inner">
+          <div class="w-10 h-10 rounded-full bg-[#8B6F47] flex items-center justify-center text-white shadow-[0_4px_12px_rgba(0,0,0,0.25)]">
             <el-icon><ArrowUp /></el-icon>
           </div>
         </el-backtop>
@@ -794,37 +793,7 @@ const handleDelete = async (id) => {
  * 使用 Tailwind CSS
  */
 
-.mock-classify-page-container {
-  height: calc(100vh - 60px);
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  background-color: #FBF7F2;
-}
-
-.main-content-wrapper {
-  flex: 1;
-  display: flex;
-  position: relative;
-  overflow: hidden;
-}
-
-/* 右侧内容区 */
-.content-area {
-  flex: 1;
-  width: 0;
-  padding: 0;
-  overflow-y: auto;
-  background-color: #FBF7F2;
-}
-
-.content-card {
-  min-height: calc(100vh - 60px - 40px);
-  box-shadow: none;
-  background-color: #FBF7F2;
-  border: none;
-}
-
+/* Element Plus 组件样式覆盖 */
 .content-card :deep(.el-card__body) {
   padding: 16px;
 }
@@ -834,64 +803,6 @@ const handleDelete = async (id) => {
   padding-bottom: 8px;
   border-bottom: 1px solid #dfe2e5;
   background-color: transparent;
-}
-
-.card-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.card-header .header-left {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex: 1;
-}
-
-.card-header .header-left h2 {
-  margin: 0;
-  font-size: 22px;
-  color: #333;
-}
-
-.card-header .header-actions {
-  display: flex;
-  gap: 8px;
-}
-
-.questions-pane {
-  padding: 0;
-}
-
-/* 分组列表样式 */
-.mock-list-grouped {
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-  width: 100%;
-  max-width: 80%;
-}
-
-.category-group-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 8px 0;
-  margin-top: 16px;
-  margin-bottom: 8px;
-  border-bottom: 1px solid #dfe2e5;
-}
-
-.category-group-header:first-child {
-  margin-top: 0;
-}
-
-.category-title {
-  margin: 0;
-  font-size: 18px;
-  font-weight: 600;
-  color: #333;
 }
 
 /* 模拟题卡片页面级样式覆盖 */
@@ -916,38 +827,10 @@ const handleDelete = async (id) => {
   }
 }
 
-.load-more-container {
-  display: flex;
-  justify-content: center;
-  padding: 32px 0;
-  margin-top: 16px;
-}
-
-.back-top-inner {
-  width: 40px;
-  height: 40px;
-  border-radius: 999px;
-  background-color: #8B6F47;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #fff;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
-}
-
 /* 响应式布局 */
 @media (max-width: 768px) {
-  .mock-classify-page-container {
-    padding: 8px;
-  }
-
-  .main-content-wrapper {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .mock-list-grouped {
-    max-width: 100%;
+  .content-area {
+    width: 100%;
   }
 }
 </style>

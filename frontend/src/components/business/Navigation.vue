@@ -1,49 +1,49 @@
 <template>
-  <nav class="navigation">
-    <div class="nav-container">
+  <nav class="navigation fixed top-0 left-0 right-0 h-[60px] bg-[rgba(251,247,242,0.85)] backdrop-blur-md border-b border-black/[0.08] shadow-[0_2px_8px_rgba(0,0,0,0.1)] z-[1000]">
+    <div class="nav-container max-w-[1400px] h-full mx-auto px-8 flex items-center justify-between">
       <!-- 搜索区域 - 靠左 -->
-      <div class="nav-search">
-        <el-select 
-          v-model="searchType" 
-          class="search-type-select"
+      <div class="nav-search flex items-center relative bg-transparent flex-shrink-0">
+        <el-select
+          v-model="searchType"
+          class="search-type-select w-[90px]"
           placeholder="类型"
         >
           <el-option label="真题" value="exam" />
           <el-option label="模拟题" value="mock" />
         </el-select>
-        <span class="search-divider"></span>
+        <span class="search-divider w-px h-5 bg-black/[0.12] mx-2"></span>
         <el-input
           v-model="searchKeyword"
-          class="search-input"
+          class="search-input w-[180px] transition-all duration-300"
           placeholder="搜索题目..."
           clearable
           @keyup.enter="handleSearch"
         >
           <template #suffix>
-            <el-icon class="search-icon" @click="handleSearch"><Search /></el-icon>
+            <el-icon class="search-icon text-gray-400 text-sm p-1.5 rounded-full transition-all duration-200 cursor-pointer hover:text-[#8B6F47] hover:bg-[rgba(139,111,71,0.1)] hover:scale-110 active:scale-95" @click="handleSearch"><Search /></el-icon>
           </template>
         </el-input>
       </div>
 
       <!-- 导航菜单 -->
-      <div class="nav-menu">
+      <div class="nav-menu flex items-center justify-center gap-8 flex-1">
         <!-- 真题首页 - 独立导航 -->
-        <span class="nav-link" @click="router.push('/exam')">真题首页</span>
-        
+        <span class="nav-link text-gray-800 no-underline text-base px-6 py-2.5 rounded transition-all duration-300 cursor-pointer select-none" @click="router.push('/exam')">真题首页</span>
+
         <!-- 真题分类 - 独立导航 -->
-        <span class="nav-link" @click="router.push('/exam/classify')">真题分类</span>
-        
+        <span class="nav-link text-gray-800 no-underline text-base px-6 py-2.5 rounded transition-all duration-300 cursor-pointer select-none" @click="router.push('/exam/classify')">真题分类</span>
+
         <!-- 模拟题 - 独立导航 -->
-        <span class="nav-link" @click="router.push('/mock')">模拟题</span>
-        
+        <span class="nav-link text-gray-800 no-underline text-base px-6 py-2.5 rounded transition-all duration-300 cursor-pointer select-none" @click="router.push('/mock')">模拟题</span>
+
         <!-- 预留未来功能入口 -->
-        <span class="nav-link disabled">资源</span>
-        
+        <span class="nav-link disabled text-gray-400 cursor-not-allowed">资源</span>
+
         <!-- 管理菜单（仅ADMIN可见） -->
         <el-dropdown v-if="authStore.isAdmin()" @command="handleManageCommand" trigger="hover">
-          <span class="nav-link dropdown-trigger">
+          <span class="nav-link dropdown-trigger inline-flex items-center cursor-pointer select-none text-gray-800 no-underline text-base px-6 py-2.5 rounded transition-all duration-300">
             管理
-            <el-icon class="el-icon--right"><ArrowDown /></el-icon>
+            <el-icon class="el-icon--right ml-1.5 text-xs transition-transform duration-150"><ArrowDown /></el-icon>
           </span>
           <template #dropdown>
             <el-dropdown-menu>
@@ -59,9 +59,9 @@
       </div>
 
       <!-- 用户信息区域 -->
-      <div class="nav-user">
+      <div class="nav-user flex items-center gap-4 flex-shrink-0">
         <template v-if="authStore.isLoggedIn()">
-          <span class="username" @click="goToUserCenter">{{ authStore.userInfo?.username }}</span>
+          <span class="username text-gray-800 text-sm cursor-pointer px-4 py-2 mr-2 rounded transition-all duration-300 select-none hover:bg-black/[0.05] hover:text-[#8B6F47]" @click="goToUserCenter">{{ authStore.userInfo?.username }}</span>
           <CustomButton size="small" @click="handleLogout">退出</CustomButton>
         </template>
         <template v-else>
@@ -172,60 +172,22 @@ const handleLogout = () => {
 <style scoped>
 /**
  * 导航栏组件样式
- * 已迁移到 Tailwind CSS
+ * 使用纯CSS样式，兼容Tailwind CSS 4
  */
 
-/* 导航栏容器 */
-.navigation {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 60px;
-  /* 毛玻璃效果：使用主色调半透明背景 + 背景模糊 */
-  background: rgba(251, 247, 242, 0.85);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  /* 微妙的底部边框，增强层次感 */
-  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  z-index: 1000;
-}
+/* 导航栏容器 - 使用Tailwind类名在template中已实现 */
 
-/* 导航内容容器 */
-.nav-container {
-  max-width: 1400px;
-  height: 100%;
-  margin: 0 auto;
-  padding: 0 32px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-/* 搜索区域 - 靠左 */
-.nav-search {
-  display: flex;
-  align-items: center;
-  position: relative;
-  background: transparent;
-  flex-shrink: 0;
-}
-
-.nav-search .search-type-select {
-  width: 90px;
-}
-
+/* 搜索相关样式 - 需要保留的自定义样式 */
 .nav-search .search-type-select :deep(.el-input__wrapper) {
   border: none;
-  box-shadow: none !important;
+  box-shadow: none;
   background: transparent;
   padding-left: 0;
 }
 
 .nav-search .search-type-select :deep(.el-input__inner) {
-  color: #666;
   font-size: 14px;
+  color: #666;
 }
 
 .nav-search .search-type-select :deep(.el-input__inner)::placeholder {
@@ -238,156 +200,75 @@ const handleLogout = () => {
 
 .nav-search .search-type-select :deep(.el-select__caret) {
   color: #999;
-  transition: all 0.15s ease;
+  transition: all 0.15s;
 }
 
 .nav-search .search-type-select:hover :deep(.el-select__caret) {
   color: #8B6F47;
 }
 
-/* 分隔线 */
-.search-divider {
-  width: 1px;
-  height: 20px;
-  background: rgba(0, 0, 0, 0.12);
-  margin: 0 8px;
-}
-
-.search-input {
-  width: 180px;
-  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
+/* 输入框样式 */
 .search-input :deep(.el-input__wrapper) {
   border: none;
-  box-shadow: none !important;
+  box-shadow: none;
   background: transparent;
   padding-right: 4px;
 }
 
 .search-input :deep(.el-input__inner) {
-  color: #333;
   font-size: 14px;
+  color: #333;
 }
 
 .search-input :deep(.el-input__inner)::placeholder {
   color: #999;
-  transition: all 0.15s ease;
+  transition: all 0.15s;
 }
 
-/* 聚焦时展开 */
+/* 聚焦时展开 - 使用CSS类 */
 .search-input:focus-within {
   width: 220px;
 }
 
-.search-icon {
-  cursor: pointer;
-  color: #999;
-  font-size: 16px;
-  padding: 6px;
-  border-radius: 50%;
-  transition: all 0.2s ease;
-}
-
-.search-icon:hover {
-  color: #8B6F47;
-  background: rgba(139, 111, 71, 0.1);
-  transform: scale(1.1);
-}
-
-.search-icon:active {
-  transform: scale(0.95);
-}
-
-/* 导航菜单 - 居中 */
-.nav-menu {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 32px;
-  flex: 1;
-}
-
-/* 导航链接 */
-.nav-link {
-  color: #333;
-  text-decoration: none;
-  font-size: 16px;
-  padding: 10px 24px;
-  border-radius: 4px;
-  transition: all 0.3s ease;
-  cursor: pointer;
-  user-select: none;
-  -webkit-user-select: none;
-}
-
+/* 导航链接样式 - 保留hover效果 */
 .nav-link:not(.disabled):hover {
-  background-color: rgba(0, 0, 0, 0.05);
+  background-color: rgba(0,0,0,0.05);
 }
 
 .nav-link.disabled {
-  color: #7f8c8d;
+  color: #999;
   cursor: not-allowed;
 }
 
 /* 激活状态 */
 .nav-link.router-link-active:not(.disabled) {
-  background-color: rgba(0, 0, 0, 0.08);
+  background-color: rgba(0,0,0,0.08);
   color: #333;
 }
 
 /* 下拉菜单触发器样式 */
-.nav-link.dropdown-trigger {
-  display: inline-flex;
-  align-items: center;
-  cursor: pointer;
-  user-select: none;
-  -webkit-user-select: none;
-}
-
 .nav-link.dropdown-trigger .el-icon {
   margin-left: 6px;
   font-size: 12px;
-  transition: transform 0.15s ease;
+  transition: transform 0.15s;
 }
 
 .nav-link.dropdown-trigger:hover .el-icon {
-  transform: translateY(1px);
+  transform: translateY(2px);
 }
 
-/* 用户信息区域 - 靠右 */
-.nav-user {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  flex-shrink: 0;
-}
-
-.username {
-  color: #333;
-  font-size: 14px;
-  cursor: pointer;
-  padding: 8px 16px;
-  margin-right: 8px;
-  border-radius: 4px;
-  transition: all 0.3s ease;
-  user-select: none;
-  -webkit-user-select: none;
-}
-
-.username:hover {
-  background-color: rgba(0, 0, 0, 0.05);
-  color: #8B6F47;
-}
+/* 用户名样式 - 使用Tailwind类名在template中已实现 */
 
 /* 响应式布局 */
 @media (max-width: 768px) {
   .nav-container {
-    padding: 0 16px;
+    padding-left: 16px;
+    padding-right: 16px;
   }
 
   .nav-search {
-    margin: 0 16px;
+    margin-left: 16px;
+    margin-right: 16px;
   }
 
   .search-input {

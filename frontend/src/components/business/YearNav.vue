@@ -1,18 +1,18 @@
 <template>
-  <div class="year-nav-container" :class="{ collapsed: isCollapsed }">
+  <div class="year-nav-container w-[280px] h-full bg-[#FBF7F2] border-r border-black/[0.05] flex flex-col transition-all duration-300 flex-shrink-0 z-10" :class="{ collapsed: isCollapsed }">
     <!-- 顶部标题栏 -->
-    <div class="year-nav-header">
-      <div class="toggle-btn" @click="toggleCollapse">
+    <div class="year-nav-header h-14 flex items-center justify-between px-4 border-b border-black/[0.05] flex-shrink-0 gap-2">
+      <div class="toggle-btn w-8 h-8 flex items-center justify-center rounded-md cursor-pointer text-[#8B6F47] transition-all duration-200 flex-shrink-0 hover:bg-black/[0.05]" @click="toggleCollapse">
         <el-icon :size="20">
           <DArrowRight v-if="isCollapsed" />
           <DArrowLeft v-else />
         </el-icon>
       </div>
       <transition name="fade">
-        <span class="header-title" v-if="!isCollapsed">年份导航</span>
+        <span class="header-title font-semibold text-base text-[#8B6F47] whitespace-nowrap overflow-hidden flex-1" v-if="!isCollapsed">年份导航</span>
       </transition>
-      <div class="header-actions">
-        <div class="collapse-all-btn" @click="collapseAll" v-if="!isCollapsed">
+      <div class="header-actions flex items-center gap-2 flex-shrink-0">
+        <div class="collapse-all-btn flex items-center gap-1 px-2 py-1 rounded cursor-pointer text-gray-400 text-[13px] transition-all duration-200 whitespace-nowrap hover:bg-black/[0.05] hover:text-[#8B6F47]" @click="collapseAll" v-if="!isCollapsed">
           <el-icon><Fold /></el-icon>
           <span>全部折叠</span>
         </div>
@@ -20,25 +20,25 @@
     </div>
 
     <!-- 年份列表 -->
-    <div class="year-list-scroll" v-show="!isCollapsed" v-loading="loading">
+    <div class="year-list-scroll flex-1 overflow-y-auto px-2 py-3" v-show="!isCollapsed" v-loading="loading">
       <div
         v-for="yearData in yearList"
         :key="yearData.year"
-        class="year-group"
+        class="year-group mb-1"
       >
         <!-- 年份标题 -->
-        <div 
-          class="year-title-item" 
+        <div
+          class="year-title-item px-2 mb-0.5 rounded-lg cursor-pointer transition-all duration-200"
           :class="{ active: activeYear === yearData.year }"
         >
-          <div class="title-content" @click="handleYearClick(yearData.year)">
-            <div class="icon-area" @click.stop="toggleYear(yearData.year)">
-              <el-icon class="expand-icon" :class="{ 'is-expanded': expandedYears.includes(yearData.year) }">
+          <div class="title-content flex items-center h-11 px-2 w-full" @click="handleYearClick(yearData.year)">
+            <div class="icon-area flex items-center justify-center w-6 h-6 mr-1 rounded transition-bg duration-200 hover:bg-black/[0.05]" @click.stop="toggleYear(yearData.year)">
+              <el-icon class="expand-icon text-sm transition-transform duration-300 text-gray-400" :class="{ 'is-expanded': expandedYears.includes(yearData.year) }">
                 <CaretRight />
               </el-icon>
             </div>
-            <span class="year-text">{{ yearData.year }}年</span>
-            <span class="count-badge">{{ yearData.exams.length }}</span>
+            <span class="year-text flex-1 text-[15px] text-gray-800">{{ yearData.year }}年</span>
+            <span class="count-badge text-xs text-gray-400 bg-black/[0.05] px-1.5 py-0.5 rounded-full">{{ yearData.exams.length }}</span>
           </div>
         </div>
 
@@ -46,24 +46,24 @@
         <el-collapse-transition>
           <div
             v-if="expandedYears.includes(yearData.year)"
-            class="exam-sub-list"
+            class="exam-sub-list mt-0.5 pb-1"
           >
             <div
               v-for="exam in yearData.exams"
               :key="exam.id"
-              class="exam-sub-item"
+              class="exam-sub-item flex items-center h-9 px-3 pl-9 mb-0.5 rounded-md cursor-pointer text-gray-500 text-[13px] transition-all duration-200"
               :class="{ active: activeExamId === exam.id }"
               @click="handleExamClick(exam)"
             >
-              <el-icon class="exam-icon"><Document /></el-icon>
-              <span class="exam-title">{{ getExamDisplayText(exam) }}</span>
+              <el-icon class="exam-icon mr-2 text-sm opacity-70"><Document /></el-icon>
+              <span class="exam-title flex-1 whitespace-nowrap overflow-hidden text-ellipsis">{{ getExamDisplayText(exam) }}</span>
             </div>
           </div>
         </el-collapse-transition>
       </div>
 
       <!-- 空状态提示 -->
-      <div v-if="!loading && yearList.length === 0" class="empty-state">
+      <div v-if="!loading && yearList.length === 0" class="empty-state flex flex-col items-center justify-center gap-2 p-8 text-gray-400 text-xs">
         <el-icon><WarningFilled /></el-icon>
         <span>暂无真题数据</span>
       </div>
@@ -201,271 +201,108 @@ watch(() => props.activeYear, (newYear) => {
 <style scoped>
 /**
  * 年份导航栏组件样式
- * 优化版：Flex布局，Paper主题
+ * 使用纯CSS样式，兼容Tailwind CSS 4
  */
 
-.year-nav-container {
-  width: 280px;
-  height: 100%;
-  background-color: #FBF7F2; /* 米色背景 */
-  border-right: 1px solid rgba(0, 0, 0, 0.05);
-  display: flex;
-  flex-direction: column;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  flex-shrink: 0;
-  z-index: 10;
+/* 导航栏容器 - 使用Tailwind类名在template中已实现 */
 
-  &.collapsed {
-    width: 56px;
-
-    .year-nav-header {
-      justify-content: center;
-      padding: 0;
-
-      .toggle-btn {
-        margin: 0;
-      }
-    }
-  }
+.year-nav-container.collapsed {
+  width: 56px;
 }
 
-.year-nav-header {
-  height: 56px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 16px;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-  flex-shrink: 0;
-  gap: 8px;
-
-  .toggle-btn {
-    width: 32px;
-    height: 32px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 6px;
-    cursor: pointer;
-    color: #8B6F47;
-    transition: all 0.2s;
-    flex-shrink: 0;
-
-    &:hover {
-      background-color: rgba(0, 0, 0, 0.05);
-    }
-  }
-
-  .header-title {
-    font-weight: 600;
-    font-size: 16px;
-    color: #8B6F47;
-    white-space: nowrap;
-    overflow: hidden;
-    flex: 1;
-  }
-
-  .header-actions {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex-shrink: 0;
-  }
-
-  .collapse-all-btn {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    padding: 4px 8px;
-    border-radius: 4px;
-    cursor: pointer;
-    color: #999;
-    font-size: 13px;
-    transition: all 0.2s;
-    white-space: nowrap;
-
-    .el-icon {
-      font-size: 14px;
-    }
-
-    &:hover {
-      background-color: rgba(0, 0, 0, 0.05);
-      color: #8B6F47;
-    }
-  }
-}
-
-.year-list-scroll {
-  flex: 1;
-  overflow-y: auto;
-  /* 自定义滚动条 */
-  &::-webkit-scrollbar {
-    width: 4px;
-    height: 4px;
-  }
-
-  &::-webkit-scrollbar-thumb {
-    background-color: rgba(0, 0, 0, 0.2);
-    border-radius: 4px;
-
-    &:hover {
-      background-color: rgba(0, 0, 0, 0.3);
-    }
-  }
-
-  &::-webkit-scrollbar-track {
-    background-color: transparent;
-  }
-  padding: 12px 8px;
-}
-
-.year-group {
-  margin-bottom: 4px;
-}
-
-.year-title-item {
-  padding: 0 8px;
-  margin-bottom: 2px;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-
-  .title-content {
-    display: flex;
-    align-items: center;
-    height: 44px;
-    padding: 0 8px;
-    width: 100%;
-  }
-
-  .icon-area {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 24px;
-    height: 24px;
-    margin-right: 4px;
-    border-radius: 4px;
-    transition: background-color 0.2s;
-
-    &:hover {
-      background-color: rgba(0, 0, 0, 0.05);
-    }
-  }
-
-  &:hover {
-    background-color: rgba(0, 0, 0, 0.03);
-  }
-
-  &.active {
-    background-color: rgba(139, 111, 71, 0.08);
-
-    .year-text, .count-badge, .expand-icon {
-      color: #8B6F47;
-      font-weight: 600;
-    }
-  }
-
-  .expand-icon {
-    font-size: 14px;
-    transition: transform 0.3s ease;
-    color: #999;
-
-    &.is-expanded {
-      transform: rotate(90deg);
-    }
-  }
-
-  .year-text {
-    flex: 1;
-    font-size: 15px;
-    color: #333;
-  }
-
-  .count-badge {
-    font-size: 12px;
-    color: #999;
-    background-color: rgba(0,0,0,0.05);
-    padding: 2px 6px;
-    border-radius: 10px;
-  }
-}
-
-.exam-sub-list {
-  margin-top: 2px;
-  padding-bottom: 4px;
-}
-
-.exam-sub-item {
-  display: flex;
-  align-items: center;
-  height: 36px;
-  padding: 0 12px 0 36px; /* Indent */
-  margin-bottom: 2px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 13px;
-  color: #666;
-  transition: all 0.2s ease;
-
-  .exam-icon {
-    margin-right: 8px;
-    font-size: 14px;
-    opacity: 0.7;
-  }
-
-  .exam-title {
-    flex: 1;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  &:hover {
-    background-color: rgba(0, 0, 0, 0.03);
-    color: #333;
-  }
-
-  &.active {
-    background-color: transparent; /* 透明背景 */
-    color: #8B6F47;
-    font-weight: 500;
-    position: relative;
-
-    .exam-icon {
-      color: #8B6F47;
-      opacity: 1;
-    }
-
-    /* 左侧指示条 */
-    &::before {
-      content: '';
-      position: absolute;
-      left: 24px;
-      height: 14px;
-      width: 2px;
-      background-color: #8B6F47;
-      border-radius: 2px;
-    }
-  }
-}
-
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+.year-nav-container.collapsed .year-nav-header {
   justify-content: center;
-  gap: 8px;
-  padding: 32px;
-  color: #999;
-  font-size: 12px;
-
-  .el-icon {
-    font-size: 20px;
-    color: #e6a23c;
-  }
+  padding: 0;
 }
 
+.year-nav-container.collapsed .year-nav-header .toggle-btn {
+  margin: 0;
+}
+
+/* 年份导航头部 - 使用Tailwind类名在template中已实现 */
+
+/* 折叠按钮 - 使用Tailwind类名在template中已实现 */
+
+/* 全部折叠按钮 - 使用Tailwind类名在template中已实现 */
+
+.collapse-all-btn .el-icon {
+  font-size: 14px;
+}
+
+/* 年份列表滚动容器 - 使用Tailwind类名在template中已实现 */
+
+/* 自定义滚动条 */
+.year-list-scroll::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+.year-list-scroll::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.2);
+  border-radius: 2px;
+}
+
+.year-list-scroll::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(0, 0, 0, 0.3);
+}
+
+.year-list-scroll::-webkit-scrollbar-track {
+  background-color: transparent;
+}
+
+/* 年份标题项 - 使用Tailwind类名在template中已实现 */
+
+/* 展开图标旋转 */
+.year-title-item .expand-icon.is-expanded {
+  transform: rotate(90deg);
+}
+
+/* 年份激活状态 */
+.year-title-item.active {
+  background-color: rgba(139, 111, 71, 0.08);
+}
+
+.year-title-item.active .year-text,
+.year-title-item.active .count-badge,
+.year-title-item.active .expand-icon {
+  color: #8B6F47;
+  font-weight: 600;
+}
+
+/* 题目列表 - 使用Tailwind类名在template中已实现 */
+
+/* 题目项激活状态 */
+.exam-sub-item.active {
+  background-color: transparent;
+  color: #8B6F47;
+  font-weight: 500;
+  position: relative;
+}
+
+.exam-sub-item.active .exam-icon {
+  color: #8B6F47;
+  opacity: 1;
+}
+
+/* 左侧指示条 */
+.exam-sub-item.active::before {
+  content: '';
+  position: absolute;
+  left: 24px;
+  height: 14px;
+  width: 2px;
+  background-color: #8B6F47;
+  border-radius: 1px;
+}
+
+/* 空状态 - 使用Tailwind类名在template中已实现 */
+
+.empty-state .el-icon {
+  font-size: 20px;
+  color: #fb923c;
+}
+
+/* 淡入淡出动画 */
 .fade-enter-active,
 .fade-leave-active {
   transition: opacity 0.2s ease;
@@ -483,14 +320,14 @@ watch(() => props.activeYear, (newYear) => {
     height: auto;
     border-right: none;
     border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  }
 
-    &.collapsed {
-      width: 100%;
-    }
+  .year-nav-container.collapsed {
+    width: 100%;
+  }
 
-    .year-list-scroll {
-      max-height: 300px;
-    }
+  .year-nav-container .year-list-scroll {
+    max-height: 300px;
   }
 }
 </style>

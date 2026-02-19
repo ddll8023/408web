@@ -1,30 +1,30 @@
 <template>
   <!-- 模拟题头部组件：显示标题、题号、元数据、操作按钮 -->
-  <div class="mock-item-header">
-    <div class="question-info">
-      <h3 v-if="mock.questionNumber || mock.title" class="question-title">
+  <div class="mock-item-header flex items-center justify-between mb-6 pb-4 border-b border-black/[0.03]">
+    <div class="question-info flex-1">
+      <h3 v-if="mock.questionNumber || mock.title" class="question-title m-0 text-lg text-gray-800 font-semibold flex items-center gap-2">
         <span v-if="mock.title">{{ mock.title }}</span>
-        <span v-if="mock.questionNumber && mock.title" class="title-separator">·</span>
-        <span v-if="mock.questionNumber" class="question-number">第{{ mock.questionNumber }}题</span>
+        <span v-if="mock.questionNumber && mock.title" class="title-separator text-gray-400 font-normal">·</span>
+        <span v-if="mock.questionNumber" class="question-number text-[#8B6F47] font-mono">第{{ mock.questionNumber }}题</span>
       </h3>
-      <div class="question-meta">
+      <div class="question-meta flex gap-2 flex-wrap mt-2">
         <el-tag size="small" :type="mock.questionType === 'CHOICE' ? 'success' : 'primary'">
           {{ mock.questionType === 'CHOICE' ? '选择题' : '主观题' }}
         </el-tag>
         <el-tag v-if="mock.difficulty" size="small" :type="getDifficultyType(mock.difficulty)">
           {{ getDifficultyLabel(mock.difficulty) }}
         </el-tag>
-        <el-tag 
-          v-for="cat in (Array.isArray(mock.category) ? mock.category : [])" 
-          :key="cat" 
-          size="small" 
+        <el-tag
+          v-for="cat in (Array.isArray(mock.category) ? mock.category : [])"
+          :key="cat"
+          size="small"
           type="info"
         >
           {{ cat }}
         </el-tag>
       </div>
     </div>
-    <div class="question-actions">
+    <div class="question-actions flex gap-1 opacity-80 transition-opacity duration-200 hover:opacity-100 flex-shrink-0">
       <!-- 复制下拉菜单 -->
       <el-dropdown trigger="click" @command="(command) => $emit('copy', command)">
         <CustomButton size="small" type="text" :icon="DocumentCopy">复制</CustomButton>
@@ -35,25 +35,17 @@
               Markdown 格式
             </el-dropdown-item>
             <el-dropdown-item command="md-question">复制题目 (MD)</el-dropdown-item>
-            <el-dropdown-item v-if="mock.questionType === 'CHOICE' && mock.options" command="md-options">
-              复制选项 (MD)
-            </el-dropdown-item>
+            <el-dropdown-item v-if="mock.questionType === 'CHOICE' && mock.options" command="md-options">复制选项 (MD)</el-dropdown-item>
             <el-dropdown-item v-if="mock.answer" command="md-answer">复制答案 (MD)</el-dropdown-item>
-            <el-dropdown-item v-if="mock.answer || (mock.questionType === 'CHOICE' && mock.options)" command="md-all">
-              复制完整内容 (MD)
-            </el-dropdown-item>
+            <el-dropdown-item v-if="mock.answer || (mock.questionType === 'CHOICE' && mock.options)" command="md-all">复制完整内容 (MD)</el-dropdown-item>
             <el-dropdown-item disabled divided class="dropdown-group-title">
               <el-icon><Tickets /></el-icon>
               纯文本格式
             </el-dropdown-item>
             <el-dropdown-item command="text-question">复制题目 (Text)</el-dropdown-item>
-            <el-dropdown-item v-if="mock.questionType === 'CHOICE' && mock.options" command="text-options">
-              复制选项 (Text)
-            </el-dropdown-item>
+            <el-dropdown-item v-if="mock.questionType === 'CHOICE' && mock.options" command="text-options">复制选项 (Text)</el-dropdown-item>
             <el-dropdown-item v-if="mock.answer" command="text-answer">复制答案 (Text)</el-dropdown-item>
-            <el-dropdown-item v-if="mock.answer || (mock.questionType === 'CHOICE' && mock.options)" command="text-all">
-              复制完整内容 (Text)
-            </el-dropdown-item>
+            <el-dropdown-item v-if="mock.answer || (mock.questionType === 'CHOICE' && mock.options)" command="text-all">复制完整内容 (Text)</el-dropdown-item>
           </el-dropdown-menu>
         </template>
       </el-dropdown>
@@ -85,70 +77,28 @@ defineEmits(['copy', 'edit', 'delete'])
 </script>
 
 <style scoped>
-/* 样式与 ExamItemHeader 保持一致 */
-.mock-item-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 24px;
-  padding-bottom: 16px;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.03);
+/**
+ * 模拟题头部组件样式
+ * 使用纯CSS样式，兼容Tailwind CSS 4
+ */
 
-  .question-info {
-    flex: 1;
+/* 样式与 ExamItemHeader 保持一致 - 使用Tailwind类名在template中已实现 */
 
-    .question-title {
-      margin: 0 0 8px 0;
-      font-size: 18px;
-      color: #333;
-      font-weight: 600;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-
-      .title-separator {
-        color: #999;
-        font-weight: normal;
-      }
-
-      .question-number {
-        color: #8B6F47;
-        font-family: 'Roboto Mono', monospace;
-      }
-    }
-
-    .question-meta {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-    }
-  }
-
-  .question-actions {
-    display: flex;
-    gap: 4px;
-    opacity: 0.8;
-    transition: opacity 0.2s;
-    flex-shrink: 0;
-  }
-
-  .question-actions:hover {
-    opacity: 1;
-  }
-
-  @media (max-width: 768px) {
+/* 响应式布局 */
+@media (max-width: 768px) {
+  .mock-item-header {
     flex-direction: column;
     align-items: flex-start;
     gap: 8px;
+  }
 
-    .question-title {
-      font-size: 14px;
-    }
+  .question-title {
+    font-size: 14px;
+  }
 
-    .question-actions {
-      width: 100%;
-      justify-content: flex-start;
-    }
+  .question-actions {
+    width: 100%;
+    justify-content: flex-start;
   }
 }
 </style>

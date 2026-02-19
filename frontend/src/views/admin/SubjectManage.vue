@@ -1,9 +1,9 @@
 <template>
-  <div class="subject-manage-container">
-    <el-card class="manage-card">
+  <div class="max-w-[1400px] mx-auto p-4 md:p-6 min-h-[calc(100vh-60px)]">
+    <el-card class="shadow-sm">
       <template #header>
-        <div class="card-header">
-          <h2>科目管理</h2>
+        <div class="flex items-center justify-between">
+          <h2 class="m-0 text-xl text-[#333] font-semibold">科目管理</h2>
           <CustomButton type="primary" @click="handleAdd">
             <el-icon style="margin-right: 6px"><Plus /></el-icon>
             新增科目
@@ -61,7 +61,7 @@
             clearable
             :disabled="dialogMode === 'edit'"
           />
-          <div class="form-tip">科目编码创建后不可修改</div>
+          <div class="text-xs text-[#999] mt-1">科目编码创建后不可修改</div>
         </el-form-item>
 
         <el-form-item label="科目名称" prop="name">
@@ -345,53 +345,7 @@ onMounted(() => {
 <style scoped>
 /**
  * 科目管理页面样式
- * 移除 SCSS，使用普通 CSS
+ * 已迁移至 Tailwind CSS
  */
-.subject-manage-container {
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: 24px 16px;
-  min-height: calc(100vh - 60px);
-}
-
-.manage-card {
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
-}
-
-.card-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.card-header h2 {
-  margin: 0;
-  font-size: 22px;
-  color: #333;
-  font-weight: 600;
-}
-
-.header-actions {
-  display: flex;
-  gap: 8px;
-}
-
-.form-tip {
-  font-size: 12px;
-  color: #999;
-  margin-top: 4px;
-}
-
-@media (max-width: 768px) {
-  .subject-manage-container {
-    padding: 16px 8px;
-  }
-
-  .card-header {
-    flex-direction: column;
-    gap: 16px;
-    align-items: flex-start;
-  }
-}
 </style>
 

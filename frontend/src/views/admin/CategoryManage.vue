@@ -1,27 +1,30 @@
 <template>
-  <div class="category-manage-container">
+  <div class="max-w-[1400px] mx-auto px-6 py-8 min-h-[calc(100vh-60px)]">
     <!-- 页面标题栏 -->
-    <div class="page-header">
-      <div class="header-left">
-        <h1 class="page-title">分类标签管理</h1>
-        <span class="page-subtitle">管理各科目的题目分类层级结构</span>
+    <div class="flex items-center justify-between mb-8 pb-6 border-b-2 border-[rgba(139,111,71,0.1)]">
+      <div class="flex flex-col gap-1">
+        <h1 class="m-0 text-[1.75rem] font-semibold text-[#8B6F47] flex items-center">
+          <span class="inline-block w-1.5 h-7 bg-gradient-to-b from-[#8B6F47] to-[#a88a5f] mr-4 rounded-sm"></span>
+          分类标签管理
+        </h1>
+        <span class="text-xs text-[#999] ml-[calc(5px+16px)]">管理各科目的题目分类层级结构</span>
       </div>
-      <div class="header-right">
+      <div class="flex items-center gap-6">
         <!-- 视图切换 -->
-        <div class="view-switcher">
+        <div class="flex bg-[rgba(139,111,71,0.08)] rounded-lg p-1 gap-1">
           <el-tooltip content="卡片视图" placement="top">
-            <div 
-              class="view-btn" 
-              :class="{ active: viewMode === 'card' }"
+            <div
+              class="w-9 h-8 flex items-center justify-center rounded-md cursor-pointer text-[#999] transition-all duration-200"
+              :class="{ 'bg-white text-[#8B6F47] shadow-sm': viewMode === 'card' }"
               @click="viewMode = 'card'"
             >
               <el-icon><Grid /></el-icon>
             </div>
           </el-tooltip>
           <el-tooltip content="树形视图" placement="top">
-            <div 
-              class="view-btn" 
-              :class="{ active: viewMode === 'tree' }"
+            <div
+              class="w-9 h-8 flex items-center justify-center rounded-md cursor-pointer text-[#999] transition-all duration-200"
+              :class="{ 'bg-white text-[#8B6F47] shadow-sm': viewMode === 'tree' }"
               @click="viewMode = 'tree'"
             >
               <el-icon><List /></el-icon>
@@ -41,37 +44,37 @@
     </div>
 
     <!-- 左右分栏布局 -->
-    <div class="main-layout">
+    <div class="flex gap-8 items-start">
       <!-- 左侧筛选栏 -->
-      <aside class="sidebar">
+      <aside class="w-64 flex-shrink-0 sticky top-[calc(60px+24px)]">
         <!-- 科目筛选列表 -->
-        <div class="sidebar-section">
-          <h3 class="sidebar-title">
-            <el-icon><Folder /></el-icon>
+        <div class="bg-white rounded-xl p-6 shadow-sm border border-[rgba(139,111,71,0.08)] mb-6">
+          <h3 class="m-0 mb-4 text-sm font-semibold text-[#8B6F47] flex items-center gap-2 pb-3 border-b border-[rgba(139,111,71,0.1)]">
+            <el-icon class="text-base"><Folder /></el-icon>
             科目筛选
           </h3>
-          <div class="subject-list">
+          <div class="flex flex-col gap-1">
             <!-- 各科目选项 -->
-            <div 
-              v-for="stat in subjectStats" 
-              :key="stat.id" 
-              class="subject-item"
-              :class="{ active: filterSubjectId === stat.id }"
+            <div
+              v-for="stat in subjectStats"
+              :key="stat.id"
+              class="flex items-center justify-between px-3 py-2.5 rounded-lg cursor-pointer transition-all duration-200"
+              :class="filterSubjectId === stat.id ? 'bg-gradient-to-r from-[rgba(139,111,71,0.12)] to-[rgba(139,111,71,0.06)]' : 'hover:bg-[rgba(139,111,71,0.06)]'"
               @click="handleStatClick(stat.id)"
             >
-              <div class="subject-info">
-                <el-icon class="subject-icon"><Folder /></el-icon>
-                <span class="subject-name">{{ stat.name }}</span>
-                <el-tooltip 
-                  v-if="stat.enabledCount < stat.count" 
-                  :content="`${stat.count - stat.enabledCount} 个分类已禁用`" 
+              <div class="flex items-center gap-2.5 min-w-0">
+                <el-icon class="w-7 h-7 flex items-center justify-center rounded-md bg-[rgba(139,111,71,0.08)] text-[#999] text-sm transition-all duration-200 flex-shrink-0" :class="{ '!bg-[rgba(139,111,71,0.15)] !text-[#8B6F47]': filterSubjectId === stat.id }"><Folder /></el-icon>
+                <span class="text-sm text-[#333] whitespace-nowrap overflow-hidden text-ellipsis transition-all duration-200" :class="{ '!text-[#8B6F47] !font-semibold': filterSubjectId === stat.id }">{{ stat.name }}</span>
+                <el-tooltip
+                  v-if="stat.enabledCount < stat.count"
+                  :content="`${stat.count - stat.enabledCount} 个分类已禁用`"
                   placement="top"
                 >
-                  <el-icon class="warning-icon"><Warning /></el-icon>
+                  <el-icon class="text-[#e6a23c] text-sm ml-1"><Warning /></el-icon>
                 </el-tooltip>
               </div>
-              <!-- 显示题目引用数量（去重后），预留4位数展示空间 -->
-              <span class="question-count-badge" :class="{ active: filterSubjectId === stat.id }">
+              <!-- 显示题目引用数量 -->
+              <span class="min-w-[36px] px-2 py-0.5 text-xs font-semibold text-center rounded-[10px] bg-[rgba(139,111,71,0.1)] text-[#8B6F47]" :class="{ '!bg-[#8B6F47] !text-white': filterSubjectId === stat.id }">
                 {{ stat.questionCount }}
               </span>
             </div>
@@ -79,72 +82,72 @@
         </div>
 
         <!-- 统计信息 -->
-        <div class="sidebar-section stats-section">
-          <h3 class="sidebar-title">
-            <el-icon><DataAnalysis /></el-icon>
+        <div class="bg-gradient-to-b from-white to-[rgba(64,158,255,0.5)] rounded-xl p-6 shadow-sm border border-[rgba(139,111,71,0.08)]">
+          <h3 class="m-0 mb-4 text-sm font-semibold text-[#8B6F47] flex items-center gap-2 pb-3 border-b border-[rgba(139,111,71,0.1)]">
+            <el-icon class="text-base"><DataAnalysis /></el-icon>
             统计概览
           </h3>
-          <div class="stats-summary">
-            <div class="stat-row">
-              <span class="stat-label">{{ questionTypeLabel }}引用</span>
-              <span class="stat-value">{{ totalQuestionCount }}</span>
+          <div class="flex flex-col gap-2">
+            <div class="flex justify-between items-center px-3 py-2 rounded-md bg-[rgba(255,255,255,0.6)]">
+              <span class="text-xs text-[#999]">{{ questionTypeLabel }}引用</span>
+              <span class="text-sm font-semibold text-[#8B6F47]">{{ totalQuestionCount }}</span>
             </div>
-            <div class="stat-row">
-              <span class="stat-label">总分类数</span>
-              <span class="stat-value">{{ totalCategoryCount }}</span>
+            <div class="flex justify-between items-center px-3 py-2 rounded-md bg-[rgba(255,255,255,0.6)]">
+              <span class="text-xs text-[#999]">总分类数</span>
+              <span class="text-sm font-semibold text-[#8B6F47]">{{ totalCategoryCount }}</span>
             </div>
-            <div class="stat-row">
-              <span class="stat-label">已启用</span>
-              <span class="stat-value enabled">{{ enabledCategoryCount }}</span>
+            <div class="flex justify-between items-center px-3 py-2 rounded-md bg-[rgba(255,255,255,0.6)]">
+              <span class="text-xs text-[#999]">已启用</span>
+              <span class="text-sm font-semibold text-[#67c23a]">{{ enabledCategoryCount }}</span>
             </div>
-            <div class="stat-row">
-              <span class="stat-label">科目数</span>
-              <span class="stat-value">{{ subjectOptions.length }}</span>
+            <div class="flex justify-between items-center px-3 py-2 rounded-md bg-[rgba(255,255,255,0.6)]">
+              <span class="text-xs text-[#999]">科目数</span>
+              <span class="text-sm font-semibold text-[#8B6F47]">{{ subjectOptions.length }}</span>
             </div>
           </div>
         </div>
       </aside>
 
       <!-- 右侧主内容区 -->
-      <main class="main-content">
+      <main class="flex-1 min-w-0">
         <!-- 骨架屏加载状态 -->
-        <div v-if="loading" class="skeleton-container">
-          <div v-for="i in 3" :key="i" class="skeleton-card">
-            <div class="skeleton-header">
-              <div class="skeleton-icon"></div>
-              <div class="skeleton-title"></div>
-              <div class="skeleton-code"></div>
+        <div v-if="loading" class="flex flex-col gap-6">
+          <div v-for="i in 3" :key="i" class="bg-white rounded-2xl p-6-8 shadow-sm border border-[rgba(139,111,71,0.08)]">
+            <div class="flex items-center gap-4 mb-4">
+              <div class="w-9 h-9 rounded-xl bg-gradient-to-r from-[#f0f0f0] via-[#e8e8e8] to-[#f0f0f0] bg-[length:200%_100%] animate-[shimmer_1.5s_infinite]"></div>
+              <div class="w-30 h-5 rounded bg-gradient-to-r from-[#f0f0f0] via-[#e8e8e8] to-[#f0f0f0] bg-[length:200%_100%] animate-[shimmer_1.5s_infinite]"></div>
+              <div class="w-20 h-4 rounded bg-gradient-to-r from-[#f0f0f0] via-[#e8e8e8] to-[#f0f0f0] bg-[length:200%_100%] animate-[shimmer_1.5s_infinite]"></div>
             </div>
-            <div class="skeleton-meta">
-              <div class="skeleton-tag"></div>
-              <div class="skeleton-tag"></div>
+            <div class="flex gap-4 mb-6 pb-4 border-b border-dashed border-[rgba(139,111,71,0.1)]">
+              <div class="w-16 h-5.5 rounded bg-gradient-to-r from-[#f0f0f0] via-[#e8e8e8] to-[#f0f0f0] bg-[length:200%_100%] animate-[shimmer_1.5s_infinite]"></div>
+              <div class="w-16 h-5.5 rounded bg-gradient-to-r from-[#f0f0f0] via-[#e8e8e8] to-[#f0f0f0] bg-[length:200%_100%] animate-[shimmer_1.5s_infinite]"></div>
             </div>
-            <div class="skeleton-children">
-              <div v-for="j in 4" :key="j" class="skeleton-child"></div>
+            <div class="flex flex-wrap gap-2">
+              <div v-for="j in 4" :key="j" class="w-24 h-9 rounded-[20px] bg-gradient-to-r from-[#f0f0f0] via-[#e8e8e8] to-[#f0f0f0] bg-[length:200%_100%] animate-[shimmer_1.5s_infinite]"></div>
             </div>
           </div>
         </div>
 
         <!-- 卡片视图 -->
         <template v-else-if="viewMode === 'card'">
-          <div class="category-cards">
+          <div class="flex flex-col gap-6">
             <TransitionGroup name="card-list">
               <template v-for="parent in treeCategories" :key="parent.id">
                 <!-- 父分类卡片 -->
-                <div class="parent-card" :class="{ 'is-disabled': !parent.enabled }">
+                <div class="bg-white rounded-2xl p-6-8 shadow-sm border border-[rgba(139,111,71,0.08)] transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5" :class="{ 'opacity-60 bg-gradient-to-b from-white to-[rgba(153,153,153,0.05)]': !parent.enabled }">
                   <!-- 卡片头部 -->
-                  <div class="card-header">
-                    <div class="card-title">
-                      <el-icon class="folder-icon"><FolderOpened /></el-icon>
-                      <span class="name">{{ parent.name }}</span>
-                      <span class="code">{{ parent.code }}</span>
+                  <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center gap-4">
+                      <el-icon class="w-9 h-9 flex items-center justify-center bg-gradient-to-br from-[#8B6F47] to-[#968657] text-white rounded-xl text-lg shadow-md"><FolderOpened /></el-icon>
+                      <span class="text-base font-semibold text-[#8B6F47]">{{ parent.name }}</span>
+                      <span class="text-xs text-[#999] font-mono bg-[rgba(139,111,71,0.08)] px-2 py-0.5 rounded">{{ parent.code }}</span>
                     </div>
-                    <div class="card-actions">
+                    <div class="flex items-center gap-2">
                       <!-- 展开/折叠按钮 -->
                       <el-tooltip :content="isExpanded(parent.id) ? '收起' : '展开'" placement="top">
-                        <div 
-                          class="expand-btn"
-                          :class="{ expanded: isExpanded(parent.id) }"
+                        <div
+                          class="w-7 h-7 flex items-center justify-center rounded-md cursor-pointer text-[#999] transition-all duration-300 hover:bg-[rgba(139,111,71,0.1)] hover:text-[#8B6F47]"
+                          :class="{ 'rotate-180': isExpanded(parent.id) }"
                           @click="toggleExpand(parent.id)"
                         >
                           <el-icon><ArrowDown /></el-icon>
@@ -160,51 +163,51 @@
                       </CustomButton>
                     </div>
                   </div>
-                  
+
                   <!-- 卡片元信息 -->
-                  <div class="card-meta">
+                  <div class="flex gap-4 mb-6 pb-4 border-b border-dashed border-[rgba(139,111,71,0.1)]">
                     <el-tag type="info" size="small" effect="plain">
                       {{ parent.subjectName }}
                     </el-tag>
-                    <el-tag 
-                      :type="getChildrenQuestionCount(parent) > 0 ? 'success' : 'info'" 
-                      size="small" 
+                    <el-tag
+                      :type="getChildrenQuestionCount(parent) > 0 ? 'success' : 'info'"
+                      size="small"
                       effect="light"
                     >
                       {{ getChildrenQuestionCount(parent) }} 题
                     </el-tag>
                   </div>
-                  
+
                   <!-- 子分类区域（带展开/折叠动画） -->
                   <Transition name="collapse">
-                    <div v-show="isExpanded(parent.id)" class="children-wrapper">
-                      <div class="children-section" v-if="parent.children && parent.children.length > 0">
-                        <div class="children-header">
-                          <span class="children-label">子分类</span>
-                          <span class="children-count">{{ getTotalChildrenCount(parent) }}</span>
+                    <div v-show="isExpanded(parent.id)" class="overflow-hidden">
+                      <div class="mb-4" v-if="parent.children && parent.children.length > 0">
+                        <div class="flex items-center gap-2 mb-4">
+                          <span class="text-xs text-[#999] font-medium">子分类</span>
+                          <span class="text-xs bg-[rgba(139,111,71,0.1)] text-[#8B6F47] px-2 py-0.5 rounded-[10px] font-semibold">{{ getTotalChildrenCount(parent) }}</span>
                         </div>
                         <!-- 二级分类列表 -->
-                        <div class="children-list">
-                          <div 
-                            v-for="child in parent.children" 
-                            :key="child.id" 
-                            class="child-item"
-                            :class="{ 'is-disabled': !child.enabled, 'has-children': child.children && child.children.length > 0 }"
+                        <div class="flex flex-wrap gap-2.5">
+                          <div
+                            v-for="child in parent.children"
+                            :key="child.id"
+                            class="inline-flex flex-col gap-1.5"
+                            :class="{ 'opacity-60': !child.enabled }"
                           >
                             <!-- 二级分类标签 -->
-                            <div class="child-tag-row">
-                              <div 
-                                class="child-tag level-2"
+                            <div class="flex items-center gap-1">
+                              <div
+                                class="inline-flex items-center gap-1.5 px-3.5 py-2 bg-gradient-to-br from-[rgba(139,111,71,0.1)] to-[rgba(139,111,71,0.05)] border border-[rgba(139,111,71,0.15)] rounded-[20px] cursor-pointer transition-all duration-200 hover:from-[rgba(139,111,71,0.15)] hover:to-[rgba(139,111,71,0.08)] hover:border-[rgba(139,111,71,0.25)] hover:-translate-y-0.5 hover:shadow-md"
                                 @click="handleEdit(child)"
                               >
-                                <span class="child-name">{{ child.name }}</span>
-                                <span class="child-count">{{ getChildrenQuestionCount(child) }}题</span>
+                                <span class="text-sm font-medium text-[#333]">{{ child.name }}</span>
+                                <span class="text-xs text-[#999] bg-white/80 px-1.5 py-0.5 rounded-lg">{{ getChildrenQuestionCount(child) }}题</span>
                               </div>
                               <!-- 二级分类添加子分类按钮 -->
-                              <CustomButton 
+                              <CustomButton
                                 type="text"
-                                size="small" 
-                                class="add-grandchild-btn"
+                                size="small"
+                                class="opacity-0 transition-opacity duration-200 !p-0.5 !min-w-auto"
                                 @click.stop="handleAddChild(child)"
                                 title="添加三级分类"
                               >
@@ -212,32 +215,32 @@
                               </CustomButton>
                             </div>
                             <!-- 三级分类标签（如果有） -->
-                            <div class="grandchildren-tags" v-if="child.children && child.children.length > 0">
-                              <div 
-                                v-for="grandchild in child.children" 
-                                :key="grandchild.id" 
-                                class="child-tag level-3"
-                                :class="{ 'is-disabled': !grandchild.enabled }"
+                            <div class="flex flex-wrap gap-1 mt-1 pl-2 border-l-2 border-[rgba(139,111,71,0.2)]" v-if="child.children && child.children.length > 0">
+                              <div
+                                v-for="grandchild in child.children"
+                                :key="grandchild.id"
+                                class="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs bg-gradient-to-br from-[rgba(139,111,71,0.06)] to-[rgba(139,111,71,0.02)] border border-[rgba(139,111,71,0.1)] rounded-[20px] cursor-pointer transition-all duration-200 hover:from-[rgba(139,111,71,0.1)] hover:to-[rgba(139,111,71,0.05)]"
+                                :class="{ 'opacity-50 bg-[rgba(153,153,153,0.08)] border-[rgba(153,153,153,0.15)]': !grandchild.enabled }"
                                 @click="handleEdit(grandchild)"
                               >
-                                <span class="child-name">{{ grandchild.name }}</span>
-                                <span class="child-count">{{ grandchild.questionCount || 0 }}题</span>
+                                <span class="text-xs text-[#333]">{{ grandchild.name }}</span>
+                                <span class="text-[10px] text-[#999] bg-white/80 px-1 py-0.5 rounded">{{ grandchild.questionCount || 0 }}题</span>
                               </div>
                             </div>
                           </div>
                         </div>
                       </div>
-                      
+
                       <!-- 无子分类提示 -->
-                      <div class="children-section empty" v-else>
-                        <span class="empty-hint">暂无子分类</span>
+                      <div class="mb-4 py-4" v-else>
+                        <span class="text-xs text-[#999] italic">暂无子分类</span>
                       </div>
-                      
+
                       <!-- 添加子分类按钮 -->
-                      <div class="card-footer">
-                        <CustomButton 
+                      <div class="pt-4 border-t border-[rgba(139,111,71,0.06)]">
+                        <CustomButton
                           type="text"
-                          size="small" 
+                          size="small"
                           :icon="Plus"
                           @click="handleAddChild(parent)"
                         >
@@ -254,9 +257,9 @@
 
         <!-- 树形视图（延迟渲染优化性能） -->
         <template v-else-if="viewMode === 'tree'">
-          <div class="tree-view-container" v-if="treeViewReady">
+          <div class="bg-white rounded-2xl p-6 shadow-sm border border-[rgba(139,111,71,0.08)]" v-if="treeViewReady">
             <!-- 树形视图工具栏 -->
-            <div class="tree-toolbar">
+            <div class="flex gap-2 pb-3 mb-3 border-b border-[rgba(139,111,71,0.1)]">
               <CustomButton type="text" size="small" @click="expandAllTree">
                 <el-icon><ArrowDown /></el-icon>
                 全部展开
@@ -281,34 +284,34 @@
               @node-drop="handleTreeNodeDrop"
             >
               <template #default="{ node, data }">
-                <div class="tree-node" :class="{ 'is-disabled': !data.enabled }">
-                  <div class="tree-node-content">
-                    <el-icon class="tree-node-icon">
+                <div class="flex-1 flex items-center justify-between px-3 py-1.5 rounded-lg transition-all duration-200 hover:bg-[rgba(139,111,71,0.06)]" :class="{ 'opacity-60': !data.enabled }">
+                  <div class="flex items-center gap-2.5">
+                    <el-icon class="w-7 h-7 flex items-center justify-center bg-gradient-to-br from-[rgba(139,111,71,0.15)] to-[rgba(139,111,71,0.08)] text-[#8B6F47] rounded-md text-sm">
                       <FolderOpened v-if="data.children && data.children.length > 0" />
                       <Document v-else />
                     </el-icon>
-                    <span class="tree-node-name">{{ data.name }}</span>
-                    <span class="tree-node-code">{{ data.code }}</span>
-                    <el-tag 
-                      v-if="node.level === 1" 
-                      type="info" 
-                      size="small" 
+                    <span class="text-sm font-medium text-[#333]">{{ data.name }}</span>
+                    <span class="text-xs text-[#999] font-mono bg-[rgba(139,111,71,0.08)] px-1.5 py-0.5 rounded">{{ data.code }}</span>
+                    <el-tag
+                      v-if="node.level === 1"
+                      type="info"
+                      size="small"
                       effect="plain"
-                      class="tree-node-subject"
+                      class="ml-1"
                     >
                       {{ data.subjectName }}
                     </el-tag>
-                    <span class="tree-node-count">{{ getChildrenQuestionCount(data) }}题</span>
+                    <span class="text-xs text-[#999] bg-[rgba(139,111,71,0.08)] px-2 py-0.5 rounded-[10px]">{{ getChildrenQuestionCount(data) }}题</span>
                   </div>
-                  <div class="tree-node-actions">
+                  <div class="flex items-center gap-2 opacity-0 transition-opacity duration-200" :class="{ '!opacity-100': true }">
                     <el-tooltip content="添加子分类" placement="top" v-if="node.level < 3">
-                      <el-icon class="action-icon" @click.stop="handleAddChild(data)"><Plus /></el-icon>
+                      <el-icon class="w-7 h-7 flex items-center justify-center rounded-md cursor-pointer text-[#999] hover:bg-[rgba(139,111,71,0.1)] hover:text-[#8B6F47]" @click.stop="handleAddChild(data)"><Plus /></el-icon>
                     </el-tooltip>
                     <el-tooltip content="编辑" placement="top">
-                      <el-icon class="action-icon" @click.stop="handleEdit(data)"><Edit /></el-icon>
+                      <el-icon class="w-7 h-7 flex items-center justify-center rounded-md cursor-pointer text-[#999] hover:bg-[rgba(139,111,71,0.1)] hover:text-[#8B6F47]" @click.stop="handleEdit(data)"><Edit /></el-icon>
                     </el-tooltip>
                     <el-tooltip content="删除" placement="top">
-                      <el-icon class="action-icon danger" @click.stop="handleDelete(data)"><Delete /></el-icon>
+                      <el-icon class="w-7 h-7 flex items-center justify-center rounded-md cursor-pointer text-[#999] hover:bg-[rgba(245,108,108,0.1)] hover:text-[#f56c6c]" @click.stop="handleDelete(data)"><Delete /></el-icon>
                     </el-tooltip>
                   </div>
                 </div>
@@ -316,8 +319,8 @@
             </el-tree>
           </div>
           <!-- 树形视图加载占位 -->
-          <div v-else class="tree-loading">
-            <el-icon class="is-loading"><Loading /></el-icon>
+          <div v-else class="flex items-center justify-center gap-2 p-10 text-[#999]">
+            <el-icon class="text-xl text-[#8B6F47] animate-spin"><Loading /></el-icon>
             <span>加载中...</span>
           </div>
         </template>
@@ -329,8 +332,8 @@
     
     <!-- 拖拽保存中提示 -->
     <Transition name="fade">
-      <div v-if="dragSaving" class="drag-saving-overlay">
-        <el-icon class="is-loading"><Loading /></el-icon>
+      <div v-if="dragSaving" class="fixed top-5 right-5 bg-white px-5 py-3 rounded-lg shadow-lg flex items-center gap-2.5 z-[2000] animate-[slideIn_0.3s_ease]">
+        <el-icon class="text-[#8B6F47] animate-[spin_1s_linear_infinite]"><Loading /></el-icon>
         <span>正在保存排序...</span>
       </div>
     </Transition>
@@ -362,7 +365,7 @@
               :value="subject.id"
             />
           </el-select>
-          <div class="form-tip" v-if="dialogMode === 'edit'">所属科目创建后不可修改</div>
+          <div class="text-xs text-[#999] mt-1" v-if="dialogMode === 'edit'">所属科目创建后不可修改</div>
         </el-form-item>
 
         <el-form-item label="父分类" prop="parentId">
@@ -383,11 +386,11 @@
             >
               <span :style="{ paddingLeft: parent.parentId ? '20px' : '0' }">
                 {{ parent.parentId ? '└ ' : '' }}{{ parent.name }}
-                <span v-if="parent.parentName" class="parent-hint">（{{ parent.parentName }}）</span>
+                <span v-if="parent.parentName" class="text-xs text-[#999] ml-1">（{{ parent.parentName }}）</span>
               </span>
             </el-option>
           </el-select>
-          <div class="form-tip">
+          <div class="text-xs text-[#999] mt-1">
             <span v-if="hasChildren">该分类已有子分类，变更层级可能受限</span>
             <span v-else>留空表示顶级分类，支持三级分类结构</span>
           </div>
@@ -400,7 +403,7 @@
             maxlength="50"
             clearable
           />
-          <div class="form-tip">建议使用英文小写字母和连字符</div>
+          <div class="text-xs text-[#999] mt-1">建议使用英文小写字母和连字符</div>
         </el-form-item>
 
         <el-form-item label="分类名称" prop="name">
@@ -1323,484 +1326,12 @@ onMounted(async () => {
 
 <style scoped>
 /**
- * 分类管理页面样式 - 现代化设计
- * 移除 SCSS，使用普通 CSS
+ * 分类管理页面样式
+ * 大部分样式已迁移到Tailwind类，这里保留必要的CSS动画和深层样式
  */
 
-.category-manage-container {
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: 32px 24px;
-  min-height: calc(100vh - 60px);
-}
-
-/* 页面标题栏 */
-.page-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 32px;
-  padding-bottom: 24px;
-  border-bottom: 2px solid rgba(139, 111, 71, 0.1);
-}
-
-.header-left {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.header-right {
-  display: flex;
-  align-items: center;
-  gap: 24px;
-}
-
-.page-title {
-  margin: 0;
-  font-size: 1.75rem;
-  font-weight: 600;
-  color: #8B6F47;
-  display: flex;
-  align-items: center;
-}
-
-.page-title::before {
-  content: '';
-  display: inline-block;
-  width: 5px;
-  height: 28px;
-  background: linear-gradient(180deg, #8B6F47, #a88a5f);
-  margin-right: 16px;
-  border-radius: 3px;
-}
-
-.page-subtitle {
-  font-size: 12px;
-  color: #999;
-  margin-left: calc(5px + 16px);
-}
-
-/* 左右分栏布局 */
-.main-layout {
-  display: flex;
-  gap: 32px;
-  align-items: flex-start;
-}
-
-/* 左侧侧边栏 */
-.sidebar {
-  width: 260px;
-  flex-shrink: 0;
-  position: sticky;
-  top: calc(60px + 24px);
-}
-
-.sidebar-section {
-  background: white;
-  border-radius: 12px;
-  padding: 24px;
-  box-shadow: 0 2px 12px rgba(139, 111, 71, 0.06), 0 1px 3px rgba(0, 0, 0, 0.03);
-  border: 1px solid rgba(139, 111, 71, 0.08);
-}
-
-.sidebar-section + .sidebar-section {
-  margin-top: 24px;
-}
-
-.sidebar-title {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 0 0 16px 0;
-  font-size: 14px;
-  font-weight: 600;
-  color: #8B6F47;
-  padding-bottom: 12px;
-  border-bottom: 1px solid rgba(139, 111, 71, 0.1);
-}
-
-.sidebar-title .el-icon {
-  font-size: 16px;
-}
-
-/* 科目列表 */
-.subject-list {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.subject-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 10px 12px;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  background: transparent;
-}
-
-.subject-item:hover {
-  background: rgba(139, 111, 71, 0.06);
-}
-
-.subject-item.active {
-  background: linear-gradient(135deg, rgba(139, 111, 71, 0.12), rgba(139, 111, 71, 0.06));
-}
-
-.subject-item.active .subject-icon {
-  color: #8B6F47;
-  background: rgba(139, 111, 71, 0.15);
-}
-
-.subject-item.active .subject-name {
-  color: #8B6F47;
-  font-weight: 600;
-}
-
-.subject-info {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-width: 0;
-}
-
-.subject-icon {
-  width: 28px;
-  height: 28px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 6px;
-  background: rgba(139, 111, 71, 0.08);
-  color: #999;
-  font-size: 14px;
-  transition: all 0.2s ease;
-  flex-shrink: 0;
-}
-
-.subject-name {
-  font-size: 14px;
-  color: #333;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  transition: all 0.2s ease;
-}
-
-/* 题目数量徽章 */
-.question-count-badge {
-  min-width: 36px;
-  padding: 2px 8px;
-  font-size: 12px;
-  font-weight: 600;
-  text-align: center;
-  border-radius: 10px;
-  background: rgba(139, 111, 71, 0.1);
-  color: #8B6F47;
-}
-
-.question-count-badge.active {
-  background: #8B6F47;
-  color: white;
-}
-
-.warning-icon {
-  color: #e6a23c;
-  font-size: 14px;
-  margin-left: 4px;
-}
-
-/* 统计概览区 */
-.stats-section {
-  background: linear-gradient(180deg, white, rgba(64, 158, 255, 0.5));
-}
-
-.stats-summary {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.stat-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 8px 12px;
-  border-radius: 6px;
-  background: rgba(255, 255, 255, 0.6);
-}
-
-.stat-label {
-  font-size: 13px;
-  color: #999;
-}
-
-.stat-value {
-  font-size: 15px;
-  font-weight: 600;
-  color: #8B6F47;
-}
-
-.stat-value.enabled {
-  color: #67c23a;
-}
-
-.stat-value.disabled {
-  color: #999;
-}
-
-/* 右侧主内容区 */
-.main-content {
-  flex: 1;
-  min-width: 0;
-}
-
-/* 分类卡片列表容器 */
-.category-cards {
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-}
-
-/* 父分类卡片 */
-.parent-card {
-  background: white;
-  border-radius: 16px;
-  padding: 24px 32px;
-  box-shadow: 0 2px 12px rgba(139, 111, 71, 0.06), 0 1px 3px rgba(0, 0, 0, 0.03);
-  border: 1px solid rgba(139, 111, 71, 0.08);
-  transition: all 0.3s ease;
-}
-
-.parent-card:hover {
-  box-shadow: 0 8px 24px rgba(139, 111, 71, 0.1), 0 2px 6px rgba(0, 0, 0, 0.04);
-  transform: translateY(-2px);
-}
-
-.parent-card.is-disabled {
-  opacity: 0.6;
-  background: linear-gradient(180deg, white, rgba(153, 153, 153, 0.05));
-}
-
-.parent-card.is-disabled .card-title .name {
-  color: #999;
-}
-
-/* 卡片头部 */
-.card-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 16px;
-}
-
-.card-title {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.card-title .folder-icon {
-  width: 36px;
-  height: 36px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(145deg, #8B6F47, #968657);
-  color: white;
-  border-radius: 10px;
-  font-size: 18px;
-  box-shadow: 0 3px 10px rgba(139, 111, 71, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.15);
-}
-
-.card-title .name {
-  font-size: 16px;
-  font-weight: 600;
-  color: #8B6F47;
-}
-
-.card-title .code {
-  font-size: 12px;
-  color: #999;
-  font-family: monospace;
-  background: rgba(139, 111, 71, 0.08);
-  padding: 2px 8px;
-  border-radius: 4px;
-}
-
-.card-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-/* 卡片元信息 */
-.card-meta {
-  display: flex;
-  gap: 16px;
-  margin-bottom: 24px;
-  padding-bottom: 16px;
-  border-bottom: 1px dashed rgba(139, 111, 71, 0.1);
-}
-
-/* 子分类区域 */
-.children-section {
-  margin-bottom: 16px;
-}
-
-.children-section.empty {
-  padding: 16px 0;
-}
-
-.children-section.empty .empty-hint {
-  font-size: 12px;
-  color: #999;
-  font-style: italic;
-}
-
-.children-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 16px;
-}
-
-.children-label {
-  font-size: 13px;
-  color: #999;
-  font-weight: 500;
-}
-
-.children-count {
-  font-size: 12px;
-  background: rgba(139, 111, 71, 0.1);
-  color: #8B6F47;
-  padding: 2px 8px;
-  border-radius: 10px;
-  font-weight: 600;
-}
-
-/* 视图切换器 */
-.view-switcher {
-  display: flex;
-  background: rgba(139, 111, 71, 0.08);
-  border-radius: 8px;
-  padding: 4px;
-  gap: 4px;
-}
-
-.view-btn {
-  width: 36px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 6px;
-  cursor: pointer;
-  color: #999;
-  transition: all 0.2s ease;
-}
-
-.view-btn:hover {
-  color: #8B6F47;
-  background: rgba(139, 111, 71, 0.1);
-}
-
-.view-btn.active {
-  background: white;
-  color: #8B6F47;
-  box-shadow: 0 2px 6px rgba(139, 111, 71, 0.15);
-}
-
-.view-btn .el-icon {
-  font-size: 18px;
-}
-
-/* 骨架屏样式 */
-.skeleton-container {
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-}
-
-.skeleton-card {
-  background: white;
-  border-radius: 16px;
-  padding: 24px 32px;
-  box-shadow: 0 2px 12px rgba(139, 111, 71, 0.06);
-  border: 1px solid rgba(139, 111, 71, 0.08);
-}
-
-.skeleton-header {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  margin-bottom: 16px;
-}
-
-.skeleton-icon {
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
-  background: linear-gradient(90deg, #f0f0f0 25%, #e8e8e8 50%, #f0f0f0 75%);
-  background-size: 200% 100%;
-  animation: skeleton-loading 1.5s infinite;
-}
-
-.skeleton-title {
-  width: 120px;
-  height: 20px;
-  border-radius: 4px;
-  background: linear-gradient(90deg, #f0f0f0 25%, #e8e8e8 50%, #f0f0f0 75%);
-  background-size: 200% 100%;
-  animation: skeleton-loading 1.5s infinite;
-}
-
-.skeleton-code {
-  width: 80px;
-  height: 16px;
-  border-radius: 4px;
-  background: linear-gradient(90deg, #f0f0f0 25%, #e8e8e8 50%, #f0f0f0 75%);
-  background-size: 200% 100%;
-  animation: skeleton-loading 1.5s infinite;
-}
-
-.skeleton-meta {
-  display: flex;
-  gap: 16px;
-  margin-bottom: 24px;
-  padding-bottom: 16px;
-  border-bottom: 1px dashed rgba(139, 111, 71, 0.1);
-}
-
-.skeleton-tag {
-  width: 60px;
-  height: 22px;
-  border-radius: 4px;
-  background: linear-gradient(90deg, #f0f0f0 25%, #e8e8e8 50%, #f0f0f0 75%);
-  background-size: 200% 100%;
-  animation: skeleton-loading 1.5s infinite;
-}
-
-.skeleton-children {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.skeleton-child {
-  width: 100px;
-  height: 36px;
-  border-radius: 20px;
-  background: linear-gradient(90deg, #f0f0f0 25%, #e8e8e8 50%, #f0f0f0 75%);
-  background-size: 200% 100%;
-  animation: skeleton-loading 1.5s infinite;
-}
-
-@keyframes skeleton-loading {
+/* 骨架屏动画 */
+@keyframes shimmer {
   0% {
     background-position: 200% 0;
   }
@@ -1809,35 +1340,21 @@ onMounted(async () => {
   }
 }
 
-/* 展开/折叠按钮 */
-.expand-btn {
-  width: 28px;
-  height: 28px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 6px;
-  cursor: pointer;
-  color: #999;
-  transition: all 0.3s ease;
+/* 拖拽保存提示动画 */
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
-.expand-btn:hover {
-  background: rgba(139, 111, 71, 0.1);
-  color: #8B6F47;
-}
-
-.expand-btn .el-icon {
-  transition: transform 0.3s ease;
-}
-
-.expand-btn.expanded .el-icon {
-  transform: rotate(180deg);
-}
-
-/* 子分类区域包装器（用于动画） */
-.children-wrapper {
-  overflow: hidden;
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
 /* 展开/折叠动画 */
@@ -1870,6 +1387,17 @@ onMounted(async () => {
   transition: transform 0.3s ease;
 }
 
+/* fade 过渡动画 */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
 /* 树形视图拖拽节点样式 */
 :deep(.el-tree) .el-tree-node.is-drop-inner > .el-tree-node__content {
   background: rgba(139, 111, 71, 0.15);
@@ -1883,335 +1411,34 @@ onMounted(async () => {
   box-shadow: 0 0 8px rgba(139, 111, 71, 0.5);
 }
 
-:deep(.el-tree) .is-dragging .tree-node {
+:deep(.el-tree) .is-dragging > .el-tree-node__content {
   background: linear-gradient(135deg, rgba(139, 111, 71, 0.15), rgba(139, 111, 71, 0.08));
   border: 2px solid #8B6F47;
   box-shadow: 0 8px 24px rgba(139, 111, 71, 0.3);
   transform: scale(1.02);
 }
 
-/* 拖拽保存中的加载提示 */
-.drag-saving-overlay {
-  position: fixed;
-  top: 20px;
-  right: 20px;
-  background: white;
-  padding: 12px 20px;
-  border-radius: 8px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  z-index: 2000;
-  animation: slide-in 0.3s ease;
-}
-
-.drag-saving-overlay .el-icon {
-  color: #8B6F47;
-  animation: spin 1s linear infinite;
-}
-
-@keyframes slide-in {
-  from {
-    opacity: 0;
-    transform: translateX(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-@keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
-
-/* fade 过渡动画 */
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.3s ease;
-}
-
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
-}
-
-/* 树形视图容器 */
-.tree-view-container {
-  background: white;
-  border-radius: 16px;
-  padding: 24px;
-  box-shadow: 0 2px 12px rgba(139, 111, 71, 0.06), 0 1px 3px rgba(0, 0, 0, 0.03);
-  border: 1px solid rgba(139, 111, 71, 0.08);
-}
-
-.tree-view-container :deep(.el-tree) {
+/* 树形视图容器深层样式 */
+:deep(.el-tree) {
   background: transparent;
 }
 
-.tree-view-container :deep(.el-tree) .el-tree-node__content {
+:deep(.el-tree) .el-tree-node__content {
   height: auto;
   padding: 8px 0;
 }
 
-.tree-view-container :deep(.el-tree) .el-tree-node__content:hover {
+:deep(.el-tree) .el-tree-node__content:hover {
   background: rgba(139, 111, 71, 0.04);
 }
 
-.tree-view-container :deep(.el-tree) .el-tree-node__expand-icon {
+:deep(.el-tree) .el-tree-node__expand-icon {
   color: #8B6F47;
   font-size: 16px;
 }
 
-.tree-view-container :deep(.el-tree) .el-tree-node__expand-icon.is-leaf {
+:deep(.el-tree) .el-tree-node__expand-icon.is-leaf {
   color: transparent;
-}
-
-/* 树形视图工具栏 */
-.tree-toolbar {
-  display: flex;
-  gap: 8px;
-  padding-bottom: 12px;
-  margin-bottom: 12px;
-  border-bottom: 1px solid rgba(139, 111, 71, 0.1);
-}
-
-/* 树形视图加载状态 */
-.tree-loading {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 40px;
-  color: #999;
-}
-
-.tree-loading .el-icon {
-  font-size: 20px;
-  color: #8B6F47;
-}
-
-/* 树形节点样式 */
-.tree-node {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 6px 12px;
-  border-radius: 8px;
-  transition: all 0.2s ease;
-}
-
-.tree-node:hover {
-  background: rgba(139, 111, 71, 0.06);
-}
-
-.tree-node:hover .tree-node-actions {
-  opacity: 1;
-}
-
-.tree-node.is-disabled {
-  opacity: 0.6;
-}
-
-.tree-node.is-disabled .tree-node-name {
-  color: #999;
-}
-
-.tree-node-content {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.tree-node-icon {
-  width: 28px;
-  height: 28px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(145deg, rgba(139, 111, 71, 0.15), rgba(139, 111, 71, 0.08));
-  color: #8B6F47;
-  border-radius: 6px;
-  font-size: 14px;
-}
-
-.tree-node-name {
-  font-size: 14px;
-  font-weight: 500;
-  color: #333;
-}
-
-.tree-node-code {
-  font-size: 12px;
-  color: #999;
-  font-family: monospace;
-  background: rgba(139, 111, 71, 0.08);
-  padding: 2px 6px;
-  border-radius: 4px;
-}
-
-.tree-node-subject {
-  margin-left: 4px;
-}
-
-.tree-node-count {
-  font-size: 12px;
-  color: #999;
-  background: rgba(139, 111, 71, 0.08);
-  padding: 2px 8px;
-  border-radius: 10px;
-}
-
-.tree-node-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  opacity: 0;
-  transition: opacity 0.2s ease;
-}
-
-.action-icon {
-  width: 28px;
-  height: 28px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 6px;
-  cursor: pointer;
-  color: #999;
-  transition: all 0.2s ease;
-}
-
-.action-icon:hover {
-  background: rgba(139, 111, 71, 0.1);
-  color: #8B6F47;
-}
-
-.action-icon.danger:hover {
-  background: rgba(245, 108, 108, 0.1);
-  color: #f56c6c;
-}
-
-/* 子分类列表容器（横向排列） */
-.children-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-
-/* 子分类项（二级分类及其三级子分类） */
-.child-item {
-  display: inline-flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.child-item.is-disabled {
-  opacity: 0.6;
-}
-
-/* 子分类标签行（包含标签和添加按钮） */
-.child-tag-row {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-}
-
-/* 添加三级分类按钮 */
-.add-grandchild-btn {
-  opacity: 0;
-  transition: opacity 0.2s ease;
-  padding: 2px !important;
-  min-width: auto !important;
-}
-
-.child-tag-row:hover .add-grandchild-btn {
-  opacity: 1;
-}
-
-/* 三级分类标签容器 */
-.grandchildren-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  margin-top: 4px;
-  padding-left: 8px;
-  border-left: 2px solid rgba(139, 111, 71, 0.2);
-}
-
-/* 子分类标签（通用样式） */
-.child-tag {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 14px;
-  background: linear-gradient(135deg, rgba(139, 111, 71, 0.08), rgba(139, 111, 71, 0.04));
-  border: 1px solid rgba(139, 111, 71, 0.12);
-  border-radius: 20px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.child-tag:hover {
-  background: linear-gradient(135deg, rgba(139, 111, 71, 0.15), rgba(139, 111, 71, 0.08));
-  border-color: rgba(139, 111, 71, 0.25);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(139, 111, 71, 0.15);
-}
-
-.child-tag.is-disabled {
-  opacity: 0.5;
-  background: rgba(153, 153, 153, 0.08);
-  border-color: rgba(153, 153, 153, 0.15);
-}
-
-.child-tag.is-disabled .child-name {
-  color: #999;
-}
-
-/* 二级分类样式 */
-.child-tag.level-2 {
-  background: linear-gradient(135deg, rgba(139, 111, 71, 0.1), rgba(139, 111, 71, 0.05));
-  border-color: rgba(139, 111, 71, 0.15);
-}
-
-/* 三级分类样式（更小更淡） */
-.child-tag.level-3 {
-  padding: 5px 10px;
-  font-size: 12px;
-  background: linear-gradient(135deg, rgba(139, 111, 71, 0.06), rgba(139, 111, 71, 0.02));
-  border-color: rgba(139, 111, 71, 0.1);
-}
-
-.child-tag.level-3 .child-name {
-  font-size: 12px;
-}
-
-.child-tag.level-3 .child-count {
-  font-size: 10px;
-}
-
-.child-tag .child-name {
-  font-size: 14px;
-  font-weight: 500;
-  color: #333;
-}
-
-.child-tag .child-count {
-  font-size: 12px;
-  color: #999;
-  background: rgba(255, 255, 255, 0.8);
-  padding: 2px 6px;
-  border-radius: 8px;
-}
-
-/* 卡片底部 */
-.card-footer {
-  padding-top: 16px;
-  border-top: 1px solid rgba(139, 111, 71, 0.06);
 }
 
 /* 标签样式优化 */
@@ -2227,124 +1454,36 @@ onMounted(async () => {
   color: #8B6F47;
 }
 
-.form-tip {
-  font-size: 12px;
-  color: #999;
-  margin-top: 4px;
-}
-
-/* 父分类选择器中的层级提示 */
-.parent-hint {
-  font-size: 12px;
-  color: #999;
-  margin-left: 4px;
-}
-
 /* 响应式布局 */
 @media (max-width: 768px) {
-  .category-manage-container {
+  .max-w-\[1400px\] {
     padding: 16px 8px;
   }
 
-  .page-header {
+  .max-w-\[1400px\] > .flex:first-child {
     flex-direction: column;
     gap: 16px;
     align-items: flex-start;
   }
 
-  .header-right {
+  .max-w-\[1400px\] > .flex:first-child > .flex:last-child {
     flex-direction: column;
     width: 100%;
     gap: 16px;
   }
 
-  .header-right .el-radio-group {
-    width: 100%;
-    display: flex;
-  }
-
-  .header-right .el-radio-group .el-radio-button {
-    flex: 1;
-  }
-
-  .main-layout {
+  .flex.gap-8 {
     flex-direction: column;
     gap: 24px;
   }
 
-  .sidebar {
+  .w-64 {
     width: 100%;
     position: static;
   }
 
-  .sidebar .subject-list {
-    flex-direction: row;
-    overflow-x: auto;
-    padding-bottom: 8px;
-    gap: 8px;
-  }
-
-  .sidebar .subject-list::-webkit-scrollbar {
-    height: 4px;
-  }
-
-  .sidebar .subject-list::-webkit-scrollbar-thumb {
-    background: rgba(139, 111, 71, 0.2);
-    border-radius: 2px;
-  }
-
-  .sidebar .subject-item {
-    flex-shrink: 0;
-    min-width: 120px;
-    padding: 8px 12px;
-  }
-
-  .sidebar-section + .sidebar-section {
-    margin-top: 12px;
-  }
-
-  .stats-summary {
-    flex-direction: row;
-    flex-wrap: wrap;
-    gap: 6px;
-  }
-
-  .stats-summary .stat-row {
-    flex: 1;
-    min-width: calc(50% - 3px);
-    padding: 6px 10px;
-  }
-
-  /* 移动端卡片优化 */
-  .parent-card {
+  .bg-white.rounded-2xl {
     padding: 16px 24px;
-  }
-
-  .card-header {
-    flex-wrap: wrap;
-    gap: 16px;
-  }
-
-  .card-title .folder-icon {
-    width: 32px;
-    height: 32px;
-    font-size: 16px;
-  }
-
-  .card-title .name {
-    font-size: 15px;
-  }
-
-  .children-tags {
-    gap: 6px;
-  }
-
-  .child-tag {
-    padding: 6px 10px;
-  }
-
-  .child-tag .child-name {
-    font-size: 13px;
   }
 }
 </style>

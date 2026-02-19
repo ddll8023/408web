@@ -6,19 +6,19 @@
     @click="handleClick"
   >
     <!-- Loading 图标 -->
-    <span v-if="loading" class="btn-loading">
-      <span class="loading-spinner"></span>
+    <span v-if="loading" class="relative inline-flex items-center justify-center">
+      <span class="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full"></span>
     </span>
-    
+
     <!-- 图标 (Element Plus图标组件) -->
-    <component 
-      v-if="icon && !loading" 
-      :is="icon" 
-      class="btn-icon"
+    <component
+      v-if="icon && !loading"
+      :is="icon"
+      class="inline-flex items-center justify-center text-inherit w-[1em] h-[1em]"
     />
-    
+
     <!-- 按钮文本 -->
-    <span v-if="$slots.default" class="btn-text">
+    <span v-if="$slots.default" class="inline-flex items-center inline-block">
       <slot></slot>
     </span>
   </button>
@@ -94,8 +94,7 @@ const handleClick = (event) => {
 <style scoped>
 /**
  * 自定义按钮样式
- * 已迁移至纯CSS，保留必要的动画
- * 按钮类型通过动态class实现：custom-btn--type
+ * 使用纯CSS样式，兼容Tailwind CSS 4
  */
 
 /* 基础按钮样式 */
@@ -105,21 +104,18 @@ const handleClick = (event) => {
   justify-content: center;
   gap: 6px;
   padding: 10px 16px;
-  border: 1px solid #dcdfe6;
+  border: 1px solid rgba(0, 0, 0, 0.15);
   border-radius: 4px;
   font-size: 14px;
   font-weight: 500;
   line-height: 1.5;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all 0.15s;
   outline: none;
   white-space: nowrap;
   user-select: none;
-
-  /* 默认样式 */
   background-color: #fff;
   color: #333;
-  border-color: rgba(0, 0, 0, 0.15);
 }
 
 .custom-btn:hover:not(.is-disabled):not(.is-loading) {
@@ -167,68 +163,68 @@ const handleClick = (event) => {
 }
 
 .custom-btn--text-primary {
-  color: #409eff;
+  color: #3b82f6;
 }
 
 .custom-btn--text-primary:hover:not(.is-disabled):not(.is-loading) {
-  background-color: rgba(64, 158, 255, 0.1);
+  background-color: #eff6ff;
   border-color: transparent;
 }
 
 .custom-btn--text-danger {
-  color: #f56c6c;
+  color: #ef4444;
 }
 
 .custom-btn--text-danger:hover:not(.is-disabled):not(.is-loading) {
-  background-color: rgba(245, 108, 108, 0.1);
+  background-color: #fef2f2;
   border-color: transparent;
 }
 
 .custom-btn--text-warning {
-  color: #e6a23c;
+  color: #f97316;
 }
 
 .custom-btn--text-warning:hover:not(.is-disabled):not(.is-loading) {
-  background-color: rgba(230, 162, 60, 0.1);
+  background-color: #fff7ed;
   border-color: transparent;
 }
 
 /* Success类型 */
 .custom-btn--success {
-  background-color: #67c23a;
-  border-color: #67c23a;
+  background-color: #22c55e;
+  border-color: #22c55e;
   color: #fff;
 }
 
 .custom-btn--success:hover:not(.is-disabled):not(.is-loading) {
-  background-color: #85ce61;
-  border-color: #85ce61;
+  background-color: #4ade80;
+  border-color: #4ade80;
   color: #fff;
 }
 
 /* Danger类型 */
 .custom-btn--danger {
-  background-color: #f56c6c;
-  border-color: #f56c6c;
+  background-color: #ef4444;
+  border-color: #ef4444;
   color: #fff;
 }
 
 .custom-btn--danger:hover:not(.is-disabled):not(.is-loading) {
-  background-color: #f78989;
-  border-color: #f78989;
+  background-color: #f87171;
+  border-color: #f87171;
   color: #fff;
 }
 
 /* Warning类型 */
 .custom-btn--warning {
-  background-color: #e6a23c;
-  border-color: #e6a23c;
+  background-color: #f97316;
+  border-color: #f97316;
   color: #fff;
 }
 
 .custom-btn--warning:hover:not(.is-disabled):not(.is-loading) {
-  background-color: #ebb563;
-  border-color: #ebb563;
+  background-color: #fb923c;
+  border-color: #fb923c;
   color: #fff;
 }
 
@@ -254,40 +250,6 @@ const handleClick = (event) => {
   cursor: not-allowed;
   opacity: 0.5;
   pointer-events: none;
-}
-
-/* 图标样式 */
-.btn-icon {
-  font-size: inherit;
-  width: 1em;
-  height: 1em;
-}
-
-/* Loading动画 */
-.btn-loading {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.loading-spinner {
-  display: inline-block;
-  width: 1em;
-  height: 1em;
-  border: 2px solid currentColor;
-  border-top-color: transparent;
-  border-radius: 50%;
-  animation: spin 0.6s linear infinite;
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-/* 按钮文本 */
-.btn-text {
-  display: inline-block;
 }
 </style>
 

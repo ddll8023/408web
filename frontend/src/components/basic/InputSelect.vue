@@ -1,9 +1,9 @@
 <template>
-  <div class="custom-input-select" ref="containerRef">
+  <div class="w-full relative" ref="containerRef">
     <!-- 输入框区域 -->
-    <div 
-      class="select-trigger" 
-      :class="{ 'is-focused': visible, 'has-value': modelValue }"
+    <div
+      class="relative w-full flex items-center bg-white border border-gray-300 rounded px-3 py-2 transition-all duration-15 hover:border-gray-500"
+      :class="{ 'border-[#8B6F47] shadow-[0_0_0_2px_rgba(139,111,71,0.2)]': visible, 'has-value': modelValue }"
       @click="toggleMenu"
     >
       <input
@@ -11,45 +11,45 @@
         type="text"
         v-model="inputValue"
         :placeholder="placeholder"
-        class="select-input"
+        class="w-full h-8 px-3 pr-8 border-none bg-transparent text-gray-800 font-inherit outline-none cursor-pointer"
         @focus="handleFocus"
         @input="handleInput"
         @change="handleChange"
       />
-      
+
       <!-- 后缀图标 -->
-      <div class="suffix-wrapper">
-        <span 
-          v-if="modelValue && clearable" 
-          class="icon-clear" 
+      <div class="absolute right-4 top-1/2 -translate-y-1/2 flex items-center justify-center h-full text-gray-300">
+        <span
+          v-if="modelValue && clearable"
+          class="hidden cursor-pointer text-sm hover:text-gray-800 mr-2"
           @click.stop="handleClear"
         >
           ×
         </span>
-        <span 
-          class="icon-arrow" 
-          :class="{ 'is-reverse': visible }"
+        <span
+          class="transition-transform duration-15 flex items-center"
+          :class="{ 'rotate-180': visible }"
         >
-          <i class="arrow-down"></i>
+          <i class="border-l-[4px] border-l-transparent border-r-[4px] border-r-transparent border-t-[5px] border-t-currentColor"></i>
         </span>
       </div>
     </div>
 
     <!-- 下拉菜单 -->
     <transition name="zoom-in-top">
-      <div v-show="visible" class="select-dropdown">
-        <ul v-if="filteredOptions.length > 0" class="select-dropdown__list">
+      <div v-show="visible" class="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded shadow-lg z-50 max-h-60 overflow-y-auto">
+        <ul v-if="filteredOptions.length > 0" class="list-none p-1">
           <li
             v-for="(item, index) in filteredOptions"
             :key="index"
-            class="select-dropdown__item"
-            :class="{ 'is-selected': isSelected(item) }"
+            class="px-3 h-8 leading-8 cursor-pointer text-gray-800 whitespace-nowrap overflow-hidden text-ellipsis transition-colors duration-15"
+            :class="{ 'text-[#8B6F47] font-medium bg-gray-100': isSelected(item) }"
             @click="handleSelect(item)"
           >
             {{ item.label }}
           </li>
         </ul>
-        <div v-else class="select-dropdown__empty">
+        <div v-else class="px-3 py-2 text-sm text-gray-400 text-center">
           无匹配数据
         </div>
       </div>
@@ -197,151 +197,8 @@ onUnmounted(() => {
 <style scoped>
 /**
  * 自定义可输入下拉选择组件样式
- * 已迁移至纯CSS
+ * 动画样式（其他样式已迁移到Tailwind CSS）
  */
-
-.custom-input-select {
-  position: relative;
-  width: 100%;
-  font-size: 14px;
-}
-
-.select-trigger {
-  position: relative;
-  width: 100%;
-  display: flex;
-  align-items: center;
-  background-color: #fff;
-  border: 1px solid #dcdfe6;
-  border-radius: 4px;
-  transition: all 0.15s ease;
-}
-
-.select-trigger:hover {
-  border-color: #c8c9cc;
-}
-
-.select-trigger:hover .icon-clear {
-  display: block;
-}
-
-.select-trigger:hover .icon-arrow {
-  display: none;
-}
-
-.select-trigger.is-focused {
-  border-color: #8B6F47;
-  box-shadow: 0 0 0 2px rgba(139, 111, 71, 0.2);
-}
-
-.select-input {
-  width: 100%;
-  height: 32px;
-  padding: 0 16px;
-  padding-right: 30px;
-  border: none;
-  background: transparent;
-  color: #333;
-  font-size: inherit;
-  outline: none;
-  cursor: pointer;
-}
-
-.select-input::placeholder {
-  color: #a8abb2;
-}
-
-.suffix-wrapper {
-  position: absolute;
-  right: 16px;
-  top: 50%;
-  transform: translateY(-50%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  color: #a8abb2;
-}
-
-.icon-arrow {
-  transition: transform 0.15s ease;
-  display: flex;
-  align-items: center;
-}
-
-.icon-arrow.is-reverse {
-  transform: rotate(180deg);
-}
-
-.arrow-down {
-  width: 0;
-  height: 0;
-  border-left: 4px solid transparent;
-  border-right: 4px solid transparent;
-  border-top: 5px solid currentColor;
-}
-
-.icon-clear {
-  display: none;
-  cursor: pointer;
-  font-size: 14px;
-}
-
-.icon-clear:hover {
-  color: #333;
-}
-
-/* 下拉菜单 */
-.select-dropdown {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  z-index: 1000;
-  width: 100%;
-  margin-top: 4px;
-  background-color: #fff;
-  border: 1px solid #dcdfe6;
-  border-radius: 4px;
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
-  max-height: 200px;
-  overflow-y: auto;
-}
-
-.select-dropdown__list {
-  list-style: none;
-  padding: 4px 0;
-  margin: 0;
-}
-
-.select-dropdown__item {
-  padding: 0 16px;
-  height: 34px;
-  line-height: 34px;
-  cursor: pointer;
-  color: #333;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  transition: background-color 0.15s ease;
-}
-
-.select-dropdown__item:hover {
-  background-color: #f5f7fa;
-}
-
-.select-dropdown__item.is-selected {
-  color: #8B6F47;
-  font-weight: 500;
-  background-color: #f5f7fa;
-}
-
-.select-dropdown__empty {
-  padding: 10px 0;
-  margin: 0;
-  text-align: center;
-  color: #999;
-  font-size: 12px;
-}
 
 /* 动画 */
 .zoom-in-top-enter-active {

@@ -1,9 +1,9 @@
 <template>
-  <div class="chapter-manage-container">
-    <el-card class="manage-card">
+  <div class="max-w-[1400px] mx-auto px-4 py-6 min-h-[calc(100vh-60px)]">
+    <el-card class="shadow-sm">
       <template #header>
-        <div class="card-header">
-          <h2>章节管理</h2>
+        <div class="flex items-center justify-between">
+          <h2 class="m-0 text-xl text-[#333] font-semibold">章节管理</h2>
           <CustomButton type="primary" @click="handleAdd(null)">
             <el-icon style="margin-right: 6px"><Plus /></el-icon>
             新增一级章节
@@ -12,7 +12,7 @@
       </template>
 
       <!-- 科目选择 -->
-      <div class="subject-selector">
+      <div class="mb-6">
         <el-select
           v-model="selectedSubjectId"
           placeholder="请选择科目"
@@ -50,8 +50,8 @@
         </el-table-column>
         <el-table-column label="操作" width="280" fixed="right">
           <template #default="{ row }">
-            <CustomButton 
-              v-if="!row.parentId" 
+            <CustomButton
+              v-if="!row.parentId"
               type="text"
               size="small"
               @click="handleAdd(row.id)"
@@ -59,7 +59,7 @@
               添加子章节
             </CustomButton>
             <CustomButton type="text-primary" size="small" @click="handleEdit(row)">编辑</CustomButton>
-            <CustomButton 
+            <CustomButton
               type="text"
               size="small"
               :loading="row.statusLoading"
@@ -67,7 +67,7 @@
             >
               {{ row.enabled ? '禁用' : '启用' }}
             </CustomButton>
-            <CustomButton 
+            <CustomButton
               type="text-danger"
               size="small"
               :loading="row.deleteLoading"
@@ -118,7 +118,7 @@
             :max="9999"
             placeholder="数字越小越靠前"
           />
-          <div class="form-tip">排序序号决定章节显示顺序</div>
+          <div class="text-xs text-[#999] mt-1">排序序号决定章节显示顺序</div>
         </el-form-item>
 
         <el-form-item label="是否启用" prop="enabled">
@@ -452,59 +452,22 @@ onMounted(() => {
 <style scoped>
 /**
  * 章节管理页面样式
- * 移除 SCSS，使用普通 CSS
+ * 大部分样式已迁移到Tailwind类
  */
-.chapter-manage-container {
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: 24px 16px;
-  min-height: calc(100vh - 60px);
-}
 
-.manage-card {
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
-}
-
-.card-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.card-header h2 {
-  margin: 0;
-  font-size: 22px;
-  color: #333;
-  font-weight: 600;
-}
-
-.header-actions {
-  display: flex;
-  gap: 8px;
-}
-
-.subject-selector {
-  margin-bottom: 24px;
-}
-
-.form-tip {
-  font-size: 12px;
-  color: #999;
-  margin-top: 4px;
-}
-
+/* 响应式布局 */
 @media (max-width: 768px) {
-  .chapter-manage-container {
+  .max-w-\[1400px\] {
     padding: 16px 8px;
   }
 
-  .card-header {
+  .max-w-\[1400px\] > .el-card > .flex {
     flex-direction: column;
     gap: 16px;
     align-items: flex-start;
   }
 
-  .subject-selector :deep(.el-select) {
+  .mb-6 .el-select {
     width: 100% !important;
   }
 }

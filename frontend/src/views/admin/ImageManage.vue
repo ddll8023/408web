@@ -1,10 +1,10 @@
 <template>
-  <div class="image-manage-container">
-    <el-card class="manage-card">
+  <div class="max-w-[1400px] mx-auto p-4 md:p-6 min-h-[calc(100vh-60px)]">
+    <el-card class="shadow-sm">
       <template #header>
-        <div class="card-header">
-          <h2>图片资源管理</h2>
-          <div class="header-actions">
+        <div class="flex items-center justify-between">
+          <h2 class="m-0 text-xl text-[#333] font-semibold">图片资源管理</h2>
+          <div class="flex gap-2">
             <CustomButton type="primary" @click="loadImages" :loading="loading">刷新</CustomButton>
             <CustomButton type="danger" @click="handleDeleteUnreferenced" :loading="cleanupLoading">
               删除未引用
@@ -13,7 +13,7 @@
         </div>
       </template>
 
-      <div class="filter-actions">
+      <div class="mb-4 flex justify-end">
         <el-switch
           v-model="onlyUnreferenced"
           active-text="仅显示未引用"
@@ -59,7 +59,7 @@
                 </el-tag>
               </el-space>
             </template>
-            <span v-else class="text-muted">未引用</span>
+            <span v-else class="text-[#999]">未引用</span>
           </template>
         </el-table-column>
         <el-table-column label="操作" width="120" fixed="right">
@@ -208,40 +208,6 @@ onMounted(() => {
 <style scoped>
 /**
  * 图片资源管理页面样式
- * 移除 SCSS，使用普通 CSS
+ * 已迁移至 Tailwind CSS
  */
-.image-manage-container {
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: 24px 16px;
-  min-height: calc(100vh - 60px);
-}
-
-.manage-card {
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
-}
-
-.card-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.card-header h2 {
-  margin: 0;
-  font-size: 22px;
-  color: #333;
-  font-weight: 600;
-}
-
-.header-actions {
-  display: flex;
-  gap: 8px;
-}
-
-.filter-actions {
-  margin-bottom: 16px;
-  display: flex;
-  justify-content: flex-end;
-}
 </style>

@@ -1,10 +1,10 @@
 <template>
-  <div class="register-container">
-    <el-card class="register-card">
+  <div class="min-h-screen bg-[#FBF7F2] flex items-center justify-center">
+    <el-card class="w-[450px] shadow-[0_2px_8px_rgba(0,0,0,0.1)]">
       <template #header>
-        <div class="card-header">
-          <h2>用户注册</h2>
-          <span>408真题网站</span>
+        <div class="text-center">
+          <h2 class="m-0 mb-2 text-[#333] font-semibold text-xl">用户注册</h2>
+          <span class="text-[#666] text-sm">408真题网站</span>
         </div>
       </template>
 
@@ -54,7 +54,7 @@
           <CustomButton
             type="primary"
             :loading="loading"
-            style="width: 100%"
+            class="w-full"
             @click="handleRegister"
           >
             注册
@@ -167,33 +167,5 @@ const goToLogin = () => {
  * 使用 Tailwind CSS
  * 注：变量和mixins已通过Vite全局注入，无需手动导入
  */
-
-.register-container {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 100vh;
-  background-color: #FBF7F2; /* $color-primary */
-}
-
-.register-card {
-  width: 450px; /* $container-width-sm */
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); /* $box-shadow-base */
-}
-
-.card-header {
-  text-align: center;
-}
-
-.card-header h2 {
-  margin: 0 0 8px 0; /* $spacing-xs */
-  color: #333; /* $color-text-primary */
-  font-weight: 600; /* $font-weight-bold */
-}
-
-.card-header span {
-  color: #666; /* $color-text-secondary */
-  font-size: 14px; /* $font-size-base */
-}
 </style>
 

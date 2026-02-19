@@ -1,7 +1,7 @@
 <template>
-  <div class="exam-page-container">
+  <div class="exam-page-container h-[calc(100vh-60px)] overflow-hidden flex flex-col bg-[#FBF7F2]">
     <!-- 主要内容区域：左侧年份导航 + 右侧内容 -->
-    <div class="main-content-wrapper">
+    <div class="flex-1 flex relative overflow-hidden">
       <!-- 左侧年份导航栏 -->
       <YearNav
         :year-list="yearList"
@@ -14,86 +14,84 @@
       />
 
       <!-- 右侧内容区域 -->
-      <div class="content-area">
-        <el-card class="content-card" v-loading="loading">
-          <!-- 顶部操作栏 -->
-          <div class="content-header">
-            <div class="header-left">
-              <h2 v-if="activeYear">{{ activeYear }}年真题</h2>
-              <h2 v-else>历年真题</h2>
-            </div>
-            <!-- 年份视图：显示导出按钮和管理员创建按钮 -->
-            <div class="header-actions" v-if="examList.length > 0">
-              <el-dropdown trigger="click" @command="handleExportCommand">
+      <div class="flex-1 w-0 overflow-y-auto bg-[#FBF7F2]">
+        <el-card class="min-h-[calc(100vh-60px-40px)] shadow-none bg-[#FBF7F2] border-none">
+          <template #header>
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-3 flex-1">
+                <h2 class="m-0 text-[#333] font-semibold text-xl">{{ currentTitle }}</h2>
+                <el-tag v-if="displayTotal > 0" type="info" size="small">共 {{ displayTotal }} 题</el-tag>
+              </div>
+              <!-- 年份视图：显示导出按钮和管理员创建按钮 -->
+              <div class="flex gap-2" v-if="examList.length > 0">
+                <el-dropdown trigger="click" @command="handleExportCommand">
+                  <CustomButton
+                    type="success"
+                    :icon="Download"
+                  >
+                    导出试卷
+                  </CustomButton>
+                  <template #dropdown>
+                    <el-dropdown-menu>
+                      <el-dropdown-item command="markdown">
+                        <el-icon><Document /></el-icon>
+                        导出为 Markdown (.md)
+                      </el-dropdown-item>
+                      <el-dropdown-item command="docx">
+                        <el-icon><Document /></el-icon>
+                        导出为 Word 文档 (.docx)
+                      </el-dropdown-item>
+                    </el-dropdown-menu>
+                  </template>
+                </el-dropdown>
                 <CustomButton
-                  type="success"
-                  :icon="Download"
+                  v-if="isAdmin"
+                  type="primary"
+                  @click="handleCreate"
                 >
-                  导出试卷
+                  创建真题
                 </CustomButton>
-                <template #dropdown>
-                  <el-dropdown-menu>
-                    <el-dropdown-item command="markdown">
-                      <el-icon><Document /></el-icon>
-                      导出为 Markdown (.md)
-                    </el-dropdown-item>
-                    <el-dropdown-item command="docx">
-                      <el-icon><Document /></el-icon>
-                      导出为 Word 文档 (.docx)
-                    </el-dropdown-item>
-                  </el-dropdown-menu>
-                </template>
-              </el-dropdown>
-              <CustomButton
-                v-if="isAdmin"
-                type="primary"
-                @click="handleCreate"
-              >
-                创建真题
-              </CustomButton>
+              </div>
+              <!-- 默认视图（空状态）：显示管理员创建按钮 -->
+              <div class="flex gap-2" v-else-if="isAdmin">
+                <CustomButton
+                  type="primary"
+                  @click="handleCreate"
+                >
+                  创建真题
+                </CustomButton>
+              </div>
             </div>
-            <!-- 默认视图（空状态）：显示管理员创建按钮 -->
-            <div class="header-actions" v-else-if="isAdmin">
-              <CustomButton
-                type="primary"
-                @click="handleCreate"
-              >
-                创建真题
-              </CustomButton>
-            </div>
-          </div>
+          </template>
 
           <!-- 年份视图:显示所有题目 -->
-          <div v-if="examList.length > 0" class="year-view">
-            <!-- 题目列表 -->
-            <div class="exam-list-year">
-              <ExamEntryCard 
-                v-for="exam in examList" 
-                :key="exam.id"
-                :id="`question-${exam.questionNumber}`"
-                :exam="exam"
-                :is-admin="isAdmin"
-                :show-answer="showAnswers[exam.id]"
-                density="compact"
-                @copy="(cmd) => handleCopy(cmd, exam)"
-                @edit="handleEdit"
-                @delete="(id) => handleDelete(id)"
-                @toggle-answer="toggleYearAnswer(exam.id)"
-              />
-            </div>
+          <div v-if="examList.length > 0" class="flex flex-col gap-6 max-w-[80%]">
+            <ExamEntryCard
+              v-for="exam in examList"
+              :key="exam.id"
+              :id="`question-${exam.questionNumber}`"
+              :exam="exam"
+              :is-admin="isAdmin"
+              :show-answer="showAnswers[exam.id]"
+              density="compact"
+              @copy="(cmd) => handleCopy(cmd, exam)"
+              @edit="handleEdit"
+              @delete="(id) => handleDelete(id)"
+              @toggle-answer="toggleYearAnswer(exam.id)"
+            />
           </div>
 
           <!-- 默认提示 -->
-          <div v-else-if="!loading" class="welcome-section">
-            <div class="welcome-header">
-              <el-icon class="welcome-icon"><Reading /></el-icon>
-              <h3>408历年真题</h3>
+          <div v-else-if="!loading" class="mt-2 p-4 bg-gradient-to-br from-[#FBF7F2] to-[#F5EFE6] rounded border-2 border-[#E8DCC8] min-h-[300px]">
+            <div class="flex items-center gap-2 mb-2">
+              <el-icon class="text-[#8B6F47]" :size="20"><Reading /></el-icon>
+              <h3 class="m-0 text-[#333] font-semibold text-lg">408历年真题</h3>
             </div>
             <el-divider />
-            <div class="welcome-content">
-              <p>这里收录了408考研的历年真题，包括数据结构、操作系统、计算机网络和计算机组成原理四大科目。</p>
+            <div class="py-4">
+              <p class="m-0 leading-relaxed text-sm text-[#333] text-justify indent-2em">这里收录了408考研的历年真题，包括数据结构、操作系统、计算机网络和计算机组成原理四大科目。</p>
             </div>
-            <div class="welcome-tip">
+            <div class="flex items-center gap-1.5 p-2 mt-4 bg-white/60 rounded text-[#666] text-xs">
               <el-icon><ArrowRight /></el-icon>
               请选择左侧年份查看真题内容
             </div>
@@ -1055,141 +1053,6 @@ onMounted(async () => {
  * 真题页面样式
  * 使用 Tailwind CSS
  */
-
-.exam-page-container {
-  height: calc(100vh - 60px);
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  background-color: #FBF7F2;
-}
-
-/* 主要内容区域 */
-.main-content-wrapper {
-  flex: 1;
-  display: flex;
-  position: relative;
-  overflow: hidden;
-}
-
-/* 右侧内容区域 */
-.content-area {
-  flex: 1;
-  width: 0;
-  padding: 0;
-  overflow-y: auto;
-  background-color: #FBF7F2;
-}
-
-.content-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 8px;
-}
-
-.content-header .header-left {
-  flex: 1;
-}
-
-.content-header .header-left h2 {
-  margin: 0;
-  font-size: 22px;
-  color: #333;
-  font-weight: 600;
-}
-
-.content-header .header-actions {
-  display: flex;
-  gap: 8px;
-}
-
-.content-card {
-  min-height: calc(100vh - 60px - 40px);
-  box-shadow: none;
-  background-color: #FBF7F2;
-  border: none;
-}
-
-.content-card :deep(.el-card__body) {
-  padding: 16px;
-}
-
-/* 欢迎区域样式 */
-.welcome-section {
-  margin-top: 8px;
-  padding: 16px;
-  background: linear-gradient(135deg, #FBF7F2 0%, #F5EFE6 100%);
-  border-radius: 4px;
-  border: 2px solid #E8DCC8;
-  min-height: 300px;
-}
-
-.welcome-section .welcome-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.welcome-section .welcome-header .welcome-icon {
-  font-size: 20px;
-  color: #8B6F47;
-}
-
-.welcome-section .welcome-header h3 {
-  margin: 0;
-  font-size: 18px;
-  font-weight: 600;
-  color: #333;
-}
-
-.welcome-section .welcome-content {
-  padding: 16px 0;
-}
-
-.welcome-section .welcome-content p {
-  margin: 0;
-  line-height: 1.8;
-  font-size: 14px;
-  color: #333;
-  text-align: justify;
-  text-indent: 2em;
-}
-
-.welcome-section .welcome-tip {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px;
-  margin-top: 16px;
-  background-color: rgba(255, 255, 255, 0.6);
-  border-radius: 2px;
-  color: #666;
-  font-size: 12px;
-}
-
-.welcome-section .welcome-tip .el-icon {
-  animation: arrow-move 1.5s ease-in-out infinite;
-}
-
-@keyframes arrow-move {
-  0%, 100% {
-    transform: translateX(0);
-  }
-  50% {
-    transform: translateX(5px);
-  }
-}
-
-/* ========================= 年份视图样式 ========================= */
-
-.year-view .exam-list-year {
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-  width: 100%;
-  max-width: 80%;
-}
 
 /* 响应式布局 */
 @media (max-width: 768px) {

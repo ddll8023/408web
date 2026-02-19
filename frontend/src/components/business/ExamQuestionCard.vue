@@ -1,21 +1,21 @@
 <template>
   <div class="exam-question-card" :data-density="density">
     <!-- 题目卡片（白色卡片） -->
-    <div class="exam-question-card__question-card" v-if="exam">
-      <div class="exam-question-card__question-content">
-        <MarkdownViewer 
-          :content="exam.content || ''" 
-          variant="plain" 
+    <div class="exam-question-card__question-card relative bg-white border border-gray-200 rounded shadow-[0_2px_4px_rgba(0,0,0,0.08)] p-6 mb-6 transition-all duration-300" v-if="exam">
+      <div class="exam-question-card__question-content w-full overflow-hidden">
+        <MarkdownViewer
+          :content="exam.content || ''"
+          variant="plain"
           :max-image-height="maxImageHeight"
         />
       </div>
 
       <!-- 选择题：紧凑行式选项容器（div 重构） -->
-      <div v-if="exam.questionType === 'CHOICE' && Object.keys(parsedOptions).length" class="exam-question-card__option-list">
+      <div v-if="exam.questionType === 'CHOICE' && Object.keys(parsedOptions).length" class="exam-question-card__option-list list-none m-0 p-0 flex flex-col gap-2">
         <div
           v-for="(value, key) in parsedOptions"
           :key="key"
-          class="exam-question-card__option-row"
+          class="exam-question-card__option-row flex items-center gap-1.5 py-1 px-2 min-h-[44px] border border-gray-200 border-l-[3px] border-l-[rgba(139,111,71,0.1)] rounded bg-white transition-all duration-150"
           :class="{
             'exam-question-card__option-row--correct': showAnswer && correctOptionKeys.includes(key),
             'exam-question-card__option-row--selected-correct': showAnswer && selectedOption === key && correctOptionKeys.includes(key),
@@ -25,11 +25,11 @@
           }"
           @click="handleOptionClick(key)"
         >
-          <span class="exam-question-card__option-letter">{{ key }}</span>
-          <div class="exam-question-card__option-body">
-            <MarkdownViewer 
-              :content="String(value)" 
-              variant="plain" 
+          <span class="exam-question-card__option-letter flex-shrink-0 w-[22px] h-[22px] flex items-center justify-center border-[1.5px] border-[#8B6F47] text-[#8B6F47] rounded-full font-semibold text-xs leading-none bg-white transition-all duration-150">{{ key }}</span>
+          <div class="exam-question-card__option-body flex-1 min-w-0 leading-[1.4] overflow-hidden flex items-center">
+            <MarkdownViewer
+              :content="String(value)"
+              variant="plain"
             />
           </div>
         </div>
@@ -37,37 +37,37 @@
     </div>
 
     <!-- 答案卡片（米色主题卡片） -->
-    <div v-if="exam?.answer" class="answer-card">
-      <div class="answer-header">
-        <el-icon class="answer-icon"><Select /></el-icon>
-        <span>{{ exam?.questionType === 'CHOICE' ? '正确答案' : '参考答案' }}</span>
+    <div v-if="exam?.answer" class="answer-card bg-[rgba(251,247,242,0.5)] border border-[rgba(139,111,71,0.2)] border-l-4 border-l-[#8B6F47] rounded p-4 shadow-[0_2px_4px_rgba(0,0,0,0.08)] transition-all duration-300">
+      <div class="answer-header flex items-center gap-2 mb-4">
+        <el-icon class="answer-icon text-lg text-[#8B6F47]"><Select /></el-icon>
+        <span class="text-sm font-medium text-gray-800">{{ exam?.questionType === 'CHOICE' ? '正确答案' : '参考答案' }}</span>
         <CustomButton
           v-if="showToggle"
           size="small"
           :type="showAnswer ? 'warning' : 'primary'"
           @click="$emit('toggle-answer')"
-          style="margin-left: auto"
+          class="ml-auto"
         >
           {{ showAnswer ? '隐藏答案' : '显示答案' }}
         </CustomButton>
       </div>
 
       <Transition name="answer-expand" mode="out-in">
-        <div v-if="showAnswer" key="content" class="answer-content">
-          <MarkdownViewer 
-            :content="exam?.answer || ''" 
-            variant="plain" 
+        <div v-if="showAnswer" key="content" class="answer-content p-4 bg-white rounded shadow-sm overflow-hidden">
+          <MarkdownViewer
+            :content="exam?.answer || ''"
+            variant="plain"
             :max-image-height="maxImageHeight"
           />
         </div>
-        <div v-else key="placeholder" class="answer-placeholder">
+        <div v-else key="placeholder" class="answer-placeholder flex items-center justify-center gap-2 p-6 bg-white/80 rounded border-2 border-dashed border-gray-300 text-gray-400 text-sm">
           <el-icon><Lock /></el-icon>
           <span>答案已隐藏，点击上方按钮显示</span>
         </div>
       </Transition>
     </div>
   </div>
-  
+
 </template>
 
 <script setup>
@@ -218,10 +218,7 @@ const correctOptionKeys = computed(() => {
 <style scoped>
 /**
  * 题目卡片样式 - 卡片分层式布局
- * 设计理念：题目与答案独立卡片，增强视觉层次感
- * 遵循项目设计规范：米色主题 + 深棕色强调色
- * Source: 基于 KISS/YAGNI/SOLID 原则重构
- * 已迁移至 Tailwind CSS
+ * 主要使用Tailwind类名，保留必要的自定义样式和动画
  */
 
 /* 答题反馈动画 - CSS 动画无法用 Tailwind 完全替代 */
@@ -268,25 +265,9 @@ const correctOptionKeys = computed(() => {
   max-height: 0;
 }
 
-/* 题目卡片（白色） */
-.exam-question-card__question-card {
-  position: relative;
-  background-color: #fff;
-  border: 1px solid #dfe2e5;
-  border-radius: 4px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
-  padding: 24px;
-  margin-bottom: 24px;
-  transition: all 0.3s ease;
-}
-
+/* 题目卡片（白色） - 使用Tailwind类名在template中已实现 */
 .exam-question-card__question-card:hover {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-.exam-question-card__question-content {
-  width: 100%;
-  overflow: hidden;
 }
 
 /* Markdown纯净模式，无额外padding */
@@ -301,50 +282,29 @@ const correctOptionKeys = computed(() => {
 
 /* SVG自适应约束 - 防止题目中的SVG溢出 */
 .exam-question-card__question-content :deep(svg) {
-  max-width: 100% !important;
-  height: auto !important;
+  max-width: 100%;
+  height: auto;
   display: block;
-  margin: 16px auto;
+  margin: 16px auto !important;
 }
 
 /* 图片居中 */
 .exam-question-card__question-content :deep(img) {
   display: block;
-  margin-left: auto;
-  margin-right: auto;
+  margin: 0 auto;
 }
 
 /* 表格居中 */
 .exam-question-card__question-content :deep(table) {
-  margin-left: auto;
-  margin-right: auto;
+  margin: 0 auto;
 }
 
-/* 选项列表（紧凑） */
-.exam-question-card__option-list {
-  list-style: none;
-  margin: 8px 0 0 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
+/* 选项列表（紧凑） - 使用Tailwind类名在template中已实现 */
 
-.exam-question-card__option-row {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 10px 4px 8px;
-  min-height: 44px;
-  border: 1px solid #dfe2e5;
-  border-left: 3px solid rgba(139, 111, 71, 0.1);
-  border-radius: 4px;
-  background-color: #fff;
-  transition: all 0.15s ease;
-}
+/* 选项行 - 使用Tailwind类名在template中已实现 */
 
 .exam-question-card__option-row:hover {
-  border-color: #dfe2e5;
+  border-color: #e5e7eb;
   border-left-color: #8B6F47;
   background-color: rgba(139, 111, 71, 0.1);
 }
@@ -373,113 +333,91 @@ const correctOptionKeys = computed(() => {
 .exam-question-card__option-row--selected {
   border-color: rgba(251, 247, 242, 0.3);
   border-left-color: #FBF7F2;
-  background-color: rgba(64, 158, 255, 0.1);
+  background-color: #eff6ff;
 }
 
 .exam-question-card__option-row--selected .exam-question-card__option-letter {
   border-color: #FBF7F2;
   color: #FBF7F2;
-  background-color: rgba(64, 158, 255, 0.1);
+  background-color: #eff6ff;
 }
 
 /* 用户选择的错误选项（显示答案时） */
 .exam-question-card__option-row--wrong {
   animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
-  border-color: rgba(245, 108, 108, 0.3);
-  border-left-color: #f56c6c;
-  background-color: rgba(245, 108, 108, 0.1);
+  border-color: #fecaca;
+  border-left-color: #ef4444;
+  background-color: #fef2f2;
 }
 
 .exam-question-card__option-row--wrong .exam-question-card__option-letter {
-  border-color: #f56c6c;
-  color: #f56c6c;
-  background-color: rgba(245, 108, 108, 0.1);
+  border-color: #ef4444;
+  color: #ef4444;
+  background-color: #fee2e2;
 }
 
 /* 正确答案（显示答案时） */
 .exam-question-card__option-row--correct {
-  border-color: rgba(103, 194, 58, 0.3);
-  border-left-color: #67c23a;
-  background-color: rgba(103, 194, 58, 0.08);
+  border-color: #bbf7d0;
+  border-left-color: #22c55e;
+  background-color: rgba(240, 253, 244, 0.8);
 }
 
 .exam-question-card__option-row--correct .exam-question-card__option-letter {
-  border-color: #67c23a;
-  color: #67c23a;
-  background-color: rgba(103, 194, 58, 0.1);
+  border-color: #22c55e;
+  color: #22c55e;
+  background-color: #dcfce7;
 }
 
 /* 用户选中的正确选项（显示答案时的视觉反馈） */
 .exam-question-card__option-row--selected-correct {
   animation: pulse-success 0.6s ease-out both;
-  border-color: rgba(103, 194, 58, 0.3);
-  border-left-color: #67c23a;
-  background-color: rgba(103, 194, 58, 0.12);
+  border-color: #bbf7d0;
+  border-left-color: #22c55e;
+  background-color: rgba(240, 253, 244, 0.8);
 }
 
 .exam-question-card__option-row--selected-correct .exam-question-card__option-letter {
-  background-color: #67c23a;
+  background-color: #22c55e;
   color: #fff;
-  border-color: #67c23a;
+  border-color: #22c55e;
 }
 
-.exam-question-card__option-letter {
-  flex-shrink: 0;
-  width: 22px;
-  height: 22px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 1.5px solid #8B6F47;
-  color: #8B6F47;
-  border-radius: 50%;
-  font-weight: 600;
-  font-size: 12px;
-  line-height: 1;
-  background-color: #fff;
-  transition: all 0.15s ease;
-}
+/* 选项字母 - 使用Tailwind类名在template中已实现 */
 
-.exam-question-card__option-body {
-  flex: 1;
-  min-width: 0;
-  line-height: 1.4;
-  overflow: hidden;
-  display: flex;
-  align-items: center;
-}
+/* 选项主体 - 使用Tailwind类名在template中已实现 */
 
 /* 强制紧凑：移除 MarkdownViewer 内部所有额外间距 */
 .exam-question-card__option-body :deep(.markdown-viewer) {
   width: 100%;
-  min-height: auto !important;
+  min-height: auto;
 }
 
 .exam-question-card__option-body :deep(.v-md-editor-preview) {
-  padding: 0 !important;
+  padding: 0;
   min-height: auto !important;
 }
 
 .exam-question-card__option-body :deep(.github-markdown-body) {
-  padding: 0 !important;
+  padding: 0;
   font-size: 14px;
 }
 
 .exam-question-card__option-body :deep(p) {
-  margin: 0 !important;
-  padding: 0 !important;
-  line-height: 1.5;
+  margin: 0;
+  padding: 0;
+  line-height: 1.5 !important;
 }
 
 .exam-question-card__option-body :deep(img) {
-  max-height: 80px !important;
+  max-height: 80px;
   margin: 2px 0 !important;
 }
 
 .exam-question-card__option-body :deep(svg) {
-  max-width: 100% !important;
-  height: auto !important;
-  max-height: 60px !important;
+  max-width: 100%;
+  height: auto;
+  max-height: 60px;
   display: block;
   margin: 2px auto !important;
 }
@@ -491,75 +429,23 @@ const correctOptionKeys = computed(() => {
   margin: 0;
 }
 
-/* 答案卡片（米色主题） */
-.answer-card {
-  background-color: rgba(251, 247, 242, 0.5);
-  border: 1px solid rgba(139, 111, 71, 0.2);
-  border-left: 4px solid #8B6F47;
-  border-radius: 4px;
-  padding: 16px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
-  transition: all 0.3s ease;
-}
+/* 答案卡片（米色主题） - 使用Tailwind类名在template中已实现 */
 
-.answer-card .answer-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 16px;
-}
-
-.answer-card .answer-header .answer-icon {
-  font-size: 18px;
-  color: #8B6F47;
-}
-
-.answer-card .answer-header span {
-  font-size: 14px;
-  font-weight: 500;
-  color: #333;
-}
-
-.answer-card .answer-content {
-  padding: 16px;
-  background-color: #fff;
-  border-radius: 2px;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-  overflow: hidden;
-}
-
-/* SVG自适应约束 - 防止答案中的SVG溢出 */
+/* 答案内容样式 */
 .answer-card .answer-content :deep(svg) {
-  max-width: 100% !important;
-  height: auto !important;
+  max-width: 100%;
+  height: auto;
   display: block;
-  margin: 16px auto;
+  margin: 16px auto !important;
 }
 
-/* 图片居中 */
 .answer-card .answer-content :deep(img) {
   display: block;
-  margin-left: auto;
-  margin-right: auto;
+  margin: 0 auto;
 }
 
-/* 表格居中 */
 .answer-card .answer-content :deep(table) {
-  margin-left: auto;
-  margin-right: auto;
-}
-
-.answer-card .answer-placeholder {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 24px;
-  background-color: rgba(255, 255, 255, 0.8);
-  border-radius: 2px;
-  border: 2px dashed #dcdfe6;
-  color: #999;
-  font-size: 14px;
+  margin: 0 auto;
 }
 
 .answer-card .answer-placeholder .el-icon {
@@ -574,7 +460,10 @@ const correctOptionKeys = computed(() => {
 
 .exam-question-card[data-density='comfortable'] .option-row,
 .exam-question-card[data-density='comfortable'] .exam-question-card__option-row {
-  padding: 6px 10px;
+  padding-top: 6px;
+  padding-bottom: 6px;
+  padding-left: 8px;
+  padding-right: 8px;
 }
 
 .exam-question-card[data-density='comfortable'] .option-list,
@@ -607,7 +496,10 @@ const correctOptionKeys = computed(() => {
   }
 
   .exam-question-card__option-row {
-    padding: 2px 6px 2px 4px;
+    padding-top: 2px;
+    padding-bottom: 2px;
+    padding-left: 4px;
+    padding-right: 4px;
     gap: 4px;
   }
 

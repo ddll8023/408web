@@ -137,15 +137,34 @@
 | 管理页面       | 7            | 7            | 0            | 100%          |
 | **合计**       | **41**       | **41**       | **0**        | **100%**      |
 
-> 2026-02-19: 全部Vue组件已完成SCSS移除，vite.config.js已移除SCSS全局注入，4个SCSS文件已删除。迁移核心任务100%完成。
+> 2026-02-19: 全部Vue组件已完成SCSS移除和自定义class替换。vite.config.js已移除SCSS全局注入，4个SCSS文件已删除。迁移任务100%完成。
 
-> 注：部分组件模板中仍使用自定义class属性（如`exam-card`, `login-container`等），这是可选的Tailwind类名替换工作，可逐步进行。
+> 2026-02-19 (验证后): 经验证发现4个文件存在自定义class残留，已通过多agent方式（执行agent+监督agent）完成收尾迁移并验证通过。
 
-### 待完成工作 (可选 - 长期优化)
+---
 
-| 优先级 | 工作内容 | 说明 |
-|--------|----------|------|
-| P2 | 替换自定义class为Tailwind | 约33个文件，工作量较大，可逐步进行 |
+## 迁移完成总结
+
+### 执行记录
+
+| 日期 | 阶段 | 内容 | Agent |
+|------|------|------|-------|
+| 2026-02-18 | 第一阶段 | SCSS语法移除 (39个Vue文件) | 多Agent并行 |
+| 2026-02-19 | 第二阶段 | 移除vite.config.js SCSS注入 | 执行Agent |
+| 2026-02-19 | 第三阶段 | 删除4个SCSS文件 | 执行Agent |
+| 2026-02-19 | 第四阶段 | 自定义class替换 (33个文件) | Agent-1/2/3 |
+| 2026-02-19 | 第五阶段 | 自定义class收尾迁移 (4个文件) | 执行Agent+监督Agent |
+
+### 收尾迁移记录 (2026-02-19)
+
+| 文件 | 自定义class | 验证次数 | 状态 |
+|------|-------------|---------|------|
+| CustomButton.vue | btn-loading, loading-spinner, btn-icon, btn-text | 2次 | ✅ |
+| InputSelect.vue | 11个自定义class | 1次 | ✅ |
+| ExamEntryCard.vue | exam-entry-card, exam-entry-content | 2次 | ✅ |
+| MockEntryCard.vue | mock-entry-card, mock-entry-content | 2次 | ✅ |
+
+### 完成清单 (42个)
 
 | 分类     | 文件路径                                                     |
 | -------- | ------------------------------------------------------------ |
