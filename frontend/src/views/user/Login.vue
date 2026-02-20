@@ -57,6 +57,10 @@
 </template>
 
 <script setup>
+/**
+ * 用户登录页面
+ * 功能：处理用户登录认证，包含表单验证、错误处理、Token存储
+ */
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
@@ -131,10 +135,5 @@ const goToRegister = () => {
 </script>
 
 <style scoped>
-/**
- * 登录页面样式
- * 使用 Tailwind CSS
- * 注：变量和mixins已通过Vite全局注入，无需手动导入
- */
 </style>
 

@@ -172,7 +172,7 @@
  * 使用 useAdminTable composable 复用公共逻辑
  */
 import { ref, reactive, onMounted, watch } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
+import { useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, ArrowUp } from '@element-plus/icons-vue'
 import { getMockQuestions, deleteMockQuestion, getAllMockSources, getMockCategoriesBySubject } from '@/api/mock'
@@ -181,7 +181,6 @@ import InputSelect from '@/components/basic/InputSelect.vue'
 import MockEditDialog from '@/components/business/MockEditDialog.vue'
 import { useAdminTable } from '@/composables/useAdminTable'
 
-const router = useRouter()
 const route = useRoute()
 
 // 使用公共管理表格逻辑

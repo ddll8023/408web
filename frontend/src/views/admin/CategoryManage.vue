@@ -457,19 +457,19 @@
  * 遵循KISS原则：简单的表格+对话框实现
  */
 import { ref, reactive, computed, onMounted, watch, nextTick } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus, Folder, FolderOpened, Warning, Edit, Delete, DataAnalysis, Grid, List, ArrowDown, ArrowRight, Document, Loading } from '@element-plus/icons-vue'
-import { 
-  getAllCategories, 
+import {
+  getAllCategories,
   getCategoriesBySubject,
-  createCategory, 
-  updateCategory, 
+  createCategory,
+  updateCategory,
   deleteCategory,
   checkCategoryUsage,
   getAvailableParentCategories,
   getCategoryStats
 } from '@/api/category'
 import { getAllSubjects } from '@/api/subject'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { Plus, Folder, FolderOpened, Warning, Edit, Delete, DataAnalysis, Grid, List, ArrowDown, ArrowRight, Document, Loading } from '@element-plus/icons-vue'
 import CustomButton from '@/components/basic/CustomButton.vue'
 
 // 所有分类列表（用于统计）

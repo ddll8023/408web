@@ -3,11 +3,11 @@
  * 提取 ExamManage 和 MockManage 的公共逻辑
  * 遵循 DRY 原则，避免代码重复
  */
-import { ref, reactive, computed } from 'vue'
+import { ref, reactive } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { getDifficultyLabel, getDifficultyType } from '@/constants/exam'
 import { formatDateTime } from '@/utils/format'
-import { getEnabledSubjects } from '@/api/subject'
+import { useSubjects } from './useSubjects'
 
 /**
  * 管理表格通用逻辑
@@ -19,8 +19,8 @@ export function useAdminTable() {
   // 加载状态
   const loading = ref(false)
 
-  // 科目选项
-  const subjectOptions = ref([])
+  // 引入科目相关逻辑
+  const { subjectOptions, subjectMap, loadSubjectOptions } = useSubjects()
 
   // 分类选项
   const categoryOptions = ref([])
@@ -37,31 +37,6 @@ export function useAdminTable() {
     size: 20,
     total: 0
   })
-
-  /**
-   * 科目ID到名称的映射
-   */
-  const subjectMap = computed(() => {
-    const map = {}
-    subjectOptions.value.forEach(subject => {
-      map[subject.id] = subject.name
-    })
-    return map
-  })
-
-  /**
-   * 加载科目选项
-   */
-  const loadSubjectOptions = async () => {
-    try {
-      const res = await getEnabledSubjects()
-      if (res.code === 200) {
-        subjectOptions.value = res.data || []
-      }
-    } catch (error) {
-      console.error('加载科目列表失败:', error)
-    }
-  }
 
   /**
    * 按科目加载分类选项

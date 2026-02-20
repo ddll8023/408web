@@ -68,9 +68,6 @@ VMdEditor.use(githubTheme, {
   },
 })
 
-// 注意：不再使用内置 KaTeX 插件，因为预览区改用 MarkdownViewer
-// MarkdownViewer 已经包含正确的公式渲染逻辑
-
 /**
  * Props定义
  */
@@ -224,12 +221,6 @@ const insertFormula = (editor) => {
  * 同时更新本地状态（实时预览）和向父组件发出事件
  */
 const handleUpdate = (value) => {
-  // DEBUG: 追踪更新
-  console.log('[MarkdownEditor] handleUpdate:', {
-    placeholder: props.placeholder?.substring(0, 20),
-    valueLength: value?.length,
-    localContentBefore: localContent.value?.length
-  })
   localContent.value = value
   emit('update:modelValue', value)
 }

@@ -3,10 +3,10 @@
  * 统一管理所有文件上传相关的API请求
  * 遵循KISS原则：简单的上传接口封装
  * 遵循SOLID原则：单一职责，与其他API模块保持一致
- * 
+ *
  * Source: 项目统一的 request.js axios实例
  */
-import request from './request'
+import request, { API_BASE_URL } from './request'
 
 /**
  * 上传图片文件
@@ -40,8 +40,7 @@ export const uploadImage = async (file) => {
  * @returns {string} 完整的图片URL
  */
 export const getImageUrl = (relativePath) => {
-  const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8081'
-  return baseURL + relativePath
+  return API_BASE_URL + relativePath
 }
 
 export const getImageList = (params) => {

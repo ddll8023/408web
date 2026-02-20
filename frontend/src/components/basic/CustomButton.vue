@@ -18,7 +18,7 @@
     />
 
     <!-- 按钮文本 -->
-    <span v-if="$slots.default" class="inline-flex items-center inline-block">
+    <span v-if="$slots.default" class="inline-flex items-center">
       <slot></slot>
     </span>
   </button>
@@ -70,14 +70,119 @@ const emit = defineEmits(['click'])
  * 计算按钮样式类名
  */
 const buttonClasses = computed(() => {
-  return [
-    'custom-btn',
-    `custom-btn--${props.type}`,
-    `custom-btn--${props.size}`,
+  // 基础样式
+  const baseClasses = [
+    'inline-flex',
+    'items-center',
+    'justify-center',
+    'gap-1.5',
+    'border',
+    'rounded',
+    'font-medium',
+    'leading-normal',
+    'cursor-pointer',
+    'transition-all',
+    'duration-150',
+    'focus:outline-none',
+    'whitespace-nowrap',
+    'select-none',
+    'bg-white',
+    'text-[#333]',
+    'border-black/15',
+    'px-4',
+    'py-2.5',
+    'text-sm',
+    // 默认状态的 hover 和 active
+    'hover:text-[#8B6F47]',
+    'hover:border-[#8B6F47]',
+    'hover:bg-[#8B6F47/10]',
+    'active:opacity-80',
+    // 禁用和加载状态
     {
-      'is-loading': props.loading,
-      'is-disabled': props.disabled
+      'cursor-not-allowed opacity-80': props.loading,
+      'cursor-not-allowed opacity-50 pointer-events-none': props.disabled
     }
+  ]
+
+  // 尺寸样式
+  const sizeClasses = {
+    small: ['px-3', 'py-1.5', 'text-xs'],
+    medium: ['px-4', 'py-2.5', 'text-sm']
+  }
+
+  // 类型样式
+  const typeClasses = {
+    default: [],
+    primary: [
+      'bg-[#8B6F47]',
+      'border-[#8B6F47]',
+      'text-white',
+      'hover:bg-[#a88559]',
+      'hover:border-[#a88559]',
+      'hover:text-white'
+    ],
+    text: [
+      'border-transparent',
+      'bg-transparent',
+      'px-2',
+      'text-[#8B6F47]',
+      'hover:bg-[#8B6F47/10]',
+      'hover:border-transparent'
+    ],
+    'text-primary': [
+      'border-transparent',
+      'bg-transparent',
+      'px-2',
+      'text-blue-500',
+      'hover:bg-blue-50',
+      'hover:border-transparent'
+    ],
+    'text-danger': [
+      'border-transparent',
+      'bg-transparent',
+      'px-2',
+      'text-red-500',
+      'hover:bg-red-50',
+      'hover:border-transparent'
+    ],
+    'text-warning': [
+      'border-transparent',
+      'bg-transparent',
+      'px-2',
+      'text-orange-500',
+      'hover:bg-orange-50',
+      'hover:border-transparent'
+    ],
+    success: [
+      'bg-green-500',
+      'border-green-500',
+      'text-white',
+      'hover:bg-green-400',
+      'hover:border-green-400',
+      'hover:text-white'
+    ],
+    danger: [
+      'bg-red-500',
+      'border-red-500',
+      'text-white',
+      'hover:bg-red-400',
+      'hover:border-red-400',
+      'hover:text-white'
+    ],
+    warning: [
+      'bg-orange-500',
+      'border-orange-500',
+      'text-white',
+      'hover:bg-orange-400',
+      'hover:border-orange-400',
+      'hover:text-white'
+    ]
+  }
+
+  return [
+    ...baseClasses,
+    ...(sizeClasses[props.size] || sizeClasses.medium),
+    ...(typeClasses[props.type] || typeClasses.default)
   ]
 })
 
@@ -91,165 +196,4 @@ const handleClick = (event) => {
 }
 </script>
 
-<style scoped>
-/**
- * 自定义按钮样式
- * 使用纯CSS样式，兼容Tailwind CSS 4
- */
-
-/* 基础按钮样式 */
-.custom-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  padding: 10px 16px;
-  border: 1px solid rgba(0, 0, 0, 0.15);
-  border-radius: 4px;
-  font-size: 14px;
-  font-weight: 500;
-  line-height: 1.5;
-  cursor: pointer;
-  transition: all 0.15s;
-  outline: none;
-  white-space: nowrap;
-  user-select: none;
-  background-color: #fff;
-  color: #333;
-}
-
-.custom-btn:hover:not(.is-disabled):not(.is-loading) {
-  color: #8B6F47;
-  border-color: #8B6F47;
-  background-color: rgba(139, 111, 71, 0.1);
-}
-
-.custom-btn:active:not(.is-disabled):not(.is-loading) {
-  opacity: 0.8;
-}
-
-/* Primary类型 */
-.custom-btn--primary {
-  background-color: #8B6F47;
-  border-color: #8B6F47;
-  color: #fff;
-}
-
-.custom-btn--primary:hover:not(.is-disabled):not(.is-loading) {
-  background-color: #a88559;
-  border-color: #a88559;
-  color: #fff;
-}
-
-/* 文本按钮基础样式 */
-.custom-btn--text,
-.custom-btn--text-primary,
-.custom-btn--text-danger,
-.custom-btn--text-warning {
-  border-color: transparent;
-  background-color: transparent;
-  padding-left: 8px;
-  padding-right: 8px;
-}
-
-/* 文本按钮类型配置 */
-.custom-btn--text {
-  color: #8B6F47;
-}
-
-.custom-btn--text:hover:not(.is-disabled):not(.is-loading) {
-  background-color: rgba(139, 111, 71, 0.1);
-  border-color: transparent;
-}
-
-.custom-btn--text-primary {
-  color: #3b82f6;
-}
-
-.custom-btn--text-primary:hover:not(.is-disabled):not(.is-loading) {
-  background-color: #eff6ff;
-  border-color: transparent;
-}
-
-.custom-btn--text-danger {
-  color: #ef4444;
-}
-
-.custom-btn--text-danger:hover:not(.is-disabled):not(.is-loading) {
-  background-color: #fef2f2;
-  border-color: transparent;
-}
-
-.custom-btn--text-warning {
-  color: #f97316;
-}
-
-.custom-btn--text-warning:hover:not(.is-disabled):not(.is-loading) {
-  background-color: #fff7ed;
-  border-color: transparent;
-}
-
-/* Success类型 */
-.custom-btn--success {
-  background-color: #22c55e;
-  border-color: #22c55e;
-  color: #fff;
-}
-
-.custom-btn--success:hover:not(.is-disabled):not(.is-loading) {
-  background-color: #4ade80;
-  border-color: #4ade80;
-  color: #fff;
-}
-
-/* Danger类型 */
-.custom-btn--danger {
-  background-color: #ef4444;
-  border-color: #ef4444;
-  color: #fff;
-}
-
-.custom-btn--danger:hover:not(.is-disabled):not(.is-loading) {
-  background-color: #f87171;
-  border-color: #f87171;
-  color: #fff;
-}
-
-/* Warning类型 */
-.custom-btn--warning {
-  background-color: #f97316;
-  border-color: #f97316;
-  color: #fff;
-}
-
-.custom-btn--warning:hover:not(.is-disabled):not(.is-loading) {
-  background-color: #fb923c;
-  border-color: #fb923c;
-  color: #fff;
-}
-
-/* 尺寸变体 */
-.custom-btn--small {
-  padding: 6px 12px;
-  font-size: 12px;
-}
-
-.custom-btn--medium {
-  padding: 10px 16px;
-  font-size: 14px;
-}
-
-/* 加载状态 */
-.custom-btn.is-loading {
-  cursor: not-allowed;
-  opacity: 0.8;
-}
-
-/* 禁用状态 */
-.custom-btn.is-disabled {
-  cursor: not-allowed;
-  opacity: 0.5;
-  pointer-events: none;
-}
-</style>
 

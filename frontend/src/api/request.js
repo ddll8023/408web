@@ -10,8 +10,10 @@ import { getToken, removeToken } from '@/utils/token'
 import { ElMessage } from 'element-plus'
 
 // 创建axios实例
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8081'
+
 const request = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8081',
+  baseURL: API_BASE_URL,
   timeout: 15000,
   headers: {
     'Content-Type': 'application/json'

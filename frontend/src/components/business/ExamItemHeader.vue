@@ -19,35 +19,8 @@
       </div>
     </div>
     <div class="question-actions flex gap-1 opacity-80 transition-opacity duration-200 hover:opacity-100">
-      <el-dropdown trigger="click" @command="(command) => $emit('copy', command)">
-        <CustomButton
-          size="small"
-          type="text"
-          :icon="DocumentCopy"
-        >
-          复制
-        </CustomButton>
-        <template #dropdown>
-          <el-dropdown-menu>
-            <el-dropdown-item disabled class="dropdown-group-title">
-              <el-icon><Document /></el-icon>
-              Markdown 格式
-            </el-dropdown-item>
-            <el-dropdown-item command="md-question">复制题目 (MD)</el-dropdown-item>
-            <el-dropdown-item v-if="exam.questionType === 'CHOICE' && exam.options" command="md-options">复制选项 (MD)</el-dropdown-item>
-            <el-dropdown-item v-if="exam.answer" command="md-answer">复制答案 (MD)</el-dropdown-item>
-            <el-dropdown-item v-if="exam.answer || (exam.questionType === 'CHOICE' && exam.options)" command="md-all">复制完整内容 (MD)</el-dropdown-item>
-            <el-dropdown-item disabled divided class="dropdown-group-title">
-              <el-icon><Tickets /></el-icon>
-              纯文本格式
-            </el-dropdown-item>
-            <el-dropdown-item command="text-question">复制题目 (Text)</el-dropdown-item>
-            <el-dropdown-item v-if="exam.questionType === 'CHOICE' && exam.options" command="text-options">复制选项 (Text)</el-dropdown-item>
-            <el-dropdown-item v-if="exam.answer" command="text-answer">复制答案 (Text)</el-dropdown-item>
-            <el-dropdown-item v-if="exam.answer || (exam.questionType === 'CHOICE' && exam.options)" command="text-all">复制完整内容 (Text)</el-dropdown-item>
-          </el-dropdown-menu>
-        </template>
-      </el-dropdown>
+      <!-- 公共复制菜单组件 -->
+      <QuestionCopyMenu :question="exam" @copy="(command) => $emit('copy', command)" />
       <template v-if="isAdmin">
         <CustomButton size="small" type="text" @click="$emit('edit', exam)">编辑</CustomButton>
         <CustomButton size="small" type="text" @click="$emit('delete', exam.id)">删除</CustomButton>
@@ -57,8 +30,8 @@
 </template>
 
 <script setup>
-import { DocumentCopy, Document, Tickets } from '@element-plus/icons-vue'
 import CustomButton from '@/components/basic/CustomButton.vue'
+import QuestionCopyMenu from '@/components/business/QuestionCopyMenu.vue'
 
 defineProps({
   exam: {

@@ -162,10 +162,5 @@ const goToLogin = () => {
 </script>
 
 <style scoped>
-/**
- * 注册页面样式
- * 使用 Tailwind CSS
- * 注：变量和mixins已通过Vite全局注入，无需手动导入
- */
 </style>
 

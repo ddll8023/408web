@@ -51,20 +51,6 @@ export function getExamDetail(id) {
 }
 
 /**
- * 检查真题是否存在（查重）
- * @param {number} year 年份
- * @param {number} questionNumber 题号
- * @returns {Promise} API响应（已存在的真题详情，不存在则data为null）
- */
-export function checkExamDuplicate(year, questionNumber) {
-  return request({
-    url: '/api/exam/check',
-    method: 'get',
-    params: { year, questionNumber }
-  })
-}
-
-/**
  * 创建真题（仅ADMIN）
  * @param {Object} data 真题数据
  * @param {number} data.year 年份

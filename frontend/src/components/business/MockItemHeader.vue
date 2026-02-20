@@ -25,30 +25,8 @@
       </div>
     </div>
     <div class="question-actions flex gap-1 opacity-80 transition-opacity duration-200 hover:opacity-100 flex-shrink-0">
-      <!-- 复制下拉菜单 -->
-      <el-dropdown trigger="click" @command="(command) => $emit('copy', command)">
-        <CustomButton size="small" type="text" :icon="DocumentCopy">复制</CustomButton>
-        <template #dropdown>
-          <el-dropdown-menu>
-            <el-dropdown-item disabled class="dropdown-group-title">
-              <el-icon><Document /></el-icon>
-              Markdown 格式
-            </el-dropdown-item>
-            <el-dropdown-item command="md-question">复制题目 (MD)</el-dropdown-item>
-            <el-dropdown-item v-if="mock.questionType === 'CHOICE' && mock.options" command="md-options">复制选项 (MD)</el-dropdown-item>
-            <el-dropdown-item v-if="mock.answer" command="md-answer">复制答案 (MD)</el-dropdown-item>
-            <el-dropdown-item v-if="mock.answer || (mock.questionType === 'CHOICE' && mock.options)" command="md-all">复制完整内容 (MD)</el-dropdown-item>
-            <el-dropdown-item disabled divided class="dropdown-group-title">
-              <el-icon><Tickets /></el-icon>
-              纯文本格式
-            </el-dropdown-item>
-            <el-dropdown-item command="text-question">复制题目 (Text)</el-dropdown-item>
-            <el-dropdown-item v-if="mock.questionType === 'CHOICE' && mock.options" command="text-options">复制选项 (Text)</el-dropdown-item>
-            <el-dropdown-item v-if="mock.answer" command="text-answer">复制答案 (Text)</el-dropdown-item>
-            <el-dropdown-item v-if="mock.answer || (mock.questionType === 'CHOICE' && mock.options)" command="text-all">复制完整内容 (Text)</el-dropdown-item>
-          </el-dropdown-menu>
-        </template>
-      </el-dropdown>
+      <!-- 公共复制菜单组件 -->
+      <QuestionCopyMenu :question="mock" @copy="(command) => $emit('copy', command)" />
       <!-- 管理员操作 -->
       <template v-if="isAdmin">
         <CustomButton size="small" type="text" @click="$emit('edit', mock)">编辑</CustomButton>
@@ -64,8 +42,8 @@
  * 与 ExamItemHeader 保持样式一致，但标题格式适配模拟题
  * 格式: {title} · 第{questionNumber}题
  */
-import { DocumentCopy, Document, Tickets } from '@element-plus/icons-vue'
 import CustomButton from '@/components/basic/CustomButton.vue'
+import QuestionCopyMenu from '@/components/business/QuestionCopyMenu.vue'
 import { getDifficultyLabel, getDifficultyType } from '@/constants/exam'
 
 defineProps({

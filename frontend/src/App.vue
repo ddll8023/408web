@@ -43,11 +43,7 @@ const showNavigation = computed(() => {
 </script>
 
 <style scoped>
-/**
- * 应用根组件样式
- * 使用 Tailwind CSS
- * 注：变量和mixins已通过Vite全局注入，无需手动导入
- */
+/* 应用根组件样式 */
 
 /* 主内容区域 */
 .main-content {

@@ -3,8 +3,8 @@
  * 抽取真题/模拟题编辑弹窗的公共逻辑
  */
 import { ref, reactive, computed } from 'vue'
-import { getEnabledSubjects } from '@/api/subject'
 import { getEnabledCategoriesBySubject, getEnabledCategoryTreeBySubject } from '@/api/category'
+import { useSubjects } from './useSubjects'
 
 /**
  * 创建题目表单的公共状态和方法
@@ -20,8 +20,10 @@ export function useQuestionForm(options = {}) {
   const loading = ref(false)
   const saving = ref(false)
 
+  // 引入科目相关逻辑
+  const { subjectOptions, loadSubjectOptions } = useSubjects()
+
   // 选项数据
-  const subjectOptions = ref([])
   const categoryOptions = ref([])
   // 树形分类数据（用于级联选择器）
   const categoryTreeOptions = ref([])
@@ -97,20 +99,6 @@ export function useQuestionForm(options = {}) {
     })
     categoryOptions.value = []
     categoryTreeOptions.value = []
-  }
-
-  /**
-   * 加载科目选项
-   */
-  const loadSubjectOptions = async () => {
-    try {
-      const response = await getEnabledSubjects()
-      if (response.code === 200) {
-        subjectOptions.value = response.data || []
-      }
-    } catch (error) {
-      console.error('加载科目列表失败:', error)
-    }
   }
 
   /**

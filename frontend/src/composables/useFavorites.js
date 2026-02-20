@@ -102,21 +102,6 @@ export function useFavorites() {
   }
 
   /**
-   * 切换收藏状态
-   * @param {FavoriteCategory} item - 分类信息
-   * @returns {Boolean} 收藏后的状态（true=已收藏，false=未收藏）
-   */
-  const toggleFavorite = (item) => {
-    if (isFavorite(item.subjectId, item.category)) {
-      removeFavorite(item.subjectId, item.category)
-      return false
-    } else {
-      addFavorite(item)
-      return true
-    }
-  }
-
-  /**
    * 检查分类是否已收藏
    * @param {Number} subjectId - 科目ID
    * @param {String} category - 分类名称
@@ -126,32 +111,6 @@ export function useFavorites() {
     const id = generateId(subjectId, category)
     return favorites.value.some(item => item.id === id)
   }
-
-  /**
-   * 按科目分组的收藏列表
-   * @returns {Array<{subjectId, subjectName, categories}>}
-   */
-  const favoritesBySubject = computed(() => {
-    const grouped = {}
-
-    favorites.value.forEach(item => {
-      const key = item.subjectId
-      if (!grouped[key]) {
-        grouped[key] = {
-          subjectId: item.subjectId,
-          subjectName: item.subjectName,
-          categories: []
-        }
-      }
-      grouped[key].categories.push(item)
-    })
-
-    // 转换为数组并按时间倒序排序
-    return Object.values(grouped).map(group => ({
-      ...group,
-      categories: group.categories.sort((a, b) => b.timestamp - a.timestamp)
-    }))
-  })
 
   /**
    * 收藏总数
@@ -171,11 +130,9 @@ export function useFavorites() {
 
   return {
     favorites,
-    favoritesBySubject,
     totalCount,
     addFavorite,
     removeFavorite,
-    toggleFavorite,
     isFavorite,
     clearAllFavorites,
     loadFavorites

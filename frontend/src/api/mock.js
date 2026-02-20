@@ -93,19 +93,6 @@ export function getMockQuestionsBySource(source, params = {}) {
 }
 
 /**
- * 获取来源统计
- * @param {string} category 分类筛选（可选）
- * @returns {Promise} API响应
- */
-export function getMockSourceStats(category) {
-  return request({
-    url: '/api/mock/source-stats',
-    method: 'get',
-    params: { category }
-  })
-}
-
-/**
  * 获取所有来源机构列表
  * @returns {Promise} API响应
  */
@@ -124,18 +111,6 @@ export function getAllMockSources() {
 export function getMockCategoriesBySubject(subjectId) {
   return request({
     url: `/api/mock/categories/${subjectId}`,
-    method: 'get'
-  })
-}
-
-/**
- * 根据科目获取分类列表（带题目数量统计）
- * @param {number} subjectId 科目ID
- * @returns {Promise} API响应，返回 { name: string, questionCount: number }[]
- */
-export function getMockCategoryStatsBySubject(subjectId) {
-  return request({
-    url: `/api/mock/category-stats/${subjectId}`,
     method: 'get'
   })
 }

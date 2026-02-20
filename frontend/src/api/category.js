@@ -47,18 +47,6 @@ export const getEnabledCategoriesBySubject = (subjectId) => {
 }
 
 /**
- * 按科目查询分类树形结构
- * @param {Number} subjectId 科目ID
- * @returns Promise - 返回树形结构（顶级分类包含 children）
- */
-export const getCategoryTreeBySubject = (subjectId) => {
-  return request({
-    url: `/api/exam-category/subject/${subjectId}/tree`,
-    method: 'get'
-  })
-}
-
-/**
  * 按科目查询启用的分类树形结构（用于侧边栏）
  * @param {Number} subjectId 科目ID
  * @returns Promise - 返回树形结构
@@ -98,18 +86,6 @@ export const getAvailableParentCategories = (subjectId, excludeId = null) => {
     url: `/api/exam-category/available-parents`,
     method: 'get',
     params: { subjectId, ...(excludeId ? { excludeId } : {}) }
-  })
-}
-
-/**
- * 根据ID查询分类详情
- * @param {Number} id 分类ID
- * @returns Promise
- */
-export const getCategoryById = (id) => {
-  return request({
-    url: `/api/exam-category/${id}`,
-    method: 'get'
   })
 }
 

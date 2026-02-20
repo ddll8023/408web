@@ -31,7 +31,7 @@
  * Source: @kangc/v-md-editor 官方文档
  * KaTeX配置：markdown-it-katex 插件
  */
-import { ref, watch, onMounted, nextTick, computed } from 'vue'
+import { ref, watch, nextTick, computed } from 'vue'
 import { ElImageViewer } from 'element-plus'
 import VMdPreview from '@kangc/v-md-editor/lib/preview'
 import '@kangc/v-md-editor/lib/style/preview.css'
@@ -215,7 +215,6 @@ const processContent = () => {
   if (!props.content) {
     safeContent.value = ''
     mathExpressions.value = []
-    console.log('[MarkdownViewer] processContent: empty content')
     return
   }
   
@@ -223,19 +222,10 @@ const processContent = () => {
   const { safeText, expressions } = extractMath(normalized)
   mathExpressions.value = expressions
   
-  // DEBUG: 追踪 safeContent 更新
-  console.log('[MarkdownViewer] processContent:', {
-    propsContentLength: props.content?.length,
-    safeTextLength: safeText?.length,
-    safeContentBefore: safeContent.value?.length
-  })
-  
   safeContent.value = safeText
-  
+
   // 递增 key 强制 v-md-preview 重新渲染
   previewKey.value++
-  
-  console.log('[MarkdownViewer] safeContent updated:', safeContent.value?.length, 'key:', previewKey.value)
 }
 
 /**
@@ -269,11 +259,6 @@ const delayedRestore = () => {
 watch(
   () => props.content,
   (newVal) => {
-    // DEBUG: 追踪内容更新
-    console.log('[MarkdownViewer] content changed:', {
-      contentLength: newVal?.length,
-      variant: props.variant
-    })
     processContent()
     // 双重 nextTick 确保 v-md-preview 完成渲染
     nextTick(() => {
@@ -287,11 +272,7 @@ watch(
 </script>
 
 <style scoped>
-/**
- * Markdown查看器组件样式
- * 移除 SCSS，使用普通 CSS
- * 注：变量和mixins已通过Vite全局注入，无需手动导入
- */
+/* Markdown查看器组件样式 */
 
 .markdown-viewer {
   width: 100%;
