@@ -5,19 +5,11 @@
     :class="{ 'is-plain': variant === 'plain' }"
   >
     <!-- 使用 key 强制 v-md-preview 在内容变化时重新渲染 -->
-    <v-md-preview 
+    <v-md-preview
       :key="previewKey"
-      :text="safeContent" 
+      :text="safeContent"
       @image-click="handleImageClick"
     ></v-md-preview>
-
-    <!-- 图片预览组件 -->
-    <el-image-viewer
-      v-if="showImageViewer"
-      :url-list="previewImages"
-      :initial-index="initialIndex"
-      @close="closeImageViewer"
-    />
   </div>
   
 </template>
@@ -31,8 +23,7 @@
  * Source: @kangc/v-md-editor 官方文档
  * KaTeX配置：markdown-it-katex 插件
  */
-import { ref, watch, nextTick, computed } from 'vue'
-import { ElImageViewer } from 'element-plus'
+import { ref, watch, nextTick } from 'vue'
 import VMdPreview from '@kangc/v-md-editor/lib/preview'
 import '@kangc/v-md-editor/lib/style/preview.css'
 // GitHub主题
@@ -88,22 +79,10 @@ const props = defineProps({
   maxImageHeight: {
     type: String,
     default: '400px'
-  },
-  /**
-   * 是否启用图片点击预览
-   */
-  enableImagePreview: {
-    type: Boolean,
-    default: true
   }
 })
 
 const rootRef = ref(null)
-
-// 图片预览状态
-const showImageViewer = ref(false)
-const previewImages = ref([])
-const initialIndex = ref(0)
 
 // 存储提取的公式
 const mathExpressions = ref([])
@@ -230,19 +209,18 @@ const processContent = () => {
 
 /**
  * 处理图片点击事件
+ * 在新标签页打开图片
  * @param {Array} images 图片URL数组
  * @param {Number} index 当前点击的图片索引
  */
 const handleImageClick = (images, index) => {
-  if (!props.enableImagePreview || !images || images.length === 0) return
-  
-  previewImages.value = images
-  initialIndex.value = index
-  showImageViewer.value = true
-}
+  if (!images || images.length === 0) return
 
-const closeImageViewer = () => {
-  showImageViewer.value = false
+  // 默认打开点击的图片
+  const url = images[index] || images[0]
+  if (url) {
+    window.open(url, '_blank')
+  }
 }
 
 /**
