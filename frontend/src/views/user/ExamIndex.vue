@@ -3,36 +3,36 @@
     <div class="w-full max-w-[1200px]">
       <!-- 头部介绍 -->
       <div class="text-center py-8">
-        <h1 class="m-0 mb-6 text-[#333] font-semibold text-2xl">408考研真题</h1>
+        <h1 class="m-0 mb-6 text-[#333] font-semibold text-4xl">408考研真题</h1>
         <p class="m-0 text-[#666] text-base leading-relaxed max-w-[800px] mx-auto">
           收录408统考真题,包含数据结构、操作系统、计算机网络、计算机组成原理四大科目。
           提供完整题目和详细解答,助力考研备考。
         </p>
       </div>
 
-      <el-divider />
+      <hr class="my-6 border-[#e5e7eb]" />
 
       <!-- 年份卡片列表 -->
-      <div v-loading="loading" class="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-4 my-8">
+      <div v-loading="loading" class="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-6 my-8">
         <div
           v-for="yearData in yearList"
           :key="yearData.year"
-          class="p-4 bg-white rounded border-2 border-[#dfe2e5] cursor-pointer transition-all duration-300 flex flex-col hover:border-[#8B6F47] hover:shadow-[0_4px_12px_rgba(139,111,71,0.15)] hover:-translate-y-1"
+          class="p-5 bg-white rounded border-2 border-[#dfe2e5] cursor-pointer transition-all duration-300 flex flex-col min-h-[200px] hover:border-[#8B6F47] hover:shadow-[0_4px_12px_rgba(139,111,71,0.15)] hover:-translate-y-1"
           @click="goToYear(yearData.year)"
         >
-          <div class="flex items-baseline justify-center gap-1.5">
-            <h2 class="m-0 font-semibold text-5xl text-[#333] leading-none transition-colors duration-300">{{ yearData.year }}</h2>
+          <div class="flex items-baseline justify-center gap-2 mb-3">
+            <h2 class="m-0 font-semibold text-5xl text-[#333] leading-tight transition-colors duration-300">{{ yearData.year }}</h2>
             <span class="text-[#666] text-lg">年</span>
           </div>
-          <el-divider />
-          <div class="flex-1 py-2">
-            <div class="flex items-center justify-center gap-1.5">
+          <hr class="my-3 border-[#e5e7eb]" />
+          <div class="flex-1 flex items-center justify-center py-2">
+            <div class="flex items-center gap-2">
               <el-icon class="text-[#8B6F47]" :size="18"><Document /></el-icon>
               <span class="text-[#666] text-sm">共 {{ yearData.count }} 题</span>
             </div>
           </div>
-          <div class="flex justify-center pt-2">
-            <CustomButton type="primary" size="small">
+          <div class="flex justify-center pt-3 mt-auto">
+            <CustomButton type="primary" size="sm">
               查看真题
               <el-icon class="ml-1 transition-transform duration-300"><ArrowRight /></el-icon>
             </CustomButton>

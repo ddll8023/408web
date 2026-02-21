@@ -27,15 +27,15 @@
         </el-table-column>
         <el-table-column label="操作" width="200" fixed="right">
           <template #default="{ row }">
-            <CustomButton type="text-primary" size="small" @click="handleEdit(row)">编辑</CustomButton>
-            <CustomButton 
+            <CustomButton type="text-primary" size="sm" @click="handleEdit(row)">编辑</CustomButton>
+            <CustomButton
               type="text"
-              size="small"
+              size="sm"
               @click="handleToggleStatus(row)"
             >
               {{ row.enabled ? '禁用' : '启用' }}
             </CustomButton>
-            <CustomButton type="text-danger" size="small" @click="handleDelete(row)">删除</CustomButton>
+            <CustomButton type="text-danger" size="sm" @click="handleDelete(row)">删除</CustomButton>
           </template>
         </el-table-column>
       </el-table>

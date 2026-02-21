@@ -29,8 +29,8 @@
       <QuestionCopyMenu :question="mock" @copy="(command) => $emit('copy', command)" />
       <!-- 管理员操作 -->
       <template v-if="isAdmin">
-        <CustomButton size="small" type="text" @click="$emit('edit', mock)">编辑</CustomButton>
-        <CustomButton size="small" type="text" @click="$emit('delete', mock.id)">删除</CustomButton>
+        <CustomButton size="sm" type="text" @click="$emit('edit', mock)">编辑</CustomButton>
+        <CustomButton size="sm" type="text" @click="$emit('delete', mock.id)">删除</CustomButton>
       </template>
     </div>
   </div>

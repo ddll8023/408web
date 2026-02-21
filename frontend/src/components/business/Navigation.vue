@@ -1,8 +1,8 @@
 <template>
-  <nav class="navigation fixed top-0 left-0 right-0 h-[60px] bg-[rgba(251,247,242,0.85)] backdrop-blur-md border-b border-black/[0.08] shadow-[0_2px_8px_rgba(0,0,0,0.1)] z-[1000]">
-    <div class="nav-container max-w-[1400px] h-full mx-auto px-8 flex items-center justify-between">
+  <nav class="navigation fixed top-0 left-0 right-0 h-[60px] px-8 bg-[rgba(251,247,242,0.85)] backdrop-blur-md border-b border-black/[0.08] shadow-[0_2px_8px_rgba(0,0,0,0.1)] z-[1000]">
+    <div class="nav-container h-full flex items-center justify-between px-8">
       <!-- 搜索区域 - 靠左 -->
-      <div class="nav-search flex items-center relative bg-transparent flex-shrink-0">
+      <div class="nav-search flex items-center justify-start relative bg-transparent">
         <el-select
           v-model="searchType"
           class="search-type-select w-[90px]"
@@ -26,7 +26,7 @@
       </div>
 
       <!-- 导航菜单 -->
-      <div class="nav-menu flex items-center justify-center gap-8 flex-1">
+      <div class="nav-menu flex items-center justify-center gap-8">
         <!-- 真题首页 - 独立导航 -->
         <span class="nav-link text-gray-800 no-underline text-base px-6 py-2.5 rounded transition-all duration-300 cursor-pointer select-none" @click="router.push('/exam')">真题首页</span>
 
@@ -59,14 +59,14 @@
       </div>
 
       <!-- 用户信息区域 -->
-      <div class="nav-user flex items-center gap-4 flex-shrink-0">
+      <div class="nav-user flex items-center justify-end gap-4">
         <template v-if="authStore.isLoggedIn()">
           <span class="username text-gray-800 text-sm cursor-pointer px-4 py-2 mr-2 rounded transition-all duration-300 select-none hover:bg-black/[0.05] hover:text-[#8B6F47]" @click="goToUserCenter">{{ authStore.userInfo?.username }}</span>
-          <CustomButton size="small" @click="handleLogout">退出</CustomButton>
+          <CustomButton size="sm" @click="handleLogout">退出</CustomButton>
         </template>
         <template v-else>
-          <CustomButton size="small" @click="goToLogin">登录</CustomButton>
-          <CustomButton size="small" type="primary" @click="goToRegister">注册</CustomButton>
+          <CustomButton size="sm" @click="goToLogin">登录</CustomButton>
+          <CustomButton size="sm" type="primary" @click="goToRegister">注册</CustomButton>
         </template>
       </div>
     </div>
@@ -172,10 +172,28 @@ const handleLogout = () => {
 <style scoped>
 /**
  * 导航栏组件样式
- * 使用纯CSS样式，兼容Tailwind CSS 4
+ * 使用@apply提取公共样式，符合前端规范
  */
 
-/* 导航栏容器 - 使用Tailwind类名在template中已实现 */
+/* 导航栏容器 - 使用@apply提取 */
+.nav-container {
+  @apply max-w-[1400px] mx-auto;
+}
+
+/* 搜索区域 - 固定宽度防止挤压 */
+.nav-search {
+  @apply flex-shrink-0 w-[280px];
+}
+
+/* 导航菜单 - 自适应宽度 */
+.nav-menu {
+  @apply flex-1;
+}
+
+/* 用户区域 - 固定宽度防止挤压 */
+.nav-user {
+  @apply flex-shrink-0 w-[180px];
+}
 
 /* 搜索相关样式 - 需要保留的自定义样式 */
 .nav-search .search-type-select :deep(.el-input__wrapper) {
@@ -262,13 +280,32 @@ const handleLogout = () => {
 /* 响应式布局 */
 @media (max-width: 768px) {
   .nav-container {
+    max-width: 100%;
     padding-left: 16px;
     padding-right: 16px;
+    flex-wrap: wrap;
+    height: auto;
+    min-height: 60px;
+    padding-top: 8px;
+    padding-bottom: 8px;
   }
 
   .nav-search {
-    margin-left: 16px;
-    margin-right: 16px;
+    order: 1;
+    width: 100%;
+    justify-content: center;
+    margin-bottom: 8px;
+  }
+
+  .nav-menu {
+    order: 2;
+    justify-content: flex-start;
+    flex: 1;
+  }
+
+  .nav-user {
+    order: 3;
+    justify-content: flex-end;
   }
 
   .search-input {

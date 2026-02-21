@@ -16,7 +16,7 @@ aiosqlite
 
 # Authentication
 python-jose[cryptography]
-passlib[bcrypt]
+pwdlib[argon2]
 
 # File Handling
 python-multipart

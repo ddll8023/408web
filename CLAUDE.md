@@ -28,11 +28,15 @@ npm run preview    # 预览生产版本
 
 ### 后端
 
+项目使用 conda 环境管理依赖，启动命令如下：
+
 ```bash
 cd backend-fastapi
 pip install -r requirements.txt  # 安装Python依赖
-python -m uvicorn app.main:app --host 0.0.0.0 --port 8081 --reload
+.conda/python.exe -m uvicorn app.main:app --host 0.0.0.0 --port 8081 --reload
 ```
+
+> 注意：项目依赖安装在本目录的 `.conda` 环境中，请使用 `.conda/python.exe` 启动。
 
 后端默认运行在 `http://localhost:8081`，API前缀为 `/api`。
 

@@ -56,9 +56,8 @@ class AuthService:
         )
         self.session.add(user)
         await self.session.commit()
-        await self.session.refresh(user)
 
-        logger.info("AuthService.register completed, user_id: %d", user.id)
+        logger.info("AuthService.register completed for username: %s", request.username)
 
     async def login(self, request: LoginRequest) -> AuthResponse:
         """
@@ -86,13 +85,11 @@ class AuthService:
             logger.warning("AuthService.login failed: user not found: %s", request.username)
             raise UnauthorizedException("用户名或密码错误")
 
-        # 验证密码（兼容旧系统：未加密密码直接比对）
+        # 验证密码
         from app.utils.security import verify_password
         if user.password and not verify_password(request.password, user.password):
-            # 兼容旧系统：明文密码比对
-            if user.password != request.password:
-                logger.warning("AuthService.login failed: invalid password for user: %s", request.username)
-                raise UnauthorizedException("用户名或密码错误")
+            logger.warning("AuthService.login failed: invalid password for user: %s", request.username)
+            raise UnauthorizedException("用户名或密码错误")
 
         # 检查账户状态
         if not user.enabled:

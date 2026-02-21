@@ -121,11 +121,11 @@
         </el-table-column>
         <el-table-column label="操作" width="200" fixed="right">
           <template #default="{ row }">
-            <CustomButton type="text" size="small" @click="handleView(row)">查看</CustomButton>
-            <CustomButton type="text-primary" size="small" @click="handleEdit(row)">编辑</CustomButton>
+            <CustomButton type="text" size="sm" @click="handleView(row)">查看</CustomButton>
+            <CustomButton type="text-primary" size="sm" @click="handleEdit(row)">编辑</CustomButton>
             <CustomButton
               type="text-danger"
-              size="small"
+              size="sm"
               :loading="row.deleteLoading"
               @click="handleDelete(row)"
             >

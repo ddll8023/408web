@@ -5,13 +5,14 @@ JWT Token 和密码处理工具
 from datetime import datetime, timedelta
 from typing import Optional, Dict, Any
 from jose import jwt, JWTError
-from passlib.context import CryptContext
+from pwdlib import PasswordHash
+from pwdlib.exceptions import UnknownHashError
 from app.config.settings import settings
 from app.exception import UnauthorizedException
 
 
-# 密码加密上下文
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+# 密码加密上下文 - 使用官方推荐的 argon2id 算法
+pwd_context = PasswordHash.recommended()
 
 # JWT 配置
 JWT_SECRET = settings.jwt.secret
@@ -29,7 +30,11 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     Returns:
         bool: 是否匹配
     """
-    return pwd_context.verify(plain_password, hashed_password)
+    try:
+        return pwd_context.verify(plain_password, hashed_password)
+    except UnknownHashError:
+        # 无法识别的哈希格式（如旧 bcrypt），返回 False
+        return False
 
 
 def get_password_hash(password: str) -> str:

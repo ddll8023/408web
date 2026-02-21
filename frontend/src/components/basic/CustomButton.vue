@@ -30,22 +30,22 @@
  * 功能：替代Element Plus的el-button，使用自定义样式
  * 遵循KISS原则：简洁实现，只包含必需功能
  * 遵循YAGNI原则：只实现项目实际使用的props
+ * 遵循前端组件规范：使用baseClasses、sizeClasses、variantClasses三常量分离模式
  */
 import { computed } from 'vue'
 
 const props = defineProps({
-  // 按钮类型：primary, text, default
+  // 按钮类型
   type: {
     type: String,
     default: 'default',
-    // 支持文本按钮的语义化变体: text-primary(蓝色)、text-danger(红色)、text-warning(橙色)
-    validator: (value) => ['default', 'primary', 'text', 'text-primary', 'text-danger', 'text-warning', 'success', 'danger', 'warning'].includes(value)
+    validator: (value) => ['default', 'primary', 'success', 'danger', 'warning', 'text', 'text-primary', 'text-danger', 'text-warning'].includes(value)
   },
-  // 按钮尺寸：small, medium, large
+  // 按钮尺寸：sm, md, lg
   size: {
     type: String,
-    default: 'medium',
-    validator: (value) => ['small', 'medium'].includes(value)
+    default: 'md',
+    validator: (value) => ['sm', 'md', 'lg'].includes(value)
   },
   // 是否加载中
   loading: {
@@ -61,133 +61,66 @@ const props = defineProps({
   disabled: {
     type: Boolean,
     default: false
+  },
+  // 是否块级按钮
+  block: {
+    type: Boolean,
+    default: false
   }
 })
 
 const emit = defineEmits(['click'])
 
+// 基础样式 - 简洁字符串，包含默认尺寸和focus ring
+const baseClasses = 'inline-flex items-center justify-center gap-2 font-medium rounded-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#8B6F47] focus:ring-offset-2 px-4 py-2.5 text-sm'
+
+// 尺寸样式 - 覆盖基础样式中的尺寸
+const sizeClasses = {
+  sm: '!px-3.5 !py-2 !text-sm',
+  md: 'px-4 py-2.5 text-sm',
+  lg: '!px-6 !py-3 !text-base'
+}
+
+// 变体样式 - 使用项目中一致的颜色
+const variantClasses = {
+  default: 'border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 hover:border-gray-400 hover:cursor-pointer',
+  primary: 'border border-transparent bg-[#8B6F47] text-white hover:bg-[#a88559] hover:cursor-pointer',
+  success: 'border border-transparent bg-green-600 text-white hover:bg-green-500 hover:cursor-pointer',
+  danger: 'border border-transparent bg-red-600 text-white hover:bg-red-500 hover:cursor-pointer',
+  warning: 'border border-transparent bg-orange-500 text-white hover:bg-orange-400 hover:cursor-pointer',
+  text: 'border-transparent bg-transparent text-[#8B6F47] hover:bg-[rgba(139,111,71,0.1)] hover:cursor-pointer',
+  'text-primary': 'border-transparent bg-transparent text-blue-500 hover:bg-blue-50 hover:cursor-pointer',
+  'text-danger': 'border-transparent bg-transparent text-red-500 hover:bg-red-50 hover:cursor-pointer',
+  'text-warning': 'border-transparent bg-transparent text-orange-500 hover:bg-orange-50 hover:cursor-pointer'
+}
+
 /**
  * 计算按钮样式类名
+ * 按照规范：三常量分离模式（baseClasses、sizeClasses、variantClasses）
  */
 const buttonClasses = computed(() => {
-  // 基础样式
-  const baseClasses = [
-    'inline-flex',
-    'items-center',
-    'justify-center',
-    'gap-1.5',
-    'border',
-    'rounded',
-    'font-medium',
-    'leading-normal',
-    'cursor-pointer',
-    'transition-all',
-    'duration-150',
-    'focus:outline-none',
-    'whitespace-nowrap',
-    'select-none',
-    'bg-white',
-    'text-[#333]',
-    'border-black/15',
-    'px-4',
-    'py-2.5',
-    'text-sm',
-    // 默认状态的 hover 和 active
-    'hover:text-[#8B6F47]',
-    'hover:border-[#8B6F47]',
-    'hover:bg-[#8B6F47/10]',
-    'active:opacity-80',
-    // 禁用和加载状态
-    {
-      'cursor-not-allowed opacity-80': props.loading,
-      'cursor-not-allowed opacity-50 pointer-events-none': props.disabled
-    }
-  ]
+  const size = sizeClasses[props.size] || sizeClasses.md
+  const variant = variantClasses[props.type] || variantClasses.default
 
-  // 尺寸样式
-  const sizeClasses = {
-    small: ['px-3', 'py-1.5', 'text-xs'],
-    medium: ['px-4', 'py-2.5', 'text-sm']
+  // 状态样式
+  const classes = [baseClasses, size, variant]
+
+  // 块级按钮
+  if (props.block) {
+    classes.push('w-full', 'justify-center')
   }
 
-  // 类型样式
-  const typeClasses = {
-    default: [],
-    primary: [
-      'bg-[#8B6F47]',
-      'border-[#8B6F47]',
-      'text-white',
-      'hover:bg-[#a88559]',
-      'hover:border-[#a88559]',
-      'hover:text-white'
-    ],
-    text: [
-      'border-transparent',
-      'bg-transparent',
-      'px-2',
-      'text-[#8B6F47]',
-      'hover:bg-[#8B6F47/10]',
-      'hover:border-transparent'
-    ],
-    'text-primary': [
-      'border-transparent',
-      'bg-transparent',
-      'px-2',
-      'text-blue-500',
-      'hover:bg-blue-50',
-      'hover:border-transparent'
-    ],
-    'text-danger': [
-      'border-transparent',
-      'bg-transparent',
-      'px-2',
-      'text-red-500',
-      'hover:bg-red-50',
-      'hover:border-transparent'
-    ],
-    'text-warning': [
-      'border-transparent',
-      'bg-transparent',
-      'px-2',
-      'text-orange-500',
-      'hover:bg-orange-50',
-      'hover:border-transparent'
-    ],
-    success: [
-      'bg-green-500',
-      'border-green-500',
-      'text-white',
-      'hover:bg-green-400',
-      'hover:border-green-400',
-      'hover:text-white'
-    ],
-    danger: [
-      'bg-red-500',
-      'border-red-500',
-      'text-white',
-      'hover:bg-red-400',
-      'hover:border-red-400',
-      'hover:text-white'
-    ],
-    warning: [
-      'bg-orange-500',
-      'border-orange-500',
-      'text-white',
-      'hover:bg-orange-400',
-      'hover:border-orange-400',
-      'hover:text-white'
-    ]
+  // 禁用状态
+  if (props.disabled || props.loading) {
+    classes.push('opacity-50', 'cursor-not-allowed')
   }
 
-  return [
-    ...baseClasses,
-    ...(sizeClasses[props.size] || sizeClasses.medium),
-    ...(typeClasses[props.type] || typeClasses.default)
-  ]
+  return classes.join(' ')
 })
 
 /**
  * 处理点击事件
+ * 避免在loading或disabled状态下触发
  */
 const handleClick = (event) => {
   if (!props.loading && !props.disabled) {
@@ -195,5 +128,3 @@ const handleClick = (event) => {
   }
 }
 </script>
-
-

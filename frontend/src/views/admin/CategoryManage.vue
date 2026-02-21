@@ -153,11 +153,11 @@
                           <el-icon><ArrowDown /></el-icon>
                         </div>
                       </el-tooltip>
-                      <CustomButton type="text-primary" size="small" @click="handleEdit(parent)">
+                      <CustomButton type="text-primary" size="sm" @click="handleEdit(parent)">
                         <el-icon><Edit /></el-icon>
                         编辑
                       </CustomButton>
-                      <CustomButton type="danger" size="small" @click="handleDelete(parent)">
+                      <CustomButton type="danger" size="sm" @click="handleDelete(parent)">
                         <el-icon><Delete /></el-icon>
                         删除
                       </CustomButton>
@@ -260,11 +260,11 @@
           <div class="bg-white rounded-2xl p-6 shadow-sm border border-[rgba(139,111,71,0.08)]" v-if="treeViewReady">
             <!-- 树形视图工具栏 -->
             <div class="flex gap-2 pb-3 mb-3 border-b border-[rgba(139,111,71,0.1)]">
-              <CustomButton type="text" size="small" @click="expandAllTree">
+              <CustomButton type="text" size="sm" @click="expandAllTree">
                 <el-icon><ArrowDown /></el-icon>
                 全部展开
               </CustomButton>
-              <CustomButton type="text" size="small" @click="collapseAllTree">
+              <CustomButton type="text" size="sm" @click="collapseAllTree">
                 <el-icon><ArrowRight /></el-icon>
                 全部收起
               </CustomButton>

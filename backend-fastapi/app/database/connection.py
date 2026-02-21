@@ -20,7 +20,6 @@ engine = create_async_engine(
     DATABASE_URL,
     connect_args={"check_same_thread": False},
     echo=False,  # SQL日志由服务层统一记录，此处关闭
-    pool_pre_ping=True,  # 连接前健康检查
 )
 
 

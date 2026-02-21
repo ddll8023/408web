@@ -22,8 +22,8 @@
       <!-- 公共复制菜单组件 -->
       <QuestionCopyMenu :question="exam" @copy="(command) => $emit('copy', command)" />
       <template v-if="isAdmin">
-        <CustomButton size="small" type="text" @click="$emit('edit', exam)">编辑</CustomButton>
-        <CustomButton size="small" type="text" @click="$emit('delete', exam.id)">删除</CustomButton>
+        <CustomButton size="sm" type="text" @click="$emit('edit', exam)">编辑</CustomButton>
+        <CustomButton size="sm" type="text" @click="$emit('delete', exam.id)">删除</CustomButton>
       </template>
     </div>
   </div>

@@ -1,7 +1,7 @@
 <template>
   <!-- 复制下拉菜单 -->
   <el-dropdown trigger="click" @command="(command) => $emit('copy', command)">
-    <CustomButton size="small" type="text" :icon="DocumentCopy">复制</CustomButton>
+    <CustomButton size="sm" type="text" :icon="DocumentCopy">复制</CustomButton>
     <template #dropdown>
       <el-dropdown-menu>
         <el-dropdown-item disabled class="dropdown-group-title">
