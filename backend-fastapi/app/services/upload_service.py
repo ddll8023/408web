@@ -4,7 +4,6 @@
 """
 import os
 import uuid
-import logging
 from pathlib import Path
 from typing import List, Optional
 from sqlmodel import select
@@ -12,10 +11,11 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from app.models.entities import ExamQuestion, MockQuestion
 from app.exception import NotFoundException, ValidationException
 from app.schemas.image import ImageResourceResponse, ImageUsageResponse
+from app.utils.logger import setup_logger
 
 
 # 获取服务日志记录器
-logger = logging.getLogger(__name__)
+logger = setup_logger(__name__)
 
 
 class UploadService:

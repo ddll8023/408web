@@ -2,7 +2,6 @@
 模拟题管理服务模块
 实现模拟题CRUD、查询、统计业务逻辑
 """
-import logging
 from typing import List, Optional
 from sqlmodel import select, func, and_, or_, text
 from sqlmodel.ext.asyncio.session import AsyncSession
@@ -21,10 +20,11 @@ from app.schemas.mock import (
     MockDuplicateCheckResponse,
     PaginatedMockResponse
 )
+from app.utils.logger import setup_logger
 
 
 # 获取服务日志记录器
-logger = logging.getLogger(__name__)
+logger = setup_logger(__name__)
 
 
 class MockService:

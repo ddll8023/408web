@@ -2,7 +2,6 @@
 科目管理服务模块
 实现科目CRUD业务逻辑
 """
-import logging
 from typing import List, Optional
 from sqlmodel import select, func, and_
 from sqlmodel.ext.asyncio.session import AsyncSession
@@ -13,10 +12,11 @@ from app.schemas.subject import (
     SubjectUpdateRequest,
     SubjectResponse
 )
+from app.utils.logger import setup_logger
 
 
 # 获取服务日志记录器
-logger = logging.getLogger(__name__)
+logger = setup_logger(__name__)
 
 
 class SubjectService:

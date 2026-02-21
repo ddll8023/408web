@@ -3,7 +3,6 @@
 """
 import os
 import sys
-import logging
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -13,46 +12,11 @@ from app.config.settings import settings
 from app.database.connection import init_db, engine
 from app.exception import register_exception_handlers
 from app.api.v1.router import router as api_v1_router
+from app.utils.logger import setup_logger
 
 
-# 配置日志（解决Windows终端ANSI转义码乱码问题）
-LOGGING_CONFIG = {
-    "version": 1,
-    "disable_existing_loggers": False,
-    "formatters": {
-        "default": {
-            "format": "%(asctime)s %(levelname)s: %(message)s",
-            "datefmt": "%Y-%m-%d %H:%M:%S",
-        },
-    },
-    "handlers": {
-        "console": {
-            "class": "logging.StreamHandler",
-            "formatter": "default",
-            "stream": "ext://sys.stdout",
-        },
-        "file": {
-            "class": "logging.handlers.RotatingFileHandler",
-            "formatter": "default",
-            "filename": os.path.join(settings.logging.log_dir, settings.logging.log_file),
-            "maxBytes": settings.logging.max_bytes,
-            "backupCount": settings.logging.backup_count,
-            "encoding": "utf-8",
-        },
-    },
-    "root": {
-        "handlers": ["console", "file"],
-        "level": settings.logging.log_level,
-    },
-    "loggers": {
-        "uvicorn": {"handlers": ["console", "file"], "level": "INFO", "propagate": False},
-        "uvicorn.access": {"handlers": ["console", "file"], "level": "INFO", "propagate": False},
-        "sqlalchemy.engine": {"handlers": ["console", "file"], "level": "WARNING", "propagate": False},
-    },
-}
-
-# 获取项目级日志记录器
-logger = logging.getLogger("app")
+# 配置日志
+logger = setup_logger(level="INFO", console=True)
 
 
 # 确保必要的目录存在
@@ -142,6 +106,5 @@ if __name__ == "__main__":
         port=settings.server.port,
         reload=True,
         reload_delay=0.5,  # Windows上增加reload延迟，避免竞态条件
-        reload_dirs=[str(settings.upload.upload_dir)],  # 只监控指定目录
-        log_config=LOGGING_CONFIG
+        reload_dirs=[str(settings.upload.upload_dir)]  # 只监控指定目录
     )

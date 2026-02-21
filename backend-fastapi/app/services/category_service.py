@@ -2,7 +2,6 @@
 分类管理服务模块
 实现分类CRUD、树形结构和统计业务逻辑
 """
-import logging
 from typing import List, Optional
 from collections import defaultdict
 from sqlmodel import select, func, and_, text
@@ -17,10 +16,11 @@ from app.schemas.category import (
     ExamCategoryStatResponse,
     ExamCategoryUsageResponse
 )
+from app.utils.logger import setup_logger
 
 
 # 获取服务日志记录器
-logger = logging.getLogger(__name__)
+logger = setup_logger(__name__)
 
 
 class ExamCategoryService:

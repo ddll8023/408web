@@ -2,7 +2,6 @@
 认证服务模块
 实现用户注册和登录业务逻辑
 """
-import logging
 import time
 from typing import Optional
 from sqlmodel import select
@@ -12,10 +11,11 @@ from app.models.enums import UserRoleEnum
 from app.utils.security import get_password_hash, create_access_token
 from app.exception import ConflictException, UnauthorizedException
 from app.schemas.auth import RegisterRequest, LoginRequest, AuthResponse
+from app.utils.logger import setup_logger
 
 
 # 获取服务日志记录器
-logger = logging.getLogger(__name__)
+logger = setup_logger(__name__)
 
 
 class AuthService:

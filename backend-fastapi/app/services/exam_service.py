@@ -3,7 +3,6 @@
 实现真题CRUD、查询、统计业务逻辑
 """
 import json
-import logging
 from datetime import datetime
 from typing import List, Optional, Tuple
 from sqlmodel import select, func, and_, or_, text
@@ -25,10 +24,11 @@ from app.schemas.exam import (
     PaginatedExamResponse,
     ExportResultResponse
 )
+from app.utils.logger import setup_logger
 
 
 # 获取服务日志记录器
-logger = logging.getLogger(__name__)
+logger = setup_logger(__name__)
 
 
 class ExamService:

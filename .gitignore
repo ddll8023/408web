@@ -6,7 +6,7 @@ backend/target
 
 backend-fastapi/.conda
 backend-fastapi/nul
-backend-fastapi/logs
+backend-fastapi/app/logs
 
 frontend/node_modules
 frontend/dist

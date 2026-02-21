@@ -2,7 +2,6 @@
 章节管理服务模块
 实现章节CRUD和树形结构业务逻辑
 """
-import logging
 from typing import List, Optional
 from collections import defaultdict
 from sqlmodel import select, func, and_
@@ -15,10 +14,11 @@ from app.schemas.chapter import (
     ChapterResponse,
     ChapterTreeResponse
 )
+from app.utils.logger import setup_logger
 
 
 # 获取服务日志记录器
-logger = logging.getLogger(__name__)
+logger = setup_logger(__name__)
 
 
 class ChapterService:
