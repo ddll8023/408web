@@ -8,7 +8,7 @@
   <div class="category-tree-item">
     <!-- 当前分类节点 -->
     <div
-      class="category-item flex items-center h-[36px] pr-3 mb-[2px] rounded-[6px] cursor-pointer text-[13px] text-gray-600 transition-all duration-200 relative hover:bg-black/5"
+      class="category-item relative flex items-center h-9 pr-3 mb-0.5 rounded-md cursor-pointer text-sm text-gray-600 transition-all duration-200 hover:bg-black/5"
       :class="{
         'bg-gray-50 text-gray-900': isActive,
         'text-gray-900 font-medium': hasChildren && isExpanded,
@@ -20,30 +20,32 @@
       <!-- 展开/折叠图标（有子分类时显示） -->
       <span
         v-if="hasChildren"
-        class="expand-icon-wrapper flex items-center justify-center w-4 h-4 mr-1 rounded-[3px] flex-shrink-0 hover:bg-black/5"
+        class="expand-icon-wrapper flex shrink-0 items-center justify-center w-4 h-4 mr-1 rounded-sm hover:bg-black/5"
         @click.stop="toggleExpand"
       >
-        <el-icon class="category-expand-icon text-[12px] transition-transform duration-300 text-gray-400" :class="{ 'rotate-90': isExpanded, 'text-[#8B6F47]': isActive || (hasChildren && isExpanded) }">
-          <CaretRight />
-        </el-icon>
+        <font-awesome-icon
+          class="category-expand-icon text-xs transition-transform duration-300 text-gray-400"
+          :class="{ 'rotate-90': isExpanded, 'text-[#8B6F47]': isActive || (hasChildren && isExpanded) }"
+          icon="caret-right"
+        />
       </span>
       <!-- 无子分类时显示圆点指示器 -->
       <span
         v-else
-        class="dot-indicator w-1 h-1 rounded-full bg-gray-400 mr-2 transition-all duration-200 opacity-60 flex-shrink-0"
-        :class="{ 'w-[3px] h-[3px]': level > 0, 'bg-[#8B6F47] scale-150 opacity-100': isActive }"
+        class="dot-indicator flex shrink-0 w-1 h-1 mr-2 transition-all duration-200 rounded-full bg-gray-400 opacity-60"
+        :class="{ 'w-0.5 h-0.5': level > 0, 'bg-[#8B6F47] scale-150 opacity-100': isActive }"
       ></span>
 
       <!-- 分类名称 -->
       <span class="category-label flex-1 truncate" :class="{ 'text-[#8B6F47]': isActive }">{{ category.name }}</span>
 
       <!-- 题目数量标签 -->
-      <span v-if="totalCount > 0" class="category-count text-[11px] text-gray-400 bg-black/5 px-[5px] py-0.5 rounded-[8px] ml-1 flex-shrink-0">{{ totalCount }}</span>
+      <span v-if="totalCount > 0" class="category-count flex shrink-0 ml-1 px-1.5 py-0.5 text-xs text-gray-400 bg-black/5 rounded-full">{{ totalCount }}</span>
     </div>
 
     <!-- 子分类列表（递归渲染） -->
     <el-collapse-transition>
-      <div v-if="hasChildren && isExpanded" class="sub-category-list mt-[2px] pb-1">
+      <div v-if="hasChildren && isExpanded" class="sub-category-list mt-0.5 pb-1">
         <CategoryTreeItem
           v-for="child in category.children"
           :key="child.id"
@@ -79,7 +81,6 @@
  * - toggle-expand: 展开/折叠状态变化时触发，参数为分类ID
  */
 import { computed } from 'vue'
-import { CaretRight } from '@element-plus/icons-vue'
 
 const props = defineProps({
   // 分类数据
@@ -181,7 +182,25 @@ const handleChildToggleExpand = (categoryId) => {
 </script>
 
 <style scoped>
+/* 主题色变量 */
+.category-tree-item {
+  --theme-color: #8B6F47;
+}
+
+/* 旋转动画 */
 .rotate-90 {
   transform: rotate(90deg);
+}
+
+/* 悬停背景色 */
+.category-item:hover,
+.expand-icon-wrapper:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+/* 激活状态文字色 */
+.category-item.is-active .category-label,
+.category-item.is-active .category-expand-icon {
+  color: var(--theme-color);
 }
 </style>

@@ -8,7 +8,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 技术栈
 
-- **前端**: Vue 3 + Vite + Pinia + Vue Router + Element Plus
+- **前端**: Vue 3 + Vite + Pinia + Vue Router + Font Awesome
 - **后端**: FastAPI + SQLModel + AioSQLite
 - **认证**: JWT (python-jose)
 - **Markdown**: @kangc/v-md-editor + KaTeX (数学公式)
@@ -100,6 +100,7 @@ SQLite 数据库位于 `data/web408.db`，主要表包括：
 
 ## 注意事项
 
+- 图标库统一使用 **Font Awesome**，禁止使用 Element Plus Icons
 - 前端开发服务器代理 `/api` 请求到后端 `http://localhost:8081`
 - CORS 配置允许 `http://localhost:5173` 和 `http://localhost:5174`
 - 文件上传存储在 `backend-fastapi/uploads/images/`
