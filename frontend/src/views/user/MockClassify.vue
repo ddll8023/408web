@@ -17,59 +17,58 @@
 
       <!-- 右侧内容区域 -->
       <div class="flex-1 w-0 overflow-y-auto bg-[#FBF7F2]">
-        <el-card class="min-h-[calc(100vh-60px-40px)] shadow-none bg-[#FBF7F2] border-none">
-          <template #header>
+        <div class="min-h-[calc(100vh-60px-40px)] bg-[#FBF7F2]">
+          <div class="p-4">
             <div class="flex items-center justify-between">
               <div class="flex items-center gap-3 flex-1">
                 <h2 class="m-0 text-[#333] font-semibold text-xl">{{ currentTitle }}</h2>
-                <el-tag v-if="displayTotal > 0" type="info" size="small">共 {{ displayTotal }} 题</el-tag>
+                <Tag v-if="displayTotal > 0" variant="info">共 {{ displayTotal }} 题</Tag>
               </div>
               <div class="flex gap-2" v-if="activeSubjectId">
-                <el-select
+                <Select
                   v-model="filterQuestionType"
-                  size="small"
+                  size="sm"
                   class="w-[100px] mr-2"
-                >
-                  <el-option label="全部题型" value="ALL" />
-                  <el-option label="选择题" value="CHOICE" />
-                  <el-option label="主观题" value="ESSAY" />
-                </el-select>
+                  :options="questionTypeOptions"
+                />
               </div>
             </div>
-          </template>
 
-          <div>
-            <div v-loading="questionsLoading">
-              <!-- 普通分组列表 -->
-              <div v-if="groupedQuestions.length > 0" class="flex flex-col gap-6 max-w-[80%]">
-                <template v-for="group in groupedQuestions" :key="group.category">
-                  <!-- 分组头 -->
-                  <div class="flex items-center justify-between py-2 mt-4 mb-2 border-b border-[#dfe2e5]">
-                    <h3 class="m-0 text-[#333] font-semibold text-lg">{{ group.category }}</h3>
-                    <el-tag size="small" type="info">{{ group.items.length }} 题</el-tag>
-                  </div>
-                  <!-- 题目卡片 -->
-                  <MockEntryCard
-                    v-for="mock in group.items"
-                    :key="mock.id"
-                    :id="`mock-${mock.id}`"
-                    :mock="mock"
-                    :is-admin="isAdmin"
-                    :show-answer="showAnswers[mock.id]"
-                    density="compact"
-                    @copy="(cmd) => handleCopy(cmd, mock)"
-                    @edit="handleEdit"
-                    @delete="handleDelete"
-                    @toggle-answer="toggleAnswer(mock.id)"
-                  />
-                </template>
+          <div v-if="questionsLoading" class="flex items-center justify-center py-12">
+            <font-awesome-icon :icon="['fas', 'spinner']" class="fa-spin text-[#8B6F47] text-2xl" />
+          </div>
+
+          <!-- 普通分组列表 -->
+          <div v-if="groupedQuestions.length > 0" class="flex flex-col gap-6 max-w-[80%]">
+            <template v-for="group in groupedQuestions" :key="group.category">
+              <!-- 分组头 -->
+              <div class="flex items-center justify-between py-2 mt-4 mb-2 border-b border-[#dfe2e5]">
+                <h3 class="m-0 text-[#333] font-semibold text-lg">{{ group.category }}</h3>
+                <Tag variant="info">{{ group.items.length }} 题</Tag>
               </div>
-              <el-empty
-                v-if="groupedQuestions.length === 0"
-                :description="activeSubjectId ? '该科目暂无模拟题' : '请选择左侧科目'"
+              <!-- 题目卡片 -->
+              <MockEntryCard
+                v-for="mock in group.items"
+                :key="mock.id"
+                :id="`mock-${mock.id}`"
+                :mock="mock"
+                :is-admin="isAdmin"
+                :show-answer="showAnswers[mock.id]"
+                density="compact"
+                @copy="(cmd) => handleCopy(cmd, mock)"
+                @edit="handleEdit"
+                @delete="handleDelete"
+                @toggle-answer="toggleAnswer(mock.id)"
               />
+            </template>
+          </div>
 
-              <!-- 加载更多按钮 -->
+          <Empty
+            v-if="groupedQuestions.length === 0"
+            :description="activeSubjectId ? '该科目暂无模拟题' : '请选择左侧科目'"
+          />
+
+          <!-- 加载更多按钮 -->
               <div v-if="hasMore" class="flex justify-center py-8 mt-4">
                 <CustomButton
                   :loading="questionsLoading"
@@ -79,9 +78,8 @@
                   {{ questionsLoading ? '加载中...' : '加载更多模拟题' }}
                 </CustomButton>
               </div>
-            </div>
           </div>
-        </el-card>
+        </div>
 
         <MockEditDialog
           v-if="isAdmin"
@@ -91,14 +89,7 @@
           @success="handleEditSuccess"
         />
 
-        <el-backtop
-          :right="32"
-          :bottom="32"
-        >
-          <div class="w-10 h-10 rounded-full bg-[#8B6F47] flex items-center justify-center text-white shadow-[0_4px_12px_rgba(0,0,0,0.25)]">
-            <el-icon><ArrowUp /></el-icon>
-          </div>
-        </el-backtop>
+        <BackTop :right="32" :bottom="32" />
       </div>
     </div>
   </div>
@@ -112,13 +103,17 @@
  */
 import { ref, onMounted, computed, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
-import { ElMessage, ElMessageBox } from 'element-plus'
-import { ArrowUp } from '@element-plus/icons-vue'
+import { ElMessageBox } from 'element-plus'
 import { getEnabledSubjects } from '@/api/subject'
 import { getMockQuestions, deleteMockQuestion, getMockSubjectStats } from '@/api/mock'
 import { getEnabledCategoryTreeBySubjectWithStats } from '@/api/category'
 import { useAuthStore } from '@/stores/auth'
+import { useToast } from '@/composables/useToast'
 import CustomButton from '@/components/basic/CustomButton.vue'
+import Tag from '@/components/basic/Tag.vue'
+import Select from '@/components/basic/Select.vue'
+import Empty from '@/components/basic/Empty.vue'
+import BackTop from '@/components/basic/BackTop.vue'
 import SubjectSidebar from '@/components/business/SubjectSidebar.vue'
 import MockEntryCard from '@/components/business/MockEntryCard.vue'
 import MockEditDialog from '@/components/business/MockEditDialog.vue'
@@ -126,6 +121,7 @@ import { getDifficultyLabel, getDifficultyType } from '@/constants/exam'
 
 const route = useRoute()
 const authStore = useAuthStore()
+const { showToast } = useToast()
 
 // 计算是否为管理员
 const isAdmin = computed(() => authStore.isAdmin())
@@ -155,6 +151,13 @@ const pageSize = ref(50)
 // Filter Data
 const filterCategory = ref('')
 const filterQuestionType = ref('ALL')
+
+// 题型选项
+const questionTypeOptions = [
+  { label: '全部题型', value: 'ALL' },
+  { label: '选择题', value: 'CHOICE' },
+  { label: '主观题', value: 'ESSAY' }
+]
 
 // Questions Data
 const questionList = ref([])
@@ -740,14 +743,14 @@ const handleCopy = async (command, mock) => {
     }
 
     if (!text) {
-      ElMessage.warning('没有可复制的内容')
+      showToast('没有可复制的内容', 'warning')
       return
     }
 
     await copyToClipboard(text)
-    ElMessage.success(message)
+    showToast(message, 'success')
   } catch (error) {
-    ElMessage.error('复制失败，请重试')
+    showToast('复制失败，请重试', 'error')
   }
 }
 
@@ -779,10 +782,10 @@ const handleDelete = async (id) => {
 
     const response = await deleteMockQuestion(id)
     if (response.code === 200) {
-      ElMessage.success('删除成功')
+      showToast('删除成功', 'success')
       await loadQuestions(true)
     } else {
-      ElMessage.error(response.message || '删除失败')
+      showToast(response.message || '删除失败', 'error')
     }
   } catch (error) {
     if (error !== 'cancel') {
@@ -798,18 +801,6 @@ const handleDelete = async (id) => {
  * 模拟题分类浏览页面样式
  * 使用 Tailwind CSS
  */
-
-/* Element Plus 组件样式覆盖 */
-.content-card :deep(.el-card__body) {
-  padding: 16px;
-}
-
-.content-card :deep(.el-card__header) {
-  padding: 16px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid #dfe2e5;
-  background-color: transparent;
-}
 
 /* 模拟题卡片页面级样式覆盖 */
 :deep(.mock-entry-card) {

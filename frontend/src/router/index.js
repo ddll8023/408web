@@ -74,11 +74,6 @@ const routes = [
     component: () => import('@/views/user/MockClassify.vue'),
     meta: { keepAlive: true }
   },
-  {
-    path: '/mock/:source',
-    component: () => import('@/views/user/MockList.vue'),
-    meta: { keepAlive: true }
-  },
 
   {
     path: '/manage/mock',
