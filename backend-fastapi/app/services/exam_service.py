@@ -4,7 +4,7 @@
 """
 import json
 from datetime import datetime
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Dict
 from sqlmodel import select, func, and_, or_, text
 from sqlmodel.ext.asyncio.session import AsyncSession
 from sqlalchemy.sql.sqltypes import Integer
@@ -683,6 +683,64 @@ class ExamService:
 
         logger.info("ExamService.find_all_for_index completed, count: %d", len(responses))
         return responses
+
+    async def find_for_nav_index(
+        self,
+        category: Optional[str] = None
+    ) -> List[Dict]:
+        """
+        查询用于侧边栏导航的轻量级真题索引数据
+
+        Args:
+            category: 可选分类筛选
+
+        Returns:
+            轻量级真题列表（仅包含导航所需字段）
+        """
+        logger.info("ExamService.find_for_nav_index started, category: %s", category)
+        conditions = []
+        if category and category.strip():
+            pattern = f'%"{category}"%'
+            conditions.append(
+                and_(
+                    ExamQuestion.category.isnot(None),
+                    text(f"json_extract(category, '$') LIKE '{pattern}'")
+                )
+            )
+
+        # 只查询导航所需的5个字段
+        stmt = (
+            select(
+                ExamQuestion.id,
+                ExamQuestion.year,
+                ExamQuestion.question_number,
+                ExamQuestion.title,
+                ExamQuestion.category
+            )
+            .where(*conditions)
+            .order_by(ExamQuestion.year.desc(), ExamQuestion.question_number.asc())
+        )
+
+        result = await self.session.exec(stmt)
+        rows = result.all()
+
+        # 转换为字典列表
+        nav_items = []
+        for row in rows:
+            # 解析 category 字段（JSON字符串 -> 列表）
+            category_str = row.category
+            category_list = json.loads(category_str) if category_str else None
+
+            nav_items.append({
+                "id": row.id,
+                "year": row.year,
+                "questionNumber": row.question_number,
+                "title": row.title,
+                "category": category_list
+            })
+
+        logger.info("ExamService.find_for_nav_index completed, count: %d", len(nav_items))
+        return nav_items
 
     async def find_by_subject_and_category(
         self,

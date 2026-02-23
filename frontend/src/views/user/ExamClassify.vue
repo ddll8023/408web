@@ -17,29 +17,26 @@
 
       <!-- 右侧内容区域 -->
       <div class="flex-1 w-0 overflow-y-auto bg-[#FBF7F2]">
-        <el-card class="min-h-[calc(100vh-60px-40px)] shadow-none bg-[#FBF7F2] border-none">
-          <template #header>
+        <div class="min-h-[calc(100vh-60px-40px)] bg-[#FBF7F2]">
+          <div class="p-4">
             <div class="flex items-center justify-between">
               <div class="flex items-center gap-3 flex-1">
                 <h2 class="m-0 text-[#333] font-semibold text-xl">{{ currentTitle }}</h2>
-                <el-tag v-if="displayTotal > 0" type="info" size="small">共 {{ displayTotal }} 题</el-tag>
+                <Tag v-if="displayTotal > 0" variant="info" size="sm">共 {{ displayTotal }} 题</Tag>
               </div>
               <div class="flex gap-2" v-if="activeSubjectId">
-                <el-select
+                <Select
                   v-model="filterQuestionType"
-                  size="small"
+                  size="sm"
                   class="w-[100px] mr-2"
-                >
-                  <el-option label="全部题型" value="ALL" />
-                  <el-option label="选择题" value="CHOICE" />
-                  <el-option label="主观题" value="ESSAY" />
-                </el-select>
+                  :options="questionTypeOptions"
+                />
 
                 <Dropdown trigger="click" @command="handleExportCommand">
                   <template #trigger>
                     <CustomButton
                       type="success"
-                      :icon="Download"
+                      :icon="['fas', 'download']"
                       size="small"
                     >
                       导出科目
@@ -55,52 +52,53 @@
                 </Dropdown>
               </div>
             </div>
-          </template>
 
-          <div>
-            <div v-loading="questionsLoading">
-              <!-- 普通分组列表 -->
-              <div v-if="groupedQuestions.length > 0" class="flex flex-col gap-6 max-w-[80%]">
-                <template v-for="group in groupedQuestions" :key="group.category">
-                  <!-- 分组头 -->
-                  <div class="flex items-center justify-between py-2 mt-4 mb-2 border-b border-[#dfe2e5]">
-                    <h3 class="m-0 text-[#333] font-semibold text-lg">{{ group.category }}</h3>
-                    <el-tag size="small" type="info">{{ group.items.length }} 题</el-tag>
-                  </div>
-                  <!-- 题目卡片 -->
-                  <ExamEntryCard
-                    v-for="exam in group.items"
-                    :key="exam.id"
-                    :id="`exam-${exam.id}`"
-                    :exam="exam"
-                    :is-admin="isAdmin"
-                    :show-answer="showAnswers[exam.id]"
-                    density="compact"
-                    @copy="(cmd) => handleCopy(cmd, exam)"
-                    @edit="handleEdit"
-                    @delete="(id) => handleDelete(id)"
-                    @toggle-answer="toggleAnswer(exam.id)"
-                  />
-                </template>
-              </div>
-              <el-empty
-                v-if="groupedQuestions.length === 0"
-                :description="activeSubjectId ? '该科目暂无真题' : '请选择左侧科目'"
-              />
+            <!-- 加载状态 -->
+            <div v-if="questionsLoading" class="flex justify-center py-8">
+              <font-awesome-icon :icon="['fas', 'spinner']" class="fa-spin text-[#8B6F47] text-2xl" />
+            </div>
 
-              <!-- 加载更多按钮 -->
-              <div v-if="hasMore" class="flex justify-center py-8 mt-4">
-                <CustomButton
-                  :loading="questionsLoading"
-                  type="primary"
-                  @click="loadQuestions(false)"
-                >
-                  {{ questionsLoading ? '加载中...' : '加载更多真题' }}
-                </CustomButton>
-              </div>
+            <!-- 普通分组列表 -->
+            <div v-if="groupedQuestions.length > 0" class="flex flex-col gap-6 max-w-[80%]">
+              <template v-for="group in groupedQuestions" :key="group.category">
+                <!-- 分组头 -->
+                <div class="flex items-center justify-between py-2 mt-4 mb-2 border-b border-[#dfe2e5]">
+                  <h3 class="m-0 text-[#333] font-semibold text-lg">{{ group.category }}</h3>
+                  <Tag variant="info" size="sm">{{ group.items.length }} 题</Tag>
+                </div>
+                <!-- 题目卡片 -->
+                <ExamEntryCard
+                  v-for="exam in group.items"
+                  :key="exam.id"
+                  :id="`exam-${exam.id}`"
+                  :exam="exam"
+                  :is-admin="isAdmin"
+                  :show-answer="showAnswers[exam.id]"
+                  density="compact"
+                  @copy="(cmd) => handleCopy(cmd, exam)"
+                  @edit="handleEdit"
+                  @delete="(id) => handleDelete(id)"
+                  @toggle-answer="toggleAnswer(exam.id)"
+                />
+              </template>
+            </div>
+            <Empty
+              v-if="groupedQuestions.length === 0"
+              :description="activeSubjectId ? '该科目暂无真题' : '请选择左侧科目'"
+            />
+
+            <!-- 加载更多按钮 -->
+            <div v-if="hasMore" class="flex justify-center py-8 mt-4">
+              <CustomButton
+                :loading="questionsLoading"
+                type="primary"
+                @click="loadQuestions(false)"
+              >
+                {{ questionsLoading ? '加载中...' : '加载更多真题' }}
+              </CustomButton>
             </div>
           </div>
-        </el-card>
+        </div>
 
         <ExamEditDialog
           v-if="isAdmin"
@@ -109,14 +107,7 @@
           @success="handleEditSuccess"
         />
 
-        <el-backtop
-          :right="32"
-          :bottom="32"
-        >
-          <div class="w-10 h-10 rounded-full bg-[#8B6F47] flex items-center justify-center text-white shadow-[0_4px_12px_rgba(0,0,0,0.25)]">
-            <el-icon><ArrowUp /></el-icon>
-          </div>
-        </el-backtop>
+        <BackTop :right="32" :bottom="32" />
       </div>
     </div>
   </div>
@@ -130,17 +121,18 @@
  */
 import { ref, onMounted, computed, nextTick, onActivated } from 'vue'
 import { useRoute } from 'vue-router'
-import { ElMessage, ElMessageBox } from 'element-plus'
-import { 
-  Document, Download,
-  ArrowUp
-} from '@element-plus/icons-vue'
 import { getEnabledSubjects } from '@/api/subject'
 import { getExamList, deleteExam, getExamDetail } from '@/api/exam'
 import { getEnabledCategoryTreeBySubject } from '@/api/category'
 import { useAuthStore } from '@/stores/auth'
+import toast from '@/utils/toast'
+import confirm from '@/utils/confirm'
 import CustomButton from '@/components/basic/CustomButton.vue'
 import Dropdown from '@/components/basic/Dropdown.vue'
+import Tag from '@/components/basic/Tag.vue'
+import Select from '@/components/basic/Select.vue'
+import Empty from '@/components/basic/Empty.vue'
+import BackTop from '@/components/basic/BackTop.vue'
 import SubjectSidebar from '@/components/business/SubjectSidebar.vue'
 import ExamEntryCard from '@/components/business/ExamEntryCard.vue'
 import ExamEditDialog from '@/components/business/ExamEditDialog.vue'
@@ -179,6 +171,13 @@ const pageSize = ref(50) // Reduce batch size for faster initial render
 const filterCategory = ref('')
 // 题型筛选：ALL=全部，CHOICE=仅选择题，ESSAY=仅主观题（视为非CHOICE的题型）
 const filterQuestionType = ref('ALL')
+
+// 题型选项
+const questionTypeOptions = [
+  { label: '全部题型', value: 'ALL' },
+  { label: '选择题', value: 'CHOICE' },
+  { label: '主观题', value: 'ESSAY' }
+]
 
 // Questions Data
 const questionList = ref([])
@@ -789,14 +788,14 @@ const handleCopy = async (command, exam) => {
     }
 
     if (!text) {
-      ElMessage.warning('没有可复制的内容')
+      toast.warning('没有可复制的内容')
       return
     }
 
     await copyToClipboard(text)
-    ElMessage.success(message)
+    toast.success(message)
   } catch (error) {
-    ElMessage.error('复制失败，请重试')
+    toast.error('复制失败，请重试')
   }
 }
 
@@ -870,7 +869,7 @@ const loadQuestions = async (isReset = false) => {
  */
 const handleExportCommand = async (format) => {
   if (!activeSubjectId.value) {
-    ElMessage.warning('请先选择科目')
+    toast.warning('请先选择科目')
     return
   }
 
@@ -881,7 +880,7 @@ const handleExportCommand = async (format) => {
 
   const config = formatMap[format]
   if (!config) {
-    ElMessage.warning('不支持的导出格式')
+    toast.warning('不支持的导出格式')
     return
   }
 
@@ -900,9 +899,9 @@ const handleExportCommand = async (format) => {
     link.click()
     document.body.removeChild(link)
     
-    ElMessage.success(`${config.label} 导出已开始`)
+    toast.success(`${config.label} 导出已开始`)
   } catch (error) {
-    ElMessage.error('导出失败，请重试')
+    toast.error('导出失败，请重试')
     console.error(`${config.label}导出失败:`, error)
   }
 }
@@ -923,26 +922,26 @@ const handleEditSuccess = async () => {
 
 const handleDelete = async (id) => {
   try {
-    await ElMessageBox.confirm(
+    await confirm(
       '此操作将永久删除该真题，是否继续？',
       '警告',
       {
         confirmButtonText: '确定',
         cancelButtonText: '取消',
-        type: 'warning'
+        type: 'danger'
       }
     )
 
     const response = await deleteExam(id)
     if (response.code === 200) {
-      ElMessage.success('删除成功')
+      toast.success('删除成功')
       await loadQuestions(true)
     } else {
-      ElMessage.error(response.message || '删除失败')
+      toast.error(response.message || '删除失败')
     }
   } catch (error) {
     if (error !== 'cancel') {
-      ElMessage.error('删除失败')
+      toast.error('删除失败')
       console.error('删除失败:', error)
     }
   }
@@ -955,18 +954,6 @@ const handleDelete = async (id) => {
  * 真题分类浏览页面样式
  * 使用 Tailwind CSS
  */
-
-/* Element Plus 组件样式覆盖 */
-.content-card :deep(.el-card__body) {
-  padding: 16px;
-}
-
-.content-card :deep(.el-card__header) {
-  padding: 16px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid #dfe2e5;
-  background-color: transparent;
-}
 
 /* 响应式布局 */
 @media (max-width: 768px) {

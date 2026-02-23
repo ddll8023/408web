@@ -15,58 +15,61 @@
 
       <!-- 右侧内容区域 -->
       <div class="flex-1 w-0 overflow-y-auto bg-[#FBF7F2]">
-        <el-card class="min-h-[calc(100vh-60px-40px)] shadow-none bg-[#FBF7F2] border-none">
-          <template #header>
-            <div class="flex items-center justify-between">
-              <div class="flex items-center gap-3 flex-1">
-                <h2 class="m-0 text-[#333] font-semibold text-xl">{{ currentTitle }}</h2>
-                <el-tag v-if="displayTotal > 0" type="info" size="small">共 {{ displayTotal }} 题</el-tag>
-              </div>
-              <!-- 年份视图：显示导出按钮和管理员创建按钮 -->
-              <div class="flex gap-2" v-if="examList.length > 0">
-                <Dropdown trigger="click" @command="handleExportCommand">
-                  <template #trigger>
-                    <CustomButton
-                      type="success"
-                      :icon="Download"
-                    >
-                      导出试卷
-                    </CustomButton>
-                  </template>
-
-                  <template #dropdown>
-                    <div class="dropdown-item" :data-command="'markdown'">
-                      <font-awesome-icon :icon="['fas', 'file-lines']" class="mr-2" />
-                      导出为 Markdown (.md)
-                    </div>
-                    <div class="dropdown-item" :data-command="'docx'">
-                      <font-awesome-icon :icon="['fas', 'file-word']" class="mr-2" />
-                      导出为 Word 文档 (.docx)
-                    </div>
-                  </template>
-                </Dropdown>
-                <CustomButton
-                  v-if="isAdmin"
-                  type="primary"
-                  @click="handleCreate"
-                >
-                  创建真题
-                </CustomButton>
-              </div>
-              <!-- 默认视图（空状态）：显示管理员创建按钮 -->
-              <div class="flex gap-2" v-else-if="isAdmin">
-                <CustomButton
-                  type="primary"
-                  @click="handleCreate"
-                >
-                  创建真题
-                </CustomButton>
-              </div>
+        <!-- 使用 div + Tailwind 替代 el-card -->
+        <div class="min-h-[calc(100vh-60px-40px)] bg-[#FBF7F2]">
+          <!-- 头部区域 -->
+          <div class="flex items-center justify-between px-5 py-4 border-b border-[#E8DCC8]">
+            <div class="flex items-center gap-3 flex-1">
+              <h2 class="m-0 text-[#333] font-semibold text-xl">{{ currentTitle }}</h2>
+              <!-- 使用自定义 Tag 组件替代 el-tag -->
+              <Tag v-if="displayTotal > 0" variant="info">共 {{ displayTotal }} 题</Tag>
             </div>
-          </template>
+            <!-- 年份视图：显示导出按钮和管理员创建按钮 -->
+            <div class="flex gap-2" v-if="examList.length > 0">
+              <Dropdown trigger="click" @command="handleExportCommand">
+                <template #trigger>
+                  <CustomButton
+                    type="success"
+                    :icon="['fas', 'download']"
+                  >
+                    导出试卷
+                  </CustomButton>
+                </template>
+
+                <template #dropdown>
+                  <DropdownItem command="markdown">
+                    <font-awesome-icon :icon="['fas', 'file-lines']" class="mr-2" />
+                    导出为 Markdown (.md)
+                  </DropdownItem>
+                  <DropdownItem command="docx">
+                    <font-awesome-icon :icon="['fas', 'file-word']" class="mr-2" />
+                    导出为 Word 文档 (.docx)
+                  </DropdownItem>
+                </template>
+              </Dropdown>
+              <CustomButton
+                v-if="isAdmin"
+                type="primary"
+                :icon="['fas', 'plus']"
+                @click="handleCreate"
+              >
+                创建真题
+              </CustomButton>
+            </div>
+            <!-- 默认视图（空状态）：显示管理员创建按钮 -->
+            <div class="flex gap-2" v-else-if="isAdmin">
+              <CustomButton
+                type="primary"
+                :icon="['fas', 'plus']"
+                @click="handleCreate"
+              >
+                创建真题
+              </CustomButton>
+            </div>
+          </div>
 
           <!-- 年份视图:显示所有题目 -->
-          <div v-if="examList.length > 0" class="flex flex-col gap-6 max-w-[80%]">
+          <div v-if="examList.length > 0" class="flex flex-col gap-6 max-w-[80%] px-5 py-4">
             <ExamEntryCard
               v-for="exam in examList"
               :key="exam.id"
@@ -83,21 +86,22 @@
           </div>
 
           <!-- 默认提示 -->
-          <div v-else-if="!loading" class="mt-2 p-4 bg-gradient-to-br from-[#FBF7F2] to-[#F5EFE6] rounded border-2 border-[#E8DCC8] min-h-[300px]">
+          <div v-else-if="!loading" class="mt-2 p-4 bg-gradient-to-br from-[#FBF7F2] to-[#F5EFE6] rounded border-2 border-[#E8DCC8] min-h-[300px] mx-5 my-4">
             <div class="flex items-center gap-2 mb-2">
-              <el-icon class="text-[#8B6F47]" :size="20"><Reading /></el-icon>
+              <font-awesome-icon :icon="['fas', 'book']" class="text-[#8B6F47] text-lg" />
               <h3 class="m-0 text-[#333] font-semibold text-lg">408历年真题</h3>
             </div>
-            <el-divider />
+            <!-- 使用 div + border 替代 el-divider -->
+            <div class="border-t border-[#E8DCC8] my-3"></div>
             <div class="py-4">
               <p class="m-0 leading-relaxed text-sm text-[#333] text-justify indent-2em">这里收录了408考研的历年真题，包括数据结构、操作系统、计算机网络和计算机组成原理四大科目。</p>
             </div>
             <div class="flex items-center gap-1.5 p-2 mt-4 bg-white/60 rounded text-[#666] text-xs">
-              <el-icon><ArrowRight /></el-icon>
+              <font-awesome-icon :icon="['fas', 'arrow-right']" class="text-xs" />
               请选择左侧年份查看真题内容
             </div>
           </div>
-        </el-card>
+        </div>
 
         <ExamEditDialog
           v-if="isAdmin"
@@ -123,17 +127,15 @@
  */
 import { ref, computed, watch, onMounted, nextTick, onActivated } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { ElMessage, ElMessageBox } from 'element-plus'
-import {
-  Reading,
-  ArrowRight,
-  Download
-} from '@element-plus/icons-vue'
-import { getExamIndex, getExamByYear, deleteExam } from '@/api/exam'
+import { getExamNavIndex, getExamByYear, deleteExam } from '@/api/exam'
 import { getDifficultyLabel } from '@/constants/exam'
 import { useAuthStore } from '@/stores/auth'
+import toast from '@/utils/toast'
+import confirm from '@/utils/confirm'
 import CustomButton from '@/components/basic/CustomButton.vue'
 import Dropdown from '@/components/basic/Dropdown.vue'
+import DropdownItem from '@/components/basic/DropdownItem.vue'
+import Tag from '@/components/basic/Tag.vue'
 import YearNav from '@/components/business/YearNav.vue'
 import ExamEntryCard from '@/components/business/ExamEntryCard.vue'
 import ExamEditDialog from '@/components/business/ExamEditDialog.vue'
@@ -159,6 +161,19 @@ const activeExamId = ref(null)
 // 当前年份的所有题目
 const examList = ref([])
 
+// 标题：显示当前年份
+const currentTitle = computed(() => {
+  if (activeYear.value) {
+    return `${activeYear.value} 年真题`
+  }
+  return '请选择年份'
+})
+
+// 题目总数
+const displayTotal = computed(() => {
+  return examList.value?.length || 0
+})
+
 const loading = ref(false)
 
 // 年份视图下,每道题的答案显示状态
@@ -173,7 +188,10 @@ const editingExamId = ref(null)
 
 // 记录从哪个题目进入编辑页，以便返回时滚回该题目
 const RETURN_SCROLL_KEY = 'exam-return-position'
- 
+
+// 导航数据缓存（按分类缓存，避免重复请求）
+const navCache = new Map()
+
 // 复制工具函数
 const copyToClipboard = async (text) => {
   try {
@@ -519,14 +537,14 @@ const handleCopy = async (command, exam) => {
     }
 
     if (!text) {
-      ElMessage.warning('没有可复制的内容')
+      toast.warning('没有可复制的内容')
       return
     }
 
     await copyToClipboard(text)
-    ElMessage.success(message)
+    toast.success(message)
   } catch (error) {
-    ElMessage.error('复制失败，请重试')
+    toast.error('复制失败，请重试')
   }
 }
 
@@ -542,11 +560,20 @@ const toggleYearAnswer = (examId) => {
 
 /**
  * 加载真题年份导航数据（可按分类过滤）
+ * 使用轻量级 API + 缓存优化性能
  */
 const loadYearList = async () => {
+  // 检查缓存
+  const cacheKey = activeCategory.value || 'all'
+  if (navCache.has(cacheKey)) {
+    yearList.value = navCache.get(cacheKey)
+    return
+  }
+
   loadingYearList.value = true
   try {
-    const response = await getExamIndex({
+    // 使用轻量级导航 API
+    const response = await getExamNavIndex({
       category: activeCategory.value || undefined
     })
 
@@ -566,17 +593,21 @@ const loadYearList = async () => {
         })
       })
 
-      yearList.value = Array.from(yearMap.entries())
+      const sortedYearList = Array.from(yearMap.entries())
         .map(([year, exams]) => ({
           year: year,
           exams: exams.sort((a, b) => (a.questionNumber || 0) - (b.questionNumber || 0))
         }))
         .sort((a, b) => b.year - a.year)
+
+      // 存入缓存
+      navCache.set(cacheKey, sortedYearList)
+      yearList.value = sortedYearList
     } else {
-      ElMessage.error(response.message || '加载年份列表失败')
+      toast.error(response.message || '加载年份列表失败')
     }
   } catch (error) {
-    ElMessage.error('加载年份列表失败')
+    toast.error('加载年份列表失败')
     console.error('加载年份列表失败:', error)
   } finally {
     loadingYearList.value = false
@@ -604,11 +635,11 @@ const loadExamsByYear = async (year) => {
       examList.value = response.data || []
     } else {
       examList.value = []
-      ElMessage.error(response.message || '加载失败')
+      toast.error(response.message || '加载失败')
     }
   } catch (error) {
     examList.value = []
-    ElMessage.error('加载真题失败')
+    toast.error('加载真题失败')
     console.error('加载真题失败:', error)
   } finally {
     loading.value = false
@@ -708,7 +739,7 @@ const handleEditSuccess = async () => {
  */
 const handleDelete = async (id) => {
   try {
-    await ElMessageBox.confirm(
+    await confirm(
       '此操作将永久删除该真题，是否继续？',
       '警告',
       {
@@ -720,7 +751,7 @@ const handleDelete = async (id) => {
     
     const response = await deleteExam(id)
     if (response.code === 200) {
-      ElMessage.success('删除成功')
+      toast.success('删除成功')
       // 重新加载年份列表
       await loadYearList()
       // 清空当前激活的题目
@@ -730,11 +761,11 @@ const handleDelete = async (id) => {
         await loadExamsByYear(activeYear.value)
       }
     } else {
-      ElMessage.error(response.message || '删除失败')
+      toast.error(response.message || '删除失败')
     }
   } catch (error) {
     if (error !== 'cancel') {
-      ElMessage.error('删除失败')
+      toast.error('删除失败')
       console.error('删除失败:', error)
     }
   }
@@ -752,7 +783,7 @@ const handleExportCommand = (command) => {
       exportAsDocx()
       break
     default:
-      ElMessage.warning('不支持的导出格式')
+      toast.warning('不支持的导出格式')
   }
 }
 
@@ -762,7 +793,7 @@ const handleExportCommand = (command) => {
  */
 const exportAsMarkdown = () => {
   if (!examList.value || examList.value.length === 0) {
-    ElMessage.warning('当前年份没有题目可导出')
+    toast.warning('当前年份没有题目可导出')
     return
   }
 
@@ -831,9 +862,9 @@ const exportAsMarkdown = () => {
     const filename = `408计算机统考-${year}年真题.md`
     downloadFile(markdown, filename, 'text/markdown')
     
-    ElMessage.success(`已导出 ${examList.value.length} 道题目（Markdown格式）`)
+    toast.success(`已导出 ${examList.value.length} 道题目（Markdown格式）`)
   } catch (error) {
-    ElMessage.error('导出失败，请重试')
+    toast.error('导出失败，请重试')
     console.error('Markdown导出失败:', error)
   }
 }
@@ -844,7 +875,7 @@ const exportAsMarkdown = () => {
  */
 const exportAsDocx = async () => {
   if (!examList.value || examList.value.length === 0) {
-    ElMessage.warning('当前年份没有题目可导出')
+    toast.warning('当前年份没有题目可导出')
     return
   }
 
@@ -981,12 +1012,12 @@ const exportAsDocx = async () => {
     document.body.removeChild(link)
     URL.revokeObjectURL(url)
     
-    ElMessage.success(`已导出 ${examList.value.length} 道题目（Word格式）`)
+    toast.success(`已导出 ${examList.value.length} 道题目（Word格式）`)
   } catch (error) {
     if (error.message && error.message.includes('Cannot find module')) {
-      ElMessage.error('请先安装 docx 依赖：npm install docx')
+      toast.error('请先安装 docx 依赖：npm install docx')
     } else {
-      ElMessage.error('DOCX导出失败，请重试')
+      toast.error('DOCX导出失败，请重试')
     }
     console.error('DOCX导出失败:', error)
   }
@@ -1026,15 +1057,20 @@ watch(
       activeYear.value = year
       handleYearSelect(year)
     }
-  },
-  { immediate: true }
+  }
 )
 
 // 监听路由查询参数变化（分类），重新加载年份树和当前视图
 watch(
   () => route.query.category,
-  (newCategory) => {
+  (newCategory, oldCategory) => {
+    // 如果分类变化，清除缓存
+    if (newCategory !== oldCategory) {
+      navCache.clear()
+    }
     activeCategory.value = newCategory || ''
+
+    // 使用缓存或重新加载
     loadYearList()
 
     // 如果当前在年份视图，刷新数据
@@ -1044,9 +1080,17 @@ watch(
   }
 )
 
-// 组件挂载时加载年份列表
+// 组件挂载时加载数据（优化：使用 Promise.all 并行加载）
 onMounted(async () => {
+  // 先尝试从缓存加载年份列表
   await loadYearList()
+
+  // 如果路由有 year 参数，加载对应年份的真题
+  if (route.params.year) {
+    const year = parseInt(route.params.year)
+    activeYear.value = year
+    await loadExamsByYear(year)
+  }
 })
 </script>
 

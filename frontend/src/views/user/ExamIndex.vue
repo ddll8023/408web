@@ -13,7 +13,12 @@
       <hr class="my-6 border-[#e5e7eb]" />
 
       <!-- 年份卡片列表 -->
-      <div v-loading="loading" class="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-6 my-8">
+      <div v-if="loading" class="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-6 my-8">
+        <div class="col-span-full flex items-center justify-center py-20">
+          <font-awesome-icon :icon="['fas', 'spinner']" class="fa-spin text-4xl text-[#8B6F47]" />
+        </div>
+      </div>
+      <div v-else class="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-6 my-8">
         <div
           v-for="yearData in yearList"
           :key="yearData.year"
@@ -27,41 +32,35 @@
           <hr class="my-3 border-[#e5e7eb]" />
           <div class="flex-1 flex items-center justify-center py-2">
             <div class="flex items-center gap-2">
-              <el-icon class="text-[#8B6F47]" :size="18"><Document /></el-icon>
+              <font-awesome-icon :icon="['fas', 'file-lines']" class="text-[#8B6F47]" />
               <span class="text-[#666] text-sm">共 {{ yearData.count }} 题</span>
             </div>
           </div>
           <div class="flex justify-center pt-3 mt-auto">
             <CustomButton type="primary" size="sm">
               查看真题
-              <el-icon class="ml-1 transition-transform duration-300"><ArrowRight /></el-icon>
+              <font-awesome-icon :icon="['fas', 'arrow-right']" class="ml-1 transition-transform duration-300" />
             </CustomButton>
           </div>
         </div>
 
         <!-- 空状态 -->
-        <el-empty
-          v-if="!loading && yearList.length === 0"
+        <Empty
+          v-if="yearList.length === 0"
           description="暂无真题数据"
-          :image-size="200"
+          :icon="['fas', 'folder-open']"
         />
       </div>
 
       <!-- 底部提示 -->
       <div class="mt-8">
-        <el-alert
-          title="使用提示"
-          type="info"
-          :closable="false"
-        >
-          <template #default>
-            <ul class="m-0 pl-4 text-[#666] leading-relaxed">
-              <li class="my-1.5">点击年份卡片查看该年份的所有真题</li>
-              <li class="my-1.5">每道题目都配有详细解答</li>
-              <li class="my-1.5">支持按题型、科目、难度筛选查看</li>
-            </ul>
-          </template>
-        </el-alert>
+        <Alert title="使用提示" type="info">
+          <ul class="m-0 pl-4 text-[#666] leading-relaxed">
+            <li class="my-1.5">点击年份卡片查看该年份的所有真题</li>
+            <li class="my-1.5">每道题目都配有详细解答</li>
+            <li class="my-1.5">支持按题型、科目、难度筛选查看</li>
+          </ul>
+        </Alert>
       </div>
     </div>
   </div>
@@ -75,10 +74,11 @@
  */
 import { ref, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { ElMessage } from 'element-plus'
-import { Document, ArrowRight } from '@element-plus/icons-vue'
+import { toast } from '@/utils/toast'
 import { getExamYearStats } from '@/api/exam'
 import CustomButton from '@/components/basic/CustomButton.vue'
+import Empty from '@/components/basic/Empty.vue'
+import Alert from '@/components/basic/Alert.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -108,10 +108,10 @@ const loadYearData = async () => {
         }))
         .sort((a, b) => b.year - a.year)
     } else {
-      ElMessage.error(response.message || '加载失败')
+      toast.error(response.message || '加载失败')
     }
   } catch (error) {
-    ElMessage.error('加载真题数据失败')
+    toast.error('加载真题数据失败')
     console.error('加载真题数据失败:', error)
   } finally {
     loading.value = false

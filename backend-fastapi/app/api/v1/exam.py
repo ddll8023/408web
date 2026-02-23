@@ -16,6 +16,7 @@ from app.schemas.exam import (
     ExamCategoryStatsResponse,
     ExamDuplicateCheckResponse,
     ExamIndexResponse,
+    ExamNavItem,
     PaginatedExamResponse,
     ExportResultResponse
 )
@@ -147,6 +148,28 @@ async def find_all_for_index(
     """
     service = ExamService(session)
     exams = await service.find_all_for_index(category)
+    return Response(data=exams)
+
+
+@router.get(
+    "/nav-index",
+    response_model=Response[List[ExamNavItem]],
+    summary="查询真题导航索引（轻量级）",
+    description="查询用于侧边栏年份导航的轻量级真题索引数据"
+)
+async def find_for_nav_index(
+    session: SessionDep,
+    category: Optional[str] = Query(default=None, description="分类筛选")
+) -> Response[List[ExamNavItem]]:
+    """
+    获取轻量级真题导航索引数据
+
+    - 权限：公开
+    - 只返回导航所需字段(id, year, questionNumber, title, category)
+    - 数据量比 /index 小很多，用于侧边栏快速加载
+    """
+    service = ExamService(session)
+    exams = await service.find_for_nav_index(category)
     return Response(data=exams)
 
 

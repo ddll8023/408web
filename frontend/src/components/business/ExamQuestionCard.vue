@@ -43,7 +43,7 @@
         <span class="text-sm font-medium text-gray-800">{{ exam?.questionType === 'CHOICE' ? '正确答案' : '参考答案' }}</span>
         <CustomButton
           v-if="showToggle"
-          size="small"
+          size="sm"
           :type="showAnswer ? 'warning' : 'primary'"
           @click="$emit('toggle-answer')"
           class="ml-auto"

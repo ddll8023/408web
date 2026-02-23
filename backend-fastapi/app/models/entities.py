@@ -69,7 +69,7 @@ class Chapter(BaseModel, table=True):
         sa_relationship_kwargs={"remote_side": "Chapter.id"}
     )
     children: List["Chapter"] = Relationship(back_populates="parent")
-    knowledge_points: List["KnowledgePoint"] = Relationship()
+    knowledge_points: List["KnowledgePoint"] = Relationship(back_populates="chapter")
 
 
 # ====================================
@@ -193,5 +193,5 @@ class KnowledgePoint(BaseModel, table=True):
     update_time: datetime = Field(default_factory=datetime.utcnow, description="更新时间")
 
     # 关系
-    chapter: Optional[Chapter] = Relationship()
+    chapter: Optional[Chapter] = Relationship(back_populates="knowledge_points")
     author: Optional[User] = Relationship()

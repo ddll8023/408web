@@ -233,6 +233,24 @@ class ExamIndexResponse(BaseModel):
     }
 
 
+class ExamNavItem(BaseModel):
+    """真题导航索引项（轻量级，仅用于侧边栏导航）"""
+    id: int = Field(..., description="题目ID")
+    year: int = Field(..., description="年份")
+    question_number: Optional[int] = Field(
+        default=None,
+        alias="questionNumber",
+        description="题号"
+    )
+    title: Optional[str] = Field(default=None, description="题目标题")
+    category: Optional[List[str]] = Field(default=None, description="分类列表")
+
+    model_config = {
+        "populate_by_name": True,
+        "from_attributes": True
+    }
+
+
 class PaginatedExamResponse(BaseModel):
     """真题分页响应"""
     data: List[ExamResponse] = Field(default_factory=list, description="数据列表")

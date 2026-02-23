@@ -39,6 +39,19 @@ export function getExamIndex(params) {
 }
 
 /**
+ * 获取真题导航索引（轻量级，用于侧边栏）
+ * @param {object} params 筛选参数
+ * @returns {Promise} API响应（轻量级索引数据）
+ */
+export function getExamNavIndex(params) {
+  return request({
+    url: '/api/exam/nav-index',
+    method: 'get',
+    params
+  })
+}
+
+/**
  * 获取真题详情
  * @param {number} id 真题ID
  * @returns {Promise} API响应（真题详情）
