@@ -5,8 +5,7 @@
 """
 from typing import Optional, List
 from fastapi import APIRouter, Depends, Query, Path, Response as FastAPIResponse
-from sqlmodel.ext.asyncio.session import AsyncSession
-from app.database.connection import get_async_session
+from app.database.connection import SessionDep
 from app.services.exam_service import ExamService
 from app.schemas.exam import (
     ExamQueryParams,
@@ -33,6 +32,7 @@ router = APIRouter()
     description="支持多条件筛选、分页、排序"
 )
 async def get_exams(
+    session: SessionDep,
     page: int = Query(default=1, ge=1, description="页码"),
     page_size: int = Query(default=10, ge=1, le=100, description="每页大小"),
     year: Optional[int] = Query(default=None, description="年份筛选"),
@@ -41,8 +41,7 @@ async def get_exams(
     no_category: Optional[bool] = Query(default=None, description="是否筛选无分类"),
     keyword: Optional[str] = Query(default=None, description="关键词搜索"),
     sort_field: str = Query(default="update_time", description="排序字段"),
-    sort_order: str = Query(default="desc", description="排序方向"),
-    session: AsyncSession = Depends(get_async_session)
+    sort_order: str = Query(default="desc", description="排序方向")
 ) -> Response[PaginatedExamResponse]:
     """
     分页查询真题
@@ -72,10 +71,10 @@ async def get_exams(
     description="查询指定年份的所有真题"
 )
 async def find_by_year(
+    session: SessionDep,
     year: int = Path(..., description="年份"),
     category: Optional[str] = Query(default=None, description="分类"),
-    subject_id: Optional[int] = Query(default=None, description="科目ID"),
-    session: AsyncSession = Depends(get_async_session)
+    subject_id: Optional[int] = Query(default=None, description="科目ID")
 ) -> Response[List[ExamResponse]]:
     """
     根据年份查询真题
@@ -95,8 +94,8 @@ async def find_by_year(
     description="查询指定科目下实际存在真题的分类列表"
 )
 async def get_categories_by_subject(
-    subject_id: int = Path(..., description="科目ID"),
-    session: AsyncSession = Depends(get_async_session)
+    session: SessionDep,
+    subject_id: int = Path(..., description="科目ID")
 ) -> Response[List[str]]:
     """
     查询科目下的分类列表
@@ -116,8 +115,8 @@ async def get_categories_by_subject(
     description="按年份统计真题数量"
 )
 async def get_year_stats(
-    category: Optional[str] = Query(default=None, description="分类筛选"),
-    session: AsyncSession = Depends(get_async_session)
+    session: SessionDep,
+    category: Optional[str] = Query(default=None, description="分类筛选")
 ) -> Response[List[ExamYearStatResponse]]:
     """
     获取年份统计
@@ -137,8 +136,8 @@ async def get_year_stats(
     description="查询用于年份导航的真题索引数据"
 )
 async def find_all_for_index(
-    category: Optional[str] = Query(default=None, description="分类筛选"),
-    session: AsyncSession = Depends(get_async_session)
+    session: SessionDep,
+    category: Optional[str] = Query(default=None, description="分类筛选")
 ) -> Response[List[ExamResponse]]:
     """
     获取真题索引数据
@@ -158,8 +157,8 @@ async def find_all_for_index(
     description="按分类统计真题数量"
 )
 async def get_category_stats(
-    subject_id: Optional[int] = Query(default=None, description="科目ID筛选"),
-    session: AsyncSession = Depends(get_async_session)
+    session: SessionDep,
+    subject_id: Optional[int] = Query(default=None, description="科目ID筛选")
 ) -> Response[List[ExamCategoryStatsResponse]]:
     """
     获取分类统计
@@ -179,9 +178,9 @@ async def get_category_stats(
     description="查询指定科目和分类的真题列表"
 )
 async def find_by_subject_and_category(
+    session: SessionDep,
     subject_id: Optional[int] = Query(default=None, description="科目ID"),
-    category: str = Query(..., description="分类名称"),
-    session: AsyncSession = Depends(get_async_session)
+    category: str = Query(..., description="分类名称")
 ) -> Response[List[ExamResponse]]:
     """
     根据科目和分类查询真题
@@ -200,9 +199,9 @@ async def find_by_subject_and_category(
     description="按科目导出真题（支持Markdown格式）"
 )
 async def export_by_subject(
+    session: SessionDep,
     subject_id: int = Query(..., description="科目ID"),
-    format: str = Query(..., description="导出格式"),
-    session: AsyncSession = Depends(get_async_session)
+    format: str = Query(..., description="导出格式")
 ) -> FastAPIResponse:
     """
     按科目导出真题
@@ -229,8 +228,8 @@ async def export_by_subject(
     description="根据ID查询真题详细信息"
 )
 async def get_exam_detail(
-    exam_id: int = Path(..., description="真题ID"),
-    session: AsyncSession = Depends(get_async_session)
+    session: SessionDep,
+    exam_id: int = Path(..., description="真题ID")
 ) -> Response[ExamResponse]:
     """
     按ID查询真题详情
@@ -249,10 +248,10 @@ async def get_exam_detail(
     description="检查(year, question_number)组合是否已存在，仅管理员可访问"
 )
 async def check_exam_duplicate(
+    session: SessionDep,
     year: int = Query(..., description="年份"),
     question_number: int = Query(..., description="题号"),
-    current_user: AuthUser = Depends(get_current_admin),
-    session: AsyncSession = Depends(get_async_session)
+    current_user: AuthUser = Depends(get_current_admin)
 ) -> Response[ExamResponse]:
     """
     检查真题是否重复
@@ -272,9 +271,9 @@ async def check_exam_duplicate(
     description="创建新真题，仅管理员可访问"
 )
 async def create_exam(
+    session: SessionDep,
     request: ExamCreateRequest,
-    current_user: AuthUser = Depends(get_current_admin),
-    session: AsyncSession = Depends(get_async_session)
+    current_user: AuthUser = Depends(get_current_admin)
 ) -> Response[ExamResponse]:
     """
     创建真题
@@ -294,10 +293,10 @@ async def create_exam(
     description="更新指定真题的信息，仅管理员可访问"
 )
 async def update_exam(
+    session: SessionDep,
     exam_id: int = Path(..., description="真题ID"),
     request: ExamUpdateRequest = None,
-    current_user: AuthUser = Depends(get_current_admin),
-    session: AsyncSession = Depends(get_async_session)
+    current_user: AuthUser = Depends(get_current_admin)
 ) -> Response[ExamResponse]:
     """
     更新真题
@@ -317,9 +316,9 @@ async def update_exam(
     description="删除指定真题，仅管理员可访问"
 )
 async def delete_exam(
+    session: SessionDep,
     exam_id: int = Path(..., description="真题ID"),
-    current_user: AuthUser = Depends(get_current_admin),
-    session: AsyncSession = Depends(get_async_session)
+    current_user: AuthUser = Depends(get_current_admin)
 ) -> Response[None]:
     """
     删除真题

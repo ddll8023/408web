@@ -35,23 +35,24 @@
                   <el-option label="主观题" value="ESSAY" />
                 </el-select>
 
-                <el-dropdown trigger="click" @command="handleExportCommand">
-                  <CustomButton
-                    type="success"
-                    :icon="Download"
-                    size="small"
-                  >
-                    导出科目
-                  </CustomButton>
-                  <template #dropdown>
-                    <el-dropdown-menu>
-                      <el-dropdown-item command="docx">
-                        <el-icon><Document /></el-icon>
-                        导出为 Word 文档 (.docx)
-                      </el-dropdown-item>
-                    </el-dropdown-menu>
+                <Dropdown trigger="click" @command="handleExportCommand">
+                  <template #trigger>
+                    <CustomButton
+                      type="success"
+                      :icon="Download"
+                      size="small"
+                    >
+                      导出科目
+                    </CustomButton>
                   </template>
-                </el-dropdown>
+
+                  <template #dropdown>
+                    <div class="dropdown-item" :data-command="'docx'">
+                      <font-awesome-icon :icon="['fas', 'file-word']" class="mr-2" />
+                      导出为 Word 文档 (.docx)
+                    </div>
+                  </template>
+                </Dropdown>
               </div>
             </div>
           </template>
@@ -139,6 +140,7 @@ import { getExamList, deleteExam, getExamDetail } from '@/api/exam'
 import { getEnabledCategoryTreeBySubject } from '@/api/category'
 import { useAuthStore } from '@/stores/auth'
 import CustomButton from '@/components/basic/CustomButton.vue'
+import Dropdown from '@/components/basic/Dropdown.vue'
 import SubjectSidebar from '@/components/business/SubjectSidebar.vue'
 import ExamEntryCard from '@/components/business/ExamEntryCard.vue'
 import ExamEditDialog from '@/components/business/ExamEditDialog.vue'
@@ -473,6 +475,12 @@ const handleSubjectSelect = async (subject) => {
 
 // Toggle subject categories expansion without changing active subject
 const toggleSubjectExpand = async (subject) => {
+  // 处理全部折叠的情况
+  if (!subject) {
+    expandedSubjectId.value = null
+    return
+  }
+
   const id = subject.id
 
   // 收起当前展开的科目
@@ -554,7 +562,7 @@ const copyToClipboard = async (text) => {
  */
 const normalizeLineBreaks = (text) => {
   if (!text || typeof text !== 'string') return text
-  
+
   const patterns = [
     // 罗马数字模式: I. II. III. IV. V. VI. VII. VIII. IX. X. XI. XII.
     /(?<!\n)(?<=\S)\s*((?:I{1,3}|IV|VI{0,3}|IX|X{1,3}|XI{1,3}|XII)\.\s)/gi,
@@ -567,14 +575,27 @@ const normalizeLineBreaks = (text) => {
     // 大写字母括号模式: (A) (B) (C) (D) 等
     /(?<!\n)(?<=\S)\s*(\([A-Z]\)\s*)/g
   ]
-  
+
   let result = text
   patterns.forEach(pattern => {
     result = result.replace(pattern, '\n$1')
   })
   result = result.replace(/\n{3,}/g, '\n\n')
-  
+
   return result
+}
+
+/**
+ * 解析选项JSON为对象
+ */
+const parseOptions = (exam) => {
+  if (exam?.questionType !== 'CHOICE' || !exam?.options) return null
+  try {
+    return JSON.parse(exam.options)
+  } catch (e) {
+    console.error('解析选项失败:', e)
+    return null
+  }
 }
 
 const formatQuestionMarkdown = (exam) => {
@@ -631,12 +652,122 @@ const formatFullMarkdown = (exam) => {
   return parts.join('\n')
 }
 
+// ==================== 纯文本格式化函数 ====================
+
+const formatQuestionText = (exam) => {
+  if (!exam?.content) return ''
+  const questionNumber = exam.questionNumber || ''
+  const questionType = exam.questionType === 'CHOICE' ? '选择题' : '主观题'
+  const category = Array.isArray(exam.category) ? exam.category.join(', ') : (exam.category || '')
+
+  const parts = []
+  parts.push(`第${questionNumber}题 (${questionType}${category ? ' - ' + category : ''})`)
+  parts.push('')
+  parts.push('【题目】')
+  parts.push(normalizeLineBreaks(exam.content))
+  return parts.join('\n')
+}
+
+const formatOptionsText = (exam) => {
+  const optionsObj = parseOptions(exam)
+  if (!optionsObj) return ''
+  const optionKeys = Object.keys(optionsObj).sort()
+  const parts = []
+  parts.push('【选项】')
+  optionKeys.forEach(key => {
+    parts.push(`${key}. ${normalizeLineBreaks(optionsObj[key])}`)
+  })
+  return parts.join('\n')
+}
+
+const formatAnswerText = (exam) => {
+  if (!exam?.answer) return ''
+  const parts = []
+  parts.push('【答案】')
+  parts.push(normalizeLineBreaks(exam.answer))
+  return parts.join('\n')
+}
+
+const formatFullText = (exam) => {
+  const parts = []
+  const questionNumber = exam.questionNumber || ''
+  const questionType = exam.questionType === 'CHOICE' ? '选择题' : '主观题'
+  const category = Array.isArray(exam.category) ? exam.category.join(', ') : (exam.category || '')
+
+  // 标题行
+  parts.push(`第${questionNumber}题 (${questionType}${category ? ' - ' + category : ''})`)
+  parts.push('')
+
+  // 题目内容
+  if (exam?.content) {
+    parts.push('【题目】')
+    parts.push(normalizeLineBreaks(exam.content))
+    parts.push('')
+  }
+
+  // 选项（仅选择题）
+  if (exam?.questionType === 'CHOICE') {
+    const optionsObj = parseOptions(exam)
+    if (optionsObj) {
+      const optionKeys = Object.keys(optionsObj).sort()
+      parts.push('【选项】')
+      optionKeys.forEach(key => {
+        parts.push(`${key}. ${normalizeLineBreaks(optionsObj[key])}`)
+      })
+      parts.push('')
+    }
+  }
+
+  // 答案
+  if (exam?.answer) {
+    parts.push('【答案】')
+    parts.push(normalizeLineBreaks(exam.answer))
+  }
+
+  return parts.join('\n')
+}
+
 const handleCopy = async (command, exam) => {
   let text = ''
   let message = ''
 
   try {
     switch (command) {
+      // Markdown 格式
+      case 'md-question':
+        text = formatQuestionMarkdown(exam)
+        message = '题目已复制 (Markdown)'
+        break
+      case 'md-options':
+        text = formatOptionsMarkdown(exam)
+        message = '选项已复制 (Markdown)'
+        break
+      case 'md-answer':
+        text = formatAnswerMarkdown(exam)
+        message = '答案已复制 (Markdown)'
+        break
+      case 'md-all':
+        text = formatFullMarkdown(exam)
+        message = '完整内容已复制 (Markdown)'
+        break
+      // 纯文本格式
+      case 'text-question':
+        text = formatQuestionText(exam)
+        message = '题目已复制 (纯文本)'
+        break
+      case 'text-options':
+        text = formatOptionsText(exam)
+        message = '选项已复制 (纯文本)'
+        break
+      case 'text-answer':
+        text = formatAnswerText(exam)
+        message = '答案已复制 (纯文本)'
+        break
+      case 'text-all':
+        text = formatFullText(exam)
+        message = '完整内容已复制 (纯文本)'
+        break
+      // 兼容旧命令
       case 'question':
         text = formatQuestionMarkdown(exam)
         message = '题目已复制到剪贴板'

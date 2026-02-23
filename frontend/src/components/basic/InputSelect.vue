@@ -2,7 +2,7 @@
   <div class="w-full relative" ref="containerRef">
     <!-- 输入框区域 -->
     <div
-      class="relative w-full flex items-center bg-white border border-gray-300 rounded px-3 py-2 transition-all duration-15 hover:border-gray-500"
+      class="relative w-full flex items-center bg-white border border-gray-200 rounded-lg px-4 py-2.5 h-[42px] text-base transition-all duration-200 hover:border-[#8B6F47]/50"
       :class="{ 'border-[#8B6F47] shadow-[0_0_0_2px_rgba(139,111,71,0.2)]': visible, 'has-value': modelValue }"
       @click="toggleMenu"
     >
@@ -11,7 +11,7 @@
         type="text"
         v-model="inputValue"
         :placeholder="placeholder"
-        class="w-full h-8 px-3 pr-8 border-none bg-transparent text-gray-800 font-inherit outline-none cursor-pointer"
+        class="w-full px-3 pr-8 border-none bg-transparent text-gray-800 font-inherit outline-none cursor-pointer"
         @focus="handleFocus"
         @input="handleInput"
         @change="handleChange"
@@ -49,7 +49,7 @@
             {{ item.label }}
           </li>
         </ul>
-        <div v-else class="px-3 py-2 text-sm text-gray-400 text-center">
+        <div v-else class="px-3 py-2 text-base text-gray-400 text-center">
           无匹配数据
         </div>
       </div>
@@ -92,7 +92,7 @@ const inputValue = ref('')
 
 // 标准化选项数据结构
 const normalizedOptions = computed(() => {
-  if (!props.options) return []
+  if (!Array.isArray(props.options)) return []
   return props.options.map(item => {
     if (typeof item === 'object' && item !== null) {
       return {

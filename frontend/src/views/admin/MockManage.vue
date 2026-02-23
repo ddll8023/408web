@@ -159,6 +159,7 @@
     <MockEditDialog
       v-model:visible="editDialogVisible"
       :mock-id="editingMockId"
+      :mock-data="editingMockData"
       @success="handleEditSuccess"
     />
   </div>
@@ -204,6 +205,7 @@ const {
 // 编辑弹窗状态
 const editDialogVisible = ref(false)
 const editingMockId = ref(null)
+const editingMockData = ref(null)  // 编辑时传递的完整数据（避免重复请求API）
 
 // 模拟题列表
 const mockQuestions = ref([])
@@ -334,6 +336,7 @@ const handleView = (row) => {
  */
 const handleEdit = (row) => {
   editingMockId.value = row.id
+  editingMockData.value = row  // 传递完整数据，避免重复请求API
   editDialogVisible.value = true
 }
 
@@ -342,6 +345,9 @@ const handleEdit = (row) => {
  */
 const handleEditSuccess = () => {
   loadMockList()
+  // 重置编辑数据
+  editingMockId.value = null
+  editingMockData.value = null
 }
 
 /**

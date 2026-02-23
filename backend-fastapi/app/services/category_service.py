@@ -591,6 +591,7 @@ class ExamCategoryService:
         Returns:
             引用数量
         """
+        # 使用 LIKE 查询，匹配 JSON 数组中的分类名称
         stmt = (
             select(func.count())
             .select_from(MockQuestion)
@@ -598,10 +599,9 @@ class ExamCategoryService:
                 and_(
                     MockQuestion.subject_id == subject_id,
                     MockQuestion.category.isnot(None),
-                    text("json_extract(category, '$') LIKE :pattern")
+                    MockQuestion.category.like(f'%"{category_name}"%')
                 )
             )
-            .params(pattern=f'"{category_name}"%')
         )
         result = await self.session.exec(stmt)
         return result.one() or 0
@@ -706,7 +706,6 @@ class ExamCategoryService:
             enabled=request.enabled
         )
         self.session.add(category)
-        await self.session.commit()
         await self.session.refresh(category)
 
         logger.info("ExamCategoryService.create completed, category_id: %d", category.id)
@@ -799,7 +798,6 @@ class ExamCategoryService:
         for field, value in update_data.items():
             setattr(category, field, value)
 
-        await self.session.commit()
         await self.session.refresh(category)
 
         logger.info("ExamCategoryService.update completed, category_id: %d", category_id)
@@ -858,7 +856,6 @@ class ExamCategoryService:
 
         # 删除分类
         await self.session.delete(category)
-        await self.session.commit()
 
         logger.info("ExamCategoryService.delete completed, category_id: %d", category_id)
 

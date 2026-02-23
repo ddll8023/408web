@@ -75,7 +75,7 @@ class MockService:
         logger.info("MockService.get_paginated completed, total: %d", total)
 
         return PaginatedMockResponse(
-            data_list=data_list,
+            data=data_list,
             total=total,
             page=params.page,
             page_size=params.page_size
@@ -105,7 +105,7 @@ class MockService:
             conditions.append(
                 and_(
                     MockQuestion.category.isnot(None),
-                    text("json_extract(category, '$') LIKE :cat_pattern")
+                    text(f"json_extract(category, '$') LIKE '{pattern}'")
                 )
             )
 
@@ -374,7 +374,6 @@ class MockService:
             author_id=author_id
         )
         self.session.add(question)
-        await self.session.commit()
         await self.session.refresh(question)
 
         logger.info("MockService.create completed, question_id: %d", question.id)
@@ -432,7 +431,6 @@ class MockService:
         for field, value in update_data.items():
             setattr(question, field, value)
 
-        await self.session.commit()
         await self.session.refresh(question)
 
         logger.info("MockService.update completed, question_id: %d", question_id)
@@ -461,7 +459,6 @@ class MockService:
 
         # 删除
         await self.session.delete(question)
-        await self.session.commit()
 
         logger.info("MockService.delete completed, question_id: %d", question_id)
 

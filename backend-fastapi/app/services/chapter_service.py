@@ -221,7 +221,6 @@ class ChapterService:
             enabled=request.enabled
         )
         self.session.add(chapter)
-        await self.session.commit()
         await self.session.refresh(chapter)
 
         logger.info("ChapterService.create completed, chapter_id: %d", chapter.id)
@@ -304,7 +303,6 @@ class ChapterService:
         for field, value in update_data.items():
             setattr(chapter, field, value)
 
-        await self.session.commit()
         await self.session.refresh(chapter)
 
         logger.info("ChapterService.update completed, chapter_id: %d", chapter_id)
@@ -334,7 +332,6 @@ class ChapterService:
 
         # 删除章节（级联删除子章节，由数据库外键约束处理）
         await self.session.delete(chapter)
-        await self.session.commit()
 
         logger.info("ChapterService.delete completed, chapter_id: %d", chapter_id)
 

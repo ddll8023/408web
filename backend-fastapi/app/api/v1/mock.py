@@ -5,8 +5,7 @@
 """
 from typing import Optional, List
 from fastapi import APIRouter, Depends, Query, Path, status
-from sqlmodel.ext.asyncio.session import AsyncSession
-from app.database.connection import get_async_session
+from app.database.connection import SessionDep
 from app.services.mock_service import MockService
 from app.schemas.mock import (
     MockQueryParams,
@@ -31,6 +30,7 @@ router = APIRouter()
     description="支持多条件筛选、分页、排序"
 )
 async def get_mock_questions(
+    session: SessionDep,
     page: int = Query(default=1, ge=1, description="页码"),
     page_size: int = Query(default=10, ge=1, le=100, description="每页大小"),
     source: Optional[str] = Query(default=None, description="来源机构筛选"),
@@ -39,8 +39,7 @@ async def get_mock_questions(
     no_category: Optional[bool] = Query(default=None, description="是否筛选无分类"),
     keyword: Optional[str] = Query(default=None, description="关键词搜索"),
     sort_field: str = Query(default="update_time", description="排序字段"),
-    sort_order: str = Query(default="desc", description="排序方向"),
-    session: AsyncSession = Depends(get_async_session)
+    sort_order: str = Query(default="desc", description="排序方向")
 ) -> Response[PaginatedMockResponse]:
     """
     分页查询模拟题
@@ -70,10 +69,10 @@ async def get_mock_questions(
     description="查询指定来源机构的所有模拟题"
 )
 async def find_by_source(
+    session: SessionDep,
     source: str = Path(..., description="来源机构"),
     category: Optional[str] = Query(default=None, description="分类"),
-    subject_id: Optional[int] = Query(default=None, description="科目ID"),
-    session: AsyncSession = Depends(get_async_session)
+    subject_id: Optional[int] = Query(default=None, description="科目ID")
 ) -> Response[List[MockResponse]]:
     """
     根据来源查询模拟题
@@ -93,8 +92,8 @@ async def find_by_source(
     description="按来源机构统计模拟题数量"
 )
 async def get_source_stats(
-    category: Optional[str] = Query(default=None, description="分类筛选"),
-    session: AsyncSession = Depends(get_async_session)
+    session: SessionDep,
+    category: Optional[str] = Query(default=None, description="分类筛选")
 ) -> Response[List[MockSourceStatResponse]]:
     """
     获取来源统计
@@ -114,7 +113,7 @@ async def get_source_stats(
     description="获取所有不重复的来源机构列表"
 )
 async def get_all_sources(
-    session: AsyncSession = Depends(get_async_session)
+    session: SessionDep
 ) -> Response[MockSourcesResponse]:
     """
     获取来源列表
@@ -134,8 +133,8 @@ async def get_all_sources(
     description="查询指定科目下实际存在模拟题的分类列表"
 )
 async def find_categories_by_subject(
-    subject_id: int = Path(..., description="科目ID"),
-    session: AsyncSession = Depends(get_async_session)
+    session: SessionDep,
+    subject_id: int = Path(..., description="科目ID")
 ) -> Response[List[str]]:
     """
     查询科目下的分类列表
@@ -155,8 +154,8 @@ async def find_categories_by_subject(
     description="查询指定科目下实际存在模拟题的分类列表，包含每个分类的题目数量"
 )
 async def find_category_stats_by_subject(
-    subject_id: int = Path(..., description="科目ID"),
-    session: AsyncSession = Depends(get_async_session)
+    session: SessionDep,
+    subject_id: int = Path(..., description="科目ID")
 ) -> Response[MockCategoryStatsResponse]:
     """
     获取分类统计
@@ -176,7 +175,7 @@ async def find_category_stats_by_subject(
     description="按科目分组统计模拟题数量"
 )
 async def count_by_subject(
-    session: AsyncSession = Depends(get_async_session)
+    session: SessionDep
 ) -> Response[List[dict]]:
     """
     按科目统计模拟题数量
@@ -196,8 +195,8 @@ async def count_by_subject(
     description="获取指定来源下所有不重复的标题列表"
 )
 async def get_titles_by_source(
-    source: str = Path(..., description="来源机构"),
-    session: AsyncSession = Depends(get_async_session)
+    session: SessionDep,
+    source: str = Path(..., description="来源机构")
 ) -> Response[List[str]]:
     """
     根据来源查询标题列表
@@ -218,8 +217,8 @@ async def get_titles_by_source(
     description="根据ID查询模拟题详细信息"
 )
 async def get_mock_detail(
-    mock_id: int = Path(..., description="模拟题ID"),
-    session: AsyncSession = Depends(get_async_session)
+    session: SessionDep,
+    mock_id: int = Path(..., description="模拟题ID")
 ) -> Response[MockResponse]:
     """
     按ID查询模拟题详情
@@ -238,9 +237,9 @@ async def get_mock_detail(
     description="创建新模拟题，仅管理员可访问"
 )
 async def create_mock(
+    session: SessionDep,
     request: MockCreateRequest,
-    current_user: AuthUser = Depends(get_current_admin),
-    session: AsyncSession = Depends(get_async_session)
+    current_user: AuthUser = Depends(get_current_admin)
 ) -> Response[MockResponse]:
     """
     创建模拟题
@@ -260,10 +259,10 @@ async def create_mock(
     description="更新指定模拟题的信息，仅管理员可访问"
 )
 async def update_mock(
+    session: SessionDep,
     mock_id: int = Path(..., description="模拟题ID"),
     request: MockUpdateRequest = None,
-    current_user: AuthUser = Depends(get_current_admin),
-    session: AsyncSession = Depends(get_async_session)
+    current_user: AuthUser = Depends(get_current_admin)
 ) -> Response[MockResponse]:
     """
     更新模拟题
@@ -283,9 +282,9 @@ async def update_mock(
     description="删除指定模拟题，仅管理员可访问"
 )
 async def delete_mock(
+    session: SessionDep,
     mock_id: int = Path(..., description="模拟题ID"),
-    current_user: AuthUser = Depends(get_current_admin),
-    session: AsyncSession = Depends(get_async_session)
+    current_user: AuthUser = Depends(get_current_admin)
 ) -> Response[None]:
     """
     删除模拟题

@@ -3,8 +3,7 @@
 """
 from typing import List
 from fastapi import APIRouter, Depends, status
-from sqlmodel.ext.asyncio.session import AsyncSession
-from app.database.connection import get_async_session
+from app.database.connection import SessionDep
 from app.services.subject_service import SubjectService
 from app.schemas.subject import (
     SubjectCreateRequest,
@@ -24,7 +23,7 @@ router = APIRouter()
     description="查询所有启用状态的科目（带题目统计）"
 )
 async def get_subjects(
-    session: AsyncSession = Depends(get_async_session)
+    session: SessionDep
 ) -> Response[List[SubjectResponse]]:
     """
     查询启用科目列表
@@ -44,8 +43,8 @@ async def get_subjects(
     description="查询所有科目（包含禁用状态），仅管理员可访问"
 )
 async def get_all_subjects(
-    current_user: AuthUser = Depends(get_current_admin),
-    session: AsyncSession = Depends(get_async_session)
+    session: SessionDep,
+    current_user: AuthUser = Depends(get_current_admin)
 ) -> Response[List[SubjectResponse]]:
     """
     查询所有科目
@@ -66,7 +65,7 @@ async def get_all_subjects(
 )
 async def get_subject_by_id(
     subject_id: int,
-    session: AsyncSession = Depends(get_async_session)
+    session: SessionDep
 ) -> Response[SubjectResponse]:
     """
     按ID查询科目
@@ -90,7 +89,7 @@ async def get_subject_by_id(
 )
 async def get_subject_by_code(
     code: str,
-    session: AsyncSession = Depends(get_async_session)
+    session: SessionDep
 ) -> Response[SubjectResponse]:
     """
     按编码查询科目
@@ -114,9 +113,9 @@ async def get_subject_by_code(
     description="创建新科目，仅管理员可访问"
 )
 async def create_subject(
+    session: SessionDep,
     request: SubjectCreateRequest,
-    current_user: AuthUser = Depends(get_current_admin),
-    session: AsyncSession = Depends(get_async_session)
+    current_user: AuthUser = Depends(get_current_admin)
 ) -> Response[SubjectResponse]:
     """
     创建科目
@@ -141,10 +140,10 @@ async def create_subject(
     description="更新指定科目的信息，仅管理员可访问"
 )
 async def update_subject(
+    session: SessionDep,
     subject_id: int,
     request: SubjectUpdateRequest,
-    current_user: AuthUser = Depends(get_current_admin),
-    session: AsyncSession = Depends(get_async_session)
+    current_user: AuthUser = Depends(get_current_admin)
 ) -> Response[SubjectResponse]:
     """
     更新科目
@@ -170,9 +169,9 @@ async def update_subject(
     description="删除指定科目，仅管理员可访问"
 )
 async def delete_subject(
+    session: SessionDep,
     subject_id: int,
-    current_user: AuthUser = Depends(get_current_admin),
-    session: AsyncSession = Depends(get_async_session)
+    current_user: AuthUser = Depends(get_current_admin)
 ) -> Response[None]:
     """
     删除科目

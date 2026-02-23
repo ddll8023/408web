@@ -23,18 +23,23 @@ import {
   faTimes,
   faChevronDown,
   faChevronUp,
+  faChevronRight,
   faCopy,
+  faClipboard,
   faDownload,
   faUpload,
   faFolder,
   faFolderOpen,
   faBook,
+  faCode,
   faClock,
   faTag,
   faList,
+  faListOl,
   faBars,
   faEllipsisVertical,
   faStar,
+  faPencil,
   faEye,
   faEyeSlash,
   faLock,
@@ -65,7 +70,13 @@ import {
   faNetworkWired,
   faServer,
   faDatabase,
-  faMemory
+  faMemory,
+  faFile,
+  faFileLines,
+  faTicket,
+  faMagnifyingGlass,
+  faCompress,
+  faTriangleExclamation
 } from '@fortawesome/free-solid-svg-icons'
 import ElementPlus from 'element-plus'
 import 'element-plus/dist/index.css'
@@ -92,18 +103,23 @@ library.add(
   faTimes,
   faChevronDown,
   faChevronUp,
+  faChevronRight,
   faCopy,
+  faClipboard,
   faDownload,
   faUpload,
   faFolder,
   faFolderOpen,
   faBook,
+  faCode,
   faClock,
   faTag,
   faList,
+  faListOl,
   faBars,
   faEllipsisVertical,
   faStar,
+  faPencil,
   faEye,
   faEyeSlash,
   faLock,
@@ -134,7 +150,13 @@ library.add(
   faNetworkWired,
   faServer,
   faDatabase,
-  faMemory
+  faMemory,
+  faFile,
+  faFileLines,
+  faTicket,
+  faMagnifyingGlass,
+  faCompress,
+  faTriangleExclamation
 )
 
 // 创建Vue应用实例
@@ -151,5 +173,9 @@ app.use(ElementPlus)
 // 全局注册 FontAwesomeIcon 组件
 app.component('font-awesome-icon', FontAwesomeIcon)
 
-// 挂载应用
+// 预加载全局数据（在应用挂载后立即开始加载，不阻塞渲染）
+import { useSubjectsStore } from './stores/subjects'
 app.mount('#app')
+
+// 异步预加载科目数据（不影响首屏渲染）
+useSubjectsStore().loadSubjectOptions()

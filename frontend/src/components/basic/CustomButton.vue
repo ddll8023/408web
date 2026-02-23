@@ -10,12 +10,21 @@
       <span class="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full"></span>
     </span>
 
-    <!-- 图标 (Element Plus图标组件) -->
-    <component
-      v-if="icon && !loading"
-      :is="icon"
-      class="inline-flex items-center justify-center text-inherit w-[1em] h-[1em]"
-    />
+    <!-- 图标 -->
+    <template v-if="icon && !loading">
+      <!-- Element Plus 图标组件 -->
+      <component
+        v-if="isElementPlusIcon"
+        :is="icon"
+        class="inline-flex items-center justify-center text-inherit w-[1em] h-[1em]"
+      />
+      <!-- Font Awesome 图标 -->
+      <font-awesome-icon
+        v-else
+        :icon="icon"
+        class="inline-flex items-center justify-center text-inherit w-[1em] h-[1em]"
+      />
+    </template>
 
     <!-- 按钮文本 -->
     <span v-if="$slots.default" class="inline-flex items-center">
@@ -33,6 +42,15 @@
  * 遵循前端组件规范：使用baseClasses、sizeClasses、variantClasses三常量分离模式
  */
 import { computed } from 'vue'
+
+/**
+ * 判断是否为 Element Plus 图标组件
+ * Font Awesome 图标格式为数组: ['fas', 'icon-name']
+ * Element Plus 图标格式为对象（组件）
+ */
+const isElementPlusIcon = computed(() => {
+  return props.icon && typeof props.icon === 'object' && !Array.isArray(props.icon)
+})
 
 const props = defineProps({
   // 按钮类型
@@ -52,9 +70,9 @@ const props = defineProps({
     type: Boolean,
     default: false
   },
-  // 图标组件（Element Plus图标）
+  // 图标：支持 Element Plus 图标组件 或 Font Awesome 图标数组 ['fas', 'icon-name']
   icon: {
-    type: Object,
+    type: [Object, Array],
     default: null
   },
   // 是否禁用
@@ -76,9 +94,9 @@ const baseClasses = 'inline-flex items-center justify-center gap-2 font-medium r
 
 // 尺寸样式 - 覆盖基础样式中的尺寸
 const sizeClasses = {
-  sm: '!px-3.5 !py-2 !text-sm',
-  md: 'px-4 py-2.5 text-sm',
-  lg: '!px-6 !py-3 !text-base'
+  sm: '!px-3.5 !py-2 !text-base h-[36px]',
+  md: 'px-5 py-3 text-base h-[42px]',
+  lg: '!px-6 !py-3.5 !text-lg h-[48px]'
 }
 
 // 变体样式 - 使用项目中一致的颜色

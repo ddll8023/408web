@@ -3,8 +3,7 @@
 """
 from typing import List
 from fastapi import APIRouter, Depends, status
-from sqlmodel.ext.asyncio.session import AsyncSession
-from app.database.connection import get_async_session
+from app.database.connection import SessionDep
 from app.services.chapter_service import ChapterService
 from app.schemas.chapter import (
     ChapterCreateRequest,
@@ -26,7 +25,7 @@ router = APIRouter()
 )
 async def get_chapter_tree(
     subject_id: int,
-    session: AsyncSession = Depends(get_async_session)
+    session: SessionDep
 ) -> Response[List[ChapterTreeResponse]]:
     """
     查询启用章节树
@@ -51,9 +50,9 @@ async def get_chapter_tree(
     description="根据科目ID查询所有章节（包含禁用状态），仅管理员可访问"
 )
 async def get_all_chapter_tree(
+    session: SessionDep,
     subject_id: int,
-    current_user: AuthUser = Depends(get_current_admin),
-    session: AsyncSession = Depends(get_async_session)
+    current_user: AuthUser = Depends(get_current_admin)
 ) -> Response[List[ChapterTreeResponse]]:
     """
     查询所有章节树
@@ -80,7 +79,7 @@ async def get_all_chapter_tree(
 )
 async def get_chapter_by_id(
     chapter_id: int,
-    session: AsyncSession = Depends(get_async_session)
+    session: SessionDep
 ) -> Response[ChapterResponse]:
     """
     按ID查询章节
@@ -104,9 +103,9 @@ async def get_chapter_by_id(
     description="创建新章节，仅管理员可访问"
 )
 async def create_chapter(
+    session: SessionDep,
     request: ChapterCreateRequest,
-    current_user: AuthUser = Depends(get_current_admin),
-    session: AsyncSession = Depends(get_async_session)
+    current_user: AuthUser = Depends(get_current_admin)
 ) -> Response[ChapterResponse]:
     """
     创建章节
@@ -131,10 +130,10 @@ async def create_chapter(
     description="更新指定章节的信息，仅管理员可访问"
 )
 async def update_chapter(
+    session: SessionDep,
     chapter_id: int,
     request: ChapterUpdateRequest,
-    current_user: AuthUser = Depends(get_current_admin),
-    session: AsyncSession = Depends(get_async_session)
+    current_user: AuthUser = Depends(get_current_admin)
 ) -> Response[ChapterResponse]:
     """
     更新章节
@@ -160,9 +159,9 @@ async def update_chapter(
     description="删除指定章节及其子章节，仅管理员可访问"
 )
 async def delete_chapter(
+    session: SessionDep,
     chapter_id: int,
-    current_user: AuthUser = Depends(get_current_admin),
-    session: AsyncSession = Depends(get_async_session)
+    current_user: AuthUser = Depends(get_current_admin)
 ) -> Response[None]:
     """
     删除章节

@@ -2,7 +2,7 @@
 分类管理模块请求与响应模型
 """
 from typing import Optional, List
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 class ExamCategoryCreateRequest(BaseModel):
@@ -156,6 +156,12 @@ class ExamCategoryTreeResponse(BaseModel):
         description="题目数量（统计）",
         examples=[10]
     )
+    # 驼峰命名别名，供前端使用
+    questionCount: Optional[int] = Field(
+        default=None,
+        description="题目数量（驼峰命名）",
+        examples=[10]
+    )
     children: List["ExamCategoryTreeResponse"] = Field(
         default_factory=list,
         description="子分类列表"
@@ -164,6 +170,16 @@ class ExamCategoryTreeResponse(BaseModel):
     model_config = {
         "from_attributes": True
     }
+
+    @model_validator(mode='before')
+    @classmethod
+    def copy_question_count(cls, data):
+        """自动从 question_count 复制到 questionCount"""
+        if isinstance(data, dict):
+            # 如果 questionCount 为空且 question_count 有值，则复制
+            if data.get('questionCount') is None and 'question_count' in data:
+                data['questionCount'] = data['question_count']
+        return data
 
 
 class ExamCategoryStatResponse(BaseModel):

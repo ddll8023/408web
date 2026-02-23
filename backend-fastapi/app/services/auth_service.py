@@ -55,7 +55,6 @@ class AuthService:
             enabled=True
         )
         self.session.add(user)
-        await self.session.commit()
 
         logger.info("AuthService.register completed for username: %s", request.username)
 

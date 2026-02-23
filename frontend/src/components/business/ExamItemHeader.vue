@@ -1,25 +1,23 @@
 <template>
-  <div class="exam-item-header flex items-center justify-between mb-6 pb-4 border-b border-black/[0.03]">
-    <div class="question-info flex-1">
-      <h3 class="question-title m-0 text-lg text-gray-800 font-semibold flex items-center gap-3">
-        <span class="question-number text-[#8B6F47] font-mono">{{ exam.year }}年 第 {{ exam.questionNumber }} 题</span>
+  <div class="flex items-center justify-between mb-6 pb-4 border-b border-black/[0.03]">
+    <div class="flex-1">
+      <h3 class="text-lg font-semibold text-gray-800 flex items-center gap-3 m-0">
+        <span class="text-[#8B6F47] font-mono">{{ exam.year }}年 第 {{ exam.questionNumber }} 题</span>
       </h3>
-      <div class="question-meta flex gap-2 flex-wrap mt-2">
-        <el-tag size="small" :type="exam.questionType === 'CHOICE' ? 'success' : 'primary'">
+      <div class="flex gap-2 flex-wrap mt-2">
+        <Tag :variant="exam.questionType === 'CHOICE' ? 'success' : 'primary'">
           {{ exam.questionType === 'CHOICE' ? '选择题' : '主观题' }}
-        </el-tag>
-        <el-tag
+        </Tag>
+        <Tag
           v-for="cat in (Array.isArray(exam.category) ? exam.category : [])"
           :key="cat"
-          size="small"
-          type="info"
+          variant="info"
         >
           {{ cat }}
-        </el-tag>
+        </Tag>
       </div>
     </div>
-    <div class="question-actions flex gap-1 opacity-80 transition-opacity duration-200 hover:opacity-100">
-      <!-- 公共复制菜单组件 -->
+    <div class="flex gap-1 opacity-80 transition-opacity duration-200 hover:opacity-100">
       <QuestionCopyMenu :question="exam" @copy="(command) => $emit('copy', command)" />
       <template v-if="isAdmin">
         <CustomButton size="sm" type="text" @click="$emit('edit', exam)">编辑</CustomButton>
@@ -30,9 +28,18 @@
 </template>
 
 <script setup>
+/**
+ * 题目头部组件
+ * 功能描述：显示题目年份、题号、类型标签和操作按钮
+ * 依赖组件：CustomButton, QuestionCopyMenu, Tag
+ */
+
+// 1. 子组件导入
 import CustomButton from '@/components/basic/CustomButton.vue'
 import QuestionCopyMenu from '@/components/business/QuestionCopyMenu.vue'
+import Tag from '@/components/basic/Tag.vue'
 
+// 2. Props 定义
 defineProps({
   exam: {
     type: Object,
@@ -44,6 +51,7 @@ defineProps({
   }
 })
 
+// 3. Emits 定义
 defineEmits(['copy', 'edit', 'delete'])
 </script>
 
@@ -53,20 +61,12 @@ defineEmits(['copy', 'edit', 'delete'])
  * 使用纯CSS样式，兼容Tailwind CSS 4
  */
 
-/* 头部容器 - 使用Tailwind类名在template中已实现 */
-
-/* 标题 - 使用Tailwind类名在template中已实现 */
-
 .question-title .question-subtitle {
   margin-left: 12px;
   font-size: 16px;
   font-weight: 400;
   color: #999;
 }
-
-/* 元数据 - 使用Tailwind类名在template中已实现 */
-
-/* 操作按钮 - 使用Tailwind类名在template中已实现 */
 
 /* 响应式布局 */
 @media (max-width: 768px) {

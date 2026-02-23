@@ -2,8 +2,9 @@
 数据库连接与会话管理模块
 使用 SQLModel + aiosqlite 实现异步数据库操作
 """
-from typing import AsyncGenerator
+from typing import Annotated, AsyncGenerator
 from contextlib import asynccontextmanager
+from fastapi import Depends
 from sqlmodel import SQLModel, Session, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 from sqlalchemy.ext.asyncio import create_async_engine
@@ -82,3 +83,12 @@ async def get_session_context() -> AsyncGenerator[AsyncSession, None]:
 def get_db_url() -> str:
     """获取数据库连接 URL"""
     return DATABASE_URL
+
+
+# ============================================
+# 依赖注入类型别名（官方推荐写法）
+# ============================================
+# 使用 Annotated 简化依赖注入，参考 FastAPI 官方文档
+# 用法：session: SessionDep
+# ============================================
+SessionDep = Annotated[AsyncSession, Depends(get_async_session)]

@@ -5,9 +5,40 @@
 import logging
 import os
 import sys
+import shutil
 from datetime import datetime
 from logging.handlers import TimedRotatingFileHandler
 from typing import Optional
+
+
+class WindowsCompatibleTimedRotatingFileHandler(TimedRotatingFileHandler):
+    """Windows 兼容的时间轮转文件处理器
+
+    解决 Windows 上文件被占用时无法重命名的问题，
+    使用 copy + truncate 替代 rename
+    """
+
+    def rotate(self, source: str, dest: str) -> None:
+        """轮转日志文件
+
+        Windows 兼容方式：先关闭文件句柄，然后使用 copy + truncate
+
+        Args:
+            source: 源日志文件路径
+            dest: 目标日志文件路径
+        """
+        # 先关闭当前的文件句柄
+        self.close()
+
+        try:
+            # 复制源文件到目标文件
+            shutil.copy(source, dest)
+            # 清空源文件（保留文件句柄）
+            with open(source, 'w', encoding=self.encoding) as f:
+                f.truncate(0)
+        except Exception:
+            # 如果复制失败，尝试使用父类方法
+            super().rotate(source, dest)
 
 
 def get_base_dir():
@@ -87,11 +118,11 @@ def setup_logger(
         console_handler.setFormatter(formatter)
         logger.addHandler(console_handler)
 
-    # 文件处理器 - 使用时间轮转
+    # 文件处理器 - 使用时间轮转 (Windows 兼容版本)
     if log_file is None:
         log_file = datetime.now().strftime("%Y-%m-%d") + ".log"
     file_path = os.path.join(LOG_DIR, log_file)
-    file_handler = TimedRotatingFileHandler(
+    file_handler = WindowsCompatibleTimedRotatingFileHandler(
         filename=file_path,
         when=rotation_when,
         interval=rotation_interval,

@@ -8,8 +8,9 @@
 - **语言版本**: Python 3.10+
 - **Web框架**: FastAPI
 - **数据验证**: Pydantic V2
-- **ORM框架**: SQLAlchemy 2.0+ (Async)
-- **数据库驱动**: aiomysql (必须使用此驱动以支持异步 I/O)
+- **ORM框架**: SQLModel (基于 SQLAlchemy 2.0+)
+- **数据库**: 支持 SQLite（开发/测试）、MySQL/PostgreSQL（生产）
+- **数据库驱动**: aiosqlite（SQLite）、aiomysql（MySQL）
 - **包/环境管理**: conda + requirements.txt
 
 ## 3. 项目结构规范
@@ -36,8 +37,40 @@
 - **HTTP方法**:
     - `GET`: 获取资源。
     - `POST`: 创建资源。
+    - `PUT` / `PATCH`: 更新资源。
+    - `DELETE`: 删除资源。
 - **响应模型**: 必须在路由装饰器中指定 `response_model`，利用 Pydantic 自动过滤数据。
-- **依赖注入**: 数据库 Session、当前用户等必须通过 `Depends()` 注入，严禁使用全局变量。
+- **依赖注入**: 数据库 Session、当前用户等必须通过 `Depends()` 或 `Annotated` 注入，严禁使用全局变量。
+
+### 5.1 依赖注入写法（官方推荐）
+
+FastAPI 官方推荐使用 `Annotated` 简化依赖注入：
+
+```python
+from typing import Annotated
+from fastapi import Depends
+
+# 定义依赖类型别名
+SessionDep = Annotated[AsyncSession, Depends(get_async_session)]
+
+# 在路由函数中使用
+async def get_items(session: SessionDep):
+    pass
+```
+
+### 5.2 Router 函数签名示例
+
+```python
+@router.get("/items", response_model=Response[ItemListResponse])
+async def get_items(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(10, ge=1, le=100),
+    session: AsyncSession = Depends(get_async_session)
+) -> Response[ItemListResponse]:
+    """分页获取列表"""
+    service = ItemService(session)
+    return await service.get_paginated(page, page_size)
+```
 
 ## 6. 数据模型规范 (Schemas)
 - **职责**: 仅定义全局统一的 **响应模板** (Response Template) 和 **分页模板** (Pagination Template)。
@@ -45,29 +78,93 @@
 - **验证**: 侧重于响应数据的标准化格式 (如 `code`, `msg`, `data`)。
 
 ## 7. 数据库层规范 (Models & Services)
-连接配置 (Critical):
 
-数据库连接字符串必须使用异步协议头：mysql+aiomysql://user:password@host/db。
+### 7.1 数据库连接配置
 
-严禁使用默认的同步驱动（如 pymysql 或 mysql-connector），否则会阻塞整个 Event Loop。
+**支持多种数据库驱动**：
+
+| 数据库 | 驱动 | 连接字符串示例 |
+|--------|------|--------------|
+| SQLite（开发/测试） | aiosqlite | `sqlite+aiosqlite:///./data/web408.db` |
+| MySQL（生产） | aiomysql | `mysql+aiomysql://user:password@host/db` |
+| PostgreSQL（生产） | asyncpg | `postgresql+asyncpg://user:password@host/db` |
+
+**注意**：严禁使用同步驱动（如 pymysql、psycopg2），否则会阻塞整个 Event Loop。
+
+### 7.2 Session 依赖注入（官方推荐方式）
+
+根据 FastAPI 官方文档，推荐使用 `yield` 的依赖注入函数管理 Session 生命周期：
+
+```python
+from typing import Annotated, Generator
+from fastapi import Depends
+from sqlmodel import Session, create_engine
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+
+# 数据库引擎（全局单例）
+engine = create_async_engine(DATABASE_URL, echo=False)
+
+def get_session() -> Generator[Session, None, None]:
+    """官方推荐的 Session 依赖注入方式"""
+    with Session(engine) as session:
+        try:
+            yield session
+            session.commit()  # commit 在 yield 后自动执行
+        except Exception:
+            session.rollback()
+            raise
+        finally:
+            session.close()
+
+# 使用 Annotated 简化依赖注入
+SessionDep = Annotated[Session, Depends(get_session)]
+```
+
+### 7.3 ORM 模型规范
 
 ORM 模型:
 
-继承 SQLAlchemy 的 DeclarativeBase。
+继承 SQLModel 的 BaseModel。
 
 必须显式定义 __tablename__。
 
-推荐使用 Mapped Column 类型注解语法。
+推荐使用字段类型注解语法（如 `Field`, `Mapped`）。
 
-数据库操作 (Services):
+### 7.4 Service 层事务管理
+
+**采用依赖层统一管理事务（FastAPI 官方推荐方式）**：
+- 依赖注入函数中自动 commit/rollback
+- Service 层不需要关心 commit
+- 优点：代码简洁，事务自动管理
+
+```python
+# 依赖层（推荐使用 async 版本）
+async def get_async_session() -> AsyncGenerator[AsyncSession, None]:
+    async with AsyncSession(engine) as session:
+        try:
+            yield session
+            await session.commit()  # 自动提交
+        except Exception:
+            await session.rollback()
+            raise
+        finally:
+            await session.close()
+
+# Service 层（无需手动 commit）
+async def create(self, session: AsyncSession, request: CreateRequest):
+    entity = MyModel(...)
+    session.add(entity)
+    # 无需手动 commit，依赖层会自动处理
+    return entity
+```
+
+### 7.5 数据库操作规范
 
 所有业务逻辑和数据库交互都在 app/services 中实现。
 
 必须使用 Async/Await 异步语法。
 
 使用 SQLAlchemy 2.0 风格的构建器 (select, insert, update, delete)。
-
-避免 session.commit() 散落在各处，建议在 Request 结束时的依赖中统一提交，或使用 Context Manager。
 
 ## 8. 异常处理规范
 - **HTTP 异常**: 业务逻辑错误必须抛出 `HTTPException`，指定准确的状态码 (400/401/403/404)。

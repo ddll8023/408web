@@ -3,91 +3,85 @@
     <!-- 顶部标题栏 -->
     <div class="year-nav-header h-14 flex items-center justify-between px-4 border-b border-black/[0.05] flex-shrink-0 gap-2">
       <div class="toggle-btn w-8 h-8 flex items-center justify-center rounded-md cursor-pointer text-[#8B6F47] transition-all duration-200 flex-shrink-0 hover:bg-black/[0.05]" @click="toggleCollapse">
-        <el-icon :size="20">
-          <DArrowRight v-if="isCollapsed" />
-          <DArrowLeft v-else />
-        </el-icon>
+        <font-awesome-icon :icon="isCollapsed ? 'angle-right' : 'angle-left'" class="text-lg" />
       </div>
       <transition name="fade">
         <span class="header-title font-semibold text-base text-[#8B6F47] whitespace-nowrap overflow-hidden flex-1" v-if="!isCollapsed">年份导航</span>
       </transition>
       <div class="header-actions flex items-center gap-2 flex-shrink-0">
         <div class="collapse-all-btn flex items-center gap-1 px-2 py-1 rounded cursor-pointer text-gray-400 text-[13px] transition-all duration-200 whitespace-nowrap hover:bg-black/[0.05] hover:text-[#8B6F47]" @click="collapseAll" v-if="!isCollapsed">
-          <el-icon><Fold /></el-icon>
+          <font-awesome-icon icon="compress" class="text-sm" />
           <span>全部折叠</span>
         </div>
       </div>
     </div>
 
     <!-- 年份列表 -->
-    <div class="year-list-scroll flex-1 overflow-y-auto px-2 py-3" v-show="!isCollapsed" v-loading="loading">
-      <div
-        v-for="yearData in yearList"
-        :key="yearData.year"
-        class="year-group mb-1"
-      >
-        <!-- 年份标题 -->
+    <div class="year-list-scroll flex-1 overflow-y-auto px-2 py-3" v-show="!isCollapsed">
+      <!-- 加载状态 -->
+      <div v-if="loading" class="flex items-center justify-center h-32">
+        <font-awesome-icon icon="spinner" class="fa-spin text-[#8B6F47] text-xl" />
+      </div>
+      <!-- 实际内容 -->
+      <template v-else>
         <div
-          class="year-title-item px-2 mb-0.5 rounded-lg cursor-pointer transition-all duration-200"
-          :class="{ active: activeYear === yearData.year }"
+          v-for="yearData in yearList"
+          :key="yearData.year"
+          class="year-group mb-1"
         >
-          <div class="title-content flex items-center h-11 px-2 w-full" @click="handleYearClick(yearData.year)">
-            <div class="icon-area flex items-center justify-center w-6 h-6 mr-1 rounded transition-bg duration-200 hover:bg-black/[0.05]" @click.stop="toggleYear(yearData.year)">
-              <el-icon class="expand-icon text-sm transition-transform duration-300 text-gray-400" :class="{ 'is-expanded': expandedYears.includes(yearData.year) }">
-                <CaretRight />
-              </el-icon>
+          <!-- 年份标题 -->
+          <div
+            class="year-title-item px-2 mb-0.5 rounded-lg cursor-pointer transition-all duration-200"
+            :class="{ active: activeYear === yearData.year }"
+          >
+            <div class="title-content flex items-center h-11 px-2 w-full" @click="handleYearClick(yearData.year)">
+              <div class="icon-area flex items-center justify-center w-6 h-6 mr-1 rounded transition-bg duration-200 hover:bg-black/[0.05]" @click.stop="toggleYear(yearData.year)">
+                <font-awesome-icon icon="chevron-right" class="expand-icon text-sm transition-transform duration-300 text-gray-400" :class="{ 'is-expanded': expandedYears.includes(yearData.year) }" />
+              </div>
+              <span class="year-text flex-1 text-[15px] text-gray-800">{{ yearData.year }}年</span>
+              <span class="count-badge text-xs text-gray-400 bg-black/[0.05] px-1.5 py-0.5 rounded-full">{{ yearData.exams.length }}</span>
             </div>
-            <span class="year-text flex-1 text-[15px] text-gray-800">{{ yearData.year }}年</span>
-            <span class="count-badge text-xs text-gray-400 bg-black/[0.05] px-1.5 py-0.5 rounded-full">{{ yearData.exams.length }}</span>
           </div>
+
+          <!-- 题目列表 -->
+          <Transition name="expand">
+            <div
+              v-if="expandedYears.includes(yearData.year)"
+              class="exam-sub-list mt-0.5 pb-1"
+            >
+              <div
+                v-for="exam in yearData.exams"
+                :key="exam.id"
+                class="exam-sub-item flex items-center h-9 px-3 pl-9 mb-0.5 rounded-md cursor-pointer text-gray-500 text-[13px] transition-all duration-200"
+                :class="{ active: activeExamId === exam.id }"
+                @click="handleExamClick(exam)"
+              >
+                <font-awesome-icon icon="file-lines" class="exam-icon mr-2 text-sm opacity-70" />
+                <span class="exam-title flex-1 whitespace-nowrap overflow-hidden text-ellipsis">{{ getExamDisplayText(exam) }}</span>
+              </div>
+            </div>
+          </Transition>
         </div>
 
-        <!-- 题目列表 -->
-        <el-collapse-transition>
-          <div
-            v-if="expandedYears.includes(yearData.year)"
-            class="exam-sub-list mt-0.5 pb-1"
-          >
-            <div
-              v-for="exam in yearData.exams"
-              :key="exam.id"
-              class="exam-sub-item flex items-center h-9 px-3 pl-9 mb-0.5 rounded-md cursor-pointer text-gray-500 text-[13px] transition-all duration-200"
-              :class="{ active: activeExamId === exam.id }"
-              @click="handleExamClick(exam)"
-            >
-              <el-icon class="exam-icon mr-2 text-sm opacity-70"><Document /></el-icon>
-              <span class="exam-title flex-1 whitespace-nowrap overflow-hidden text-ellipsis">{{ getExamDisplayText(exam) }}</span>
-            </div>
-          </div>
-        </el-collapse-transition>
-      </div>
-
-      <!-- 空状态提示 -->
-      <div v-if="!loading && yearList.length === 0" class="empty-state flex flex-col items-center justify-center gap-2 p-8 text-gray-400 text-xs">
-        <el-icon><WarningFilled /></el-icon>
-        <span>暂无真题数据</span>
-      </div>
+        <!-- 空状态提示 -->
+        <div v-if="yearList.length === 0" class="empty-state flex flex-col items-center justify-center gap-2 p-8 text-gray-400 text-xs">
+          <font-awesome-icon icon="triangle-exclamation" class="text-lg text-orange-400" />
+          <span>暂无真题数据</span>
+        </div>
+      </template>
     </div>
   </div>
 </template>
 
 <script setup>
 /**
- * 年份导航栏组件
- * 功能：展示可展开/折叠的年份导航，支持题目选择
- * 遵循KISS原则：简单的树形结构导航
- * 
- * Props:
- * - yearList: 年份数据数组，格式：[{ year, exams: [{ id, title, questionNumber }] }]
- * - activeYear: 当前激活的年份
- * - activeExamId: 当前激活的题目ID
- * - loading: 加载状态
- * 
- * Events:
- * - exam-select: 题目被选中时触发
+ * YearNav 年份导航栏
+ * 功能描述：展示可展开/折叠的年份导航，支持题目选择
+ * 依赖组件：无
  */
+
+// 1. Vue 官方 API
 import { ref, watch } from 'vue'
-import { WarningFilled, DArrowLeft, DArrowRight, CaretRight, Document, Fold } from '@element-plus/icons-vue'
 
 const props = defineProps({
   // 年份数据，格式：[{ year: 2024, exams: [{ id, title, questionNumber, category }] }]
@@ -225,10 +219,6 @@ watch(() => props.activeYear, (newYear) => {
 
 /* 全部折叠按钮 - 使用Tailwind类名在template中已实现 */
 
-.collapse-all-btn .el-icon {
-  font-size: 14px;
-}
-
 /* 年份列表滚动容器 - 使用Tailwind类名在template中已实现 */
 
 /* 自定义滚动条 */
@@ -297,11 +287,6 @@ watch(() => props.activeYear, (newYear) => {
 
 /* 空状态 - 使用Tailwind类名在template中已实现 */
 
-.empty-state .el-icon {
-  font-size: 20px;
-  color: #fb923c;
-}
-
 /* 淡入淡出动画 */
 .fade-enter-active,
 .fade-leave-active {
@@ -311,6 +296,25 @@ watch(() => props.activeYear, (newYear) => {
 .fade-enter-from,
 .fade-leave-to {
   opacity: 0;
+}
+
+/* 展开/折叠动画 */
+.expand-enter-active,
+.expand-leave-active {
+  transition: all 0.3s ease;
+  overflow: hidden;
+}
+
+.expand-enter-from,
+.expand-leave-to {
+  opacity: 0;
+  max-height: 0;
+}
+
+.expand-enter-to,
+.expand-leave-from {
+  opacity: 1;
+  max-height: 500px;
 }
 
 /* 响应式布局 */

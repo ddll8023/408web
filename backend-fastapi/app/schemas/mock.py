@@ -195,7 +195,7 @@ class MockDuplicateCheckResponse(BaseModel):
 
 class PaginatedMockResponse(BaseModel):
     """模拟题分页响应"""
-    data_list: List[MockResponse] = Field(default_factory=list, description="数据列表")
+    data: List[MockResponse] = Field(default_factory=list, description="数据列表")
     total: int = Field(..., description="总记录数")
     page: int = Field(..., description="当前页码")
     page_size: int = Field(..., description="每页大小")

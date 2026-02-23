@@ -3,26 +3,27 @@
     <div class="nav-container h-full flex items-center justify-between px-8">
       <!-- 搜索区域 - 靠左 -->
       <div class="nav-search flex items-center justify-start relative bg-transparent">
-        <el-select
+        <Select
           v-model="searchType"
-          class="search-type-select w-[90px]"
+          class="w-[90px] flex-shrink-0"
+          :options="searchTypeOptions"
           placeholder="类型"
-        >
-          <el-option label="真题" value="exam" />
-          <el-option label="模拟题" value="mock" />
-        </el-select>
+        />
         <span class="search-divider w-px h-5 bg-black/[0.12] mx-2"></span>
-        <el-input
-          v-model="searchKeyword"
-          class="search-input w-[180px] transition-all duration-300"
-          placeholder="搜索题目..."
-          clearable
-          @keyup.enter="handleSearch"
-        >
-          <template #suffix>
-            <el-icon class="search-icon text-gray-400 text-sm p-1.5 rounded-full transition-all duration-200 cursor-pointer hover:text-[#8B6F47] hover:bg-[rgba(139,111,71,0.1)] hover:scale-110 active:scale-95" @click="handleSearch"><Search /></el-icon>
-          </template>
-        </el-input>
+        <div class="search-input-wrapper relative flex items-center flex-1">
+          <input
+            v-model="searchKeyword"
+            type="text"
+            class="w-full h-full bg-transparent border-none outline-none text-base text-gray-700 placeholder-gray-400"
+            placeholder="搜索题目..."
+            @keyup.enter="handleSearch"
+          />
+          <font-awesome-icon
+            :icon="['fas', 'magnifying-glass']"
+            class="search-icon text-gray-400 text-sm p-1.5 rounded-full transition-all duration-200 cursor-pointer hover:text-[#8B6F47] hover:bg-[rgba(139,111,71,0.1)] hover:scale-110 active:scale-95"
+            @click="handleSearch"
+          />
+        </div>
       </div>
 
       <!-- 导航菜单 -->
@@ -40,22 +41,23 @@
         <span class="nav-link disabled text-gray-400 cursor-not-allowed">资源</span>
 
         <!-- 管理菜单（仅ADMIN可见） -->
-        <el-dropdown v-if="authStore.isAdmin()" @command="handleManageCommand" trigger="hover">
-          <span class="nav-link dropdown-trigger inline-flex items-center cursor-pointer select-none text-gray-800 no-underline text-base px-6 py-2.5 rounded transition-all duration-300">
-            管理
-            <el-icon class="el-icon--right ml-1.5 text-xs transition-transform duration-150"><ArrowDown /></el-icon>
-          </span>
-          <template #dropdown>
-            <el-dropdown-menu>
-              <el-dropdown-item command="subject">科目管理</el-dropdown-item>
-              <el-dropdown-item command="category">分类标签管理</el-dropdown-item>
-              <el-dropdown-item command="exam">真题管理</el-dropdown-item>
-              <el-dropdown-item command="mock">模拟题管理</el-dropdown-item>
-              <el-dropdown-item command="image">图片管理</el-dropdown-item>
-              <el-dropdown-item command="exam-category">分类统计</el-dropdown-item>
-            </el-dropdown-menu>
+        <Dropdown v-if="authStore.isAdmin()" trigger="hover" @command="handleManageCommand">
+          <template #trigger>
+            <span class="nav-link dropdown-trigger inline-flex items-center cursor-pointer select-none text-gray-800 no-underline text-base px-6 py-2.5 rounded transition-all duration-300">
+              管理
+              <font-awesome-icon :icon="['fas', 'chevron-down']" class="ml-1.5 text-xs transition-transform duration-150" />
+            </span>
           </template>
-        </el-dropdown>
+
+          <template #dropdown>
+            <div class="dropdown-item" :data-command="'subject'">科目管理</div>
+            <div class="dropdown-item" :data-command="'category'">分类标签管理</div>
+            <div class="dropdown-item" :data-command="'exam'">真题管理</div>
+            <div class="dropdown-item" :data-command="'mock'">模拟题管理</div>
+            <div class="dropdown-item" :data-command="'image'">图片管理</div>
+            <div class="dropdown-item" :data-command="'exam-category'">分类统计</div>
+          </template>
+        </Dropdown>
       </div>
 
       <!-- 用户信息区域 -->
@@ -79,22 +81,55 @@
  * 功能：统一的导航菜单、用户信息展示、路由跳转
  * 遵循KISS原则：简洁的导航栏设计
  * 使用自定义Button组件替代Element Plus
- * 
- * Source: Element Plus Dropdown 组件
+ * 使用自定义Dropdown组件替代Element Plus
  */
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
 import { useAuthStore } from '@/stores/auth'
 import CustomButton from '@/components/basic/CustomButton.vue'
-import { ArrowDown, Search } from '@element-plus/icons-vue'
+import Dropdown from '@/components/basic/Dropdown.vue'
+import Select from '@/components/basic/Select.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
 
+// 搜索类型选项
+const searchTypeOptions = [
+  { label: '真题', value: 'exam' },
+  { label: '模拟题', value: 'mock' }
+]
+
 // 搜索相关状态
 const searchType = ref('exam')  // 默认搜索真题
 const searchKeyword = ref('')
+
+/**
+ * 显示消息提示
+ * @param {string} message - 提示消息
+ * @param {string} type - 消息类型 success/warning/error/info
+ */
+const showToast = (message, type = 'warning') => {
+  const colors = {
+    success: 'bg-green-500',
+    warning: 'bg-yellow-500',
+    error: 'bg-red-500',
+    info: 'bg-blue-500'
+  }
+
+  const toast = document.createElement('div')
+  toast.className = `fixed top-20 right-4 ${colors[type]} text-white px-4 py-2 rounded-lg shadow-lg z-[9999] transition-opacity duration-300`
+  toast.textContent = message
+  document.body.appendChild(toast)
+
+  requestAnimationFrame(() => {
+    toast.classList.remove('opacity-0')
+  })
+
+  setTimeout(() => {
+    toast.classList.add('opacity-0')
+    setTimeout(() => toast.remove(), 300)
+  }, 3000)
+}
 
 /**
  * 处理搜索
@@ -102,16 +137,16 @@ const searchKeyword = ref('')
  */
 const handleSearch = () => {
   if (!searchKeyword.value.trim()) {
-    ElMessage.warning('请输入搜索关键词')
+    showToast('请输入搜索关键词', 'warning')
     return
   }
-  
+
   // 根据类型跳转到对应的管理页面
   const routeMap = {
     exam: '/manage/exam',
     mock: '/manage/mock'
   }
-  
+
   router.push({
     path: routeMap[searchType.value],
     query: { keyword: searchKeyword.value.trim() }
@@ -164,7 +199,7 @@ const handleManageCommand = (command) => {
  */
 const handleLogout = () => {
   authStore.clearAuth()
-  ElMessage.success('已退出登录')
+  showToast('已退出登录', 'success')
   router.push('/exam')
 }
 </script>
@@ -172,79 +207,52 @@ const handleLogout = () => {
 <style scoped>
 /**
  * 导航栏组件样式
- * 使用@apply提取公共样式，符合前端规范
  */
 
-/* 导航栏容器 - 使用@apply提取 */
+/* 导航栏容器 */
 .nav-container {
-  @apply max-w-[1400px] mx-auto;
+  max-width: 1400px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 /* 搜索区域 - 固定宽度防止挤压 */
 .nav-search {
-  @apply flex-shrink-0 w-[280px];
+  flex-shrink: 0;
+  width: 280px;
 }
 
 /* 导航菜单 - 自适应宽度 */
 .nav-menu {
-  @apply flex-1;
+  flex: 1;
 }
 
 /* 用户区域 - 固定宽度防止挤压 */
 .nav-user {
-  @apply flex-shrink-0 w-[180px];
+  flex-shrink: 0;
+  width: 180px;
 }
 
-/* 搜索相关样式 - 需要保留的自定义样式 */
-.nav-search .search-type-select :deep(.el-input__wrapper) {
-  border: none;
-  box-shadow: none;
-  background: transparent;
-  padding-left: 0;
+/* 搜索输入框容器 */
+.search-input-wrapper {
+  height: 42px;
 }
 
-.nav-search .search-type-select :deep(.el-input__inner) {
-  font-size: 14px;
-  color: #666;
+/* 搜索输入框样式 */
+.search-input-wrapper input {
+  transition: all 0.3s;
 }
 
-.nav-search .search-type-select :deep(.el-input__inner)::placeholder {
-  color: #999;
+.search-input-wrapper input:focus {
+  outline: none;
 }
 
-.nav-search .search-type-select :deep(.el-input__suffix) {
-  color: #999;
+.search-input-wrapper input::placeholder {
+  color: #9ca3af;
 }
 
-.nav-search .search-type-select :deep(.el-select__caret) {
-  color: #999;
-  transition: all 0.15s;
-}
-
-.nav-search .search-type-select:hover :deep(.el-select__caret) {
-  color: #8B6F47;
-}
-
-/* 输入框样式 */
-.search-input :deep(.el-input__wrapper) {
-  border: none;
-  box-shadow: none;
-  background: transparent;
-  padding-right: 4px;
-}
-
-.search-input :deep(.el-input__inner) {
-  font-size: 14px;
-  color: #333;
-}
-
-.search-input :deep(.el-input__inner)::placeholder {
-  color: #999;
-  transition: all 0.15s;
-}
-
-/* 聚焦时展开 - 使用CSS类 */
-.search-input:focus-within {
+/* 聚焦时展开 */
+.search-input-wrapper:focus-within {
   width: 220px;
 }
 
@@ -308,11 +316,11 @@ const handleLogout = () => {
     justify-content: flex-end;
   }
 
-  .search-input {
+  .search-input-wrapper {
     width: 120px;
   }
 
-  .search-input:focus-within {
+  .search-input-wrapper:focus-within {
     width: 150px;
   }
 

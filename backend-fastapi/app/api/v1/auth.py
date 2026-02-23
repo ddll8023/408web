@@ -2,8 +2,7 @@
 认证模块路由
 """
 from fastapi import APIRouter, Depends, status
-from sqlmodel.ext.asyncio.session import AsyncSession
-from app.database.connection import get_async_session
+from app.database.connection import SessionDep
 from app.services.auth_service import AuthService
 from app.schemas.auth import RegisterRequest, LoginRequest, AuthResponse
 from app.schemas.common import Response
@@ -20,7 +19,7 @@ router = APIRouter()
 )
 async def register(
     request: RegisterRequest,
-    session: AsyncSession = Depends(get_async_session)
+    session: SessionDep
 ) -> Response[None]:
     """
     用户注册接口
@@ -46,7 +45,7 @@ async def register(
 )
 async def login(
     request: LoginRequest,
-    session: AsyncSession = Depends(get_async_session)
+    session: SessionDep
 ) -> Response[AuthResponse]:
     """
     用户登录接口

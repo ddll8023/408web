@@ -4,19 +4,20 @@
       <template #header>
         <div class="flex items-center justify-between">
           <h2 class="m-0 text-xl text-[#333] font-semibold">真题分类统计</h2>
-          <el-dropdown trigger="click" @command="handleExportCommand">
-            <CustomButton type="success">
-              <el-icon style="margin-right: 6px"><Download /></el-icon>
-              导出统计
-            </CustomButton>
-            <template #dropdown>
-              <el-dropdown-menu>
-                <el-dropdown-item command="markdown-no-answer">导出为 Markdown（不含答案）</el-dropdown-item>
-                <el-dropdown-item command="markdown-with-answer">导出为 Markdown（含答案）</el-dropdown-item>
-                <el-dropdown-item command="xlsx">导出为 Excel 文件 (.xlsx)</el-dropdown-item>
-              </el-dropdown-menu>
+          <Dropdown trigger="click" @command="handleExportCommand">
+            <template #trigger>
+              <CustomButton type="success">
+                <font-awesome-icon :icon="['fas', 'download']" class="mr-2" />
+                导出统计
+              </CustomButton>
             </template>
-          </el-dropdown>
+
+            <template #dropdown>
+              <div class="dropdown-item" :data-command="'markdown-no-answer'">导出为 Markdown（不含答案）</div>
+              <div class="dropdown-item" :data-command="'markdown-with-answer'">导出为 Markdown（含答案）</div>
+              <div class="dropdown-item" :data-command="'xlsx'">导出为 Excel 文件 (.xlsx)</div>
+            </template>
+          </Dropdown>
         </div>
       </template>
 
@@ -85,6 +86,7 @@ import { Refresh, Download } from '@element-plus/icons-vue'
 import { getExamCategoryStats } from '@/api/exam'
 import { getEnabledSubjects } from '@/api/subject'
 import CustomButton from '@/components/basic/CustomButton.vue'
+import Dropdown from '@/components/basic/Dropdown.vue'
 
 // State
 const statsLoading = ref(false)

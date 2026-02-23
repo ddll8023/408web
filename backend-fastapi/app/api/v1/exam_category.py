@@ -5,8 +5,7 @@
 """
 from typing import List, Optional
 from fastapi import APIRouter, Depends, Query, Path, status
-from sqlmodel.ext.asyncio.session import AsyncSession
-from app.database.connection import get_async_session
+from app.database.connection import SessionDep
 from app.services.category_service import ExamCategoryService
 from app.schemas.category import (
     ExamCategoryCreateRequest,
@@ -29,8 +28,8 @@ router = APIRouter()
     description="查询所有分类（包含引用统计），可按题目类型筛选"
 )
 async def get_all_categories(
-    question_type: str = Query(default="exam", description="题目类型：exam=真题, mock=模拟题, exercise=课后习题"),
-    session: AsyncSession = Depends(get_async_session)
+    session: SessionDep,
+    question_type: str = Query(default="exam", description="题目类型：exam=真题, mock=模拟题, exercise=课后习题")
 ) -> Response[List[ExamCategoryResponse]]:
     """
     查询所有分类
@@ -50,9 +49,9 @@ async def get_all_categories(
     description="按科目查询所有分类（包含引用统计），可按题目类型筛选"
 )
 async def get_categories_by_subject(
+    session: SessionDep,
     subject_id: int = Path(..., description="科目ID"),
-    question_type: str = Query(default="exam", description="题目类型：exam=真题, mock=模拟题, exercise=课后习题"),
-    session: AsyncSession = Depends(get_async_session)
+    question_type: str = Query(default="exam", description="题目类型：exam=真题, mock=模拟题, exercise=课后习题")
 ) -> Response[List[ExamCategoryResponse]]:
     """
     按科目查询分类
@@ -73,8 +72,8 @@ async def get_categories_by_subject(
     description="按科目查询启用的分类（用于前端选择器）"
 )
 async def get_enabled_categories_by_subject(
-    subject_id: int = Path(..., description="科目ID"),
-    session: AsyncSession = Depends(get_async_session)
+    session: SessionDep,
+    subject_id: int = Path(..., description="科目ID")
 ) -> Response[List[ExamCategoryResponse]]:
     """
     查询启用的分类
@@ -94,8 +93,8 @@ async def get_enabled_categories_by_subject(
     description="按科目查询分类树形结构"
 )
 async def get_category_tree_by_subject(
-    subject_id: int = Path(..., description="科目ID"),
-    session: AsyncSession = Depends(get_async_session)
+    session: SessionDep,
+    subject_id: int = Path(..., description="科目ID")
 ) -> Response[List[ExamCategoryTreeResponse]]:
     """
     查询分类树形结构
@@ -115,8 +114,8 @@ async def get_category_tree_by_subject(
     description="按科目查询启用的分类树形结构（用于前端侧边栏）"
 )
 async def get_enabled_category_tree_by_subject(
-    subject_id: int = Path(..., description="科目ID"),
-    session: AsyncSession = Depends(get_async_session)
+    session: SessionDep,
+    subject_id: int = Path(..., description="科目ID")
 ) -> Response[List[ExamCategoryTreeResponse]]:
     """
     查询启用的分类树
@@ -136,9 +135,9 @@ async def get_enabled_category_tree_by_subject(
     description="按科目和题型查询启用的分类树形结构，questionCount为指定题型的数量"
 )
 async def get_enabled_category_tree_with_stats(
+    session: SessionDep,
     subject_id: int = Path(..., description="科目ID"),
-    question_type: str = Path(..., description="题目类型：exam=真题, mock=模拟题, exercise=课后习题"),
-    session: AsyncSession = Depends(get_async_session)
+    question_type: str = Path(..., description="题目类型：exam=真题, mock=模拟题, exercise=课后习题")
 ) -> Response[List[ExamCategoryTreeResponse]]:
     """
     查询启用分类树（带题型统计）
@@ -159,10 +158,10 @@ async def get_enabled_category_tree_with_stats(
     description="查询可作为父分类的列表（顶级分类，排除自身及其子孙）"
 )
 async def get_available_parent_categories(
+    session: SessionDep,
     subject_id: int = Query(..., description="科目ID"),
     exclude_id: Optional[int] = Query(None, description="排除的分类ID"),
-    current_user: AuthUser = Depends(get_current_admin),
-    session: AsyncSession = Depends(get_async_session)
+    current_user: AuthUser = Depends(get_current_admin)
 ) -> Response[List[ExamCategoryResponse]]:
     """
     查询可选父分类
@@ -183,8 +182,8 @@ async def get_available_parent_categories(
     description="获取各科目去重后的题目数统计，解决多标签重复计数问题"
 )
 async def get_category_stats(
-    question_type: str = Query(default="exam", description="题目类型：exam=真题, mock=模拟题, exercise=课后习题"),
-    session: AsyncSession = Depends(get_async_session)
+    session: SessionDep,
+    question_type: str = Query(default="exam", description="题目类型：exam=真题, mock=模拟题, exercise=课后习题")
 ) -> Response[ExamCategoryStatResponse]:
     """
     获取分类统计信息
@@ -204,9 +203,9 @@ async def get_category_stats(
     description="检查分类是否被引用，返回引用数量"
 )
 async def check_category_usage(
+    session: SessionDep,
     category_id: int = Path(..., description="分类ID"),
-    current_user: AuthUser = Depends(get_current_admin),
-    session: AsyncSession = Depends(get_async_session)
+    current_user: AuthUser = Depends(get_current_admin)
 ) -> Response[int]:
     """
     检查分类引用
@@ -226,8 +225,8 @@ async def check_category_usage(
     description="根据ID查询分类详细信息"
 )
 async def get_category_by_id(
-    category_id: int = Path(..., description="分类ID"),
-    session: AsyncSession = Depends(get_async_session)
+    session: SessionDep,
+    category_id: int = Path(..., description="分类ID")
 ) -> Response[ExamCategoryResponse]:
     """
     按ID查询分类
@@ -247,9 +246,9 @@ async def get_category_by_id(
     description="创建新分类，仅管理员可访问"
 )
 async def create_category(
+    session: SessionDep,
     request: ExamCategoryCreateRequest,
-    current_user: AuthUser = Depends(get_current_admin),
-    session: AsyncSession = Depends(get_async_session)
+    current_user: AuthUser = Depends(get_current_admin)
 ) -> Response[ExamCategoryResponse]:
     """
     创建分类
@@ -269,10 +268,10 @@ async def create_category(
     description="更新指定分类的信息，仅管理员可访问"
 )
 async def update_category(
+    session: SessionDep,
     category_id: int = Path(..., description="分类ID"),
     request: ExamCategoryUpdateRequest = None,
-    current_user: AuthUser = Depends(get_current_admin),
-    session: AsyncSession = Depends(get_async_session)
+    current_user: AuthUser = Depends(get_current_admin)
 ) -> Response[ExamCategoryResponse]:
     """
     更新分类
@@ -292,9 +291,9 @@ async def update_category(
     description="删除指定分类，仅管理员可访问"
 )
 async def delete_category(
+    session: SessionDep,
     category_id: int = Path(..., description="分类ID"),
-    current_user: AuthUser = Depends(get_current_admin),
-    session: AsyncSession = Depends(get_async_session)
+    current_user: AuthUser = Depends(get_current_admin)
 ) -> Response[None]:
     """
     删除分类

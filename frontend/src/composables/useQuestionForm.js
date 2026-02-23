@@ -209,13 +209,26 @@ export function useQuestionForm(options = {}) {
    * @param {Object} data - API返回的题目数据
    */
   const fillFormFromData = async (data) => {
-    form.questionType = data.questionType || 'ESSAY'
-    form.subjectId = data.subjectId || null
+    // 同时支持 camelCase 和 snake_case 格式的字段
+    const questionType = data.questionType ?? data.question_type ?? 'ESSAY'
+    const subjectId = data.subjectId ?? data.subject_id ?? null
+
+    form.questionType = questionType
+    form.subjectId = subjectId
     form.title = data.title || ''
     form.content = data.content || ''
-    form.category = Array.isArray(data.category)
-      ? data.category
-      : (data.category ? [data.category] : [])
+
+    // 处理分类字段：可能是JSON字符串或数组
+    let categoryValue = data.category
+    if (typeof categoryValue === 'string' && categoryValue) {
+      try {
+        categoryValue = JSON.parse(categoryValue)
+      } catch (e) {
+        categoryValue = [categoryValue]
+      }
+    }
+    form.category = Array.isArray(categoryValue) ? categoryValue : (categoryValue ? [categoryValue] : [])
+
     form.difficulty = data.difficulty || ''
 
     // 加载分类选项（扁平和树形）
@@ -230,7 +243,7 @@ export function useQuestionForm(options = {}) {
     }
 
     // 处理选择题选项
-    if (data.questionType === 'CHOICE') {
+    if (questionType === 'CHOICE') {
       if (data.options) {
         try {
           const options = typeof data.options === 'string'

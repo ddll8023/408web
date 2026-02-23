@@ -173,7 +173,6 @@ class SubjectService:
             enabled=request.enabled
         )
         self.session.add(subject)
-        await self.session.commit()
         await self.session.refresh(subject)
 
         logger.info("SubjectService.create completed, subject_id: %d", subject.id)
@@ -243,7 +242,6 @@ class SubjectService:
         for field, value in update_data.items():
             setattr(subject, field, value)
 
-        await self.session.commit()
         await self.session.refresh(subject)
 
         logger.info("SubjectService.update completed, subject_id: %d", subject_id)
@@ -273,7 +271,6 @@ class SubjectService:
 
         # 删除科目（级联删除关联章节）
         await self.session.delete(subject)
-        await self.session.commit()
 
         logger.info("SubjectService.delete completed, subject_id: %d", subject_id)
 

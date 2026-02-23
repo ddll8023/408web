@@ -87,6 +87,7 @@
           v-if="isAdmin"
           v-model:visible="editDialogVisible"
           :mock-id="editingMockId"
+          :mock-data="editingMockData"
           @success="handleEditSuccess"
         />
 
@@ -132,6 +133,7 @@ const isAdmin = computed(() => authStore.isAdmin())
 // 编辑弹窗状态
 const editDialogVisible = ref(false)
 const editingMockId = ref(null)
+const editingMockData = ref(null)  // 编辑时传递的完整数据（避免重复请求API）
 
 // UI State
 const isNavCollapsed = ref(false)
@@ -752,11 +754,15 @@ const handleCopy = async (command, mock) => {
 const handleEdit = (mock) => {
   if (!mock?.id) return
   editingMockId.value = mock.id
+  editingMockData.value = mock  // 传递完整数据，避免重复请求API
   editDialogVisible.value = true
 }
 
 const handleEditSuccess = async () => {
   await loadQuestions(true)
+  // 重置编辑数据
+  editingMockId.value = null
+  editingMockData.value = null
 }
 
 const handleDelete = async (id) => {

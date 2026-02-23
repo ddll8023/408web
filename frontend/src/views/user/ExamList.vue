@@ -24,26 +24,27 @@
               </div>
               <!-- 年份视图：显示导出按钮和管理员创建按钮 -->
               <div class="flex gap-2" v-if="examList.length > 0">
-                <el-dropdown trigger="click" @command="handleExportCommand">
-                  <CustomButton
-                    type="success"
-                    :icon="Download"
-                  >
-                    导出试卷
-                  </CustomButton>
-                  <template #dropdown>
-                    <el-dropdown-menu>
-                      <el-dropdown-item command="markdown">
-                        <el-icon><Document /></el-icon>
-                        导出为 Markdown (.md)
-                      </el-dropdown-item>
-                      <el-dropdown-item command="docx">
-                        <el-icon><Document /></el-icon>
-                        导出为 Word 文档 (.docx)
-                      </el-dropdown-item>
-                    </el-dropdown-menu>
+                <Dropdown trigger="click" @command="handleExportCommand">
+                  <template #trigger>
+                    <CustomButton
+                      type="success"
+                      :icon="Download"
+                    >
+                      导出试卷
+                    </CustomButton>
                   </template>
-                </el-dropdown>
+
+                  <template #dropdown>
+                    <div class="dropdown-item" :data-command="'markdown'">
+                      <font-awesome-icon :icon="['fas', 'file-lines']" class="mr-2" />
+                      导出为 Markdown (.md)
+                    </div>
+                    <div class="dropdown-item" :data-command="'docx'">
+                      <font-awesome-icon :icon="['fas', 'file-word']" class="mr-2" />
+                      导出为 Word 文档 (.docx)
+                    </div>
+                  </template>
+                </Dropdown>
                 <CustomButton
                   v-if="isAdmin"
                   type="primary"
@@ -123,7 +124,7 @@
 import { ref, computed, watch, onMounted, nextTick, onActivated } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { 
+import {
   Reading,
   ArrowRight,
   Download
@@ -132,6 +133,7 @@ import { getExamIndex, getExamByYear, deleteExam } from '@/api/exam'
 import { getDifficultyLabel } from '@/constants/exam'
 import { useAuthStore } from '@/stores/auth'
 import CustomButton from '@/components/basic/CustomButton.vue'
+import Dropdown from '@/components/basic/Dropdown.vue'
 import YearNav from '@/components/business/YearNav.vue'
 import ExamEntryCard from '@/components/business/ExamEntryCard.vue'
 import ExamEditDialog from '@/components/business/ExamEditDialog.vue'

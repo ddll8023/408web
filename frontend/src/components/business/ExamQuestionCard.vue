@@ -39,7 +39,7 @@
     <!-- 答案卡片（米色主题卡片） -->
     <div v-if="exam?.answer" class="answer-card bg-[rgba(251,247,242,0.5)] border border-[rgba(139,111,71,0.2)] border-l-4 border-l-[#8B6F47] rounded p-4 shadow-[0_2px_4px_rgba(0,0,0,0.08)] transition-all duration-300">
       <div class="answer-header flex items-center gap-2 mb-4">
-        <el-icon class="answer-icon text-lg text-[#8B6F47]"><Select /></el-icon>
+        <font-awesome-icon :icon="['fas', 'check']" class="text-lg text-[#8B6F47]" />
         <span class="text-sm font-medium text-gray-800">{{ exam?.questionType === 'CHOICE' ? '正确答案' : '参考答案' }}</span>
         <CustomButton
           v-if="showToggle"
@@ -61,7 +61,7 @@
           />
         </div>
         <div v-else key="placeholder" class="answer-placeholder flex items-center justify-center gap-2 p-6 bg-white/80 rounded border-2 border-dashed border-gray-300 text-gray-400 text-sm">
-          <el-icon><Lock /></el-icon>
+          <font-awesome-icon :icon="['fas', 'lock']" />
           <span>答案已隐藏，点击上方按钮显示</span>
         </div>
       </Transition>
@@ -78,8 +78,6 @@
  * Source: Element Plus 官方文档；@kangc/v-md-editor 官方文档
  */
 import { computed, ref, watch } from 'vue'
-import { Select, Lock } from '@element-plus/icons-vue'
-import { ElMessage } from 'element-plus'
 import MarkdownViewer from '@/components/basic/MarkdownViewer.vue'
 import CustomButton from '@/components/basic/CustomButton.vue'
 
@@ -100,6 +98,32 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['toggle-answer', 'answered'])
+
+/**
+ * 显示提示消息
+ */
+const showToast = (message, type = 'success') => {
+  const colors = {
+    success: 'bg-green-500',
+    error: 'bg-red-500'
+  }
+  const toast = document.createElement('div')
+  toast.className = `fixed top-4 right-4 ${colors[type]} text-white px-4 py-2 rounded-lg shadow-lg z-50 transition-opacity duration-300`
+  toast.textContent = message
+  document.body.appendChild(toast)
+
+  // 动画淡入
+  requestAnimationFrame(() => {
+    toast.classList.add('opacity-100')
+  })
+
+  // 1.5秒后移除
+  setTimeout(() => {
+    toast.classList.remove('opacity-100')
+    toast.classList.add('opacity-0')
+    setTimeout(() => toast.remove(), 300)
+  }, 1500)
+}
 
 /**
  * 计算图片最大高度
@@ -138,15 +162,9 @@ const handleOptionClick = (optionKey) => {
   
   // 弹窗提示反馈
   if (correctOptionKeys.value.includes(optionKey)) {
-    ElMessage.success({
-      message: '回答正确！',
-      duration: 1500
-    })
+    showToast('回答正确！', 'success')
   } else {
-    ElMessage.error({
-      message: '回答错误！',
-      duration: 1500
-    })
+    showToast('回答错误！', 'error')
   }
 
   // 通知父组件：本题已作答

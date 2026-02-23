@@ -1,39 +1,29 @@
 /**
  * 科目数据 Composable
  * 抽取科目加载的公共逻辑
+ * 使用全局 store 缓存数据，避免重复请求
  */
 import { ref } from 'vue'
 import { getEnabledSubjects } from '@/api/subject'
+import { useSubjectsStore } from '@/stores/subjects'
+
+// 创建全局 store 实例（单例）
+const subjectsStore = useSubjectsStore()
 
 /**
  * 科目数据管理
  * @returns {Object} 科目相关状态和方法
  */
 export function useSubjects() {
-  // 科目选项
-  const subjectOptions = ref([])
-
-  // 科目ID到名称的映射
-  const subjectMap = ref({})
+  // 直接使用全局 store 的状态
+  const subjectOptions = subjectsStore.subjectOptions
+  const subjectMap = subjectsStore.subjectMap
 
   /**
-   * 加载科目选项
+   * 加载科目选项（带全局缓存）
    */
   const loadSubjectOptions = async () => {
-    try {
-      const res = await getEnabledSubjects()
-      if (res.code === 200) {
-        subjectOptions.value = res.data || []
-        // 构建ID到名称的映射
-        const map = {}
-        subjectOptions.value.forEach(subject => {
-          map[subject.id] = subject.name
-        })
-        subjectMap.value = map
-      }
-    } catch (error) {
-      console.error('加载科目列表失败:', error)
-    }
+    await subjectsStore.loadSubjectOptions()
   }
 
   /**
@@ -42,7 +32,7 @@ export function useSubjects() {
    * @returns {String} 科目名称
    */
   const getSubjectName = (subjectId) => {
-    return subjectMap.value[subjectId] || ''
+    return subjectsStore.getSubjectName(subjectId)
   }
 
   return {

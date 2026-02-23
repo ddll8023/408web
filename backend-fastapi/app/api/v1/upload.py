@@ -3,8 +3,8 @@
 提供图片上传、列表管理、引用检查和清理功能
 """
 from fastapi import APIRouter, Depends, UploadFile, File, Query
-from sqlmodel.ext.asyncio.session import AsyncSession
-from app.database.connection import get_async_session
+from sqlalchemy.ext.asyncio import AsyncSession
+from app.database.connection import SessionDep
 from app.services.upload_service import UploadService
 from app.schemas.common import Response
 from app.schemas.image import ImageResourceResponse
@@ -30,8 +30,8 @@ def get_upload_service(session: AsyncSession) -> UploadService:
     tags=["文件上传"]
 )
 async def upload_image(
-    file: UploadFile = File(..., description="图片文件"),
-    session: AsyncSession = Depends(get_async_session)
+    session: SessionDep,
+    file: UploadFile = File(..., description="图片文件")
 ) -> Response[str]:
     """
     上传图片接口
@@ -52,8 +52,8 @@ async def upload_image(
     tags=["文件上传"]
 )
 async def list_images(
-    only_unreferenced: bool = Query(False, description="是否只查询未引用的图片"),
-    session: AsyncSession = Depends(get_async_session)
+    session: SessionDep,
+    only_unreferenced: bool = Query(False, description="是否只查询未引用的图片")
 ) -> Response[list[ImageResourceResponse]]:
     """
     查询已上传图片列表
@@ -74,8 +74,8 @@ async def list_images(
     tags=["文件上传"]
 )
 async def cleanup_unreferenced_images(
-    current_user: AuthUser = Depends(get_current_admin),
-    session: AsyncSession = Depends(get_async_session)
+    session: SessionDep,
+    current_user: AuthUser = Depends(get_current_admin)
 ) -> Response[int]:
     """
     删除未引用图片
@@ -96,9 +96,9 @@ async def cleanup_unreferenced_images(
     tags=["文件上传"]
 )
 async def delete_image(
+    session: SessionDep,
     filename: str = Query(..., description="文件名"),
-    current_user: AuthUser = Depends(get_current_admin),
-    session: AsyncSession = Depends(get_async_session)
+    current_user: AuthUser = Depends(get_current_admin)
 ) -> Response[None]:
     """
     删除指定图片

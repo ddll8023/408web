@@ -426,7 +426,6 @@ class ExamService:
             author_id=author_id
         )
         self.session.add(question)
-        await self.session.commit()
         await self.session.refresh(question)
 
         logger.info("ExamService.create completed, question_id: %d", question.id)
@@ -483,7 +482,6 @@ class ExamService:
         for field, value in update_data.items():
             setattr(question, field, value)
 
-        await self.session.commit()
         await self.session.refresh(question)
 
         logger.info("ExamService.update completed, question_id: %d", question_id)
@@ -512,7 +510,6 @@ class ExamService:
 
         # 删除
         await self.session.delete(question)
-        await self.session.commit()
 
         logger.info("ExamService.delete completed, question_id: %d", question_id)
 
