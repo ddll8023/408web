@@ -1,90 +1,100 @@
 <template>
-  <div class="min-h-screen bg-[#FBF7F2] flex items-center justify-center">
-    <el-card class="w-[450px] shadow-[0_2px_8px_rgba(0,0,0,0.1)]">
+  <div class="min-h-screen bg-[#FBF7F2] flex items-center justify-center p-4">
+    <!-- 使用 CustomCard 替代 el-card -->
+    <CustomCard class="w-full max-w-md">
       <template #header>
         <div class="text-center">
-          <h2 class="m-0 mb-2 text-[#333] font-semibold text-xl">用户注册</h2>
+          <h2 class="text-xl font-semibold text-[#333] mb-2">用户注册</h2>
           <span class="text-[#666] text-sm">408真题网站</span>
         </div>
       </template>
 
-      <el-form
-        ref="registerFormRef"
-        :model="registerForm"
-        :rules="registerRules"
-        label-width="80px"
-      >
-        <el-form-item label="用户名" prop="username">
-          <el-input
+      <!-- 使用原生 form + 自定义验证 -->
+      <form @submit.prevent="handleRegister" class="space-y-4">
+        <!-- 用户名：使用 FormLabel + CustomInput -->
+        <div>
+          <FormLabel label="用户名" required />
+          <CustomInput
             v-model="registerForm.username"
             placeholder="请输入用户名（3-50字符）"
-            clearable
+            :error="errors.username"
+            @blur="validateField('username')"
           />
-        </el-form-item>
+        </div>
 
-        <el-form-item label="密码" prop="password">
-          <el-input
+        <!-- 密码：使用 FormLabel + CustomInput -->
+        <div>
+          <FormLabel label="密码" required />
+          <CustomInput
             v-model="registerForm.password"
             type="password"
             placeholder="请输入密码（6-20字符）"
-            show-password
-            clearable
+            :error="errors.password"
+            @blur="validateField('password')"
           />
-        </el-form-item>
+        </div>
 
-        <el-form-item label="确认密码" prop="confirmPassword">
-          <el-input
+        <!-- 确认密码：使用 FormLabel + CustomInput -->
+        <div>
+          <FormLabel label="确认密码" required />
+          <CustomInput
             v-model="registerForm.confirmPassword"
             type="password"
             placeholder="请再次输入密码"
-            show-password
-            clearable
+            :error="errors.confirmPassword"
+            @blur="validateField('confirmPassword')"
           />
-        </el-form-item>
+        </div>
 
-        <el-form-item label="邮箱" prop="email">
-          <el-input
+        <!-- 邮箱：使用 FormLabel + CustomInput -->
+        <div>
+          <FormLabel label="邮箱" />
+          <CustomInput
             v-model="registerForm.email"
+            type="email"
             placeholder="请输入邮箱（可选）"
-            clearable
+            :error="errors.email"
+            @blur="validateField('email')"
           />
-        </el-form-item>
+        </div>
 
-        <el-form-item>
-          <CustomButton
-            type="primary"
-            :loading="loading"
-            class="w-full"
-            @click="handleRegister"
-          >
-            注册
-          </CustomButton>
-        </el-form-item>
+        <!-- 注册按钮 -->
+        <CustomButton
+          type="primary"
+          :loading="loading"
+          class="w-full"
+          @click="handleRegister"
+        >
+          注册
+        </CustomButton>
 
-        <el-form-item>
-          <CustomButton
-            type="text"
-            @click="goToLogin"
-          >
+        <!-- 登录链接 -->
+        <div class="text-center">
+          <CustomButton type="text" @click="goToLogin">
             已有账号？立即登录
           </CustomButton>
-        </el-form-item>
-      </el-form>
-    </el-card>
+        </div>
+      </form>
+    </CustomCard>
   </div>
 </template>
 
 <script setup>
+/**
+ * 用户注册页面
+ * 功能：处理用户注册，包含表单验证、密码确认、错误处理
+ */
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
 import { register } from '@/api/auth'
+import { useToast } from '@/composables/useToast'
 import CustomButton from '@/components/basic/CustomButton.vue'
+import CustomCard from '@/components/basic/CustomCard.vue'
+import CustomInput from '@/components/basic/CustomInput.vue'
+import FormLabel from '@/components/basic/FormLabel.vue'
 
 const router = useRouter()
-
-// 表单引用
-const registerFormRef = ref(null)
+const { showToast } = useToast()
 
 // 加载状态
 const loading = ref(false)
@@ -97,32 +107,91 @@ const registerForm = reactive({
   email: ''
 })
 
-// 自定义验证规则：确认密码
-const validateConfirmPassword = (_rule, value, callback) => {
-  if (value !== registerForm.password) {
-    callback(new Error('两次输入的密码不一致'))
-  } else {
-    callback()
+// 表单错误信息
+const errors = reactive({
+  username: '',
+  password: '',
+  confirmPassword: '',
+  email: ''
+})
+
+/**
+ * 验证单个字段
+ * @param {string} field - 字段名
+ */
+const validateField = (field) => {
+  if (field === 'username') {
+    errors.username = registerForm.username.trim()
+      ? (registerForm.username.length < 3 || registerForm.username.length > 50 ? '用户名长度在3-50字符之间' : '')
+      : '请输入用户名'
+  } else if (field === 'password') {
+    errors.password = registerForm.password
+      ? (registerForm.password.length < 6 || registerForm.password.length > 20 ? '密码长度在6-20字符之间' : '')
+      : '请输入密码'
+  } else if (field === 'confirmPassword') {
+    errors.confirmPassword = registerForm.confirmPassword
+      ? (registerForm.confirmPassword !== registerForm.password ? '两次输入的密码不一致' : '')
+      : '请再次输入密码'
+  } else if (field === 'email') {
+    if (registerForm.email) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+      errors.email = emailRegex.test(registerForm.email) ? '' : '请输入正确的邮箱格式'
+    } else {
+      errors.email = ''
+    }
   }
 }
 
-// 表单验证规则
-const registerRules = {
-  username: [
-    { required: true, message: '请输入用户名', trigger: 'blur' },
-    { min: 3, max: 50, message: '用户名长度在3-50字符之间', trigger: 'blur' }
-  ],
-  password: [
-    { required: true, message: '请输入密码', trigger: 'blur' },
-    { min: 6, max: 20, message: '密码长度在6-20字符之间', trigger: 'blur' }
-  ],
-  confirmPassword: [
-    { required: true, message: '请再次输入密码', trigger: 'blur' },
-    { validator: validateConfirmPassword, trigger: 'blur' }
-  ],
-  email: [
-    { type: 'email', message: '请输入正确的邮箱格式', trigger: 'blur' }
-  ]
+/**
+ * 验证整个表单
+ * @returns {boolean} 表单是否有效
+ */
+const validateForm = () => {
+  // 清空所有错误
+  errors.username = ''
+  errors.password = ''
+  errors.confirmPassword = ''
+  errors.email = ''
+
+  let valid = true
+
+  // 验证用户名
+  if (!registerForm.username.trim()) {
+    errors.username = '请输入用户名'
+    valid = false
+  } else if (registerForm.username.length < 3 || registerForm.username.length > 50) {
+    errors.username = '用户名长度在3-50字符之间'
+    valid = false
+  }
+
+  // 验证密码
+  if (!registerForm.password) {
+    errors.password = '请输入密码'
+    valid = false
+  } else if (registerForm.password.length < 6 || registerForm.password.length > 20) {
+    errors.password = '密码长度在6-20字符之间'
+    valid = false
+  }
+
+  // 验证确认密码
+  if (!registerForm.confirmPassword) {
+    errors.confirmPassword = '请再次输入密码'
+    valid = false
+  } else if (registerForm.confirmPassword !== registerForm.password) {
+    errors.confirmPassword = '两次输入的密码不一致'
+    valid = false
+  }
+
+  // 验证邮箱（可选，如果有值则验证格式）
+  if (registerForm.email) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(registerForm.email)) {
+      errors.email = '请输入正确的邮箱格式'
+      valid = false
+    }
+  }
+
+  return valid
 }
 
 /**
@@ -130,8 +199,7 @@ const registerRules = {
  */
 const handleRegister = async () => {
   // 验证表单
-  const valid = await registerFormRef.value.validate()
-  if (!valid) return
+  if (!validateForm()) return
 
   loading.value = true
   try {
@@ -142,12 +210,14 @@ const handleRegister = async () => {
       email: registerForm.email || undefined
     })
 
-    ElMessage.success('注册成功，请登录')
-    
+    showToast('注册成功，请登录', 'success')
+
     // 跳转到登录页
     router.push('/login')
   } catch (error) {
     console.error('注册失败：', error)
+    // 展示后端返回的错误信息
+    showToast(error?.response?.data?.message || error?.message || '注册失败，请稍后重试', 'error')
   } finally {
     loading.value = false
   }
@@ -160,7 +230,3 @@ const goToLogin = () => {
   router.push('/login')
 }
 </script>
-
-<style scoped>
-</style>
-

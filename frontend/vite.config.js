@@ -12,7 +12,8 @@ export default defineConfig({
   // 路径别名配置
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, './src')
+      '@': path.resolve(__dirname, './src'),
+      'vue': 'vue/dist/vue.esm-bundler.js'
     }
   },
   

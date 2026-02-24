@@ -131,9 +131,8 @@ export function getExamByYear(year, params) {
  */
 export function getExamCategoriesBySubject(subjectId) {
   return request({
-    url: '/api/exam/subject-categories',
-    method: 'get',
-    params: { subjectId }
+    url: `/api/exam/categories/${subjectId}`,
+    method: 'get'
   })
 }
 
