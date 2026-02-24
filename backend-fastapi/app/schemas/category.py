@@ -131,6 +131,12 @@ class ExamCategoryResponse(BaseModel):
         description="题目数量（统计）",
         examples=[10]
     )
+    # 驼峰命名别名，供前端使用
+    questionCount: Optional[int] = Field(
+        default=None,
+        description="题目数量（驼峰命名）",
+        examples=[10]
+    )
     create_time: Optional[str] = Field(default=None, description="创建时间")
     update_time: Optional[str] = Field(default=None, description="更新时间")
 
@@ -182,8 +188,25 @@ class ExamCategoryTreeResponse(BaseModel):
         return data
 
 
+class SubjectStatItem(BaseModel):
+    """按科目的统计数据项"""
+    subject_id: int = Field(..., description="科目ID")
+    subject_name: str = Field(..., description="科目名称")
+    category_count: int = Field(..., description="分类数量")
+    enabled_category_count: int = Field(..., description="启用分类数量")
+    question_count: int = Field(..., description="去重后的题目数量")
+
+
 class ExamCategoryStatResponse(BaseModel):
     """分类统计响应"""
+    subject_stats: List[SubjectStatItem] = Field(
+        ...,
+        description="按科目的统计数据"
+    )
+    total_question_count: int = Field(
+        ...,
+        description="去重后的题目总数"
+    )
     total_categories: int = Field(
         ...,
         description="分类总数",
@@ -198,11 +221,6 @@ class ExamCategoryStatResponse(BaseModel):
         ...,
         description="统计的题目类型",
         examples=["exam"]
-    )
-    total_questions: int = Field(
-        ...,
-        description="去重后的题目总数",
-        examples=[500]
     )
 
     model_config = {

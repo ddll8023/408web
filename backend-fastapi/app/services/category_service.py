@@ -14,7 +14,8 @@ from app.schemas.category import (
     ExamCategoryResponse,
     ExamCategoryTreeResponse,
     ExamCategoryStatResponse,
-    ExamCategoryUsageResponse
+    ExamCategoryUsageResponse,
+    SubjectStatItem
 )
 from app.utils.logger import setup_logger
 
@@ -56,6 +57,7 @@ class ExamCategoryService:
             else:
                 count = await self._count_exam_questions(c.subject_id, c.name)
             response.question_count = count
+            response.questionCount = count  # 驼峰命名别名
             responses.append(response)
 
         logger.info("ExamCategoryService.get_all_categories completed, count: %d", len(responses))
@@ -129,6 +131,7 @@ class ExamCategoryService:
             else:
                 count = await self._count_exam_questions(subject_id, c.name)
             response.question_count = count
+            response.questionCount = count  # 驼峰命名别名
 
             responses.append(response)
 
@@ -321,94 +324,92 @@ class ExamCategoryService:
 
     async def get_category_stats(
         self,
-        subject_id: Optional[int] = None,
         question_type: str = "exam"
     ) -> ExamCategoryStatResponse:
         """
-        获取分类统计信息
+        获取分类统计信息（按科目）
 
         Args:
-            subject_id: 科目ID（可选，None表示全局）
             question_type: 题目类型
 
         Returns:
-            统计信息
+            按科目分类的统计信息
         """
-        logger.info("ExamCategoryService.get_category_stats started, subject_id: %s, question_type: %s",
-                    subject_id, question_type)
+        logger.info("ExamCategoryService.get_category_stats started, question_type: %s",
+                    question_type)
 
-        # 统计分类数量
-        if subject_id:
-            total_result = await self.session.exec(
+        # 1. 查询所有科目
+        subjects_result = await self.session.exec(select(Subject))
+        subjects_list = subjects_result.all()
+
+        # 2. 按科目统计
+        subject_stats_list = []
+        total_questions = 0
+        total_categories = 0
+        enabled_categories = 0
+
+        for subject in subjects_list:
+            # 统计该科目的分类数量
+            total_cat_result = await self.session.exec(
                 select(func.count()).select_from(ExamCategory).where(
-                    ExamCategory.subject_id == subject_id
+                    ExamCategory.subject_id == subject.id
                 )
             )
-            enabled_result = await self.session.exec(
+            enabled_cat_result = await self.session.exec(
                 select(func.count()).select_from(ExamCategory).where(
                     and_(
-                        ExamCategory.subject_id == subject_id,
+                        ExamCategory.subject_id == subject.id,
                         ExamCategory.enabled == True
                     )
                 )
             )
-        else:
-            total_result = await self.session.exec(
-                select(func.count()).select_from(ExamCategory)
-            )
-            enabled_result = await self.session.exec(
-                select(func.count()).select_from(ExamCategory).where(
-                    ExamCategory.enabled == True
-                )
-            )
 
-        # 统计题目数量（去重）
-        if question_type == "mock":
-            if subject_id:
+            # 统计该科目的题目数量（去重）
+            if question_type == "mock":
                 question_result = await self.session.exec(
                     select(func.count(func.distinct(MockQuestion.id))).where(
                         and_(
-                            MockQuestion.subject_id == subject_id,
+                            MockQuestion.subject_id == subject.id,
                             MockQuestion.category.isnot(None)
                         )
                     )
                 )
             else:
                 question_result = await self.session.exec(
-                    select(func.count(func.distinct(MockQuestion.id))).where(
-                        MockQuestion.category.isnot(None)
-                    )
-                )
-        else:
-            if subject_id:
-                question_result = await self.session.exec(
                     select(func.count(func.distinct(ExamQuestion.id))).where(
                         and_(
-                            ExamQuestion.subject_id == subject_id,
+                            ExamQuestion.subject_id == subject.id,
                             ExamQuestion.category.isnot(None)
                         )
                     )
                 )
-            else:
-                question_result = await self.session.exec(
-                    select(func.count(func.distinct(ExamQuestion.id))).where(
-                        ExamQuestion.category.isnot(None)
-                    )
-                )
 
-        total_categories = total_result.one() or 0
-        enabled_categories = enabled_result.one() or 0
-        total_questions = question_result.one() or 0
+            category_count = total_cat_result.one() or 0
+            enabled_count = enabled_cat_result.one() or 0
+            question_count = question_result.one() or 0
+
+            subject_stats_list.append(SubjectStatItem(
+                subject_id=subject.id,
+                subject_name=subject.name,
+                category_count=category_count,
+                enabled_category_count=enabled_count,
+                question_count=question_count
+            ))
+
+            total_categories += category_count
+            enabled_categories += enabled_count
+            total_questions += question_count
 
         logger.info("ExamCategoryService.get_category_stats completed, total_categories: %d, "
                     "enabled_categories: %d, total_questions: %d",
                     total_categories, enabled_categories, total_questions)
 
         return ExamCategoryStatResponse(
+            subject_stats=subject_stats_list,
+            total_question_count=total_questions,
             total_categories=total_categories,
             enabled_categories=enabled_categories,
-            question_type=question_type,
-            total_questions=total_questions
+            question_type=question_type
         )
 
     async def get_available_parent_categories(
@@ -571,7 +572,7 @@ class ExamCategoryService:
                     text("json_extract(category, '$') LIKE :pattern")
                 )
             )
-            .params(pattern=f'"{category_name}"%')
+            .params(pattern=f'%"{category_name}"%')
         )
         result = await self.session.exec(stmt)
         return result.one() or 0

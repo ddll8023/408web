@@ -12,32 +12,32 @@
       <div class="flex items-center gap-6">
         <!-- 视图切换 -->
         <div class="flex bg-[rgba(139,111,71,0.08)] rounded-lg p-1 gap-1">
-          <el-tooltip content="卡片视图" placement="top">
+          <CustomTooltip content="卡片视图" placement="top">
             <div
               class="w-9 h-8 flex items-center justify-center rounded-md cursor-pointer text-[#999] transition-all duration-200"
               :class="{ 'bg-white text-[#8B6F47] shadow-sm': viewMode === 'card' }"
               @click="viewMode = 'card'"
             >
-              <el-icon><Grid /></el-icon>
+              <font-awesome-icon :icon="['fas', 'grip']" />
             </div>
-          </el-tooltip>
-          <el-tooltip content="树形视图" placement="top">
+          </CustomTooltip>
+          <CustomTooltip content="树形视图" placement="top">
             <div
               class="w-9 h-8 flex items-center justify-center rounded-md cursor-pointer text-[#999] transition-all duration-200"
               :class="{ 'bg-white text-[#8B6F47] shadow-sm': viewMode === 'tree' }"
               @click="viewMode = 'tree'"
             >
-              <el-icon><List /></el-icon>
+              <font-awesome-icon :icon="['fas', 'list']" />
             </div>
-          </el-tooltip>
+          </CustomTooltip>
         </div>
         <!-- 题目类型切换 -->
-        <el-radio-group v-model="questionType" size="default" @change="handleQuestionTypeChange">
-          <el-radio-button value="exam">真题</el-radio-button>
-          <el-radio-button value="mock">模拟题</el-radio-button>
-        </el-radio-group>
+        <CustomRadioGroup v-model="questionType" :options="[
+          { label: '真题', value: 'exam' },
+          { label: '模拟题', value: 'mock' }
+        ]" @change="handleQuestionTypeChange" />
         <CustomButton type="primary" @click="handleAdd">
-          <el-icon style="margin-right: 6px"><Plus /></el-icon>
+          <font-awesome-icon :icon="['fas', 'plus']" class="mr-1.5" />
           新增分类
         </CustomButton>
       </div>
@@ -50,7 +50,7 @@
         <!-- 科目筛选列表 -->
         <div class="bg-white rounded-xl p-6 shadow-sm border border-[rgba(139,111,71,0.08)] mb-6">
           <h3 class="m-0 mb-4 text-sm font-semibold text-[#8B6F47] flex items-center gap-2 pb-3 border-b border-[rgba(139,111,71,0.1)]">
-            <el-icon class="text-base"><Folder /></el-icon>
+            <font-awesome-icon :icon="['fas', 'folder']" class="text-base" />
             科目筛选
           </h3>
           <div class="flex flex-col gap-1">
@@ -63,15 +63,13 @@
               @click="handleStatClick(stat.id)"
             >
               <div class="flex items-center gap-2.5 min-w-0">
-                <el-icon class="w-7 h-7 flex items-center justify-center rounded-md bg-[rgba(139,111,71,0.08)] text-[#999] text-sm transition-all duration-200 flex-shrink-0" :class="{ '!bg-[rgba(139,111,71,0.15)] !text-[#8B6F47]': filterSubjectId === stat.id }"><Folder /></el-icon>
+                <div class="w-7 h-7 flex items-center justify-center rounded-md bg-[rgba(139,111,71,0.08)] text-[#999] text-sm transition-all duration-200 flex-shrink-0" :class="{ '!bg-[rgba(139,111,71,0.15)] !text-[#8B6F47]': filterSubjectId === stat.id }">
+                  <font-awesome-icon :icon="['fas', 'folder']" />
+                </div>
                 <span class="text-sm text-[#333] whitespace-nowrap overflow-hidden text-ellipsis transition-all duration-200" :class="{ '!text-[#8B6F47] !font-semibold': filterSubjectId === stat.id }">{{ stat.name }}</span>
-                <el-tooltip
-                  v-if="stat.enabledCount < stat.count"
-                  :content="`${stat.count - stat.enabledCount} 个分类已禁用`"
-                  placement="top"
-                >
-                  <el-icon class="text-[#e6a23c] text-sm ml-1"><Warning /></el-icon>
-                </el-tooltip>
+                <CustomTooltip v-if="stat.enabledCount < stat.count" :content="`${stat.count - stat.enabledCount} 个分类已禁用`" placement="top">
+                  <font-awesome-icon :icon="['fas', 'exclamation-triangle']" class="text-[#e6a23c] text-sm ml-1" />
+                </CustomTooltip>
               </div>
               <!-- 显示题目引用数量 -->
               <span class="min-w-[36px] px-2 py-0.5 text-xs font-semibold text-center rounded-[10px] bg-[rgba(139,111,71,0.1)] text-[#8B6F47]" :class="{ '!bg-[#8B6F47] !text-white': filterSubjectId === stat.id }">
@@ -84,7 +82,7 @@
         <!-- 统计信息 -->
         <div class="bg-gradient-to-b from-white to-[rgba(64,158,255,0.5)] rounded-xl p-6 shadow-sm border border-[rgba(139,111,71,0.08)]">
           <h3 class="m-0 mb-4 text-sm font-semibold text-[#8B6F47] flex items-center gap-2 pb-3 border-b border-[rgba(139,111,71,0.1)]">
-            <el-icon class="text-base"><DataAnalysis /></el-icon>
+            <font-awesome-icon :icon="['fas', 'chart-bar']" class="text-base" />
             统计概览
           </h3>
           <div class="flex flex-col gap-2">
@@ -138,27 +136,29 @@
                   <!-- 卡片头部 -->
                   <div class="flex items-center justify-between mb-4">
                     <div class="flex items-center gap-4">
-                      <el-icon class="w-9 h-9 flex items-center justify-center bg-gradient-to-br from-[#8B6F47] to-[#968657] text-white rounded-xl text-lg shadow-md"><FolderOpened /></el-icon>
+                      <div class="w-9 h-9 flex items-center justify-center bg-gradient-to-br from-[#8B6F47] to-[#968657] text-white rounded-xl text-lg shadow-md">
+                        <font-awesome-icon :icon="['fas', 'folder-open']" />
+                      </div>
                       <span class="text-base font-semibold text-[#8B6F47]">{{ parent.name }}</span>
                       <span class="text-xs text-[#999] font-mono bg-[rgba(139,111,71,0.08)] px-2 py-0.5 rounded">{{ parent.code }}</span>
                     </div>
                     <div class="flex items-center gap-2">
                       <!-- 展开/折叠按钮 -->
-                      <el-tooltip :content="isExpanded(parent.id) ? '收起' : '展开'" placement="top">
+                      <CustomTooltip :content="isExpanded(parent.id) ? '收起' : '展开'" placement="top">
                         <div
                           class="w-7 h-7 flex items-center justify-center rounded-md cursor-pointer text-[#999] transition-all duration-300 hover:bg-[rgba(139,111,71,0.1)] hover:text-[#8B6F47]"
                           :class="{ 'rotate-180': isExpanded(parent.id) }"
                           @click="toggleExpand(parent.id)"
                         >
-                          <el-icon><ArrowDown /></el-icon>
+                          <font-awesome-icon :icon="['fas', 'chevron-down']" />
                         </div>
-                      </el-tooltip>
+                      </CustomTooltip>
                       <CustomButton type="text-primary" size="sm" @click="handleEdit(parent)">
-                        <el-icon><Edit /></el-icon>
+                        <font-awesome-icon :icon="['fas', 'edit']" class="mr-1" />
                         编辑
                       </CustomButton>
                       <CustomButton type="danger" size="sm" @click="handleDelete(parent)">
-                        <el-icon><Delete /></el-icon>
+                        <font-awesome-icon :icon="['fas', 'trash']" class="mr-1" />
                         删除
                       </CustomButton>
                     </div>
@@ -166,16 +166,12 @@
 
                   <!-- 卡片元信息 -->
                   <div class="flex gap-4 mb-6 pb-4 border-b border-dashed border-[rgba(139,111,71,0.1)]">
-                    <el-tag type="info" size="small" effect="plain">
+                    <CustomTag variant="info">
                       {{ parent.subjectName }}
-                    </el-tag>
-                    <el-tag
-                      :type="getChildrenQuestionCount(parent) > 0 ? 'success' : 'info'"
-                      size="small"
-                      effect="light"
-                    >
+                    </CustomTag>
+                    <CustomTag :variant="getChildrenQuestionCount(parent) > 0 ? 'success' : 'info'">
                       {{ getChildrenQuestionCount(parent) }} 题
-                    </el-tag>
+                    </CustomTag>
                   </div>
 
                   <!-- 子分类区域（带展开/折叠动画） -->
@@ -209,9 +205,10 @@
                                 size="small"
                                 class="opacity-0 transition-opacity duration-200 !p-0.5 !min-w-auto"
                                 @click.stop="handleAddChild(child)"
-                                title="添加三级分类"
                               >
-                                <el-icon><Plus /></el-icon>
+                                <CustomTooltip content="添加三级分类" placement="top">
+                                  <font-awesome-icon :icon="['fas', 'plus']" class="text-xs" />
+                                </CustomTooltip>
                               </CustomButton>
                             </div>
                             <!-- 三级分类标签（如果有） -->
@@ -241,9 +238,9 @@
                         <CustomButton
                           type="text"
                           size="small"
-                          :icon="Plus"
                           @click="handleAddChild(parent)"
                         >
+                          <font-awesome-icon :icon="['fas', 'plus']" class="mr-1" />
                           添加子分类
                         </CustomButton>
                       </div>
@@ -261,184 +258,182 @@
             <!-- 树形视图工具栏 -->
             <div class="flex gap-2 pb-3 mb-3 border-b border-[rgba(139,111,71,0.1)]">
               <CustomButton type="text" size="sm" @click="expandAllTree">
-                <el-icon><ArrowDown /></el-icon>
+                <font-awesome-icon :icon="['fas', 'chevron-down']" class="mr-1" />
                 全部展开
               </CustomButton>
               <CustomButton type="text" size="sm" @click="collapseAllTree">
-                <el-icon><ArrowRight /></el-icon>
+                <font-awesome-icon :icon="['fas', 'chevron-right']" class="mr-1" />
                 全部收起
               </CustomButton>
             </div>
-            <el-tree
+            <CustomTree
               ref="treeRef"
               :data="treeCategories"
-              :props="treeProps"
-              node-key="id"
-              :default-expanded-keys="treeExpandedKeys"
-              :expand-on-click-node="false"
-              draggable
+              :node-key="'id'"
+              :label="'name'"
+              :children-key="'children'"
+              v-model:expanded-keys="treeExpandedKeys"
+              :draggable="true"
               :allow-drop="allowDrop"
               :allow-drag="allowDrag"
               @node-expand="handleTreeNodeExpand"
               @node-collapse="handleTreeNodeCollapse"
               @node-drop="handleTreeNodeDrop"
             >
-              <template #default="{ node, data }">
+              <template #default="{ node: data, level }">
                 <div class="flex-1 flex items-center justify-between px-3 py-1.5 rounded-lg transition-all duration-200 hover:bg-[rgba(139,111,71,0.06)]" :class="{ 'opacity-60': !data.enabled }">
                   <div class="flex items-center gap-2.5">
-                    <el-icon class="w-7 h-7 flex items-center justify-center bg-gradient-to-br from-[rgba(139,111,71,0.15)] to-[rgba(139,111,71,0.08)] text-[#8B6F47] rounded-md text-sm">
-                      <FolderOpened v-if="data.children && data.children.length > 0" />
-                      <Document v-else />
-                    </el-icon>
+                    <div class="w-7 h-7 flex items-center justify-center bg-gradient-to-br from-[rgba(139,111,71,0.15)] to-[rgba(139,111,71,0.08)] text-[#8B6F47] rounded-md text-sm">
+                      <font-awesome-icon v-if="data.children && data.children.length > 0" :icon="['fas', 'folder-open']" />
+                      <font-awesome-icon v-else :icon="['fas', 'file']" />
+                    </div>
                     <span class="text-sm font-medium text-[#333]">{{ data.name }}</span>
                     <span class="text-xs text-[#999] font-mono bg-[rgba(139,111,71,0.08)] px-1.5 py-0.5 rounded">{{ data.code }}</span>
-                    <el-tag
-                      v-if="node.level === 1"
-                      type="info"
-                      size="small"
-                      effect="plain"
-                      class="ml-1"
-                    >
+                    <CustomTag v-if="level === 0" variant="info" class="ml-1">
                       {{ data.subjectName }}
-                    </el-tag>
+                    </CustomTag>
                     <span class="text-xs text-[#999] bg-[rgba(139,111,71,0.08)] px-2 py-0.5 rounded-[10px]">{{ getChildrenQuestionCount(data) }}题</span>
                   </div>
                   <div class="flex items-center gap-2 opacity-0 transition-opacity duration-200" :class="{ '!opacity-100': true }">
-                    <el-tooltip content="添加子分类" placement="top" v-if="node.level < 3">
-                      <el-icon class="w-7 h-7 flex items-center justify-center rounded-md cursor-pointer text-[#999] hover:bg-[rgba(139,111,71,0.1)] hover:text-[#8B6F47]" @click.stop="handleAddChild(data)"><Plus /></el-icon>
-                    </el-tooltip>
-                    <el-tooltip content="编辑" placement="top">
-                      <el-icon class="w-7 h-7 flex items-center justify-center rounded-md cursor-pointer text-[#999] hover:bg-[rgba(139,111,71,0.1)] hover:text-[#8B6F47]" @click.stop="handleEdit(data)"><Edit /></el-icon>
-                    </el-tooltip>
-                    <el-tooltip content="删除" placement="top">
-                      <el-icon class="w-7 h-7 flex items-center justify-center rounded-md cursor-pointer text-[#999] hover:bg-[rgba(245,108,108,0.1)] hover:text-[#f56c6c]" @click.stop="handleDelete(data)"><Delete /></el-icon>
-                    </el-tooltip>
+                    <CustomTooltip content="添加子分类" placement="top" v-if="level < 2">
+                      <div class="w-7 h-7 flex items-center justify-center rounded-md cursor-pointer text-[#999] hover:bg-[rgba(139,111,71,0.1)] hover:text-[#8B6F47]" @click.stop="handleAddChild(data)">
+                        <font-awesome-icon :icon="['fas', 'plus']" />
+                      </div>
+                    </CustomTooltip>
+                    <CustomTooltip content="编辑" placement="top">
+                      <div class="w-7 h-7 flex items-center justify-center rounded-md cursor-pointer text-[#999] hover:bg-[rgba(139,111,71,0.1)] hover:text-[#8B6F47]" @click.stop="handleEdit(data)">
+                        <font-awesome-icon :icon="['fas', 'edit']" />
+                      </div>
+                    </CustomTooltip>
+                    <CustomTooltip content="删除" placement="top">
+                      <div class="w-7 h-7 flex items-center justify-center rounded-md cursor-pointer text-[#999] hover:bg-[rgba(245,108,108,0.1)] hover:text-[#f56c6c]" @click.stop="handleDelete(data)">
+                        <font-awesome-icon :icon="['fas', 'trash']" />
+                      </div>
+                    </CustomTooltip>
                   </div>
                 </div>
               </template>
-            </el-tree>
+            </CustomTree>
           </div>
           <!-- 树形视图加载占位 -->
           <div v-else class="flex items-center justify-center gap-2 p-10 text-[#999]">
-            <el-icon class="text-xl text-[#8B6F47] animate-spin"><Loading /></el-icon>
+            <font-awesome-icon :icon="['fas', 'spinner']" class="fa-spin text-xl text-[#8B6F47]" />
             <span>加载中...</span>
           </div>
         </template>
-        
+
         <!-- 空状态 -->
-        <el-empty v-if="!loading && treeCategories.length === 0" description="暂无分类数据" />
+        <CustomEmpty v-if="!loading && treeCategories.length === 0" description="暂无分类数据" />
       </main>
     </div>
     
     <!-- 拖拽保存中提示 -->
     <Transition name="fade">
       <div v-if="dragSaving" class="fixed top-5 right-5 bg-white px-5 py-3 rounded-lg shadow-lg flex items-center gap-2.5 z-[2000] animate-[slideIn_0.3s_ease]">
-        <el-icon class="text-[#8B6F47] animate-[spin_1s_linear_infinite]"><Loading /></el-icon>
+        <font-awesome-icon :icon="['fas', 'spinner']" class="fa-spin text-[#8B6F47]" />
         <span>正在保存排序...</span>
       </div>
     </Transition>
 
     <!-- 编辑对话框 -->
-    <el-dialog
-      v-model="dialogVisible"
+    <CustomDialog
+      v-model:visible="dialogVisible"
       :title="dialogMode === 'add' ? '新增分类' : '编辑分类'"
       width="600px"
     >
-      <el-form
-        ref="formRef"
-        :model="form"
-        :rules="formRules"
-        label-width="100px"
-      >
-        <el-form-item label="所属科目" prop="subjectId">
-          <el-select
+      <!-- 表单区域 -->
+      <div class="space-y-5">
+        <!-- 所属科目 -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">
+            所属科目 <span class="text-red-500">*</span>
+          </label>
+          <CustomSelect
             v-model="form.subjectId"
+            :options="subjectOptions.map(s => ({ label: s.name, value: s.id }))"
             placeholder="请选择科目"
-            style="width: 100%"
             :disabled="dialogMode === 'edit'"
             @change="handleSubjectChange"
-          >
-            <el-option
-              v-for="subject in subjectOptions"
-              :key="subject.id"
-              :label="subject.name"
-              :value="subject.id"
-            />
-          </el-select>
-          <div class="text-xs text-[#999] mt-1" v-if="dialogMode === 'edit'">所属科目创建后不可修改</div>
-        </el-form-item>
+          />
+          <p class="text-xs text-[#999] mt-1" v-if="dialogMode === 'edit'">所属科目创建后不可修改</p>
+        </div>
 
-        <el-form-item label="父分类" prop="parentId">
-          <el-select
+        <!-- 父分类 -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">
+            父分类
+          </label>
+          <CustomSelect
             v-model="form.parentId"
+            :options="parentOptions"
             placeholder="无（顶级分类）"
-            style="width: 100%"
             clearable
-            :loading="loadingParents"
             :disabled="!form.subjectId || (dialogMode === 'edit' && hasChildren)"
-          >
-            <!-- 三级分类支持：显示顶级分类和二级分类，带层级缩进 -->
-            <el-option
-              v-for="parent in parentOptions"
-              :key="parent.id"
-              :label="parent.parentId ? `└ ${parent.name}` : parent.name"
-              :value="parent.id"
-            >
-              <span :style="{ paddingLeft: parent.parentId ? '20px' : '0' }">
-                {{ parent.parentId ? '└ ' : '' }}{{ parent.name }}
-                <span v-if="parent.parentName" class="text-xs text-[#999] ml-1">（{{ parent.parentName }}）</span>
-              </span>
-            </el-option>
-          </el-select>
-          <div class="text-xs text-[#999] mt-1">
+          />
+          <p class="text-xs text-[#999] mt-1">
             <span v-if="hasChildren">该分类已有子分类，变更层级可能受限</span>
             <span v-else>留空表示顶级分类，支持三级分类结构</span>
-          </div>
-        </el-form-item>
+          </p>
+        </div>
 
-        <el-form-item label="分类编码" prop="code">
-          <el-input
-            v-model="form.code"
-            placeholder="请输入分类编码（如：stack-queue）"
-            maxlength="50"
-            clearable
-          />
-          <div class="text-xs text-[#999] mt-1">建议使用英文小写字母和连字符</div>
-        </el-form-item>
+        <!-- 分类编码 -->
+        <CustomInput
+          v-model="form.code"
+          label="分类编码"
+          placeholder="请输入分类编码（如：stack-queue）"
+          :maxlength="50"
+          required
+        >
+          <template #tip>
+            <p class="text-xs text-[#999] mt-1">建议使用英文小写字母和连字符</p>
+          </template>
+        </CustomInput>
 
-        <el-form-item label="分类名称" prop="name">
-          <el-input
-            v-model="form.name"
-            placeholder="请输入分类名称（如：栈和队列）"
-            maxlength="50"
-            clearable
-          />
-        </el-form-item>
+        <!-- 分类名称 -->
+        <CustomInput
+          v-model="form.name"
+          label="分类名称"
+          placeholder="请输入分类名称（如：栈和队列）"
+          :maxlength="50"
+          required
+        />
 
-        <el-form-item label="分类描述" prop="description">
-          <el-input
+        <!-- 分类描述 -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">
+            分类描述
+          </label>
+          <textarea
             v-model="form.description"
-            type="textarea"
+            class="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:border-[#8B6F47] focus:ring-2 focus:ring-[#8B6F47]/20 transition-all duration-200"
             placeholder="请输入分类描述（可选）"
             :rows="3"
-            maxlength="255"
-            show-word-limit
-          />
-        </el-form-item>
+            :maxlength="255"
+          ></textarea>
+          <div class="flex justify-end mt-1">
+            <span class="text-xs text-[#999]">{{ form.description?.length || 0 }}/255</span>
+          </div>
+        </div>
 
-        <el-form-item label="排序顺序" prop="orderNum">
-          <el-input-number
+        <!-- 排序顺序 -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">
+            排序顺序
+          </label>
+          <CustomInputNumber
             v-model="form.orderNum"
             :min="0"
             :max="9999"
-            placeholder="数字越小越靠前"
           />
-        </el-form-item>
+          <p class="text-xs text-[#999] mt-1">数字越小越靠前</p>
+        </div>
 
-        <el-form-item label="是否启用" prop="enabled">
-          <el-switch v-model="form.enabled" />
-        </el-form-item>
-      </el-form>
+        <!-- 是否启用 -->
+        <div class="flex items-center gap-3">
+          <CustomSwitch v-model="form.enabled" />
+          <span class="text-sm text-gray-700">{{ form.enabled ? '启用' : '禁用' }}</span>
+        </div>
+      </div>
 
       <template #footer>
         <CustomButton @click="dialogVisible = false">取消</CustomButton>
@@ -446,7 +441,7 @@
           确定
         </CustomButton>
       </template>
-    </el-dialog>
+    </CustomDialog>
   </div>
 </template>
 
@@ -457,6 +452,8 @@
  * 遵循KISS原则：简单的表格+对话框实现
  */
 import { ref, reactive, computed, onMounted, watch, nextTick } from 'vue'
+
+// API 接口定义
 import {
   getAllCategories,
   getCategoriesBySubject,
@@ -468,9 +465,26 @@ import {
   getCategoryStats
 } from '@/api/category'
 import { getAllSubjects } from '@/api/subject'
-import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus, Folder, FolderOpened, Warning, Edit, Delete, DataAnalysis, Grid, List, ArrowDown, ArrowRight, Document, Loading } from '@element-plus/icons-vue'
+
+// 消息提示
+import { useToast } from '@/composables/useToast'
+import { useConfirm } from '@/composables/useConfirm'
+
+// 自定义组件导入
 import CustomButton from '@/components/basic/CustomButton.vue'
+import CustomDialog from '@/components/basic/Dialog.vue'
+import CustomSelect from '@/components/basic/Select.vue'
+import CustomInput from '@/components/basic/CustomInput.vue'
+import CustomTag from '@/components/basic/Tag.vue'
+import CustomEmpty from '@/components/basic/Empty.vue'
+import CustomSwitch from '@/components/basic/Switch.vue'
+import CustomInputNumber from '@/components/basic/InputNumber.vue'
+import CustomTooltip from '@/components/basic/Tooltip.vue'
+import CustomRadioGroup from '@/components/basic/RadioGroup.vue'
+import CustomTree from '@/components/basic/Tree.vue'
+
+const { showToast } = useToast()
+const { showConfirm } = useConfirm()
 
 // 所有分类列表（用于统计）
 const allCategories = ref([])
@@ -529,34 +543,19 @@ watch(viewMode, (newMode) => {
 
 /**
  * 树形视图：全部展开
- * 通过 treeRef 实例方法实现
+ * 直接设置 treeExpandedKeys 数组
  */
 const expandAllTree = () => {
-  if (treeRef.value) {
-    const allNodes = getAllTreeNodes(treeCategories.value)
-    allNodes.forEach(id => {
-      const node = treeRef.value.getNode(id)
-      if (node) node.expand()
-    })
-    // 同步更新 treeExpandedKeys
-    treeExpandedKeys.value = allNodes
-  }
+  const allNodes = getAllTreeNodes(treeCategories.value)
+  treeExpandedKeys.value = allNodes
 }
 
 /**
  * 树形视图：全部收起
- * 通过 treeRef 实例方法实现
+ * 清空 treeExpandedKeys 数组
  */
 const collapseAllTree = () => {
-  if (treeRef.value) {
-    const allNodes = getAllTreeNodes(treeCategories.value)
-    allNodes.forEach(id => {
-      const node = treeRef.value.getNode(id)
-      if (node) node.collapse()
-    })
-    // 同步更新 treeExpandedKeys
-    treeExpandedKeys.value = []
-  }
+  treeExpandedKeys.value = []
 }
 
 /**
@@ -590,21 +589,12 @@ const getTreeExpandedKeys = () => {
 
 /**
  * 恢复树形视图的展开状态
- * 使用 treeRef 实例方法展开节点
+ * 直接设置 treeExpandedKeys 数组
  * @param {Array} keys 需要展开的节点ID列表
  */
 const restoreTreeExpandedKeys = (keys) => {
   if (!keys) return
   treeExpandedKeys.value = [...keys]
-  // 使用 nextTick 确保 DOM 更新后再操作
-  nextTick(() => {
-    if (treeRef.value && keys.length > 0) {
-      keys.forEach(id => {
-        const node = treeRef.value.getNode(id)
-        if (node) node.expand()
-      })
-    }
-  })
 }
 
 /**
@@ -806,7 +796,14 @@ const loadCategoryStats = async () => {
   try {
     const response = await getCategoryStats(questionType.value)
     if (response.code === 200) {
-      categoryStats.value = response.data || { subjectStats: [], totalQuestionCount: 0 }
+      categoryStats.value = {
+        subjectStats: response.data?.subject_stats?.map(s => ({
+          subjectId: s.subject_id,
+          subjectName: s.subject_name,
+          questionCount: s.question_count
+        })) || [],
+        totalQuestionCount: response.data?.total_question_count || 0
+      }
     }
   } catch (error) {
     console.error('加载统计数据失败:', error)
@@ -833,11 +830,11 @@ const loadCategories = async () => {
         allCategories.value = response.data || []
       }
     } else {
-      ElMessage.error(response.message || '加载分类列表失败')
+      showToast(response.message || '加载分类列表失败', 'error')
     }
   } catch (error) {
     console.error('加载分类列表失败:', error)
-    ElMessage.error('加载分类列表失败')
+    showToast('加载分类列表失败', 'error')
   } finally {
     loading.value = false
   }
@@ -887,7 +884,6 @@ const resetForm = () => {
   form.enabled = true
   parentOptions.value = []
   hasChildren.value = false
-  formRef.value?.clearValidate()
 }
 
 /**
@@ -910,7 +906,11 @@ const loadParentOptions = async (subjectId, excludeId = null) => {
   try {
     const response = await getAvailableParentCategories(subjectId, excludeId)
     if (response.code === 200) {
-      parentOptions.value = response.data || []
+      // 转换为 CustomSelect 需要的格式，并添加层级缩进
+      parentOptions.value = (response.data || []).map(parent => ({
+        value: parent.id,
+        label: parent.parentId ? `└ ${parent.name}` : parent.name
+      }))
     }
   } catch (error) {
     console.error('加载父分类失败:', error)
@@ -962,9 +962,21 @@ const handleEdit = async (row) => {
  * 优化：编辑时使用局部更新，新增时保持展开状态
  */
 const handleSubmit = async () => {
-  // 表单验证
-  const valid = await formRef.value.validate().catch(() => false)
-  if (!valid) {
+  // 手动表单验证
+  if (!form.subjectId) {
+    showToast('请选择所属科目', 'warning')
+    return
+  }
+  if (!form.code) {
+    showToast('请输入分类编码', 'warning')
+    return
+  }
+  if (!form.name) {
+    showToast('请输入分类名称', 'warning')
+    return
+  }
+  if (!/^[a-zA-Z0-9_-]+$/.test(form.code)) {
+    showToast('编码只能包含字母、数字、下划线和连字符', 'warning')
     return
   }
 
@@ -988,7 +1000,7 @@ const handleSubmit = async () => {
     }
 
     if (response.code === 200) {
-      ElMessage.success(dialogMode.value === 'add' ? '创建成功' : '更新成功')
+      showToast(dialogMode.value === 'add' ? '创建成功' : '更新成功', 'success')
       dialogVisible.value = false
       
       if (dialogMode.value === 'add') {
@@ -1017,11 +1029,11 @@ const handleSubmit = async () => {
         updateLocalCategory(form.id, updatedData)
       }
     } else {
-      ElMessage.error(response.message || '操作失败')
+      showToast(response.message || '操作失败', 'error')
     }
   } catch (error) {
     console.error('提交失败:', error)
-    ElMessage.error(dialogMode.value === 'add' ? '创建失败' : '更新失败')
+    showToast(dialogMode.value === 'add' ? '创建失败' : '更新失败', 'error')
   } finally {
     submitLoading.value = false
   }
@@ -1064,19 +1076,17 @@ const handleDelete = async (row) => {
       confirmMsg = `该分类被 ${usage} 道题目引用。删除后，这些题目的分类信息将不变，但无法再选择此分类。\n\n确认删除分类"${row.name}"吗？`
     }
 
-    await ElMessageBox.confirm(
-      confirmMsg,
-      '删除确认',
-      {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'error'
-      }
-    )
+    await showConfirm({
+      title: '删除确认',
+      message: confirmMsg,
+      confirmText: '确定',
+      cancelText: '取消',
+      type: 'danger'
+    })
 
     const response = await deleteCategory(row.id)
     if (response.code === 200) {
-      ElMessage.success('删除成功')
+      showToast('删除成功', 'success')
       // 保存当前展开状态
       const savedExpandedCards = new Set(expandedCards.value)
       const savedTreeExpandedKeys = getTreeExpandedKeys()
@@ -1089,12 +1099,12 @@ const handleDelete = async (row) => {
       expandedCards.value = savedExpandedCards
       restoreTreeExpandedKeys(savedTreeExpandedKeys.filter(id => id !== row.id))
     } else {
-      ElMessage.error(response.message || '删除失败')
+      showToast(response.message || '删除失败', 'error')
     }
   } catch (error) {
     if (error !== 'cancel') {
       console.error('删除失败:', error)
-      ElMessage.error('删除失败')
+      showToast('删除失败', 'error')
     }
   }
 }
@@ -1189,8 +1199,8 @@ const initTreeExpandedKeys = () => {
 const handleTreeNodeDrop = async (draggingNode, dropNode, dropType, ev) => {
   // 只处理同级排序（before/after），不处理 inner（跨层级）
   if (dropType === 'inner') {
-    ElMessage.warning('暂不支持跨层级拖拽')
-    // 局部恢复：el-tree 已经移动了节点，需要恢复原位置
+    showToast('暂不支持跨层级拖拽', 'warning')
+    // 局部恢复：自定义 Tree 组件拖拽后需要恢复原位置
     restoreTreeOrder()
     return
   }
@@ -1201,7 +1211,7 @@ const handleTreeNodeDrop = async (draggingNode, dropNode, dropType, ev) => {
   
   // 确保是同一父级下的排序
   if (dragData.parentId !== dropData.parentId) {
-    ElMessage.warning('只能在同一层级内排序')
+    showToast('只能在同一层级内排序', 'warning')
     restoreTreeOrder()
     return
   }
@@ -1262,10 +1272,10 @@ const handleTreeNodeDrop = async (draggingNode, dropNode, dropType, ev) => {
       }
     })
     
-    ElMessage.success('排序已更新')
+    showToast('排序已更新', 'success')
   } catch (error) {
     console.error('更新排序失败:', error)
-    ElMessage.error('排序更新失败')
+    showToast('排序更新失败', 'error')
     // 失败时恢复原顺序
     restoreTreeOrder()
   } finally {
@@ -1304,12 +1314,16 @@ const allowDrag = (node) => {
 // 组件挂载时加载数据
 onMounted(async () => {
   await loadSubjectOptions()
-  // 默认选中第一个科目
+  // 第一步：先加载全部分类数据（用于统计）
+  await loadAllCategories()
+  // 第二步：加载统计数据
+  await loadCategoryStats()
+  // 第三步：默认选中第一个科目（只影响显示）
   if (subjectOptions.value.length > 0) {
     filterSubjectId.value = subjectOptions.value[0].id
+    // 第四步：加载选中科目的分类数据（用于显示）
+    await loadCategories()
   }
-  // 并行加载：分类数据 + 去重统计数据
-  await Promise.all([loadCategories(), loadCategoryStats()])
   // 初始化展开所有卡片和树节点
   initExpandedCards()
   initTreeExpandedKeys()
@@ -1398,61 +1412,6 @@ onMounted(async () => {
   opacity: 0;
 }
 
-/* 树形视图拖拽节点样式 */
-:deep(.el-tree) .el-tree-node.is-drop-inner > .el-tree-node__content {
-  background: rgba(139, 111, 71, 0.15);
-  border-radius: 8px;
-}
-
-:deep(.el-tree) .el-tree__drop-indicator {
-  height: 3px;
-  background: linear-gradient(90deg, #8B6F47, #a88a5f);
-  border-radius: 2px;
-  box-shadow: 0 0 8px rgba(139, 111, 71, 0.5);
-}
-
-:deep(.el-tree) .is-dragging > .el-tree-node__content {
-  background: linear-gradient(135deg, rgba(139, 111, 71, 0.15), rgba(139, 111, 71, 0.08));
-  border: 2px solid #8B6F47;
-  box-shadow: 0 8px 24px rgba(139, 111, 71, 0.3);
-  transform: scale(1.02);
-}
-
-/* 树形视图容器深层样式 */
-:deep(.el-tree) {
-  background: transparent;
-}
-
-:deep(.el-tree) .el-tree-node__content {
-  height: auto;
-  padding: 8px 0;
-}
-
-:deep(.el-tree) .el-tree-node__content:hover {
-  background: rgba(139, 111, 71, 0.04);
-}
-
-:deep(.el-tree) .el-tree-node__expand-icon {
-  color: #8B6F47;
-  font-size: 16px;
-}
-
-:deep(.el-tree) .el-tree-node__expand-icon.is-leaf {
-  color: transparent;
-}
-
-/* 标签样式优化 */
-:deep(.el-tag).el-tag--success {
-  background-color: rgba(103, 194, 58, 0.1);
-  border-color: rgba(103, 194, 58, 0.2);
-  color: #5daf34;
-}
-
-:deep(.el-tag).el-tag--info {
-  background-color: rgba(139, 111, 71, 0.08);
-  border-color: rgba(139, 111, 71, 0.15);
-  color: #8B6F47;
-}
 
 /* 响应式布局 */
 @media (max-width: 768px) {

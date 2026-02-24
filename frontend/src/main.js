@@ -77,7 +77,9 @@ import {
   faTicket,
   faMagnifyingGlass,
   faCompress,
-  faTriangleExclamation
+  faTriangleExclamation,
+  faGrip,
+  faChartBar
 } from '@fortawesome/free-solid-svg-icons'
 import ElementPlus from 'element-plus'
 import 'element-plus/dist/index.css'
@@ -158,7 +160,9 @@ library.add(
   faTicket,
   faMagnifyingGlass,
   faCompress,
-  faTriangleExclamation
+  faTriangleExclamation,
+  faGrip,
+  faChartBar
 )
 
 // 创建Vue应用实例

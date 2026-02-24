@@ -22,7 +22,8 @@ from app.schemas.category import (
     ExamCategoryResponse,
     ExamCategoryTreeResponse,
     ExamCategoryStatResponse,
-    ExamCategoryUsageResponse
+    ExamCategoryUsageResponse,
+    SubjectStatItem
 )
 from app.schemas.exam import (
     ExamQueryParams,
