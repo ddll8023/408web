@@ -17,7 +17,7 @@ router = APIRouter()
 
 def get_upload_service(session: AsyncSession) -> UploadService:
     """获取上传服务实例"""
-    from app.config import settings
+    from app.config.settings import settings
     upload_dir = settings.upload.upload_dir
     return UploadService(session, upload_dir)
 
