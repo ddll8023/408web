@@ -177,4 +177,5 @@ SQLite 数据库位于 `data/web408.db`，主要表包括：
 - 前端开发服务器代理 `/api` 请求到后端 `http://localhost:8081`
 - CORS 配置允许 `http://localhost:5173` 和 `http://localhost:5174`
 - 文件上传存储在 `backend-fastapi/uploads/images/`
-- 日志存储在 `backend-fastapi/logs/`
+- 日志存储在 `backend-fastapi/app/logs`
+- 禁止使用多种兼容方案，严格按照规范统一写法，如果规范没有写就和我讨论写法

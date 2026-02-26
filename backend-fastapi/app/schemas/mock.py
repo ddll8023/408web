@@ -177,6 +177,7 @@ class MockCategoryStatsResponse(BaseModel):
     subject_id: int = Field(..., description="科目ID")
     subject_name: Optional[str] = Field(default=None, description="科目名称")
     stats: List[MockCategoryStatItem] = Field(default_factory=list, description="分类统计列表")
+    total_count: int = Field(default=0, description="该科目下的题目总数（去重后）")
 
     model_config = {
         "from_attributes": True

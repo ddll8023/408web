@@ -244,14 +244,14 @@ const loadMockList = async () => {
   try {
     const response = await getMockQuestions({
       page: pagination.page,
-      size: pagination.size,
+      page_size: pagination.size,
       source: filters.source || undefined,
-      subjectId: filters.subjectId || undefined,
+      subject_id: filters.subjectId || undefined,
       category: filters.category || undefined,
       keyword: filters.keyword || undefined,
-      noCategory: filters.noCategory || undefined,
-      sortField: sorting.sortField || undefined,
-      sortOrder: sorting.sortOrder || undefined
+      no_category: filters.noCategory || undefined,
+      sort_field: sorting.sortField || undefined,
+      sort_order: sorting.sortOrder || undefined
     })
     
     if (response.code === 200) {

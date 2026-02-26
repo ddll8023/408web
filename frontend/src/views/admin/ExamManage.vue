@@ -1,155 +1,188 @@
 <template>
   <div class="max-w-[1400px] mx-auto px-4 py-6 min-h-[calc(100vh-60px)]">
-    <el-card class="shadow-sm">
-      <template #header>
-        <div class="flex items-center justify-between">
-          <h2 class="m-0 text-xl text-[#333] font-semibold">真题管理</h2>
-          <div class="flex gap-2">
-            <CustomButton type="primary" @click="handleAdd">
-              <el-icon style="margin-right: 6px"><Plus /></el-icon>
-              新增真题
-            </CustomButton>
-          </div>
+    <div class="bg-white rounded-lg shadow-sm">
+      <!-- 头部 -->
+      <div class="flex items-center justify-between p-4 border-b border-gray-200">
+        <h2 class="m-0 text-xl text-[#333] font-semibold">真题管理</h2>
+        <div class="flex gap-2">
+          <CustomButton type="primary" @click="handleAdd">
+            <font-awesome-icon :icon="['fas', 'plus']" class="mr-1.5" />
+            新增真题
+          </CustomButton>
         </div>
-      </template>
+      </div>
 
       <!-- 筛选条件 -->
       <div class="mb-6 p-4 bg-[#efefef] rounded">
-        <el-form inline>
-          <el-form-item label="年份">
-            <el-input-number
+        <div class="flex flex-wrap gap-4 items-center">
+          <!-- 年份筛选 -->
+          <div class="flex items-center gap-2">
+            <label class="text-sm text-gray-600 whitespace-nowrap">年份</label>
+            <WheelPicker
               v-model="filters.year"
-              :min="2000"
-              :max="2099"
-              placeholder="请选择年份"
-              style="width: 150px"
+              :options="yearOptions"
+              placeholder="选择年份"
+              clearable
+              class="!w-[140px]"
             />
-          </el-form-item>
-          <el-form-item label="科目">
-            <el-select
+          </div>
+          <!-- 科目筛选 -->
+          <div class="flex items-center gap-2">
+            <label class="text-sm text-gray-600 whitespace-nowrap">科目</label>
+            <Select
               v-model="filters.subjectId"
+              :options="subjectOptions"
               placeholder="请选择科目"
               clearable
-              style="width: 150px"
+              class="!w-[180px]"
               @change="handleSubjectChange"
-            >
-              <el-option
-                v-for="subject in subjectOptions"
-                :key="subject.id"
-                :label="subject.name"
-                :value="subject.id"
-              />
-            </el-select>
-          </el-form-item>
-          <el-form-item label="分类">
+            />
+          </div>
+          <!-- 分类筛选 -->
+          <div class="flex items-center gap-2">
+            <label class="text-sm text-gray-600 whitespace-nowrap">分类</label>
             <InputSelect
               v-model="filters.category"
               :options="categoryOptions"
               placeholder="请选择或输入分类"
-              style="width: 180px"
+              class="!w-[180px]"
               :disabled="!filters.subjectId"
             />
-          </el-form-item>
-          <el-form-item label="关键词">
-            <el-input
+          </div>
+          <!-- 关键词搜索 -->
+          <div class="flex items-center gap-2">
+            <label class="text-sm text-gray-600 whitespace-nowrap">关键词</label>
+            <CustomInput
               v-model="filters.keyword"
               placeholder="搜索题目内容"
               clearable
-              style="width: 180px"
+              class="!w-[180px]"
               @keyup.enter="handleSearch"
-            />
-          </el-form-item>
-          <el-form-item>
-            <el-checkbox v-model="filters.noCategory">仅显示无分类</el-checkbox>
-          </el-form-item>
-          <el-form-item>
+            >
+              <template #prefix>
+                <font-awesome-icon :icon="['fas', 'search']" class="text-gray-400" />
+              </template>
+            </CustomInput>
+          </div>
+          <!-- 仅显示无分类 -->
+          <div class="flex items-center gap-2">
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input
+                v-model="filters.noCategory"
+                type="checkbox"
+                class="w-4 h-4 rounded border-gray-300 text-[#8B6F47] focus:ring-[#8B6F47]"
+              />
+              <span class="text-sm text-gray-600">仅显示无分类</span>
+            </label>
+          </div>
+          <!-- 按钮组 -->
+          <div class="flex items-center gap-2">
             <CustomButton type="primary" @click="handleSearch">查询</CustomButton>
-            <CustomButton style="margin-left: 16px" @click="handleReset">重置</CustomButton>
-          </el-form-item>
-        </el-form>
+            <CustomButton @click="handleReset">重置</CustomButton>
+          </div>
+        </div>
       </div>
 
       <!-- 真题列表表格 -->
-      <el-table :data="exams" stripe style="width: 100%" v-loading="loading" @sort-change="handleSortChange">
-        <el-table-column prop="id" label="ID" width="80" />
-        <el-table-column prop="year" label="年份" width="100" sortable="custom" />
-        <el-table-column prop="questionNumber" label="题号" width="80" sortable="custom" />
-        <el-table-column label="题型" width="100">
-          <template #default="{ row }">
-            <el-tag :type="row.questionType === 'CHOICE' ? 'success' : 'primary'">
+      <div class="p-4">
+        <Table
+          :data="exams"
+          :columns="tableColumns"
+          :loading="loading"
+          size="lg"
+          @sort-change="handleSortChange"
+        >
+          <!-- ID 列 -->
+          <template #id="{ row }">
+            {{ row.id }}
+          </template>
+
+          <!-- 年份列 -->
+          <template #year="{ row }">
+            {{ row.year }}
+          </template>
+
+          <!-- 题号列 -->
+          <template #questionNumber="{ row }">
+            {{ row.questionNumber }}
+          </template>
+
+          <!-- 题型列 -->
+          <template #questionType="{ row }">
+            <Tag :type="row.questionType === 'CHOICE' ? 'success' : 'primary'">
               {{ row.questionType === 'CHOICE' ? '选择题' : '主观题' }}
-            </el-tag>
+            </Tag>
           </template>
-        </el-table-column>
-        <el-table-column prop="title" label="标题" show-overflow-tooltip min-width="250">
-          <template #default="{ row }">
-            <span class="cursor-pointer hover:!text-[#FBF7F2]">{{ row.title }}</span>
+
+          <!-- 标题列 -->
+          <template #title="{ row }">
+            <span class="cursor-pointer hover:!text-[#8B6F47]">{{ row.title }}</span>
           </template>
-        </el-table-column>
-        <el-table-column label="分类" width="200">
-          <template #default="{ row }">
-            <el-tag
-              v-for="cat in (Array.isArray(row.category) ? row.category : [])"
-              :key="cat"
-              size="small"
-              type="info"
-              style="margin-right: 4px; margin-bottom: 4px;"
-            >
-              {{ cat }}
-            </el-tag>
+
+          <!-- 分类列 -->
+          <template #category="{ row }">
+            <div class="flex flex-wrap gap-1">
+              <Tag
+                v-for="cat in (Array.isArray(row.category) ? row.category : [])"
+                :key="cat"
+                type="info"
+                size="small"
+              >
+                {{ cat }}
+              </Tag>
+            </div>
           </template>
-        </el-table-column>
-        <el-table-column label="难度" width="100">
-          <template #default="{ row }">
-            <el-tag v-if="row.difficulty" :type="getDifficultyType(row.difficulty)">
+
+          <!-- 难度列 -->
+          <template #difficulty="{ row }">
+            <Tag v-if="row.difficulty" :type="getDifficultyType(row.difficulty)" size="small">
               {{ getDifficultyLabel(row.difficulty) }}
-            </el-tag>
-            <span v-else>-</span>
+            </Tag>
+            <span v-else class="text-gray-400">-</span>
           </template>
-        </el-table-column>
-        <el-table-column prop="updateTime" label="更新时间" width="160" sortable="custom">
-          <template #default="{ row }">
+
+          <!-- 更新时间列 -->
+          <template #updateTime="{ row }">
             {{ formatDateTime(row.updateTime) }}
           </template>
-        </el-table-column>
-        <el-table-column label="操作" width="180" fixed="right">
-          <template #default="{ row }">
-            <CustomButton type="text" size="sm" @click="handleView(row)">查看</CustomButton>
-            <CustomButton type="text-primary" size="sm" @click="handleEdit(row)">编辑</CustomButton>
-            <CustomButton
-              type="text-danger"
-              size="sm"
-              :loading="row.deleteLoading"
-              @click="handleDelete(row)"
-            >
-              删除
-            </CustomButton>
+
+          <!-- 操作列 -->
+          <template #actions="{ row }">
+            <div class="flex items-center gap-2">
+              <CustomButton type="text" size="sm" @click="handleView(row)">查看</CustomButton>
+              <CustomButton type="text-primary" size="sm" @click="handleEdit(row)">编辑</CustomButton>
+              <CustomButton
+                type="text-danger"
+                size="sm"
+                :loading="row.deleteLoading"
+                @click="handleDelete(row)"
+              >
+                删除
+              </CustomButton>
+            </div>
           </template>
-        </el-table-column>
-      </el-table>
+        </Table>
 
-      <!-- 分页 -->
-      <div class="flex justify-end mt-6">
-        <el-pagination
-          v-model:current-page="pagination.page"
-          v-model:page-size="pagination.size"
-          :page-sizes="[10, 20, 50, 100]"
-          :total="pagination.total"
-          layout="total, sizes, prev, pager, next, jumper"
-          @current-change="loadExamList"
-          @Size-change="loadExamList"
-        />
+        <!-- 分页 -->
+        <div class="flex justify-end mt-6">
+          <Pagination
+            v-model:current-page="pagination.page"
+            v-model:page-size="pagination.size"
+            :page-sizes="[10, 20, 50, 100]"
+            :total="pagination.total"
+            @current-change="loadExamList"
+            @size-change="loadExamList"
+          />
+        </div>
       </div>
-    </el-card>
+    </div>
 
-    <el-backtop
-      :right="32"
-      :bottom="32"
-    >
+    <!-- 返回顶部 -->
+    <BackTop :right="32" :bottom="32">
       <div class="w-10 h-10 rounded-full bg-[#8B6F47] flex items-center justify-center text-white shadow-lg">
-        <el-icon><ArrowUp /></el-icon>
+        <font-awesome-icon :icon="['fas', 'arrow-up']" />
       </div>
-    </el-backtop>
+    </BackTop>
 
     <!-- 编辑弹窗 -->
     <ExamEditDialog
@@ -167,17 +200,37 @@
  * 遵循KISS原则：简单的表格+筛选实现
  * 使用 useAdminTable composable 复用公共逻辑
  */
-import { ref, reactive, onMounted, watch } from 'vue'
+// 1. Vue 官方 API
+import { ref, reactive, computed, onMounted, watch } from 'vue'
+
+// 2. Vue Router 相关
 import { useRoute } from 'vue-router'
-import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus, ArrowUp } from '@element-plus/icons-vue'
+
+// 3. API 接口定义
 import { getExamList, deleteExam, getExamCategoriesBySubject } from '@/api/exam'
-import CustomButton from '@/components/basic/CustomButton.vue'
-import InputSelect from '@/components/basic/InputSelect.vue'
-import ExamEditDialog from '@/components/business/ExamEditDialog.vue'
+
+// 4. 组合式函数
+import { useToast } from '@/composables/useToast'
+import { useConfirm } from '@/composables/useConfirm'
 import { useAdminTable } from '@/composables/useAdminTable'
 
+// 5. 子组件导入
+import CustomButton from '@/components/basic/CustomButton.vue'
+import CustomInput from '@/components/basic/CustomInput.vue'
+import InputSelect from '@/components/basic/InputSelect.vue'
+import WheelPicker from '@/components/basic/WheelPicker.vue'
+import Select from '@/components/basic/Select.vue'
+import Tag from '@/components/basic/Tag.vue'
+import Table from '@/components/basic/Table.vue'
+import BackTop from '@/components/basic/BackTop.vue'
+import Pagination from '@/components/basic/Pagination.vue'
+import ExamEditDialog from '@/components/business/ExamEditDialog.vue'
+
 const route = useRoute()
+
+// 使用 Toast 和 Confirm
+const { showToast } = useToast()
+const { showConfirm } = useConfirm()
 
 // 使用公共管理表格逻辑
 const {
@@ -204,6 +257,29 @@ const editingExamId = ref(null)
 // 真题列表
 const exams = ref([])
 
+// 年份选项（2009 - 当前年份，倒序排列）
+const currentYear = new Date().getFullYear()
+const yearOptions = computed(() => {
+  const options = []
+  for (let year = currentYear; year >= 2009; year--) {
+    options.push({ label: `${year}年`, value: year })
+  }
+  return options
+})
+
+// 表格列配置
+const tableColumns = [
+  { prop: 'id', label: 'ID', width: '80px' },
+  { prop: 'year', label: '年份', width: '100px', sortable: true },
+  { prop: 'questionNumber', label: '题号', width: '80px', sortable: true },
+  { prop: 'questionType', label: '题型', width: '100px' },
+  { prop: 'title', label: '标题', minWidth: '250px' },
+  { prop: 'category', label: '分类', width: '200px' },
+  { prop: 'difficulty', label: '难度', width: '100px' },
+  { prop: 'updateTime', label: '更新时间', width: '160px', sortable: true },
+  { prop: 'actions', label: '操作', width: '200px' }
+]
+
 // 筛选条件
 const filters = reactive({
   year: null,
@@ -221,24 +297,24 @@ const loadExamList = async () => {
   try {
     const response = await getExamList({
       page: pagination.page,
-      size: pagination.size,
+      page_size: pagination.size,
       year: filters.year || undefined,
-      subjectId: filters.subjectId || undefined,
+      subject_id: filters.subjectId || undefined,
       category: filters.category || undefined,
       keyword: filters.keyword || undefined,
-      noCategory: filters.noCategory || undefined,
-      sortField: sorting.sortField || undefined,
-      sortOrder: sorting.sortOrder || undefined
+      no_category: filters.noCategory || undefined,
+      sort_field: sorting.sortField || undefined,
+      sort_order: sorting.sortOrder || undefined
     })
-    
+
     if (response.code === 200) {
       exams.value = response.data.data || []
       pagination.total = response.data.total || 0
     } else {
-      ElMessage.error(response.message || '加载失败')
+      showToast(response.message || '加载失败', 'error')
     }
   } catch (error) {
-    ElMessage.error('加载真题列表失败')
+    showToast('加载真题列表失败', 'error')
     console.error('加载真题列表失败:', error)
   } finally {
     loading.value = false
@@ -301,7 +377,7 @@ const handleAdd = () => {
 const handleView = (row) => {
   const subjectName = subjectMap.value[row.subjectId]
   if (!subjectName) {
-    ElMessage.warning('无法获取题目所属科目信息')
+    showToast('无法获取题目所属科目信息', 'warning')
     return
   }
   // 构建URL，使用hash定位到具体题目卡片
@@ -328,31 +404,28 @@ const handleEditSuccess = () => {
  * 处理删除
  */
 const handleDelete = async (row) => {
+  const ok = await showConfirm({
+    title: '警告',
+    message: `确定要删除真题"${row.title || row.year + '年 第' + row.questionNumber + '题'}"吗？`,
+    confirmText: '确定',
+    cancelText: '取消',
+    type: 'warning'
+  })
+
+  if (!ok) return
+
+  row.deleteLoading = true
   try {
-    await ElMessageBox.confirm(
-      `确定要删除真题"${row.title || row.year + '年 第' + row.questionNumber + '题'}"吗？`,
-      '警告',
-      {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'warning'
-      }
-    )
-    
-    row.deleteLoading = true
     const response = await deleteExam(row.id)
     if (response.code === 200) {
-      ElMessage.success('删除成功')
-      // 重新加载列表
+      showToast('删除成功', 'success')
       loadExamList()
     } else {
-      ElMessage.error(response.message || '删除失败')
+      showToast(response.message || '删除失败', 'error')
     }
   } catch (error) {
-    if (error !== 'cancel') {
-      ElMessage.error('删除失败')
-      console.error('删除失败:', error)
-    }
+    showToast('删除失败', 'error')
+    console.error('删除失败:', error)
   } finally {
     if (row) row.deleteLoading = false
   }

@@ -5,6 +5,7 @@
 from typing import List, Optional
 from collections import defaultdict
 from sqlmodel import select, func, and_, text
+from sqlalchemy.orm import selectinload
 from sqlmodel.ext.asyncio.session import AsyncSession
 from app.models.entities import ExamCategory, ExamQuestion, MockQuestion, Subject
 from app.exception import NotFoundException, ConflictException
@@ -44,7 +45,7 @@ class ExamCategoryService:
             所有分类列表
         """
         logger.info("ExamCategoryService.get_all_categories started, question_type: %s", question_type)
-        stmt = select(ExamCategory).order_by(ExamCategory.subject_id, ExamCategory.order_num)
+        stmt = select(ExamCategory).options(selectinload(ExamCategory.subject)).order_by(ExamCategory.subject_id, ExamCategory.order_num)
         result = await self.session.exec(stmt)
         categories = result.all()
 
@@ -57,7 +58,6 @@ class ExamCategoryService:
             else:
                 count = await self._count_exam_questions(c.subject_id, c.name)
             response.question_count = count
-            response.questionCount = count  # 驼峰命名别名
             responses.append(response)
 
         logger.info("ExamCategoryService.get_all_categories completed, count: %d", len(responses))
@@ -116,7 +116,7 @@ class ExamCategoryService:
         if enabled_only:
             conditions.append(ExamCategory.enabled == True)
 
-        stmt = select(ExamCategory).where(*conditions).order_by(ExamCategory.order_num)
+        stmt = select(ExamCategory).options(selectinload(ExamCategory.subject)).where(*conditions).order_by(ExamCategory.order_num)
         result = await self.session.exec(stmt)
         categories = result.all()
 
@@ -131,7 +131,6 @@ class ExamCategoryService:
             else:
                 count = await self._count_exam_questions(subject_id, c.name)
             response.question_count = count
-            response.questionCount = count  # 驼峰命名别名
 
             responses.append(response)
 
@@ -430,6 +429,7 @@ class ExamCategoryService:
         # 获取所有启用的分类
         stmt = (
             select(ExamCategory)
+            .options(selectinload(ExamCategory.subject))
             .where(
                 and_(
                     ExamCategory.subject_id == subject_id,
@@ -569,10 +569,9 @@ class ExamCategoryService:
                 and_(
                     ExamQuestion.subject_id == subject_id,
                     ExamQuestion.category.isnot(None),
-                    text("json_extract(category, '$') LIKE :pattern")
+                    ExamQuestion.category.like(f'%"{category_name}"%')
                 )
             )
-            .params(pattern=f'%"{category_name}"%')
         )
         result = await self.session.exec(stmt)
         return result.one() or 0
@@ -622,7 +621,9 @@ class ExamCategoryService:
         """
         logger.info("ExamCategoryService.get_by_id started, category_id: %d", category_id)
         result = await self.session.exec(
-            select(ExamCategory).where(ExamCategory.id == category_id)
+            select(ExamCategory)
+            .options(selectinload(ExamCategory.subject))
+            .where(ExamCategory.id == category_id)
         )
         category = result.first()
 
@@ -735,7 +736,9 @@ class ExamCategoryService:
 
         # 检查分类是否存在
         result = await self.session.exec(
-            select(ExamCategory).where(ExamCategory.id == category_id)
+            select(ExamCategory)
+            .options(selectinload(ExamCategory.subject))
+            .where(ExamCategory.id == category_id)
         )
         category = result.first()
 
@@ -799,10 +802,13 @@ class ExamCategoryService:
         for field, value in update_data.items():
             setattr(category, field, value)
 
-        await self.session.refresh(category)
+        # 注意：不需要 refresh，因为 SessionDep 会在请求结束时自动 commit
+        # 直接使用设置后的对象返回即可
+        # 转换为响应对象
+        response = self._to_response(category)
 
         logger.info("ExamCategoryService.update completed, category_id: %d", category_id)
-        return self._to_response(category)
+        return response
 
     async def delete(self, category_id: int) -> None:
         """
@@ -865,7 +871,7 @@ class ExamCategoryService:
         return ExamCategoryResponse(
             id=category.id,
             subject_id=category.subject_id,
-            subject_name=None,  # 需要额外查询
+            subject_name=category.subject.name if category.subject else None,  # 从关联关系获取
             parent_id=category.parent_id,
             parent_name=None,  # 需要额外查询
             name=category.name,

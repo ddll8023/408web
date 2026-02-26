@@ -22,7 +22,7 @@
       <font-awesome-icon
         v-else
         :icon="icon"
-        class="inline-flex items-center justify-center text-inherit w-[1em] h-[1em]"
+        class="inline-flex items-center justify-center text-inherit w-4 h-4"
       />
     </template>
 

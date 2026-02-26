@@ -67,17 +67,16 @@ class ExamService:
             conditions.append(
                 or_(
                     ExamQuestion.category.is_(None),
-                    text("json_extract(category, '$') IS NULL"),
-                    text("json_length(category) = 0")
+                    ExamQuestion.category == ""
                 )
             )
         elif params.category is not None and params.category.strip():
-            # 分类包含查询 - 使用直接字符串拼接（SQLite兼容方案）
+            # 分类包含查询 - 使用 SQLAlchemy like
             pattern = f'%"{params.category}"%'
             conditions.append(
                 and_(
                     ExamQuestion.category.isnot(None),
-                    text(f"json_extract(category, '$') LIKE '{pattern}'")
+                    ExamQuestion.category.like(pattern)
                 )
             )
 
@@ -216,7 +215,7 @@ class ExamService:
             conditions.append(
                 and_(
                     ExamQuestion.category.isnot(None),
-                    text(f"json_extract(category, '$') LIKE '{pattern}'")
+                    ExamQuestion.category.like(pattern)
                 )
             )
 
@@ -269,7 +268,7 @@ class ExamService:
         logger.info("ExamService.get_category_stats started, subject_id: %s", subject_id)
         conditions = [
             ExamQuestion.category.isnot(None),
-            text("json_length(category) > 0")
+            ExamQuestion.category != ""  # 简单字符串非空检查
         ]
 
         if subject_id:
@@ -592,7 +591,7 @@ class ExamService:
             conditions.append(
                 and_(
                     ExamQuestion.category.isnot(None),
-                    text(f"json_extract(category, '$') LIKE '{pattern}'")
+                    ExamQuestion.category.like(pattern)
                 )
             )
 
@@ -667,7 +666,7 @@ class ExamService:
             conditions.append(
                 and_(
                     ExamQuestion.category.isnot(None),
-                    text(f"json_extract(category, '$') LIKE '{pattern}'")
+                    ExamQuestion.category.like(pattern)
                 )
             )
 
@@ -704,7 +703,7 @@ class ExamService:
             conditions.append(
                 and_(
                     ExamQuestion.category.isnot(None),
-                    text(f"json_extract(category, '$') LIKE '{pattern}'")
+                    ExamQuestion.category.like(pattern)
                 )
             )
 
@@ -764,7 +763,7 @@ class ExamService:
         conditions.append(
             and_(
                 ExamQuestion.category.isnot(None),
-                text(f"json_extract(category, '$') LIKE '{pattern}'")
+                ExamQuestion.category.like(pattern)
             )
         )
 

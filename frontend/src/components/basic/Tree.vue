@@ -16,9 +16,9 @@
         :allow-drop="allowDrop"
         :allow-drag="allowDrag"
         @toggle-expand="handleToggleExpand"
-        @dragstart="handleDragStart"
-        @dragover="handleDragOver"
-        @drop="handleDrop"
+        @dragstart="onDragStart"
+        @dragover="onDragOver"
+        @drop="onDrop"
       >
         <!-- 自定义节点内容 -->
         <template #default="{ node: item, level }">
@@ -172,6 +172,11 @@ const findNodeById = (nodes, id) => {
   }
   return null
 }
+
+// 拖拽事件包装函数（解决模板中箭头函数参数作用域问题）
+const onDragStart = (event, node) => handleDragStart(event, node)
+const onDragOver = (event, node) => handleDragOver(event, node)
+const onDrop = (event, node, dropType) => handleDrop(event, node, dropType)
 </script>
 
 <style scoped>

@@ -16,7 +16,7 @@ export const getAllCategories = (questionType = 'exam') => {
   return request({
     url: '/api/exam-category',
     method: 'get',
-    params: { questionType }
+    params: { question_type: questionType }
   })
 }
 
@@ -30,7 +30,7 @@ export const getCategoriesBySubject = (subjectId, questionType = 'exam') => {
   return request({
     url: `/api/exam-category/subject/${subjectId}`,
     method: 'get',
-    params: { questionType }
+    params: { question_type: questionType }
   })
 }
 
@@ -82,10 +82,10 @@ export const getEnabledCategoryTreeBySubjectWithStats = (subjectId, questionType
  */
 export const getAvailableParentCategories = (subjectId, excludeId = null) => {
   return request({
-    // 后端路径：/api/exam-category/available-parents?subjectId=xxx&excludeId=xxx
+    // 后端路径：/api/exam-category/available-parents?subject_id=xxx&exclude_id=xxx
     url: `/api/exam-category/available-parents`,
     method: 'get',
-    params: { subjectId, ...(excludeId ? { excludeId } : {}) }
+    params: { subject_id: subjectId, ...(excludeId ? { exclude_id: excludeId } : {}) }
   })
 }
 
@@ -150,6 +150,6 @@ export const getCategoryStats = (questionType = 'exam') => {
   return request({
     url: '/api/exam-category/stats',
     method: 'get',
-    params: { questionType }
+    params: { question_type: questionType }
   })
 }

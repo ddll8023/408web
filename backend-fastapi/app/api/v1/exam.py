@@ -175,14 +175,14 @@ async def find_for_nav_index(
 
 @router.get(
     "/category-stats",
-    response_model=Response[List[ExamCategoryStatsResponse]],
+    response_model=Response[ExamCategoryStatsResponse],
     summary="查询分类统计",
     description="按分类统计真题数量"
 )
 async def get_category_stats(
     session: SessionDep,
     subject_id: Optional[int] = Query(default=None, description="科目ID筛选")
-) -> Response[List[ExamCategoryStatsResponse]]:
+) -> Response[ExamCategoryStatsResponse]:
     """
     获取分类统计
 

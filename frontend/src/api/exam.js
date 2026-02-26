@@ -7,11 +7,14 @@ import request from './request'
  * 获取真题列表（分页）
  * @param {Object} params 查询参数
  * @param {number} params.page 页码（从1开始）
- * @param {number} params.size 每页大小
+ * @param {number} params.page_size 每页大小
  * @param {number} params.year 年份（可选）
+ * @param {number} params.subject_id 科目ID（可选）
  * @param {string} params.category 分类（可选）
- * @param {string} params.difficulty 难度（可选）
+ * @param {boolean} params.no_category 是否筛选无分类（可选）
  * @param {string} params.keyword 搜索关键词（可选，匹配title或content）
+ * @param {string} params.sort_field 排序字段（可选）
+ * @param {string} params.sort_order 排序方向（可选）
  * @returns {Promise} API响应（分页数据）
  */
 export function getExamList(params) {
@@ -145,7 +148,7 @@ export function getExamCategoryStats(subjectId) {
   return request({
     url: '/api/exam/category-stats',
     method: 'get',
-    params: { subjectId }
+    params: { subject_id: subjectId }
   })
 }
 

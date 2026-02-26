@@ -1,5 +1,5 @@
 <template>
-  <div class="max-w-[1400px] mx-auto px-6 py-8 min-h-[calc(100vh-60px)]">
+  <div class="max-w-[1400px] mx-auto px-6 py-8 h-[calc(100vh-60px)] overflow-hidden">
     <!-- 页面标题栏 -->
     <div class="flex items-center justify-between mb-8 pb-6 border-b-2 border-[rgba(139,111,71,0.1)]">
       <div class="flex flex-col gap-1">
@@ -10,36 +10,21 @@
         <span class="text-xs text-[#999] ml-[calc(5px+16px)]">管理各科目的题目分类层级结构</span>
       </div>
       <div class="flex items-center gap-6">
-        <!-- 视图切换 -->
-        <div class="flex bg-[rgba(139,111,71,0.08)] rounded-lg p-1 gap-1">
-          <CustomTooltip content="卡片视图" placement="top">
-            <div
-              class="w-9 h-8 flex items-center justify-center rounded-md cursor-pointer text-[#999] transition-all duration-200"
-              :class="{ 'bg-white text-[#8B6F47] shadow-sm': viewMode === 'card' }"
-              @click="viewMode = 'card'"
-            >
-              <font-awesome-icon :icon="['fas', 'grip']" />
-            </div>
-          </CustomTooltip>
-          <CustomTooltip content="树形视图" placement="top">
-            <div
-              class="w-9 h-8 flex items-center justify-center rounded-md cursor-pointer text-[#999] transition-all duration-200"
-              :class="{ 'bg-white text-[#8B6F47] shadow-sm': viewMode === 'tree' }"
-              @click="viewMode = 'tree'"
-            >
-              <font-awesome-icon :icon="['fas', 'list']" />
-            </div>
-          </CustomTooltip>
-        </div>
         <!-- 题目类型切换 -->
         <CustomRadioGroup v-model="questionType" :options="[
           { label: '真题', value: 'exam' },
           { label: '模拟题', value: 'mock' }
         ]" @change="handleQuestionTypeChange" />
-        <CustomButton type="primary" @click="handleAdd">
+        <CustomButton v-if="questionType === 'exam'" type="primary" @click="handleAdd">
           <font-awesome-icon :icon="['fas', 'plus']" class="mr-1.5" />
           新增分类
         </CustomButton>
+        <CustomTooltip v-else content="模拟题分类从题目中动态提取，暂不支持手动管理" placement="top">
+          <CustomButton type="primary" disabled>
+            <font-awesome-icon :icon="['fas', 'plus']" class="mr-1.5" />
+            新增分类
+          </CustomButton>
+        </CustomTooltip>
       </div>
     </div>
 
@@ -79,223 +64,124 @@
           </div>
         </div>
 
-        <!-- 统计信息 -->
-        <div class="bg-gradient-to-b from-white to-[rgba(64,158,255,0.5)] rounded-xl p-6 shadow-sm border border-[rgba(139,111,71,0.08)]">
-          <h3 class="m-0 mb-4 text-sm font-semibold text-[#8B6F47] flex items-center gap-2 pb-3 border-b border-[rgba(139,111,71,0.1)]">
-            <font-awesome-icon :icon="['fas', 'chart-bar']" class="text-base" />
-            统计概览
-          </h3>
-          <div class="flex flex-col gap-2">
-            <div class="flex justify-between items-center px-3 py-2 rounded-md bg-[rgba(255,255,255,0.6)]">
-              <span class="text-xs text-[#999]">{{ questionTypeLabel }}引用</span>
-              <span class="text-sm font-semibold text-[#8B6F47]">{{ totalQuestionCount }}</span>
-            </div>
-            <div class="flex justify-between items-center px-3 py-2 rounded-md bg-[rgba(255,255,255,0.6)]">
-              <span class="text-xs text-[#999]">总分类数</span>
-              <span class="text-sm font-semibold text-[#8B6F47]">{{ totalCategoryCount }}</span>
-            </div>
-            <div class="flex justify-between items-center px-3 py-2 rounded-md bg-[rgba(255,255,255,0.6)]">
-              <span class="text-xs text-[#999]">已启用</span>
-              <span class="text-sm font-semibold text-[#67c23a]">{{ enabledCategoryCount }}</span>
-            </div>
-            <div class="flex justify-between items-center px-3 py-2 rounded-md bg-[rgba(255,255,255,0.6)]">
-              <span class="text-xs text-[#999]">科目数</span>
-              <span class="text-sm font-semibold text-[#8B6F47]">{{ subjectOptions.length }}</span>
-            </div>
-          </div>
-        </div>
       </aside>
 
       <!-- 右侧主内容区 -->
-      <main class="flex-1 min-w-0">
-        <!-- 骨架屏加载状态 -->
-        <div v-if="loading" class="flex flex-col gap-6">
-          <div v-for="i in 3" :key="i" class="bg-white rounded-2xl p-6-8 shadow-sm border border-[rgba(139,111,71,0.08)]">
-            <div class="flex items-center gap-4 mb-4">
-              <div class="w-9 h-9 rounded-xl bg-gradient-to-r from-[#f0f0f0] via-[#e8e8e8] to-[#f0f0f0] bg-[length:200%_100%] animate-[shimmer_1.5s_infinite]"></div>
-              <div class="w-30 h-5 rounded bg-gradient-to-r from-[#f0f0f0] via-[#e8e8e8] to-[#f0f0f0] bg-[length:200%_100%] animate-[shimmer_1.5s_infinite]"></div>
-              <div class="w-20 h-4 rounded bg-gradient-to-r from-[#f0f0f0] via-[#e8e8e8] to-[#f0f0f0] bg-[length:200%_100%] animate-[shimmer_1.5s_infinite]"></div>
+      <main class="flex-1 min-w-0 relative h-[calc(100vh-60px-128px)] overflow-y-auto">
+        <!-- 背景层次增强 -->
+        <div class="absolute inset-0 -z-10 overflow-hidden pointer-events-none">
+          <!-- 右上角暖色光晕 -->
+          <div class="absolute top-0 right-0 w-[600px] h-[600px] bg-gradient-to-br from-[rgba(139,111,71,0.08)] to-transparent rounded-full blur-3xl transform translate-x-1/3 -translate-y-1/3"></div>
+          <!-- 左下角冷色光晕 -->
+          <div class="absolute bottom-0 left-0 w-[400px] h-[400px] bg-gradient-to-tr from-[rgba(64,158,255,0.05)] to-transparent rounded-full blur-3xl transform -translate-x-1/3 translate-y-1/3"></div>
+          <!-- 几何网格纹理 -->
+          <div class="absolute inset-0 opacity-[0.03]" style="background-image: radial-gradient(#8B6F47 1px, transparent 1px); background-size: 24px 24px;"></div>
+        </div>
+
+        <!-- 骨架屏 - 档案柜风格 -->
+        <div v-if="loading" class="
+          relative
+          bg-gradient-to-br from-white/90 to-[rgba(139,111,71,0.02)]/30
+          backdrop-blur-sm
+          rounded-2xl p-6
+          border border-white/50
+          shadow-[0_2px_16px_rgba(139,111,71,0.06),inset_0_1px_0_rgba(255,255,255,0.8)]
+          before:absolute before:inset-0 before:rounded-2xl before:p-px
+          before:bg-gradient-to-br before:from-white/40 before:to-transparent before:-z-10
+        ">
+          <div class="skeleton-container">
+          <div v-for="i in 3" :key="i" class="
+            bg-white rounded-xl overflow-hidden
+            border border-[rgba(139,111,71,0.08)]
+            shadow-sm skeleton-card
+          ">
+            <div class="h-1.5 skeleton-shimmer"></div>
+            <div class="p-5 space-y-4">
+              <div class="flex items-center gap-3">
+                <div class="w-9 h-9 skeleton-shimmer rounded-lg"></div>
+                <div class="space-y-2">
+                  <div class="w-32 h-4 skeleton-shimmer rounded"></div>
+                  <div class="w-20 h-3 skeleton-shimmer rounded"></div>
+                </div>
+              </div>
+              <div class="flex gap-4">
+                <div class="w-16 h-3 skeleton-shimmer rounded"></div>
+                <div class="w-16 h-3 skeleton-shimmer rounded"></div>
+                <div class="w-16 h-3 skeleton-shimmer rounded"></div>
+              </div>
+              <div class="grid grid-cols-2 gap-2 pt-4 border-t border-dashed border-[rgba(139,111,71,0.08)]">
+                <div class="h-16 skeleton-shimmer rounded-lg"></div>
+                <div class="h-16 skeleton-shimmer rounded-lg"></div>
+              </div>
             </div>
-            <div class="flex gap-4 mb-6 pb-4 border-b border-dashed border-[rgba(139,111,71,0.1)]">
-              <div class="w-16 h-5.5 rounded bg-gradient-to-r from-[#f0f0f0] via-[#e8e8e8] to-[#f0f0f0] bg-[length:200%_100%] animate-[shimmer_1.5s_infinite]"></div>
-              <div class="w-16 h-5.5 rounded bg-gradient-to-r from-[#f0f0f0] via-[#e8e8e8] to-[#f0f0f0] bg-[length:200%_100%] animate-[shimmer_1.5s_infinite]"></div>
-            </div>
-            <div class="flex flex-wrap gap-2">
-              <div v-for="j in 4" :key="j" class="w-24 h-9 rounded-[20px] bg-gradient-to-r from-[#f0f0f0] via-[#e8e8e8] to-[#f0f0f0] bg-[length:200%_100%] animate-[shimmer_1.5s_infinite]"></div>
-            </div>
+          </div>
           </div>
         </div>
 
-        <!-- 卡片视图 -->
-        <template v-else-if="viewMode === 'card'">
-          <div class="flex flex-col gap-6">
-            <TransitionGroup name="card-list">
-              <template v-for="parent in treeCategories" :key="parent.id">
-                <!-- 父分类卡片 -->
-                <div class="bg-white rounded-2xl p-6-8 shadow-sm border border-[rgba(139,111,71,0.08)] transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5" :class="{ 'opacity-60 bg-gradient-to-b from-white to-[rgba(153,153,153,0.05)]': !parent.enabled }">
-                  <!-- 卡片头部 -->
-                  <div class="flex items-center justify-between mb-4">
-                    <div class="flex items-center gap-4">
-                      <div class="w-9 h-9 flex items-center justify-center bg-gradient-to-br from-[#8B6F47] to-[#968657] text-white rounded-xl text-lg shadow-md">
-                        <font-awesome-icon :icon="['fas', 'folder-open']" />
-                      </div>
-                      <span class="text-base font-semibold text-[#8B6F47]">{{ parent.name }}</span>
-                      <span class="text-xs text-[#999] font-mono bg-[rgba(139,111,71,0.08)] px-2 py-0.5 rounded">{{ parent.code }}</span>
-                    </div>
-                    <div class="flex items-center gap-2">
-                      <!-- 展开/折叠按钮 -->
-                      <CustomTooltip :content="isExpanded(parent.id) ? '收起' : '展开'" placement="top">
-                        <div
-                          class="w-7 h-7 flex items-center justify-center rounded-md cursor-pointer text-[#999] transition-all duration-300 hover:bg-[rgba(139,111,71,0.1)] hover:text-[#8B6F47]"
-                          :class="{ 'rotate-180': isExpanded(parent.id) }"
-                          @click="toggleExpand(parent.id)"
-                        >
-                          <font-awesome-icon :icon="['fas', 'chevron-down']" />
-                        </div>
-                      </CustomTooltip>
-                      <CustomButton type="text-primary" size="sm" @click="handleEdit(parent)">
-                        <font-awesome-icon :icon="['fas', 'edit']" class="mr-1" />
-                        编辑
-                      </CustomButton>
-                      <CustomButton type="danger" size="sm" @click="handleDelete(parent)">
-                        <font-awesome-icon :icon="['fas', 'trash']" class="mr-1" />
-                        删除
-                      </CustomButton>
-                    </div>
-                  </div>
-
-                  <!-- 卡片元信息 -->
-                  <div class="flex gap-4 mb-6 pb-4 border-b border-dashed border-[rgba(139,111,71,0.1)]">
-                    <CustomTag variant="info">
-                      {{ parent.subjectName }}
-                    </CustomTag>
-                    <CustomTag :variant="getChildrenQuestionCount(parent) > 0 ? 'success' : 'info'">
-                      {{ getChildrenQuestionCount(parent) }} 题
-                    </CustomTag>
-                  </div>
-
-                  <!-- 子分类区域（带展开/折叠动画） -->
-                  <Transition name="collapse">
-                    <div v-show="isExpanded(parent.id)" class="overflow-hidden">
-                      <div class="mb-4" v-if="parent.children && parent.children.length > 0">
-                        <div class="flex items-center gap-2 mb-4">
-                          <span class="text-xs text-[#999] font-medium">子分类</span>
-                          <span class="text-xs bg-[rgba(139,111,71,0.1)] text-[#8B6F47] px-2 py-0.5 rounded-[10px] font-semibold">{{ getTotalChildrenCount(parent) }}</span>
-                        </div>
-                        <!-- 二级分类列表 -->
-                        <div class="flex flex-wrap gap-2.5">
-                          <div
-                            v-for="child in parent.children"
-                            :key="child.id"
-                            class="inline-flex flex-col gap-1.5"
-                            :class="{ 'opacity-60': !child.enabled }"
-                          >
-                            <!-- 二级分类标签 -->
-                            <div class="flex items-center gap-1">
-                              <div
-                                class="inline-flex items-center gap-1.5 px-3.5 py-2 bg-gradient-to-br from-[rgba(139,111,71,0.1)] to-[rgba(139,111,71,0.05)] border border-[rgba(139,111,71,0.15)] rounded-[20px] cursor-pointer transition-all duration-200 hover:from-[rgba(139,111,71,0.15)] hover:to-[rgba(139,111,71,0.08)] hover:border-[rgba(139,111,71,0.25)] hover:-translate-y-0.5 hover:shadow-md"
-                                @click="handleEdit(child)"
-                              >
-                                <span class="text-sm font-medium text-[#333]">{{ child.name }}</span>
-                                <span class="text-xs text-[#999] bg-white/80 px-1.5 py-0.5 rounded-lg">{{ getChildrenQuestionCount(child) }}题</span>
-                              </div>
-                              <!-- 二级分类添加子分类按钮 -->
-                              <CustomButton
-                                type="text"
-                                size="small"
-                                class="opacity-0 transition-opacity duration-200 !p-0.5 !min-w-auto"
-                                @click.stop="handleAddChild(child)"
-                              >
-                                <CustomTooltip content="添加三级分类" placement="top">
-                                  <font-awesome-icon :icon="['fas', 'plus']" class="text-xs" />
-                                </CustomTooltip>
-                              </CustomButton>
-                            </div>
-                            <!-- 三级分类标签（如果有） -->
-                            <div class="flex flex-wrap gap-1 mt-1 pl-2 border-l-2 border-[rgba(139,111,71,0.2)]" v-if="child.children && child.children.length > 0">
-                              <div
-                                v-for="grandchild in child.children"
-                                :key="grandchild.id"
-                                class="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs bg-gradient-to-br from-[rgba(139,111,71,0.06)] to-[rgba(139,111,71,0.02)] border border-[rgba(139,111,71,0.1)] rounded-[20px] cursor-pointer transition-all duration-200 hover:from-[rgba(139,111,71,0.1)] hover:to-[rgba(139,111,71,0.05)]"
-                                :class="{ 'opacity-50 bg-[rgba(153,153,153,0.08)] border-[rgba(153,153,153,0.15)]': !grandchild.enabled }"
-                                @click="handleEdit(grandchild)"
-                              >
-                                <span class="text-xs text-[#333]">{{ grandchild.name }}</span>
-                                <span class="text-[10px] text-[#999] bg-white/80 px-1 py-0.5 rounded">{{ grandchild.questionCount || 0 }}题</span>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-
-                      <!-- 无子分类提示 -->
-                      <div class="mb-4 py-4" v-else>
-                        <span class="text-xs text-[#999] italic">暂无子分类</span>
-                      </div>
-
-                      <!-- 添加子分类按钮 -->
-                      <div class="pt-4 border-t border-[rgba(139,111,71,0.06)]">
-                        <CustomButton
-                          type="text"
-                          size="small"
-                          @click="handleAddChild(parent)"
-                        >
-                          <font-awesome-icon :icon="['fas', 'plus']" class="mr-1" />
-                          添加子分类
-                        </CustomButton>
-                      </div>
-                    </div>
-                  </Transition>
-                </div>
-              </template>
-            </TransitionGroup>
-          </div>
-        </template>
-
-        <!-- 树形视图（延迟渲染优化性能） -->
-        <template v-else-if="viewMode === 'tree'">
-          <div class="bg-white rounded-2xl p-6 shadow-sm border border-[rgba(139,111,71,0.08)]" v-if="treeViewReady">
-            <!-- 树形视图工具栏 -->
-            <div class="flex gap-2 pb-3 mb-3 border-b border-[rgba(139,111,71,0.1)]">
-              <CustomButton type="text" size="sm" @click="expandAllTree">
-                <font-awesome-icon :icon="['fas', 'chevron-down']" class="mr-1" />
-                全部展开
-              </CustomButton>
-              <CustomButton type="text" size="sm" @click="collapseAllTree">
-                <font-awesome-icon :icon="['fas', 'chevron-right']" class="mr-1" />
-                全部收起
-              </CustomButton>
-            </div>
-            <CustomTree
+        <!-- 树形视图 -->
+        <template v-if="treeCategories.length > 0">
+          <Transition name="tree-fade">
+            <!-- 统一的背景容器 -->
+            <div class="
+              relative
+              bg-gradient-to-br from-white/90 to-[rgba(139,111,71,0.02)]/30
+              backdrop-blur-sm
+              rounded-2xl p-6
+              border border-white/50
+              shadow-[0_2px_16px_rgba(139,111,71,0.06),inset_0_1px_0_rgba(255,255,255,0.8)]
+              before:absolute before:inset-0 before:rounded-2xl before:p-px
+              before:bg-gradient-to-br before:from-white/40 before:to-transparent before:-z-10
+            ">
+              <!-- 树形视图工具栏 -->
+              <div class="flex gap-2 pb-3 mb-3 border-b border-[rgba(139,111,71,0.1)]">
+                <CustomButton type="text" size="sm" @click="expandAllTree">
+                  <font-awesome-icon :icon="['fas', 'chevron-down']" class="mr-1" />
+                  全部展开
+                </CustomButton>
+                <CustomButton type="text" size="sm" @click="collapseAllTree">
+                  <font-awesome-icon :icon="['fas', 'chevron-right']" class="mr-1" />
+                  全部收起
+                </CustomButton>
+              </div>
+              <CustomTree
               ref="treeRef"
               :data="treeCategories"
               :node-key="'id'"
               :label="'name'"
               :children-key="'children'"
               v-model:expanded-keys="treeExpandedKeys"
-              :draggable="true"
-              :allow-drop="allowDrop"
-              :allow-drag="allowDrag"
               @node-expand="handleTreeNodeExpand"
               @node-collapse="handleTreeNodeCollapse"
-              @node-drop="handleTreeNodeDrop"
             >
               <template #default="{ node: data, level }">
-                <div class="flex-1 flex items-center justify-between px-3 py-1.5 rounded-lg transition-all duration-200 hover:bg-[rgba(139,111,71,0.06)]" :class="{ 'opacity-60': !data.enabled }">
+                <div class="
+                  flex-1 flex items-center justify-between px-3 py-2 rounded-xl
+                  hover:bg-white/60 hover:backdrop-blur-sm
+                  border border-transparent hover:border-[rgba(139,111,71,0.08)]
+                  shadow-[inset_0_1px_0_rgba(255,255,255,0.5)]
+                  transition-all duration-200
+                " :class="{ 'opacity-60': !data.enabled }">
                   <div class="flex items-center gap-2.5">
-                    <div class="w-7 h-7 flex items-center justify-center bg-gradient-to-br from-[rgba(139,111,71,0.15)] to-[rgba(139,111,71,0.08)] text-[#8B6F47] rounded-md text-sm">
+                    <div class="
+                      w-8 h-8 flex items-center justify-center
+                      bg-gradient-to-br from-[rgba(139,111,71,0.12)] to-[rgba(139,111,71,0.05)]
+                      text-[#8B6F47] rounded-lg
+                      shadow-[inset_0_1px_0_rgba(255,255,255,0.5)]
+                      transition-all duration-200
+                    ">
                       <font-awesome-icon v-if="data.children && data.children.length > 0" :icon="['fas', 'folder-open']" />
                       <font-awesome-icon v-else :icon="['fas', 'file']" />
                     </div>
                     <span class="text-sm font-medium text-[#333]">{{ data.name }}</span>
-                    <span class="text-xs text-[#999] font-mono bg-[rgba(139,111,71,0.08)] px-1.5 py-0.5 rounded">{{ data.code }}</span>
+                    <span v-if="questionType === 'exam'" class="text-xs text-[#999] font-mono bg-[rgba(139,111,71,0.08)] px-1.5 py-0.5 rounded">{{ data.code }}</span>
                     <CustomTag v-if="level === 0" variant="info" class="ml-1">
                       {{ data.subjectName }}
                     </CustomTag>
                     <span class="text-xs text-[#999] bg-[rgba(139,111,71,0.08)] px-2 py-0.5 rounded-[10px]">{{ getChildrenQuestionCount(data) }}题</span>
                   </div>
-                  <div class="flex items-center gap-2 opacity-0 transition-opacity duration-200" :class="{ '!opacity-100': true }">
-                    <CustomTooltip content="添加子分类" placement="top" v-if="level < 2">
+                  <!-- 操作按钮：仅真题模式显示 -->
+                  <div v-if="questionType === 'exam'" class="flex items-center gap-2 opacity-0 transition-opacity duration-200" :class="{ '!opacity-100': true }">
+                    <CustomTooltip content="添加子分类" placement="top" v-if="level < 2 && !data.isSubjectGroup">
                       <div class="w-7 h-7 flex items-center justify-center rounded-md cursor-pointer text-[#999] hover:bg-[rgba(139,111,71,0.1)] hover:text-[#8B6F47]" @click.stop="handleAddChild(data)">
                         <font-awesome-icon :icon="['fas', 'plus']" />
                       </div>
@@ -305,141 +191,205 @@
                         <font-awesome-icon :icon="['fas', 'edit']" />
                       </div>
                     </CustomTooltip>
-                    <CustomTooltip content="删除" placement="top">
-                      <div class="w-7 h-7 flex items-center justify-center rounded-md cursor-pointer text-[#999] hover:bg-[rgba(245,108,108,0.1)] hover:text-[#f56c6c]" @click.stop="handleDelete(data)">
-                        <font-awesome-icon :icon="['fas', 'trash']" />
-                      </div>
-                    </CustomTooltip>
+                    <CustomButton type="text-danger" size="sm" class="!p-1" @click="handleDelete(data)">
+                      <font-awesome-icon :icon="['fas', 'trash']" />
+                    </CustomButton>
                   </div>
                 </div>
               </template>
             </CustomTree>
-          </div>
-          <!-- 树形视图加载占位 -->
-          <div v-else class="flex items-center justify-center gap-2 p-10 text-[#999]">
-            <font-awesome-icon :icon="['fas', 'spinner']" class="fa-spin text-xl text-[#8B6F47]" />
-            <span>加载中...</span>
-          </div>
+            </div>
+          </Transition>
         </template>
 
         <!-- 空状态 -->
-        <CustomEmpty v-if="!loading && treeCategories.length === 0" description="暂无分类数据" />
+        <div v-if="!loading && treeCategories.length === 0" class="
+          relative flex flex-col items-center justify-center py-20
+          bg-white/40 backdrop-blur-sm
+          rounded-2xl border border-dashed border-[rgba(139,111,71,0.15)]
+        ">
+          <CustomEmpty description="暂无分类数据" />
+        </div>
       </main>
     </div>
-    
-    <!-- 拖拽保存中提示 -->
-    <Transition name="fade">
-      <div v-if="dragSaving" class="fixed top-5 right-5 bg-white px-5 py-3 rounded-lg shadow-lg flex items-center gap-2.5 z-[2000] animate-[slideIn_0.3s_ease]">
-        <font-awesome-icon :icon="['fas', 'spinner']" class="fa-spin text-[#8B6F47]" />
-        <span>正在保存排序...</span>
-      </div>
-    </Transition>
 
     <!-- 编辑对话框 -->
     <CustomDialog
       v-model:visible="dialogVisible"
       :title="dialogMode === 'add' ? '新增分类' : '编辑分类'"
-      width="600px"
+      width="680px"
     >
-      <!-- 表单区域 -->
-      <div class="space-y-5">
-        <!-- 所属科目 -->
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">
-            所属科目 <span class="text-red-500">*</span>
-          </label>
-          <CustomSelect
-            v-model="form.subjectId"
-            :options="subjectOptions.map(s => ({ label: s.name, value: s.id }))"
-            placeholder="请选择科目"
-            :disabled="dialogMode === 'edit'"
-            @change="handleSubjectChange"
-          />
-          <p class="text-xs text-[#999] mt-1" v-if="dialogMode === 'edit'">所属科目创建后不可修改</p>
-        </div>
+      <!-- 表单区域 - 分组布局 -->
+      <div class="space-y-6">
+        <!-- 基本信息组 -->
+        <div class="
+          relative p-5
+          bg-gradient-to-br from-white/80 to-[rgba(139,111,71,0.02)]
+          backdrop-blur-sm
+          rounded-xl
+          border border-white/50
+          shadow-[0_2px_16px_rgba(139,111,71,0.06)]
+          before:absolute before:inset-0 before:rounded-xl before:p-px
+          before:bg-gradient-to-br before:from-white/60 before:to-transparent before:-z-10
+        ">
+          <!-- 分组标题 -->
+          <div class="flex items-center gap-2 mb-5 pb-4 border-b border-dashed border-[rgba(139,111,71,0.12)]">
+            <div class="w-7 h-7 flex items-center justify-center bg-gradient-to-br from-[#8B6F47] to-[#968657] text-white rounded-lg shadow-md">
+              <font-awesome-icon :icon="['fas', 'folder-plus']" class="text-sm" />
+            </div>
+            <span class="text-base font-semibold text-[#8B6F47]">基本信息</span>
+          </div>
 
-        <!-- 父分类 -->
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">
-            父分类
-          </label>
-          <CustomSelect
-            v-model="form.parentId"
-            :options="parentOptions"
-            placeholder="无（顶级分类）"
-            clearable
-            :disabled="!form.subjectId || (dialogMode === 'edit' && hasChildren)"
-          />
-          <p class="text-xs text-[#999] mt-1">
-            <span v-if="hasChildren">该分类已有子分类，变更层级可能受限</span>
-            <span v-else>留空表示顶级分类，支持三级分类结构</span>
-          </p>
-        </div>
+          <!-- 第一行：所属科目 + 父分类 -->
+          <div class="grid grid-cols-2 gap-5 mb-5">
+            <div>
+              <label class="flex items-center gap-1.5 text-sm font-medium text-gray-700 mb-2">
+                所属科目
+                <span class="text-red-500">*</span>
+              </label>
+              <CustomSelect
+                v-model="form.subjectId"
+                :options="subjectOptions.map(s => ({ label: s.name, value: s.id }))"
+                placeholder="请选择科目"
+                :disabled="dialogMode === 'edit'"
+                @change="handleSubjectChange"
+              />
+              <p class="text-xs text-[#999] mt-1.5" v-if="dialogMode === 'edit'">所属科目创建后不可修改</p>
+            </div>
+            <div>
+              <label class="flex items-center gap-1.5 text-sm font-medium text-gray-700 mb-2">
+                父分类
+              </label>
+              <CustomSelect
+                v-model="form.parentId"
+                :options="parentOptions"
+                placeholder="无（顶级分类）"
+                clearable
+                :disabled="!form.subjectId || (dialogMode === 'edit' && hasChildren)"
+              />
+              <p class="text-xs text-[#999] mt-1.5">
+                <span v-if="hasChildren">该分类已有子分类</span>
+                <span v-else>留空表示顶级分类</span>
+              </p>
+            </div>
+          </div>
 
-        <!-- 分类编码 -->
-        <CustomInput
-          v-model="form.code"
-          label="分类编码"
-          placeholder="请输入分类编码（如：stack-queue）"
-          :maxlength="50"
-          required
-        >
-          <template #tip>
-            <p class="text-xs text-[#999] mt-1">建议使用英文小写字母和连字符</p>
-          </template>
-        </CustomInput>
-
-        <!-- 分类名称 -->
-        <CustomInput
-          v-model="form.name"
-          label="分类名称"
-          placeholder="请输入分类名称（如：栈和队列）"
-          :maxlength="50"
-          required
-        />
-
-        <!-- 分类描述 -->
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">
-            分类描述
-          </label>
-          <textarea
-            v-model="form.description"
-            class="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:border-[#8B6F47] focus:ring-2 focus:ring-[#8B6F47]/20 transition-all duration-200"
-            placeholder="请输入分类描述（可选）"
-            :rows="3"
-            :maxlength="255"
-          ></textarea>
-          <div class="flex justify-end mt-1">
-            <span class="text-xs text-[#999]">{{ form.description?.length || 0 }}/255</span>
+          <!-- 第二行：分类编码 + 分类名称 -->
+          <div class="grid grid-cols-2 gap-5">
+            <CustomInput
+              v-model="form.code"
+              label="分类编码"
+              placeholder="如：stack-queue"
+              :maxlength="50"
+              required
+            >
+              <template #tip>
+                <p class="text-xs text-[#999] mt-1">建议使用英文小写字母和连字符</p>
+              </template>
+            </CustomInput>
+            <CustomInput
+              v-model="form.name"
+              label="分类名称"
+              placeholder="如：栈和队列"
+              :maxlength="50"
+              required
+            />
           </div>
         </div>
 
-        <!-- 排序顺序 -->
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">
-            排序顺序
-          </label>
-          <CustomInputNumber
-            v-model="form.orderNum"
-            :min="0"
-            :max="9999"
-          />
-          <p class="text-xs text-[#999] mt-1">数字越小越靠前</p>
+        <!-- 详细信息组 -->
+        <div class="
+          relative p-5
+          bg-gradient-to-br from-white/80 to-[rgba(139,111,71,0.02)]
+          backdrop-blur-sm
+          rounded-xl
+          border border-white/50
+          shadow-[0_2px_16px_rgba(139,111,71,0.06)]
+          before:absolute before:inset-0 before:rounded-xl before:p-px
+          before:bg-gradient-to-br before:from-white/60 before:to-transparent before:-z-10
+        ">
+          <!-- 分组标题 -->
+          <div class="flex items-center gap-2 mb-4 pb-4 border-b border-dashed border-[rgba(139,111,71,0.12)]">
+            <div class="w-7 h-7 flex items-center justify-center bg-gradient-to-br from-[#40a9ff] to-[#1890ff] text-white rounded-lg shadow-md">
+              <font-awesome-icon :icon="['fas', 'align-left']" class="text-sm" />
+            </div>
+            <span class="text-base font-semibold text-[#8B6F47]">详细信息</span>
+          </div>
+
+          <!-- 分类描述 -->
+          <div>
+            <label class="flex items-center gap-1.5 text-sm font-medium text-gray-700 mb-2">
+              分类描述
+            </label>
+            <textarea
+              v-model="form.description"
+              class="
+                w-full px-4 py-3
+                border border-[rgba(139,111,71,0.15)] rounded-xl
+                bg-white/80 backdrop-blur-sm
+                focus:outline-none focus:border-[#8B6F47] focus:ring-2 focus:ring-[#8B6F47]/15
+                transition-all duration-200
+                resize-none
+              "
+              placeholder="请输入分类描述（可选）"
+              :rows="3"
+              :maxlength="255"
+            ></textarea>
+            <div class="flex justify-end mt-2">
+              <span class="text-xs px-2 py-0.5 rounded-full bg-[rgba(139,111,71,0.08)] text-[#8B6F47]">
+                {{ form.description?.length || 0 }} / 255
+              </span>
+            </div>
+          </div>
         </div>
 
-        <!-- 是否启用 -->
-        <div class="flex items-center gap-3">
-          <CustomSwitch v-model="form.enabled" />
-          <span class="text-sm text-gray-700">{{ form.enabled ? '启用' : '禁用' }}</span>
+        <!-- 排序与状态组 -->
+        <div class="
+          relative p-5
+          bg-gradient-to-br from-white/80 to-[rgba(139,111,71,0.02)]
+          backdrop-blur-sm
+          rounded-xl
+          border border-white/50
+          shadow-[0_2px_16px_rgba(139,111,71,0.06)]
+          before:absolute before:inset-0 before:rounded-xl before:p-px
+          before:bg-gradient-to-br before:from-white/60 before:to-transparent before:-z-10
+        ">
+          <!-- 分组标题 -->
+          <div class="flex items-center gap-2 mb-5 pb-4 border-b border-dashed border-[rgba(139,111,71,0.12)]">
+            <div class="w-7 h-7 flex items-center justify-center bg-gradient-to-br from-[#73d13d] to-[#52c41a] text-white rounded-lg shadow-md">
+              <font-awesome-icon :icon="['fas', 'sliders-h']" class="text-sm" />
+            </div>
+            <span class="text-base font-semibold text-[#8B6F47]">排序与状态</span>
+          </div>
+
+          <!-- 排序 + 启用状态 -->
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-4">
+              <label class="text-sm font-medium text-gray-700">排序顺序</label>
+              <CustomInputNumber
+                v-model="form.orderNum"
+                :min="0"
+                :max="9999"
+              />
+              <span class="text-xs text-[#999]">数字越小越靠前</span>
+            </div>
+            <div class="flex items-center gap-3 px-4 py-2.5 bg-[rgba(139,111,71,0.04)] rounded-xl">
+              <CustomSwitch v-model="form.enabled" />
+              <span class="text-sm font-medium" :class="form.enabled ? 'text-[#52c41a]' : 'text-[#999]'">
+                {{ form.enabled ? '已启用' : '已禁用' }}
+              </span>
+            </div>
+          </div>
         </div>
       </div>
 
       <template #footer>
-        <CustomButton @click="dialogVisible = false">取消</CustomButton>
-        <CustomButton type="primary" :loading="submitLoading" @click="handleSubmit">
-          确定
-        </CustomButton>
+        <div class="flex justify-end gap-3">
+          <CustomButton @click="dialogVisible = false">取消</CustomButton>
+          <CustomButton type="primary" :loading="submitLoading" @click="handleSubmit">
+            确定
+          </CustomButton>
+        </div>
       </template>
     </CustomDialog>
   </div>
@@ -451,7 +401,11 @@
  * 功能：按科目管理分类标签的CRUD操作（仅ADMIN可访问）
  * 遵循KISS原则：简单的表格+对话框实现
  */
-import { ref, reactive, computed, onMounted, watch, nextTick } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
+
+// 工具函数 / 常量
+import { useToast } from '@/composables/useToast'
+import { useConfirm } from '@/composables/useConfirm'
 
 // API 接口定义
 import {
@@ -465,10 +419,7 @@ import {
   getCategoryStats
 } from '@/api/category'
 import { getAllSubjects } from '@/api/subject'
-
-// 消息提示
-import { useToast } from '@/composables/useToast'
-import { useConfirm } from '@/composables/useConfirm'
+import { getMockCategoryStatsBySubject, getMockCategoriesBySubject, getMockSubjectStats } from '@/api/mock'
 
 // 自定义组件导入
 import CustomButton from '@/components/basic/CustomButton.vue'
@@ -501,45 +452,11 @@ const filterSubjectId = ref(null)
 // 题目类型筛选（exam=真题, mock=模拟题）
 const questionType = ref('exam')
 
-// 视图模式（card=卡片视图, tree=树形视图）
-// 默认展示树形视图
-const viewMode = ref('tree')
-
 // 树形视图引用
 const treeRef = ref(null)
 
-// 拖拽排序相关（仅树形视图）
-const dragSaving = ref(false)  // 拖拽保存中状态
-
-// 树形视图延迟渲染标志（优化切换性能）
-const treeViewReady = ref(false)
-
-// 卡片展开状态（存储已展开的父分类ID）
-const expandedCards = ref(new Set())
-
 // 树形视图展开的节点ID列表（响应式，用于保持展开状态）
 const treeExpandedKeys = ref([])
-
-// 树形视图配置
-const treeProps = {
-  children: 'children',
-  label: 'name'
-}
-
-/**
- * 监听视图模式切换，延迟渲染树形视图优化性能
- */
-watch(viewMode, (newMode) => {
-  if (newMode === 'tree') {
-    // 延迟渲染树形视图，避免切换卡顿
-    treeViewReady.value = false
-    nextTick(() => {
-      setTimeout(() => {
-        treeViewReady.value = true
-      }, 50)
-    })
-  }
-})
 
 /**
  * 树形视图：全部展开
@@ -614,10 +531,10 @@ const getAllTreeNodes = (nodes) => {
   return ids
 }
 
-// 去重后的统计数据（解决多标签重复计数问题）
+// 科目统计数据（用于科目筛选列表）
 const categoryStats = ref({
-  subjectStats: [],  // 各科目去重题目数
-  totalQuestionCount: 0  // 全局去重题目总数
+  subjectStats: [],  // 各科目题目数
+  totalQuestionCount: 0  // 全局题目总数
 })
 
 // 加载状态
@@ -635,25 +552,34 @@ const submitLoading = ref(false)
 // 父分类选项
 const parentOptions = ref([])
 
-// 加载父分类状态
-const loadingParents = ref(false)
-
 // 编辑时检查是否有子分类
 const hasChildren = ref(false)
 
 /**
- * 将扁平分类数据转换为树形结构
+ * 将分类数据转换为树形结构或分组结构
+ * 模拟题模式：按科目分组显示（扁平结构）
+ * 真题模式：构建树形结构（支持多层级）
  */
 const treeCategories = computed(() => {
   const list = categories.value
   if (!list || list.length === 0) return []
-  
+
+  // 模拟题模式：扁平列表显示（所有分类平铺，不按科目分组）
+  if (questionType.value === 'mock') {
+    // 直接返回扁平列表，每个分类都是独立的卡片
+    return list.map(item => ({
+      ...item,
+      children: []  // 模拟题没有子分类
+    }))
+  }
+
+  // 真题模式：构建树形结构
   // 创建id到节点的映射
   const map = new Map()
   list.forEach(item => {
     map.set(item.id, { ...item, children: [] })
   })
-  
+
   const tree = []
   list.forEach(item => {
     const node = map.get(item.id)
@@ -663,7 +589,7 @@ const treeCategories = computed(() => {
       tree.push(node)
     }
   })
-  
+
   // 对每层按orderNum排序
   const sortChildren = (nodes) => {
     nodes.sort((a, b) => (a.orderNum || 0) - (b.orderNum || 0))
@@ -679,13 +605,13 @@ const treeCategories = computed(() => {
 })
 
 /**
- * 计算各科目分类统计（基于全部数据）
- * 使用去重后的统计数据，解决多标签重复计数问题
+ * 计算各科目分类统计（用于科目筛选列表）
+ * 使用 allCategories 获取分类数量，使用 categoryStats 获取题目数
  */
 const subjectStats = computed(() => {
   return subjectOptions.value.map(subject => {
     const subjectCategories = allCategories.value.filter(c => c.subjectId === subject.id)
-    // 从去重统计数据中获取该科目的题目数
+    // 从统计数据中获取该科目的题目数
     const statItem = categoryStats.value.subjectStats.find(s => s.subjectId === subject.id)
     const questionCount = statItem ? statItem.questionCount : 0
     return {
@@ -693,41 +619,10 @@ const subjectStats = computed(() => {
       name: subject.name,
       count: subjectCategories.length,  // 分类数量
       enabledCount: subjectCategories.filter(c => c.enabled).length,
-      questionCount: questionCount  // 去重后的题目数
+      questionCount: questionCount  // 题目数
     }
   })
 })
-
-/**
- * 总分类数（基于全部数据）
- */
-const totalCategoryCount = computed(() => allCategories.value.length)
-
-/**
- * 已启用分类数
- */
-const enabledCategoryCount = computed(() => allCategories.value.filter(c => c.enabled).length)
-
-/**
- * 题目引用总数（使用去重后的统计数据）
- */
-const totalQuestionCount = computed(() => {
-  return categoryStats.value.totalQuestionCount || 0
-})
-
-/**
- * 题目类型标签
- */
-const questionTypeLabel = computed(() => {
-  const labels = {
-    exam: '真题',
-    mock: '模拟题'
-  }
-  return labels[questionType.value] || '题目'
-})
-
-// 表单引用
-const formRef = ref(null)
 
 // 表单数据
 const form = reactive({
@@ -740,25 +635,6 @@ const form = reactive({
   orderNum: 0,
   enabled: true
 })
-
-// 表单验证规则
-const formRules = {
-  subjectId: [
-    { required: true, message: '请选择所属科目', trigger: 'change' }
-  ],
-  code: [
-    { required: true, message: '请输入分类编码', trigger: 'blur' },
-    { max: 50, message: '编码长度不能超过50字符', trigger: 'blur' },
-    { pattern: /^[a-zA-Z0-9_-]+$/, message: '编码只能包含字母、数字、下划线和连字符', trigger: 'blur' }
-  ],
-  name: [
-    { required: true, message: '请输入分类名称', trigger: 'blur' },
-    { max: 50, message: '名称长度不能超过50字符', trigger: 'blur' }
-  ],
-  orderNum: [
-    { required: true, message: '请输入排序顺序', trigger: 'blur' }
-  ]
-}
 
 /**
  * 加载科目选项
@@ -775,34 +651,37 @@ const loadSubjectOptions = async () => {
 }
 
 /**
- * 加载所有分类（用于统计）
- */
-const loadAllCategories = async () => {
-  try {
-    const response = await getAllCategories(questionType.value)
-    if (response.code === 200) {
-      allCategories.value = response.data || []
-    }
-  } catch (error) {
-    console.error('加载全部分类失败:', error)
-  }
-}
-
-/**
- * 加载去重后的统计数据
- * 解决一道题目有多个标签时的重复计数问题
+ * 加载科目统计数据（用于科目筛选列表）
+ * 根据题目类型使用不同的 API
  */
 const loadCategoryStats = async () => {
   try {
-    const response = await getCategoryStats(questionType.value)
-    if (response.code === 200) {
-      categoryStats.value = {
-        subjectStats: response.data?.subject_stats?.map(s => ({
-          subjectId: s.subject_id,
-          subjectName: s.subject_name,
-          questionCount: s.question_count
-        })) || [],
-        totalQuestionCount: response.data?.total_question_count || 0
+    if (questionType.value === 'mock') {
+      // 模拟题：使用 /api/mock/subject-stats 获取每个科目的正确题目数量（去重后）
+      const response = await getMockSubjectStats()
+      if (response.code === 200) {
+        const stats = response.data || []
+        categoryStats.value = {
+          subjectStats: stats.map(s => ({
+            subjectId: s.subject_id,
+            subjectName: s.subject_name,
+            questionCount: s.count
+          })),
+          totalQuestionCount: stats.reduce((sum, s) => sum + s.count, 0)
+        }
+      }
+    } else {
+      // 真题：使用真题 API
+      const response = await getCategoryStats(questionType.value)
+      if (response.code === 200) {
+        categoryStats.value = {
+          subjectStats: response.data?.subject_stats?.map(s => ({
+            subjectId: s.subject_id,
+            subjectName: s.subject_name,
+            questionCount: s.question_count
+          })) || [],
+          totalQuestionCount: response.data?.total_question_count || 0
+        }
       }
     }
   } catch (error) {
@@ -812,25 +691,99 @@ const loadCategoryStats = async () => {
 
 /**
  * 加载分类列表（筛选后显示）
+ * 根据题目类型使用不同的 API
  */
 const loadCategories = async () => {
   loading.value = true
   try {
     let response
-    if (filterSubjectId.value) {
-      response = await getCategoriesBySubject(filterSubjectId.value, questionType.value)
-    } else {
-      response = await getAllCategories(questionType.value)
-    }
-    
-    if (response.code === 200) {
-      categories.value = response.data || []
-      // 同步更新全部分类数据（保证统计数据实时）
-      if (!filterSubjectId.value) {
-        allCategories.value = response.data || []
+
+    if (questionType.value === 'mock') {
+      // 模拟题：使用模拟题 API（动态分类）
+      if (filterSubjectId.value) {
+        // 直接使用外层 response 变量，不再声明新变量
+        response = await getMockCategoryStatsBySubject(filterSubjectId.value)
+        if (response.code === 200) {
+          const stats = response.data?.stats || []
+          // 转换格式：扁平结构，适配前端显示
+          // 统一ID生成逻辑：使用 科目ID-分类名 格式
+          categories.value = stats.map(item => ({
+            id: `${filterSubjectId.value}-${item.category}`,
+            subjectId: filterSubjectId.value,
+            subjectName: response.data?.subject_name,
+            parentId: null,
+            parentName: null,
+            name: item.category,
+            code: item.category.toLowerCase().replace(/\s+/g, '-'),
+            description: null,
+            orderNum: 0,
+            enabled: true,
+            questionCount: item.count,
+            question_type: 'mock'
+          }))
+          // 同步更新全部分类数据
+          allCategories.value = [...categories.value]
+        }
+      } else {
+        // 没有选择科目，加载所有科目的模拟题分类
+        const allStats = []
+        for (const subject of subjectOptions.value) {
+          // 直接使用外层 response 变量
+          response = await getMockCategoryStatsBySubject(subject.id)
+          if (response.code === 200) {
+            const stats = response.data?.stats || []
+            stats.forEach(item => {
+              // 统一ID生成逻辑：使用 科目ID-分类名 格式
+              allStats.push({
+                id: `${subject.id}-${item.category}`,
+                subjectId: subject.id,
+                subjectName: subject.name,
+                parentId: null,
+                parentName: null,
+                name: item.category,
+                code: item.category.toLowerCase().replace(/\s+/g, '-'),
+                description: null,
+                orderNum: 0,
+                enabled: true,
+                questionCount: item.count,
+                question_type: 'mock'
+              })
+            })
+          }
+        }
+        categories.value = allStats
+        allCategories.value = allStats
       }
     } else {
-      showToast(response.message || '加载分类列表失败', 'error')
+      // 真题：使用真题 API（预定义分类，有层级）
+      if (filterSubjectId.value) {
+        response = await getCategoriesBySubject(filterSubjectId.value, questionType.value)
+      } else {
+        response = await getAllCategories(questionType.value)
+      }
+
+      if (response.code === 200) {
+        // 转换字段名：将 snake_case 转换为 camelCase
+        categories.value = (response.data || []).map(item => ({
+          ...item,
+          parentId: item.parent_id,
+          subjectId: item.subject_id,
+          subjectName: item.subject_name,
+          questionCount: item.question_count,
+          orderNum: item.order_num
+        }))
+        // 同步更新全部分类数据（保证统计数据实时）
+        allCategories.value = (response.data || []).map(item => ({
+          ...item,
+          parentId: item.parent_id,
+          subjectId: item.subject_id,
+          subjectName: item.subject_name,
+          questionCount: item.question_count,
+          orderNum: item.order_num
+        }))
+      } else {
+        showToast(response.message || '加载分类列表失败', 'error')
+      }
     }
   } catch (error) {
     console.error('加载分类列表失败:', error)
@@ -842,31 +795,30 @@ const loadCategories = async () => {
 
 /**
  * 题目类型切换处理
- * 切换时需要同时更新当前显示的分类和全部分类统计
- * 修复：切换题目类型后需要重新初始化展开状态
+ * 切换时需要更新当前显示的分类
  */
 const handleQuestionTypeChange = async () => {
-  // 并行加载：全部分类数据 + 去重统计数据
-  await Promise.all([
-    loadAllCategories(),
-    loadCategoryStats()
-  ])
-  // 再加载当前筛选的分类数据
+  // 加载科目统计数据（用于科目筛选列表显示题目数）
+  await loadCategoryStats()
+  // 加载所有科目的分类数据（用于统计分类数量）
   await loadCategories()
-  // 重新初始化展开状态，确保新数据的分类正确展开
-  initExpandedCards()
+  // 默认选中第一个科目
+  if (subjectOptions.value.length > 0) {
+    filterSubjectId.value = subjectOptions.value[0].id
+    // 重新加载选中科目的分类数据
+    await loadCategories()
+  }
+  // 重新初始化树形视图展开状态
   initTreeExpandedKeys()
 }
 
 /**
  * 点击统计卡片筛选
- * 修复：切换科目后需要重新初始化展开状态
  */
 const handleStatClick = async (subjectId) => {
   filterSubjectId.value = subjectId
   await loadCategories()
-  // 重新初始化展开状态，确保新科目的分类正确展开
-  initExpandedCards()
+  // 重新初始化树形视图展开状态
   initTreeExpandedKeys()
 }
 
@@ -902,7 +854,6 @@ const handleSubjectChange = async () => {
  * 加载可选父分类
  */
 const loadParentOptions = async (subjectId, excludeId = null) => {
-  loadingParents.value = true
   try {
     const response = await getAvailableParentCategories(subjectId, excludeId)
     if (response.code === 200) {
@@ -914,8 +865,6 @@ const loadParentOptions = async (subjectId, excludeId = null) => {
     }
   } catch (error) {
     console.error('加载父分类失败:', error)
-  } finally {
-    loadingParents.value = false
   }
 }
 
@@ -984,12 +933,12 @@ const handleSubmit = async () => {
   try {
     let response
     const data = {
-      subjectId: form.subjectId,
-      parentId: form.parentId || null,
+      subject_id: form.subjectId,
+      parent_id: form.parentId || null,
       code: form.code,
       name: form.name,
       description: form.description || null,
-      orderNum: form.orderNum,
+      order_num: form.orderNum,
       enabled: form.enabled
     }
 
@@ -1002,25 +951,13 @@ const handleSubmit = async () => {
     if (response.code === 200) {
       showToast(dialogMode.value === 'add' ? '创建成功' : '更新成功', 'success')
       dialogVisible.value = false
-      
+
       if (dialogMode.value === 'add') {
-        // 新增：保存当前展开状态，重新加载后恢复
-        const savedExpandedCards = new Set(expandedCards.value)
+        // 保存树形视图展开状态
         const savedTreeExpandedKeys = getTreeExpandedKeys()
-        
+
         await loadCategories()
-        
-        // 恢复卡片展开状态
-        expandedCards.value = savedExpandedCards
-        // 如果新增的是顶级分类，自动展开它
-        const newCategory = response.data
-        if (!newCategory.parentId) {
-          expandedCards.value.add(newCategory.id)
-        } else {
-          // 如果新增的是子分类，确保其父分类展开
-          expandedCards.value.add(newCategory.parentId)
-        }
-        
+
         // 恢复树形视图展开状态
         restoreTreeExpandedKeys(savedTreeExpandedKeys)
       } else {
@@ -1046,19 +983,30 @@ const handleSubmit = async () => {
  * @param {Object} newData 后端返回的更新后数据
  */
 const updateLocalCategory = (id, newData) => {
+  // 转换字段名：将 snake_case 转换为 camelCase（前端内部使用驼峰）
+  const mappedData = {
+    ...newData,
+    // 转换 snake_case -> camelCase
+    parentId: newData.parent_id,
+    subjectId: newData.subject_id,
+    subjectName: newData.subject_name,
+    questionCount: newData.question_count,
+    orderNum: newData.order_num  // 添加 orderNum 转换
+  }
+
   // 更新 categories 数组
   const index = categories.value.findIndex(c => c.id === id)
   if (index !== -1) {
     // 保留原有的 children 引用（如果有），因为后端返回的数据可能不包含 children
     const oldChildren = categories.value[index].children
-    categories.value[index] = { ...newData, children: oldChildren }
+    categories.value[index] = { ...mappedData, children: oldChildren }
   }
-  
+
   // 同步更新 allCategories 数组
   const allIndex = allCategories.value.findIndex(c => c.id === id)
   if (allIndex !== -1) {
     const oldChildren = allCategories.value[allIndex].children
-    allCategories.value[allIndex] = { ...newData, children: oldChildren }
+    allCategories.value[allIndex] = { ...mappedData, children: oldChildren }
   }
 }
 
@@ -1087,16 +1035,12 @@ const handleDelete = async (row) => {
     const response = await deleteCategory(row.id)
     if (response.code === 200) {
       showToast('删除成功', 'success')
-      // 保存当前展开状态
-      const savedExpandedCards = new Set(expandedCards.value)
+      // 保存树形视图展开状态
       const savedTreeExpandedKeys = getTreeExpandedKeys()
-      // 从展开状态中移除被删除的分类ID
-      savedExpandedCards.delete(row.id)
-      
+
       await loadCategories()
-      
-      // 恢复展开状态
-      expandedCards.value = savedExpandedCards
+
+      // 恢复树形视图展开状态（移除已删除的节点ID）
       restoreTreeExpandedKeys(savedTreeExpandedKeys.filter(id => id !== row.id))
     } else {
       showToast(response.message || '删除失败', 'error')
@@ -1153,33 +1097,6 @@ const handleAddChild = async (parent) => {
 }
 
 /**
- * 判断卡片是否展开
- */
-const isExpanded = (id) => {
-  return expandedCards.value.has(id)
-}
-
-/**
- * 切换卡片展开/折叠状态
- */
-const toggleExpand = (id) => {
-  if (expandedCards.value.has(id)) {
-    expandedCards.value.delete(id)
-  } else {
-    expandedCards.value.add(id)
-  }
-}
-
-/**
- * 初始化卡片展开状态
- * 默认收起所有卡片
- */
-const initExpandedCards = () => {
-  // 清空旧状态，默认收起
-  expandedCards.value.clear()
-}
-
-/**
  * 初始化树形视图展开状态
  * 默认收起所有节点（空数组）
  */
@@ -1189,134 +1106,49 @@ const initTreeExpandedKeys = () => {
 
 /**
  * 树形视图拖拽节点处理
- * 仅支持同级排序，不支持跨层级拖拽
- * 优化：使用局部更新而非重新加载整个列表
- * @param {Object} draggingNode 被拖拽的节点
- * @param {Object} dropNode 目标节点
- * @param {String} dropType 放置类型：before/after/inner
- * @param {Event} ev 事件对象
+ * 功能已移除：拖拽排序功能不再使用
+ * 排序通过编辑对话框中的 orderNum 字段实现
  */
-const handleTreeNodeDrop = async (draggingNode, dropNode, dropType, ev) => {
-  // 只处理同级排序（before/after），不处理 inner（跨层级）
-  if (dropType === 'inner') {
-    showToast('暂不支持跨层级拖拽', 'warning')
-    // 局部恢复：自定义 Tree 组件拖拽后需要恢复原位置
-    restoreTreeOrder()
-    return
-  }
-  
-  // 获取被拖拽节点的数据
-  const dragData = draggingNode.data
-  const dropData = dropNode.data
-  
-  // 确保是同一父级下的排序
-  if (dragData.parentId !== dropData.parentId) {
-    showToast('只能在同一层级内排序', 'warning')
-    restoreTreeOrder()
-    return
-  }
-  
-  // 获取同级节点列表（从 categories 中获取，保证数据一致性）
-  const parentId = dragData.parentId
-  let siblings = categories.value.filter(c => c.parentId === parentId)
-  siblings.sort((a, b) => (a.orderNum || 0) - (b.orderNum || 0))
-  
-  // 计算新的排序
-  const oldIndex = siblings.findIndex(s => s.id === dragData.id)
-  let newIndex = siblings.findIndex(s => s.id === dropData.id)
-  
-  if (dropType === 'after') {
-    newIndex = newIndex + 1
-  }
-  
-  // 如果位置没变，不处理
-  if (oldIndex === newIndex || (dropType === 'after' && oldIndex === newIndex - 1)) {
-    return
-  }
-  
-  // 移动元素计算新顺序
-  const reorderedSiblings = [...siblings]
-  const [movedItem] = reorderedSiblings.splice(oldIndex, 1)
-  if (oldIndex < newIndex) newIndex--
-  reorderedSiblings.splice(newIndex, 0, movedItem)
-  
-  // 更新排序
-  dragSaving.value = true
-  try {
-    // 收集需要更新的项
-    const updateItems = []
-    reorderedSiblings.forEach((item, index) => {
-      if (item.orderNum !== index) {
-        updateItems.push({ id: item.id, newOrderNum: index })
-      }
-    })
-    
-    // 批量更新后端
-    const updatePromises = updateItems.map(({ id, newOrderNum }) => {
-      const item = categories.value.find(c => c.id === id)
-      return updateCategory(id, { ...item, orderNum: newOrderNum })
-    })
-    
-    await Promise.all(updatePromises)
-    
-    // 局部更新本地数据：直接修改 categories 中对应项的 orderNum
-    updateItems.forEach(({ id, newOrderNum }) => {
-      const item = categories.value.find(c => c.id === id)
-      if (item) {
-        item.orderNum = newOrderNum
-      }
-      // 同步更新 allCategories
-      const allItem = allCategories.value.find(c => c.id === id)
-      if (allItem) {
-        allItem.orderNum = newOrderNum
-      }
-    })
-    
-    showToast('排序已更新', 'success')
-  } catch (error) {
-    console.error('更新排序失败:', error)
-    showToast('排序更新失败', 'error')
-    // 失败时恢复原顺序
-    restoreTreeOrder()
-  } finally {
-    dragSaving.value = false
-  }
-}
-
-/**
- * 恢复树形视图的原始排序
- * 通过重新触发 categories 的响应式更新来恢复
- */
-const restoreTreeOrder = () => {
-  // 触发响应式更新，让 treeCategories 重新计算
-  categories.value = [...categories.value]
-}
-
-/**
- * 判断节点是否允许放置
- * 只允许同级排序，不允许跨层级
- */
-const allowDrop = (draggingNode, dropNode, type) => {
-  // 只允许 before 和 after，不允许 inner（跨层级）
-  if (type === 'inner') return false
-  // 只允许同一父级下排序
-  return draggingNode.data.parentId === dropNode.data.parentId
-}
-
-/**
- * 判断节点是否可拖拽
- * 所有节点都可拖拽
- */
-const allowDrag = (node) => {
-  return true
-}
 
 // 组件挂载时加载数据
 onMounted(async () => {
   await loadSubjectOptions()
-  // 第一步：先加载全部分类数据（用于统计）
-  await loadAllCategories()
-  // 第二步：加载统计数据
+  // 第一步：加载全部分类数据（用于科目筛选列表统计和分类数量统计）
+  if (questionType.value === 'mock') {
+    // 模拟题：收集所有科目的分类数据
+    const allStats = []
+    for (const subject of subjectOptions.value) {
+      const response = await getMockCategoryStatsBySubject(subject.id)
+      if (response.code === 200) {
+        const stats = response.data?.stats || []
+        stats.forEach(item => {
+          allStats.push({
+            id: `${subject.id}-${item.category}`,
+            subjectId: subject.id,
+            subjectName: subject.name,
+            parentId: null,
+            name: item.category,
+            code: item.category.toLowerCase().replace(/\s+/g, '-'),
+            questionCount: item.count,
+            orderNum: 0,
+            enabled: true
+          })
+        })
+      }
+    }
+    allCategories.value = allStats
+  } else {
+    // 真题：使用真题 API
+    const allResponse = await getAllCategories(questionType.value)
+    if (allResponse.code === 200) {
+      allCategories.value = (allResponse.data || []).map(item => ({
+        ...item,
+        parentId: item.parent_id,
+        orderNum: item.order_num
+      }))
+    }
+  }
+  // 第二步：加载科目统计数据（用于科目筛选列表显示题目数）
   await loadCategoryStats()
   // 第三步：默认选中第一个科目（只影响显示）
   if (subjectOptions.value.length > 0) {
@@ -1324,17 +1156,8 @@ onMounted(async () => {
     // 第四步：加载选中科目的分类数据（用于显示）
     await loadCategories()
   }
-  // 初始化展开所有卡片和树节点
-  initExpandedCards()
+  // 初始化树形视图展开状态
   initTreeExpandedKeys()
-  // 如果默认是树形视图，需要初始化treeViewReady
-  if (viewMode.value === 'tree') {
-    nextTick(() => {
-      setTimeout(() => {
-        treeViewReady.value = true
-      }, 50)
-    })
-  }
 })
 </script>
 
@@ -1343,6 +1166,32 @@ onMounted(async () => {
  * 分类管理页面样式
  * 大部分样式已迁移到Tailwind类，这里保留必要的CSS动画和深层样式
  */
+
+/* 骨架屏容器 */
+.skeleton-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* 骨架屏卡片 */
+.skeleton-card {
+  overflow: hidden;
+}
+
+/* 骨架屏闪烁动画 - 使用渐变流光效果 */
+.skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(139, 111, 71, 0.06) 0%,
+    rgba(139, 111, 71, 0.12) 35%,
+    rgba(139, 111, 71, 0.18) 50%,
+    rgba(139, 111, 71, 0.12) 65%,
+    rgba(139, 111, 71, 0.06) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.8s ease-in-out infinite;
+}
 
 /* 骨架屏动画 */
 @keyframes shimmer {
@@ -1354,61 +1203,21 @@ onMounted(async () => {
   }
 }
 
-/* 拖拽保存提示动画 */
-@keyframes slideIn {
-  from {
-    opacity: 0;
-    transform: translateX(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
+/* 树形视图加载渐入动画 */
+.tree-fade-enter-active {
+  transition: opacity 0.3s ease-out, transform 0.3s ease-out;
 }
 
-@keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+.tree-fade-leave-active {
+  transition: opacity 0.2s ease-in;
 }
 
-/* 展开/折叠动画 */
-.collapse-enter-active,
-.collapse-leave-active {
-  transition: all 0.3s ease;
-  max-height: 500px;
-  opacity: 1;
-}
-
-.collapse-enter-from,
-.collapse-leave-to {
-  max-height: 0;
+.tree-fade-enter-from {
   opacity: 0;
+  transform: translateY(8px) scale(0.98);
 }
 
-/* 卡片列表动画 */
-.card-list-enter-active,
-.card-list-leave-active {
-  transition: all 0.3s ease;
-}
-
-.card-list-enter-from,
-.card-list-leave-to {
-  opacity: 0;
-  transform: translateY(-20px);
-}
-
-.card-list-move {
-  transition: transform 0.3s ease;
-}
-
-/* fade 过渡动画 */
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.3s ease;
-}
-
-.fade-enter-from,
-.fade-leave-to {
+.tree-fade-leave-to {
   opacity: 0;
 }
 
@@ -1417,6 +1226,8 @@ onMounted(async () => {
 @media (max-width: 768px) {
   .max-w-\[1400px\] {
     padding: 16px 8px;
+    height: auto;
+    overflow: visible;
   }
 
   .max-w-\[1400px\] > .flex:first-child {
@@ -1439,6 +1250,8 @@ onMounted(async () => {
   .w-64 {
     width: 100%;
     position: static;
+    height: auto;
+    overflow: visible;
   }
 
   .bg-white.rounded-2xl {

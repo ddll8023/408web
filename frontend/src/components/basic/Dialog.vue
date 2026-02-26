@@ -34,7 +34,7 @@
           </div>
 
           <!-- 内容区 -->
-          <div class="overflow-y-auto" :style="contentStyle">
+          <div class="overflow-y-auto px-6 py-4" :style="contentStyle">
             <div v-if="loading" class="flex items-center justify-center p-8">
                             <font-awesome-icon :icon="['fas', 'spinner']" class="fa-spin text-2xl text-primary-600" />
               <span class="ml-3 text-gray-500">加载中...</span>
@@ -74,7 +74,7 @@ const props = defineProps({
   },
   top: {
     type: String,
-    default: '5vh'
+    default: 'calc(60px + 24px)'  // 导航栏60px + 额外边距24px
   },
   loading: {
     type: Boolean,

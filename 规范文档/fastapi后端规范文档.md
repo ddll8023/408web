@@ -166,6 +166,73 @@ async def create(self, session: AsyncSession, request: CreateRequest):
 
 使用 SQLAlchemy 2.0 风格的构建器 (select, insert, update, delete)。
 
+### 7.6 异步关系加载规范
+
+在使用 SQLAlchemy 异步会话（AsyncSession）时，必须遵守以下规范：
+
+#### 7.6.1 禁止懒加载
+
+在异步上下文中，**严禁使用默认的懒加载（Lazy Loading）**。懒加载机制是同步的，会导致以下错误：
+
+```
+sqlalchemy.exc.MissingGreenlet: greenlet_spawn has not been called; can't call await_only() here.
+```
+
+#### 7.6.2 必须使用预加载策略
+
+当查询需要访问关联关系（如 `category.subject`、`user.profile`）时，必须使用显式预加载策略：
+
+```python
+from sqlalchemy.orm import selectinload, joinedload
+
+# 方式一：selectinload（推荐）
+# 发起单独的 SELECT 语句，在异步中更高效
+stmt = select(ExamCategory).options(selectinload(ExamCategory.subject))
+
+# 方式二：joinedload
+# 使用 JOIN 一次性加载，适合一对一关系
+stmt = select(User).options(joinedload(User.profile))
+```
+
+#### 7.6.3 预加载策略选择
+
+| 策略 | 适用场景 | 说明 |
+|------|---------|------|
+| `selectinload()` | 一对多、多对多关系 | 单独 SELECT，性能好 |
+| `joinedload()` | 一对一、一对少 | 使用 JOIN，一次查询 |
+| `subqueryload()` | 复杂嵌套 | 使用子查询 |
+
+#### 7.6.4 完整示例
+
+```python
+async def get_categories_with_subject(self, subject_id: int):
+    """查询分类列表并预加载科目信息"""
+    stmt = (
+        select(ExamCategory)
+        .options(selectinload(ExamCategory.subject))  # 必须预加载
+        .where(ExamCategory.subject_id == subject_id)
+    )
+    result = await self.session.exec(stmt)
+    categories = result.all()
+
+    # 预加载后可以安全访问
+    for c in categories:
+        print(c.subject.name)  # 不会触发懒加载错误
+```
+
+#### 7.6.5 强制预加载检查
+
+为防止遗漏预加载，可以在模型关系定义中使用 `lazy='raise'` 强制抛出异常：
+
+```python
+subject: Optional[Subject] = Relationship(
+    back_populates="exam_categories",
+    sa_relationship_kwargs={"lazy": "raise"}  # 访问未加载的关系会抛出异常
+)
+```
+
+> 参考文档：https://docs.sqlalchemy.org/en/20/orm/queryguide/relationships.html
+
 ## 8. 异常处理规范
 - **HTTP 异常**: 业务逻辑错误必须抛出 `HTTPException`，指定准确的状态码 (400/401/403/404)。
 - **全局处理**: 在 `main.py` 中注册 `exception_handler` 处理通用异常和验证错误 (`RequestValidationError`)。

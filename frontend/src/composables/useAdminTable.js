@@ -10,6 +10,16 @@ import { formatDateTime } from '@/utils/format'
 import { useSubjects } from './useSubjects'
 
 /**
+ * 排序字段名映射：前端驼峰 -> 后端下划线
+ * 遵循前端页面规范 6.5 节 API 数据格式约定
+ */
+const SORT_FIELD_MAPPING = {
+  questionNumber: 'question_number',
+  updateTime: 'update_time',
+  createTime: 'create_time'
+}
+
+/**
  * 管理表格通用逻辑
  */
 export function useAdminTable() {
@@ -69,7 +79,8 @@ export function useAdminTable() {
    */
   const handleSortChange = ({ prop, order }, loadListFn) => {
     if (order) {
-      sorting.sortField = prop
+      // 转换字段名：前端驼峰 -> 后端下划线
+      sorting.sortField = SORT_FIELD_MAPPING[prop] || prop
       sorting.sortOrder = order === 'ascending' ? 'asc' : 'desc'
     } else {
       sorting.sortField = null

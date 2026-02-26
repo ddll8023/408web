@@ -9,14 +9,14 @@ import request from './request'
  * 分页查询模拟题
  * @param {Object} params 查询参数
  * @param {number} params.page 页码
- * @param {number} params.size 每页大小
+ * @param {number} params.page_size 每页大小
  * @param {string} params.source 来源机构（可选）
  * @param {string} params.category 分类（可选）
- * @param {string} params.difficulty 难度（可选）
- * @param {number} params.subjectId 科目ID（可选）
+ * @param {number} params.subject_id 科目ID（可选）
  * @param {string} params.keyword 搜索关键词（可选，匹配title或content）
- * @param {string} params.sortField 排序字段（可选）
- * @param {string} params.sortOrder 排序方向（可选）
+ * @param {boolean} params.no_category 是否筛选无分类（可选）
+ * @param {string} params.sort_field 排序字段（可选）
+ * @param {string} params.sort_order 排序方向（可选）
  * @returns {Promise} API响应
  */
 export function getMockQuestions(params) {
@@ -122,6 +122,19 @@ export function getMockCategoriesBySubject(subjectId) {
 export function getMockSubjectStats() {
   return request({
     url: '/api/mock/subject-stats',
+    method: 'get'
+  })
+}
+
+/**
+ * 根据科目获取分类列表（带统计）
+ * 返回每个分类的名称和题目数量
+ * @param {number} subjectId 科目ID
+ * @returns {Promise} API响应
+ */
+export function getMockCategoryStatsBySubject(subjectId) {
+  return request({
+    url: `/api/mock/category-stats/${subjectId}`,
     method: 'get'
   })
 }

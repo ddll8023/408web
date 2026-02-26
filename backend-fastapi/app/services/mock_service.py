@@ -95,8 +95,7 @@ class MockService:
             conditions.append(
                 or_(
                     MockQuestion.category.is_(None),
-                    text("json_extract(category, '$') IS NULL"),
-                    text("json_length(category) = 0")
+                    MockQuestion.category == ""
                 )
             )
         elif params.category is not None:
@@ -105,7 +104,7 @@ class MockService:
             conditions.append(
                 and_(
                     MockQuestion.category.isnot(None),
-                    text(f"json_extract(category, '$') LIKE '{pattern}'")
+                    MockQuestion.category.like(pattern)
                 )
             )
 
@@ -220,7 +219,7 @@ class MockService:
             conditions.append(
                 and_(
                     MockQuestion.category.isnot(None),
-                    text("json_extract(category, '$') LIKE :cat_pattern")
+                    MockQuestion.category.like(pattern)
                 )
             )
 
@@ -234,8 +233,6 @@ class MockService:
             .order_by(func.count().desc())
         )
 
-        if category:
-            stmt = stmt.bindparams(cat_pattern=pattern)
         result = await self.session.exec(stmt)
 
         rows = result.all()
@@ -285,8 +282,7 @@ class MockService:
         """
         conditions = [
             MockQuestion.subject_id == subject_id,
-            MockQuestion.category.isnot(None),
-            text("json_length(category) > 0")
+            MockQuestion.category.isnot(None)
         ]
 
         # 先查询所有符合条件的记录
@@ -296,7 +292,9 @@ class MockService:
 
         # 内存中展开JSON数组进行统计
         category_counts: dict[str, int] = {}
+        question_ids = set()  # 用于去重统计实际题目数
         for q in questions:
+            question_ids.add(q.id)
             if q.category:
                 import json
                 try:
@@ -325,7 +323,8 @@ class MockService:
         return MockCategoryStatsResponse(
             subject_id=subject_id,
             subject_name=subject_name,
-            stats=stats_items
+            stats=stats_items,
+            total_count=len(question_ids)  # 去重后的实际题目数
         )
 
     async def create(
@@ -529,7 +528,7 @@ class MockService:
             conditions.append(
                 and_(
                     MockQuestion.category.isnot(None),
-                    text("json_extract(category, '$') LIKE :cat_pattern")
+                    MockQuestion.category.like(pattern)
                 )
             )
 
@@ -539,8 +538,6 @@ class MockService:
             .order_by(MockQuestion.question_number)
         )
 
-        if category:
-            stmt = stmt.bindparams(cat_pattern=pattern)
         result = await self.session.exec(stmt)
 
         questions = result.all()

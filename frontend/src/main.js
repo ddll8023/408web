@@ -20,6 +20,7 @@ import {
   faArrowLeft,
   faArrowUp,
   faSpinner,
+  faCircleNotch,
   faCheck,
   faTimes,
   faChevronDown,
@@ -38,6 +39,7 @@ import {
   faList,
   faListOl,
   faBars,
+  faEllipsis,
   faEllipsisVertical,
   faStar,
   faPencil,
@@ -79,7 +81,17 @@ import {
   faCompress,
   faTriangleExclamation,
   faGrip,
-  faChartBar
+  faChartBar,
+  faFolderPlus,
+  faAlignLeft,
+  faSlidersH,
+  faInbox,
+  faFileWord,
+  faPencilAlt,
+  faSort,
+  faSortUp,
+  faSortDown,
+  faChevronLeft
 } from '@fortawesome/free-solid-svg-icons'
 import ElementPlus from 'element-plus'
 import 'element-plus/dist/index.css'
@@ -103,6 +115,7 @@ library.add(
   faArrowLeft,
   faArrowUp,
   faSpinner,
+  faCircleNotch,
   faCheck,
   faTimes,
   faChevronDown,
@@ -121,6 +134,7 @@ library.add(
   faList,
   faListOl,
   faBars,
+  faEllipsis,
   faEllipsisVertical,
   faStar,
   faPencil,
@@ -162,7 +176,17 @@ library.add(
   faCompress,
   faTriangleExclamation,
   faGrip,
-  faChartBar
+  faChartBar,
+  faFolderPlus,
+  faAlignLeft,
+  faSlidersH,
+  faInbox,
+  faFileWord,
+  faPencilAlt,
+  faSort,
+  faSortUp,
+  faSortDown,
+  faChevronLeft
 )
 
 // 创建Vue应用实例

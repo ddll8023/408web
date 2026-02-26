@@ -14,6 +14,7 @@
       @dragover="handleDragOver"
       @dragleave="handleDragLeave"
       @drop="handleDrop"
+      @dragend="handleDragEnd"
     >
       <!-- 左侧：展开图标 + 内容 -->
       <div class="flex items-center gap-2 flex-1 min-w-0">
@@ -62,9 +63,10 @@
         :allow-drop="allowDrop"
         :allow-drag="allowDrag"
         @toggle-expand="$emit('toggle-expand', $event)"
-        @dragstart="$emit('dragstart', $event)"
-        @dragover="$emit('dragover', $event)"
-        @drop="$emit('drop', $event)"
+        @dragstart="handleDragStart"
+        @dragover="handleDragOver"
+        @drop="handleDrop"
+        @dragend="handleDragEnd"
       >
         <template #default="{ node: childNode, level: childLevel }">
           <slot :node="childNode" :level="childLevel" />
