@@ -8,6 +8,7 @@
 import axios from 'axios'
 import { getToken, removeToken } from '@/utils/token'
 import { ElMessage } from 'element-plus'
+import { convertKeysToCamel } from '@/utils/convertKeys'
 
 // 创建axios实例
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8081'
@@ -48,6 +49,10 @@ request.interceptors.response.use(
 
     // 判断业务状态码
     if (res.code === 200) {
+      // 统一转换数据键名为驼峰命名（前端规范）
+      if (res.data) {
+        res.data = convertKeysToCamel(res.data)
+      }
       return res
     } else {
       // 业务错误
