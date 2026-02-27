@@ -1,28 +1,33 @@
 <template>
   <nav class="navigation fixed top-0 left-0 right-0 h-[60px] px-8 bg-[rgba(251,247,242,0.85)] backdrop-blur-md border-b border-black/[0.08] shadow-[0_2px_8px_rgba(0,0,0,0.1)] z-[1000]">
     <div class="nav-container h-full flex items-center justify-between px-8">
-      <!-- 搜索区域 - 靠左 -->
-      <div class="nav-search flex items-center justify-start relative bg-transparent">
-        <Select
-          v-model="searchType"
-          class="w-[90px] flex-shrink-0"
-          :options="searchTypeOptions"
-          placeholder="类型"
-        />
-        <span class="search-divider w-px h-5 bg-black/[0.12] mx-2"></span>
-        <div class="search-input-wrapper relative flex items-center flex-1">
-          <input
-            v-model="searchKeyword"
-            type="text"
-            class="w-full h-full bg-transparent border-none outline-none text-base text-gray-700 placeholder-gray-400"
-            placeholder="搜索题目..."
-            @keyup.enter="handleSearch"
+      <!-- 搜索区域 - 靠左 (复古优雅风) -->
+      <div class="nav-search" role="search">
+        <div class="search-container">
+          <Select
+            v-model="searchType"
+            class="search-type-select"
+            :options="searchTypeOptions"
+            size="sm"
+            placeholder="类型"
+            bordered
+            style="width: 90px;"
           />
-          <font-awesome-icon
-            :icon="['fas', 'magnifying-glass']"
-            class="search-icon text-gray-400 text-sm p-1.5 rounded-full transition-all duration-200 cursor-pointer hover:text-[#8B6F47] hover:bg-[rgba(139,111,71,0.1)] hover:scale-110 active:scale-95"
-            @click="handleSearch"
-          />
+          <span class="search-divider"></span>
+          <div class="search-input-wrapper">
+            <input
+              v-model="searchKeyword"
+              type="text"
+              class="search-input"
+              placeholder="搜索题目..."
+              @keyup.enter="handleSearch"
+            />
+            <font-awesome-icon
+              :icon="['fas', 'magnifying-glass']"
+              class="search-btn"
+              @click="handleSearch"
+            />
+          </div>
         </div>
       </div>
 
@@ -207,6 +212,7 @@ const handleLogout = () => {
 <style scoped>
 /**
  * 导航栏组件样式
+ * 复古优雅风格 - 温暖、精致、有质感
  */
 
 /* 导航栏容器 */
@@ -216,44 +222,116 @@ const handleLogout = () => {
   margin-right: auto;
 }
 
-/* 搜索区域 - 固定宽度防止挤压 */
+/* ==================== 搜索区域 - 复古优雅风 ==================== */
 .nav-search {
   flex-shrink: 0;
-  width: 280px;
 }
 
-/* 导航菜单 - 自适应宽度 */
-.nav-menu {
-  flex: 1;
+.search-container {
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
+  padding: 6px 10px;
+  border-radius: 4em;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  max-width: 400px;
 }
 
-/* 用户区域 - 固定宽度防止挤压 */
-.nav-user {
+.search-container:focus-within {
+  box-shadow: 0 2px 12px rgba(139, 111, 71, 0.2), 0 0 0 3px rgba(139, 111, 71, 0.1);
+  border-color: #8B6F47;
+}
+
+/* 搜索类型选择器 */
+.search-type-select {
   flex-shrink: 0;
-  width: 180px;
+  width: 90px;
+}
+
+/* 覆盖 Select 组件默认内边距，让搜索区域更紧凑 */
+.search-type-select :deep(.relative) {
+  padding-left: 8px !important;
+  padding-right: 4px !important;
+}
+
+.search-type-select :deep(.flex-1) {
+  padding-left: 6px !important;
+  padding-right: 2px !important;
+}
+
+.search-type-select :deep(.px-3) {
+  padding-left: 2px !important;
+  padding-right: 2px !important;
+}
+
+/* 分隔线 */
+.search-divider {
+  width: 1px;
+  height: 24px;
+  background: linear-gradient(to bottom, transparent, #D4C4A8, transparent);
+  margin: 0 10px;
 }
 
 /* 搜索输入框容器 */
 .search-input-wrapper {
-  height: 42px;
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+  gap: 8px;
 }
 
-/* 搜索输入框样式 */
-.search-input-wrapper input {
-  transition: all 0.3s;
-}
-
-.search-input-wrapper input:focus {
+/* 搜索输入框 */
+.search-input {
+  flex: 1;
+  min-width: 0;
+  height: 32px;
+  background: transparent;
+  border: none;
   outline: none;
+  font-size: 14px;
+  color: #374151;
+  padding: 4px 6px;
 }
 
-.search-input-wrapper input::placeholder {
-  color: #9ca3af;
+.search-input::placeholder {
+  color: #9CA3AF;
 }
 
-/* 聚焦时展开 */
-.search-input-wrapper:focus-within {
-  width: 220px;
+.search-input::-webkit-input-placeholder {
+  color: #9CA3AF;
+}
+
+/* 搜索按钮 */
+.search-btn {
+  flex-shrink: 0;
+  font-size: 16px;
+  color: #9CA3AF;
+  padding: 6px;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.search-btn:hover {
+  color: #8B6F47;
+  background: rgba(139, 111, 71, 0.08);
+  transform: scale(1.08);
+}
+
+.search-btn:active {
+  transform: scale(0.95);
+}
+
+/* ==================== 导航菜单 ==================== */
+.nav-menu {
+  flex: 1;
+}
+
+/* ==================== 用户区域 ==================== */
+.nav-user {
+  flex-shrink: 0;
+  width: 180px;
 }
 
 /* 导航链接样式 - 保留hover效果 */
@@ -305,6 +383,10 @@ const handleLogout = () => {
     margin-bottom: 8px;
   }
 
+  .search-container {
+    max-width: 320px;
+  }
+
   .nav-menu {
     order: 2;
     justify-content: flex-start;
@@ -314,14 +396,6 @@ const handleLogout = () => {
   .nav-user {
     order: 3;
     justify-content: flex-end;
-  }
-
-  .search-input-wrapper {
-    width: 120px;
-  }
-
-  .search-input-wrapper:focus-within {
-    width: 150px;
   }
 
   .nav-menu {
