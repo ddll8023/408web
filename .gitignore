@@ -1,13 +1,17 @@
 .claude
 .github
 .idea
+.vscode
 
 backend/target
 
-backend-fastapi/.conda
+backend-fastapi/.venv
 backend-fastapi/nul
 backend-fastapi/app/logs
+backend-fastapi/logs
+
 
 frontend/node_modules
 frontend/dist
+
 nul
