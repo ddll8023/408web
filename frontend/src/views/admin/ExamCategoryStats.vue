@@ -47,7 +47,7 @@
       </div>
 
       <!-- 统计表格 -->
-      <Table :data="statsData" :columns="tableColumns" :loading="statsLoading">
+      <Table :data="statsData" :columns="tableColumns" :loading="statsLoading" size="lg">
         <template #subjectName="{ row }">
           {{ row.subjectName }}
         </template>
@@ -130,14 +130,16 @@ const loadStats = async () => {
     if (res.code === 200 && res.data) {
       // 从 response 中提取 stats 数组
       const statsArray = res.data.stats || []
-      // 转换字段名：从 snake_case 转为 camelCase
-      statsData.value = statsArray.map(item => ({
-        subjectName: res.data.subject_name || '全部科目',
-        category: item.category,
-        choiceCount: item.choice_count,
-        subjectiveCount: item.subjective_count,
-        count: item.count
-      }))
+      // 响应键名已被拦截器统一转为驼峰，默认按总题数降序
+      statsData.value = statsArray
+        .map(item => ({
+          subjectName: res.data.subjectName || '全部科目',
+          category: item.categoryName,
+          choiceCount: item.choiceCount,
+          subjectiveCount: item.subjectiveCount,
+          count: item.count
+        }))
+        .sort((a, b) => (b.count || 0) - (a.count || 0))
     } else {
       Toast.error(res.message || '获取统计数据失败')
     }

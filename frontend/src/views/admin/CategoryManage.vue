@@ -67,7 +67,7 @@
       </aside>
 
       <!-- 右侧主内容区 -->
-      <main class="flex-1 min-w-0 relative h-[calc(100vh-60px-128px)] overflow-y-auto">
+      <main class="flex-1 min-w-0 relative h-[calc(100vh-60px-128px)] overflow-y-auto content-scroll">
         <!-- 背景层次增强 -->
         <div class="absolute inset-0 -z-10 overflow-hidden pointer-events-none">
           <!-- 右上角暖色光晕 -->
@@ -78,62 +78,33 @@
           <div class="absolute inset-0 opacity-[0.03]" style="background-image: radial-gradient(#8B6F47 1px, transparent 1px); background-size: 24px 24px;"></div>
         </div>
 
-        <!-- 骨架屏 - 档案柜风格 -->
-        <div v-if="loading" class="
-          relative
-          bg-gradient-to-br from-white/90 to-[rgba(139,111,71,0.02)]/30
-          backdrop-blur-sm
-          rounded-2xl p-6
-          border border-white/50
-          shadow-[0_2px_16px_rgba(139,111,71,0.06),inset_0_1px_0_rgba(255,255,255,0.8)]
-          before:absolute before:inset-0 before:rounded-2xl before:p-px
-          before:bg-gradient-to-br before:from-white/40 before:to-transparent before:-z-10
-        ">
+        <!-- 骨架屏 - 树形轮廓 -->
+        <div v-if="loading" class="archive-panel">
           <div class="skeleton-container">
-          <div v-for="i in 3" :key="i" class="
-            bg-white rounded-xl overflow-hidden
-            border border-[rgba(139,111,71,0.08)]
-            shadow-sm skeleton-card
-          ">
-            <div class="h-1.5 skeleton-shimmer"></div>
-            <div class="p-5 space-y-4">
-              <div class="flex items-center gap-3">
-                <div class="w-9 h-9 skeleton-shimmer rounded-lg"></div>
-                <div class="space-y-2">
-                  <div class="w-32 h-4 skeleton-shimmer rounded"></div>
-                  <div class="w-20 h-3 skeleton-shimmer rounded"></div>
-                </div>
-              </div>
-              <div class="flex gap-4">
-                <div class="w-16 h-3 skeleton-shimmer rounded"></div>
-                <div class="w-16 h-3 skeleton-shimmer rounded"></div>
-                <div class="w-16 h-3 skeleton-shimmer rounded"></div>
-              </div>
-              <div class="grid grid-cols-2 gap-2 pt-4 border-t border-dashed border-[rgba(139,111,71,0.08)]">
-                <div class="h-16 skeleton-shimmer rounded-lg"></div>
-                <div class="h-16 skeleton-shimmer rounded-lg"></div>
-              </div>
+            <div
+              v-for="i in 5"
+              :key="i"
+              class="flex items-center gap-3 px-3 py-2.5"
+              :class="i === 1 ? 'pl-3' : i <= 3 ? 'pl-10' : 'pl-16'"
+            >
+              <div class="w-8 h-8 rounded-lg skeleton-shimmer flex-shrink-0"></div>
+              <div
+                class="h-4 rounded skeleton-shimmer"
+                :class="i % 3 === 0 ? 'w-28' : i % 3 === 1 ? 'w-44' : 'w-36'"
+              ></div>
+              <div class="flex-1"></div>
+              <div class="w-20 h-4 rounded skeleton-shimmer"></div>
             </div>
-          </div>
           </div>
         </div>
 
-        <!-- 树形视图 -->
+        <!-- 大纲视图 -->
         <template v-if="treeCategories.length > 0">
           <Transition name="tree-fade">
             <!-- 统一的背景容器 -->
-            <div class="
-              relative
-              bg-gradient-to-br from-white/90 to-[rgba(139,111,71,0.02)]/30
-              backdrop-blur-sm
-              rounded-2xl p-6
-              border border-white/50
-              shadow-[0_2px_16px_rgba(139,111,71,0.06),inset_0_1px_0_rgba(255,255,255,0.8)]
-              before:absolute before:inset-0 before:rounded-2xl before:p-px
-              before:bg-gradient-to-br before:from-white/40 before:to-transparent before:-z-10
-            ">
-              <!-- 树形视图工具栏 -->
-              <div class="flex gap-2 pb-3 mb-3 border-b border-[rgba(139,111,71,0.1)]">
+            <div class="archive-panel">
+              <!-- 视图工具栏 -->
+              <div class="flex gap-2 pb-3 mb-2 border-b border-[rgba(139,111,71,0.1)]">
                 <CustomButton type="text" size="sm" @click="expandAllTree">
                   <font-awesome-icon :icon="['fas', 'chevron-down']" class="mr-1" />
                   全部展开
@@ -143,61 +114,81 @@
                   全部收起
                 </CustomButton>
               </div>
-              <CustomTree
-              ref="treeRef"
-              :data="treeCategories"
-              :node-key="'id'"
-              :label="'name'"
-              :children-key="'children'"
-              v-model:expanded-keys="treeExpandedKeys"
-              @node-expand="handleTreeNodeExpand"
-              @node-collapse="handleTreeNodeCollapse"
-            >
-              <template #default="{ node: data, level }">
-                <div class="
-                  flex-1 flex items-center justify-between px-3 py-2 rounded-xl
-                  hover:bg-white/60 hover:backdrop-blur-sm
-                  border border-transparent hover:border-[rgba(139,111,71,0.08)]
-                  shadow-[inset_0_1px_0_rgba(255,255,255,0.5)]
-                  transition-all duration-200
-                " :class="{ 'opacity-60': !data.enabled }">
-                  <div class="flex items-center gap-2.5">
-                    <div class="
-                      w-8 h-8 flex items-center justify-center
-                      bg-gradient-to-br from-[rgba(139,111,71,0.12)] to-[rgba(139,111,71,0.05)]
-                      text-[#8B6F47] rounded-lg
-                      shadow-[inset_0_1px_0_rgba(255,255,255,0.5)]
-                      transition-all duration-200
-                    ">
-                      <font-awesome-icon v-if="data.children && data.children.length > 0" :icon="['fas', 'folder-open']" />
-                      <font-awesome-icon v-else :icon="['fas', 'file']" />
-                    </div>
-                    <span class="text-sm font-medium text-[#333]">{{ data.name }}</span>
-                    <span v-if="questionType === 'exam'" class="text-xs text-[#999] font-mono bg-[rgba(139,111,71,0.08)] px-1.5 py-0.5 rounded">{{ data.code }}</span>
-                    <CustomTag v-if="level === 0" variant="info" class="ml-1">
-                      {{ data.subjectName }}
-                    </CustomTag>
-                    <span class="text-xs text-[#999] bg-[rgba(139,111,71,0.08)] px-2 py-0.5 rounded-[10px]">{{ getChildrenQuestionCount(data) }}题</span>
+
+              <!-- 大纲列表 -->
+              <div class="outline-list" role="tree" aria-label="分类层级大纲">
+                <div
+                  v-for="row in outlineRows"
+                  :key="row.node.id"
+                  class="outline-row group/row"
+                  role="treeitem"
+                  :aria-level="row.level + 1"
+                  :class="{ 'opacity-60': !row.node.enabled }"
+                  :style="{ paddingLeft: `${OUTLINER_BASE + row.level * OUTLINER_INDENT}px` }"
+                >
+                  <!-- 祖先层级引导线 -->
+                  <span
+                    v-for="g in row.level"
+                    :key="g"
+                    class="outline-guide"
+                    :style="{ left: `${OUTLINER_BASE + 10 + g * OUTLINER_INDENT}px` }"
+                  ></span>
+
+                  <!-- 展开/收起 -->
+                  <button
+                    v-if="row.hasChildren"
+                    type="button"
+                    class="outline-toggle"
+                    :class="{ 'is-expanded': isNodeExpanded(row.node.id) }"
+                    :aria-expanded="isNodeExpanded(row.node.id)"
+                    :aria-label="(isNodeExpanded(row.node.id) ? '收起 ' : '展开 ') + row.node.name"
+                    @click.stop="toggleExpand(row.node.id)"
+                  >
+                    <font-awesome-icon :icon="['fas', 'chevron-right']" />
+                  </button>
+                  <span v-else class="outline-toggle-placeholder"></span>
+
+                  <!-- 类型图标 -->
+                  <div class="outline-icon">
+                    <font-awesome-icon :icon="['fas', row.hasChildren ? 'folder-open' : 'file']" />
                   </div>
-                  <!-- 操作按钮：仅真题模式显示 -->
-                  <div v-if="questionType === 'exam'" class="flex items-center gap-2 opacity-0 transition-opacity duration-200" :class="{ '!opacity-100': true }">
-                    <CustomTooltip content="添加子分类" placement="top" v-if="level < 2 && !data.isSubjectGroup">
-                      <div class="w-7 h-7 flex items-center justify-center rounded-md cursor-pointer text-[#999] hover:bg-[rgba(139,111,71,0.1)] hover:text-[#8B6F47]" @click.stop="handleAddChild(data)">
+
+                  <!-- 名称与标签 -->
+                  <span class="outline-name" :class="{ 'font-semibold': row.level === 0 }">{{ row.node.name }}</span>
+                  <span v-if="questionType === 'exam'" class="outline-code">{{ row.node.code }}</span>
+                  <CustomTag v-if="row.level === 0 && row.node.subjectName" variant="info" class="ml-1">
+                    {{ row.node.subjectName }}
+                  </CustomTag>
+
+                  <span class="flex-1 min-w-4"></span>
+
+                  <span class="outline-count">{{ getChildrenQuestionCount(row.node) }}题</span>
+
+                  <!-- 操作按钮：仅真题模式显示，悬停行时浮现 -->
+                  <div v-if="questionType === 'exam'" class="outline-actions">
+                    <CustomTooltip v-if="row.level < 2" content="添加子分类" placement="top">
+                      <button type="button" class="outline-action-btn" aria-label="添加子分类" @click.stop="handleAddChild(row.node)">
                         <font-awesome-icon :icon="['fas', 'plus']" />
-                      </div>
+                      </button>
                     </CustomTooltip>
                     <CustomTooltip content="编辑" placement="top">
-                      <div class="w-7 h-7 flex items-center justify-center rounded-md cursor-pointer text-[#999] hover:bg-[rgba(139,111,71,0.1)] hover:text-[#8B6F47]" @click.stop="handleEdit(data)">
+                      <button type="button" class="outline-action-btn" aria-label="编辑分类" @click.stop="handleEdit(row.node)">
                         <font-awesome-icon :icon="['fas', 'edit']" />
-                      </div>
+                      </button>
                     </CustomTooltip>
-                    <CustomButton type="text-danger" size="sm" class="!p-1" @click="handleDelete(data)">
-                      <font-awesome-icon :icon="['fas', 'trash']" />
-                    </CustomButton>
+                    <CustomTooltip content="删除" placement="top">
+                      <button
+                        type="button"
+                        class="outline-action-btn hover:text-[#c45656]! hover:bg-[rgba(196,86,86,0.08)]!"
+                        aria-label="删除分类"
+                        @click.stop="handleDelete(row.node)"
+                      >
+                        <font-awesome-icon :icon="['fas', 'trash']" />
+                      </button>
+                    </CustomTooltip>
                   </div>
                 </div>
-              </template>
-            </CustomTree>
+              </div>
             </div>
           </Transition>
         </template>
@@ -205,7 +196,7 @@
         <!-- 空状态 -->
         <div v-if="!loading && treeCategories.length === 0" class="
           relative flex flex-col items-center justify-center py-20
-          bg-white/40 backdrop-blur-sm
+          bg-white/40 backdrop-blur-sm empty-in
           rounded-2xl border border-dashed border-[rgba(139,111,71,0.15)]
         ">
           <CustomEmpty description="暂无分类数据" />
@@ -432,7 +423,6 @@ import CustomSwitch from '@/components/basic/Switch.vue'
 import CustomInputNumber from '@/components/basic/InputNumber.vue'
 import CustomTooltip from '@/components/basic/Tooltip.vue'
 import CustomRadioGroup from '@/components/basic/RadioGroup.vue'
-import CustomTree from '@/components/basic/Tree.vue'
 
 const { showToast } = useToast()
 const { showConfirm } = useConfirm()
@@ -452,10 +442,7 @@ const filterSubjectId = ref(null)
 // 题目类型筛选（exam=真题, mock=模拟题）
 const questionType = ref('exam')
 
-// 树形视图引用
-const treeRef = ref(null)
-
-// 树形视图展开的节点ID列表（响应式，用于保持展开状态）
+// 大纲视图展开的节点ID列表（响应式，用于保持展开状态）
 const treeExpandedKeys = ref([])
 
 /**
@@ -476,28 +463,7 @@ const collapseAllTree = () => {
 }
 
 /**
- * 处理树节点展开事件
- * 将展开的节点ID添加到 treeExpandedKeys 中
- */
-const handleTreeNodeExpand = (data) => {
-  if (!treeExpandedKeys.value.includes(data.id)) {
-    treeExpandedKeys.value.push(data.id)
-  }
-}
-
-/**
- * 处理树节点收起事件
- * 从 treeExpandedKeys 中移除收起的节点ID
- */
-const handleTreeNodeCollapse = (data) => {
-  const index = treeExpandedKeys.value.indexOf(data.id)
-  if (index > -1) {
-    treeExpandedKeys.value.splice(index, 1)
-  }
-}
-
-/**
- * 获取树形视图当前展开的节点ID列表
+ * 获取大纲视图当前展开的节点ID列表
  * 直接返回 treeExpandedKeys 的副本
  */
 const getTreeExpandedKeys = () => {
@@ -1077,10 +1043,45 @@ const initTreeExpandedKeys = () => {
   treeExpandedKeys.value = []
 }
 
+// ============ 大纲视图 ============
+
+// 大纲布局常量：BASE 为行左内边距基线，INDENT 为每级缩进
+const OUTLINER_BASE = 12
+const OUTLINER_INDENT = 24
+
+/**
+ * 扁平化大纲行：按展开状态把树铺平成行列表
+ */
+const outlineRows = computed(() => {
+  const rows = []
+  const walk = (nodes, level) => {
+    nodes.forEach(node => {
+      const children = node.children || []
+      const hasChildren = children.length > 0
+      rows.push({ node, level, hasChildren })
+      if (hasChildren && treeExpandedKeys.value.includes(node.id)) {
+        walk(children, level + 1)
+      }
+    })
+  }
+  walk(treeCategories.value, 0)
+  return rows
+})
+
+const isNodeExpanded = (id) => treeExpandedKeys.value.includes(id)
+
+const toggleExpand = (id) => {
+  const index = treeExpandedKeys.value.indexOf(id)
+  if (index > -1) {
+    treeExpandedKeys.value.splice(index, 1)
+  } else {
+    treeExpandedKeys.value.push(id)
+  }
+}
+
 /**
  * 树形视图拖拽节点处理
- * 功能已移除：拖拽排序功能不再使用
- * 排序通过编辑对话框中的 orderNum 字段实现
+ * 功能已移除：拖拽分级体验不达预期，排序通过编辑对话框中的 orderNum 字段实现
  */
 
 // 组件挂载时加载数据
@@ -1140,12 +1141,251 @@ onMounted(async () => {
 .skeleton-container {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 0.25rem;
 }
 
-/* 骨架屏卡片 */
-.skeleton-card {
+/* 毛玻璃档案面板：树容器与骨架屏共用，视觉与原 Tailwind 串完全一致 */
+.archive-panel {
+  position: relative;
+  padding: 1.5rem;
+  border-radius: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  background: linear-gradient(
+    to bottom right,
+    rgba(255, 255, 255, 0.9),
+    rgba(139, 111, 71, 0.006)
+  );
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  box-shadow:
+    0 2px 16px rgba(139, 111, 71, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+.archive-panel::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -10;
+  border-radius: 1rem;
+  padding: 1px;
+  background: linear-gradient(to bottom right, rgba(255, 255, 255, 0.4), transparent);
+}
+
+/* 树节点进场：挂载即播，展开子级时按同级顺序级联浮现 */
+@keyframes row-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ============ 大纲列表 ============ */
+.outline-list {
+  position: relative;
+}
+
+.outline-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-top: 7px;
+  padding-bottom: 7px;
+  padding-right: 12px;
+  border-radius: 10px;
+  animation: row-in 0.35s ease-out backwards;
+  transition: background-color 0.2s ease, opacity 0.2s ease;
+}
+
+.outline-row:nth-child(2) { animation-delay: 0.04s; }
+.outline-row:nth-child(3) { animation-delay: 0.08s; }
+.outline-row:nth-child(4) { animation-delay: 0.12s; }
+.outline-row:nth-child(5) { animation-delay: 0.16s; }
+.outline-row:nth-child(6) { animation-delay: 0.2s; }
+.outline-row:nth-child(7) { animation-delay: 0.24s; }
+.outline-row:nth-child(8) { animation-delay: 0.28s; }
+.outline-row:nth-child(9) { animation-delay: 0.32s; }
+.outline-row:nth-child(10) { animation-delay: 0.36s; }
+.outline-row:nth-child(11) { animation-delay: 0.4s; }
+.outline-row:nth-child(12) { animation-delay: 0.44s; }
+
+.outline-row:hover {
+  background-color: rgba(255, 255, 255, 0.6);
+}
+
+/* 祖先层级引导线 */
+.outline-guide {
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  width: 1px;
+  background: rgba(139, 111, 71, 0.14);
+  pointer-events: none;
+}
+
+/* 展开/收起 */
+.outline-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  padding: 0;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: #8b6f47;
+  cursor: pointer;
+  transition: transform 0.2s ease, background-color 0.2s ease;
+}
+
+.outline-toggle:hover {
+  background: rgba(139, 111, 71, 0.1);
+}
+
+.outline-toggle.is-expanded {
+  transform: rotate(90deg);
+}
+
+.outline-toggle-placeholder {
+  width: 20px;
+  flex-shrink: 0;
+}
+
+/* 类型图标 */
+.outline-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+  border-radius: 8px;
+  background: linear-gradient(135deg, rgba(139, 111, 71, 0.12), rgba(139, 111, 71, 0.05));
+  color: #8b6f47;
+  font-size: 11px;
+  transition: transform 0.2s ease;
+}
+
+.outline-row:hover .outline-icon {
+  transform: scale(1.06);
+}
+
+/* 名称与徽标 */
+.outline-name {
+  min-width: 0;
+  font-size: 14px;
+  color: #333;
+  white-space: nowrap;
   overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.outline-code {
+  flex-shrink: 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  color: #a89880;
+  border: 1px solid rgba(139, 111, 71, 0.18);
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+
+.outline-count {
+  flex-shrink: 0;
+  font-size: 12px;
+  font-weight: 500;
+  color: #8b6f47;
+  background: rgba(139, 111, 71, 0.12);
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+
+/* 操作按钮：悬停行时浮现 */
+.outline-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.outline-row:hover .outline-actions,
+.outline-actions:focus-within {
+  opacity: 1;
+}
+
+.outline-action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: #999;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.outline-action-btn:hover {
+  color: #8b6f47;
+  background: rgba(139, 111, 71, 0.1);
+}
+
+@media (max-width: 768px) {
+  .outline-actions {
+    opacity: 1;
+  }
+}
+
+/* 空状态浮现 */
+@keyframes empty-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.empty-in {
+  animation: empty-in 0.4s ease-out backwards;
+}
+
+/* 内容区滚动条：与项目侧边栏一致的细滚动条 */
+.content-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+
+.content-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.content-scroll::-webkit-scrollbar-thumb {
+  background-color: rgba(139, 111, 71, 0.15);
+  border-radius: 3px;
+}
+
+.content-scroll::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(139, 111, 71, 0.3);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .outline-row,
+  .empty-in {
+    animation: none;
+  }
 }
 
 /* 骨架屏闪烁动画 - 使用渐变流光效果 */

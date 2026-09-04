@@ -315,7 +315,7 @@ class ExamService:
         # 转换为响应列表
         stats_items = [
             ExamCategoryStatItem(
-                category=cat,
+                category_name=cat,
                 count=data["count"],
                 choice_count=data["choice"],
                 subjective_count=data["subjective"]

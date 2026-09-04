@@ -1,6 +1,7 @@
 # OS-generated files
 .DS_Store
 nul
+__pycache__/
 
 # IDE and local tooling
 .claude

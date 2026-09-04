@@ -163,7 +163,7 @@ class ExamYearStatResponse(BaseModel):
 class ExamCategoryStatItem(BaseModel):
     """真题分类统计项。"""
 
-    category: str
+    category_name: str
     count: int
     choice_count: int = 0
     subjective_count: int = 0
