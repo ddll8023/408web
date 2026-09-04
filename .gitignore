@@ -1,17 +1,20 @@
+# OS-generated files
+.DS_Store
+nul
+
+# IDE and local tooling
 .claude
 .github
 .idea
 .vscode
 
+# Backend build and runtime files
 backend/target
-
 backend-fastapi/.venv
-backend-fastapi/nul
 backend-fastapi/app/logs
 backend-fastapi/logs
+backend-fastapi/nul
 
-
+# Frontend dependencies and build output
 frontend/node_modules
 frontend/dist
-
-nul
