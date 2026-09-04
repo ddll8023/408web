@@ -65,3 +65,25 @@ export const convertCategoryString = (categoryStr) => {
     return []
   }
 }
+
+/**
+ * 递归转换请求对象键名（驼峰 -> 下划线）
+ * @param {*} data - 请求数据
+ * @returns {*} 转换后的请求数据
+ */
+export const convertKeysToSnake = (data) => {
+  if (data === null || typeof data !== 'object') {
+    return data
+  }
+
+  if (Array.isArray(data)) {
+    return data.map(item => convertKeysToSnake(item))
+  }
+
+  const result = {}
+  for (const [key, value] of Object.entries(data)) {
+    if (value === undefined) continue
+    result[camelToSnake(key)] = convertKeysToSnake(value)
+  }
+  return result
+}

@@ -6,8 +6,8 @@ from typing import List, Optional
 from collections import defaultdict
 from sqlmodel import select, func, and_
 from sqlmodel.ext.asyncio.session import AsyncSession
-from app.models.entities import Chapter
-from app.exception import NotFoundException, ConflictException
+from app.models.entities import Chapter, Subject
+from app.exception import ConflictException, NotFoundException, ValidationException
 from app.schemas.chapter import (
     ChapterCreateRequest,
     ChapterUpdateRequest,
@@ -182,6 +182,12 @@ class ChapterService:
         logger.info("ChapterService.create started, subject_id: %d, name: %s",
                     request.subject_id, request.name)
 
+        subject_result = await self.session.exec(
+            select(Subject.id).where(Subject.id == request.subject_id)
+        )
+        if subject_result.first() is None:
+            raise NotFoundException("科目")
+
         # 检查父章节是否存在（如果指定了parent_id）
         if request.parent_id is not None:
             parent_result = await self.session.exec(
@@ -257,31 +263,44 @@ class ChapterService:
             logger.warning("ChapterService.update: chapter not found, id: %d", chapter_id)
             raise NotFoundException(f"章节不存在：ID={chapter_id}")
 
-        # 检查新的父章节是否存在（如果指定了新的parent_id）
-        if request.parent_id is not None and request.parent_id != chapter.parent_id:
-            # 不能将章节设置为自己或自己的子章节为父节点（避免循环引用）
-            if request.parent_id == chapter_id:
-                logger.warning("ChapterService.update: cannot set chapter as its own parent")
+        update_data = request.model_dump(exclude_unset=True)
+        subject_id = (
+            request.subject_id
+            if "subject_id" in update_data
+            else chapter.subject_id
+        )
+        if subject_id is None:
+            raise ValidationException("章节必须属于一个科目")
+
+        subject_result = await self.session.exec(
+            select(Subject.id).where(Subject.id == subject_id)
+        )
+        if subject_result.first() is None:
+            raise NotFoundException("科目")
+
+        parent_id = (
+            request.parent_id
+            if "parent_id" in update_data
+            else chapter.parent_id
+        )
+        if parent_id is not None:
+            if parent_id == chapter_id:
                 raise ConflictException("不能将章节设置为自己的父章节")
 
+            descendants = await self._get_descendant_ids(chapter_id)
+            if parent_id in descendants:
+                raise ConflictException("不能将章节移动到自己的子孙章节下")
+
             parent_result = await self.session.exec(
-                select(Chapter).where(Chapter.id == request.parent_id)
+                select(Chapter).where(Chapter.id == parent_id)
             )
             parent = parent_result.first()
             if parent is None:
-                logger.warning("ChapterService.update: parent chapter not found, parent_id: %d",
-                               request.parent_id)
-                raise NotFoundException(f"父章节不存在：ID={request.parent_id}")
-
-            # 验证父章节属于同一科目
-            subject_id = request.subject_id or chapter.subject_id
+                raise NotFoundException(f"父章节不存在：ID={parent_id}")
             if parent.subject_id != subject_id:
-                logger.warning("ChapterService.update: parent chapter belongs to different subject")
                 raise ConflictException("父章节不属于指定的科目")
 
         # 检查名称唯一性（排除自身，同一父节点下）
-        subject_id = request.subject_id or chapter.subject_id
-        parent_id = request.parent_id if request.parent_id is not None else chapter.parent_id
 
         if request.name is not None and request.name != chapter.name:
             name_count = await self.session.exec(
@@ -307,6 +326,19 @@ class ChapterService:
 
         logger.info("ChapterService.update completed, chapter_id: %d", chapter_id)
         return self._to_response(chapter)
+
+    async def _get_descendant_ids(self, chapter_id: int) -> set[int]:
+        """迭代获取章节的全部子孙节点，避免递归循环。"""
+        descendants: set[int] = set()
+        frontier = {chapter_id}
+        while frontier:
+            result = await self.session.exec(
+                select(Chapter.id).where(Chapter.parent_id.in_(frontier))
+            )
+            children = set(result.all()) - descendants
+            descendants.update(children)
+            frontier = children
+        return descendants
 
     async def delete(self, chapter_id: int) -> None:
         """

@@ -8,7 +8,7 @@ from sqlmodel import select, func, and_, text
 from sqlalchemy.orm import selectinload
 from sqlmodel.ext.asyncio.session import AsyncSession
 from app.models.entities import ExamCategory, ExamQuestion, MockQuestion, Subject
-from app.exception import NotFoundException, ConflictException
+from app.exception import ConflictException, NotFoundException, ValidationException
 from app.schemas.category import (
     ExamCategoryCreateRequest,
     ExamCategoryUpdateRequest,
@@ -455,18 +455,18 @@ class ExamCategoryService:
 
         return [self._to_response(c) for c in filtered]
 
-    async def _get_descendant_ids(self, category_id: int) -> set:
-        """递归获取分类的所有子孙ID"""
-        stmt = select(ExamCategory.id).where(ExamCategory.parent_id == category_id)
-        result = await self.session.exec(stmt)
-        child_ids = set(result.all())
-
-        all_descendants = set(child_ids)
-        for child_id in child_ids:
-            descendants = await self._get_descendant_ids(child_id)
-            all_descendants.update(descendants)
-
-        return all_descendants
+    async def _get_descendant_ids(self, category_id: int) -> set[int]:
+        """迭代获取分类的全部子孙节点，避免递归循环。"""
+        descendants: set[int] = set()
+        frontier = {category_id}
+        while frontier:
+            result = await self.session.exec(
+                select(ExamCategory.id).where(ExamCategory.parent_id.in_(frontier))
+            )
+            children = set(result.all()) - descendants
+            descendants.update(children)
+            frontier = children
+        return descendants
 
     async def check_category_usage(self, category_id: int) -> int:
         """
@@ -655,6 +655,12 @@ class ExamCategoryService:
         logger.info("ExamCategoryService.create started, subject_id: %d, name: %s",
                     request.subject_id, request.name)
 
+        subject_result = await self.session.exec(
+            select(Subject.id).where(Subject.id == request.subject_id)
+        )
+        if subject_result.first() is None:
+            raise NotFoundException("科目")
+
         # 检查父分类是否存在（如果指定了parent_id）
         if request.parent_id is not None:
             parent_result = await self.session.exec(
@@ -746,28 +752,44 @@ class ExamCategoryService:
             logger.warning("ExamCategoryService.update: category not found, id: %d", category_id)
             raise NotFoundException(f"分类不存在：ID={category_id}")
 
-        # 检查新的父分类是否存在（如果指定了新的parent_id）
-        if request.parent_id is not None and request.parent_id != category.parent_id:
-            if request.parent_id == category_id:
-                logger.warning("ExamCategoryService.update: cannot set category as its own parent")
+        update_data = request.model_dump(exclude_unset=True)
+        subject_id = (
+            request.subject_id
+            if "subject_id" in update_data
+            else category.subject_id
+        )
+        if subject_id is None:
+            raise ValidationException("分类必须属于一个科目")
+
+        subject_result = await self.session.exec(
+            select(Subject.id).where(Subject.id == subject_id)
+        )
+        if subject_result.first() is None:
+            raise NotFoundException("科目")
+
+        parent_id = (
+            request.parent_id
+            if "parent_id" in update_data
+            else category.parent_id
+        )
+        if parent_id is not None:
+            if parent_id == category_id:
                 raise ConflictException("不能将分类设置为自己的父分类")
 
+            descendants = await self._get_descendant_ids(category_id)
+            if parent_id in descendants:
+                raise ConflictException("不能将分类移动到自己的子孙分类下")
+
             parent_result = await self.session.exec(
-                select(ExamCategory).where(ExamCategory.id == request.parent_id)
+                select(ExamCategory).where(ExamCategory.id == parent_id)
             )
             parent = parent_result.first()
             if parent is None:
-                logger.warning("ExamCategoryService.update: parent category not found, parent_id: %d",
-                               request.parent_id)
-                raise NotFoundException(f"父分类不存在：ID={request.parent_id}")
-
-            subject_id = request.subject_id or category.subject_id
+                raise NotFoundException(f"父分类不存在：ID={parent_id}")
             if parent.subject_id != subject_id:
-                logger.warning("ExamCategoryService.update: parent category belongs to different subject")
                 raise ConflictException("父分类不属于指定的科目")
 
         # 检查名称唯一性（排除自身）
-        subject_id = request.subject_id or category.subject_id
         if request.name is not None and request.name != category.name:
             name_count = await self.session.exec(
                 select(func.count()).select_from(ExamCategory).where(

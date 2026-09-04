@@ -96,6 +96,12 @@ class SubjectUpdateRequest(BaseModel):
     }
 
 
+class SubjectCodeRequest(BaseModel):
+    """按编码查询科目的请求。"""
+
+    code: str = Field(..., min_length=1, max_length=50, description="科目编码")
+
+
 class SubjectResponse(BaseModel):
     """科目响应"""
     id: int = Field(..., description="科目ID", examples=[1])

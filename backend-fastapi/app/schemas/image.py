@@ -6,6 +6,25 @@ from typing import Optional, List
 from pydantic import BaseModel, Field
 
 
+class ImageListRequest(BaseModel):
+    """图片列表查询请求。"""
+
+    only_unreferenced: bool = Field(default=False, description="是否只查询未引用图片")
+
+
+class ImageCleanupRequest(BaseModel):
+    """未引用图片清理请求。"""
+
+    confirm: bool = Field(default=False, description="是否确认执行不可逆清理")
+
+
+class ImageDeleteRequest(BaseModel):
+    """指定图片删除请求。"""
+
+    filename: str = Field(..., min_length=1, max_length=255, description="文件名")
+    confirm: bool = Field(default=False, description="是否确认执行不可逆删除")
+
+
 class ImageUsageResponse(BaseModel):
     """
     图片引用真题信息

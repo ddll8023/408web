@@ -102,7 +102,7 @@
 ### 环境要求
 
 - Node.js >= 16
-- Python >= 3.8
+- Python >= 3.12
 - Git
 
 ### 1. 克隆项目
@@ -126,6 +126,12 @@ source venv/bin/activate
 
 # 安装依赖
 pip install -r requirements.txt
+
+# 创建本地环境配置（必须设置 JWT_SECRET）
+cp .env.example .env
+
+# 首次启动或升级现有数据库时执行一次迁移
+python scripts/migrate_high_priority.py
 
 # 启动服务
 python -m uvicorn app.main:app --host 0.0.0.0 --port 8081 --reload
@@ -162,30 +168,30 @@ npm run dev
 ### 科目模块
 | 接口 | 方法 | 说明 |
 |------|------|------|
-| `/api/subject` | GET | 获取所有科目 |
-| `/api/subject/{id}` | GET | 获取单个科目 |
+| `/api/subject/query` | POST | 获取启用科目 |
+| `/api/subject/{id}/detail` | POST | 获取单个科目 |
 
 ### 章节模块
 | 接口 | 方法 | 说明 |
 |------|------|------|
-| `/api/chapter` | GET | 获取章节树 |
+| `/api/chapter/subject/{id}` | POST | 获取章节树 |
 | `/api/chapter` | POST | 创建章节 |
-| `/api/chapter/{id}` | PUT | 更新章节 |
-| `/api/chapter/{id}` | DELETE | 删除章节 |
+| `/api/chapter/{id}` | POST | 更新章节 |
+| `/api/chapter/{id}/delete` | POST | 删除章节 |
 
 ### 真题模块
 | 接口 | 方法 | 说明 |
 |------|------|------|
-| `/api/exam` | GET | 获取真题列表 |
+| `/api/exam/query` | POST | 获取真题列表 |
 | `/api/exam` | POST | 创建真题 |
-| `/api/exam/{id}` | GET | 获取真题详情 |
+| `/api/exam/{id}/detail` | POST | 获取真题详情 |
 
 ### 模拟题模块
 | 接口 | 方法 | 说明 |
 |------|------|------|
-| `/api/mock` | GET | 获取模拟题列表 |
+| `/api/mock/query` | POST | 获取模拟题列表 |
 | `/api/mock` | POST | 创建模拟题 |
-| `/api/mock/{id}` | GET | 获取模拟题详情 |
+| `/api/mock/{id}/detail` | POST | 获取模拟题详情 |
 
 详细API文档请参考 `规范文档/API接口文档.md`
 
@@ -220,7 +226,9 @@ CORS_ORIGINS = [
 可在 `.env` 文件中配置：
 
 ```env
-JWT_SECRET=your-super-secret-key
+JWT_SECRET=replace-with-a-random-secret-at-least-32-characters
+JWT_ALGORITHM=HS256
+ACCESS_TOKEN_EXPIRE_MINUTES=60
 ```
 
 ## 数据库

@@ -1,8 +1,32 @@
 """
 分类管理模块请求与响应模型
 """
-from typing import Optional, List
+from typing import Literal, Optional, List
 from pydantic import BaseModel, Field, model_validator, AliasChoices
+
+
+class CategoryQueryRequest(BaseModel):
+    """分类查询请求。"""
+
+    question_type: Literal["exam", "mock", "exercise"] = Field(
+        default="exam",
+        description="题目类型",
+    )
+
+
+class CategoryBySubjectQueryRequest(CategoryQueryRequest):
+    """按科目查询分类的请求。"""
+
+
+class AvailableParentCategoriesRequest(BaseModel):
+    """查询可选父分类的请求。"""
+
+    subject_id: int = Field(..., ge=1, description="科目 ID")
+    exclude_id: Optional[int] = Field(default=None, ge=1, description="排除的分类 ID")
+
+
+class CategoryStatsRequest(CategoryQueryRequest):
+    """分类统计请求。"""
 
 
 class ExamCategoryCreateRequest(BaseModel):

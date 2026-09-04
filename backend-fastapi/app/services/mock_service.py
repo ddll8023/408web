@@ -3,10 +3,10 @@
 实现模拟题CRUD、查询、统计业务逻辑
 """
 from typing import List, Optional
-from sqlmodel import select, func, and_, or_, text
+from sqlmodel import select, func, and_, or_
 from sqlmodel.ext.asyncio.session import AsyncSession
 from app.models.entities import MockQuestion, Subject, User
-from app.exception import NotFoundException, ConflictException
+from app.exception import ConflictException, NotFoundException, ValidationException
 from app.schemas.mock import (
     MockQueryParams,
     MockCreateRequest,
@@ -15,10 +15,20 @@ from app.schemas.mock import (
     MockSourceStatResponse,
     MockSourceItem,
     MockSourcesResponse,
+    MockSubjectStatItem,
     MockCategoryStatItem,
     MockCategoryStatsResponse,
     MockDuplicateCheckResponse,
-    PaginatedMockResponse
+    PaginatedMockResponse,
+)
+from app.schemas.common import PageInfo
+from app.services.question_helpers import (
+    parse_categories,
+    parse_options,
+    serialize_categories,
+    serialize_options,
+    validate_question_scope,
+    validate_question_values,
 )
 from app.utils.logger import setup_logger
 
@@ -74,11 +84,15 @@ class MockService:
 
         logger.info("MockService.get_paginated completed, total: %d", total)
 
+        total_pages = (total + params.page_size - 1) // params.page_size if total else 0
         return PaginatedMockResponse(
-            data=data_list,
-            total=total,
-            page=params.page,
-            page_size=params.page_size
+            lists=data_list,
+            pagination=PageInfo(
+                page=params.page,
+                page_size=params.page_size,
+                total=total,
+                total_pages=total_pages,
+            ),
         )
 
     def _build_query_conditions(self, params: MockQueryParams) -> List:
@@ -345,34 +359,40 @@ class MockService:
         Raises:
             ConflictException: 模拟题已存在
         """
-        logger.info("MockService.create started, source: %s, title: %s, subject_id: %d",
-                    request.source, request.title, request.subject_id)
+        logger.info(
+            "MockService.create started, source: %s, title: %s, subject_id: %s",
+            request.source,
+            request.title,
+            request.subject_id,
+        )
 
-        # 查重检查
+        validate_question_values(request.question_type, request.content, request.options)
+        await validate_question_scope(self.session, request.subject_id, request.category)
+
         dup_result = await self.check_duplicate(
             request.source,
             request.title,
-            request.question_number
+            request.question_number,
         )
         if dup_result.is_duplicate:
             logger.warning("MockService.create failed: duplicate question")
             raise ConflictException("相同来源、标题和题号的模拟题已存在")
 
-        # 创建模拟题
         question = MockQuestion(
             source=request.source,
             question_number=request.question_number,
-            question_type=request.question_type,
+            question_type=request.question_type.value,
             title=request.title,
             content=request.content,
-            options=request.options,
+            options=serialize_options(request.options),
             answer=request.answer,
-            category=request.category,
+            category=serialize_categories(request.category),
             subject_id=request.subject_id,
-            difficulty=request.difficulty,
-            author_id=author_id
+            difficulty=request.difficulty.value if request.difficulty else None,
+            author_id=author_id,
         )
         self.session.add(question)
+        await self.session.flush()
         await self.session.refresh(question)
 
         logger.info("MockService.create completed, question_id: %d", question.id)
@@ -408,16 +428,57 @@ class MockService:
             logger.warning("MockService.update: question not found, id: %d", question_id)
             raise NotFoundException(f"模拟题不存在：ID={question_id}")
 
-        # 检查唯一性冲突
-        new_source = request.source if request.source is not None else question.source
-        new_title = request.title if request.title is not None else question.title
-        new_number = request.question_number if request.question_number is not None else question.question_number
+        update_data = request.model_dump(exclude_unset=True)
+        existing_categories = parse_categories(question.category)
+        existing_options = parse_options(question.options)
+        new_type = (
+            request.question_type.value
+            if request.question_type is not None
+            else question.question_type
+        )
+        new_content = request.content if request.content is not None else question.content
+        new_options = request.options if "options" in update_data else existing_options
+        if new_type == "ESSAY":
+            new_options = None
+
+        validate_question_values(new_type, new_content, new_options)
+
+        new_subject_id = (
+            request.subject_id
+            if "subject_id" in update_data
+            else question.subject_id
+        )
+        new_categories = (
+            request.category
+            if "category" in update_data
+            else existing_categories
+        )
+        await validate_question_scope(
+            self.session,
+            new_subject_id,
+            new_categories,
+            existing_subject_id=question.subject_id,
+            existing_categories=existing_categories,
+        )
+
+        new_source = request.source if "source" in update_data else question.source
+        if not new_source or not new_source.strip():
+            raise ValidationException("来源机构不能为空")
+        new_title = request.title if "title" in update_data else question.title
+        new_number = (
+            request.question_number
+            if "question_number" in update_data
+            else question.question_number
+        )
 
         source_changed = new_source != question.source
         title_changed = new_title != question.title
         number_changed = new_number != question.question_number
-
-        if source_changed or title_changed or number_changed:
+        if (
+            new_title is not None
+            and new_number is not None
+            and (source_changed or title_changed or number_changed)
+        ):
             dup_result = await self.check_duplicate(
                 new_source, new_title, new_number, question_id
             )
@@ -425,11 +486,28 @@ class MockService:
                 logger.warning("MockService.update failed: duplicate question")
                 raise ConflictException("相同来源、标题和题号的模拟题已存在")
 
-        # 更新字段
-        update_data = request.model_dump(exclude_unset=True)
-        for field, value in update_data.items():
-            setattr(question, field, value)
+        if "source" in update_data:
+            question.source = new_source
+        if "question_number" in update_data:
+            question.question_number = new_number
+        if "question_type" in update_data:
+            question.question_type = new_type
+        if "title" in update_data:
+            question.title = new_title
+        if "content" in update_data:
+            question.content = new_content
+        if "options" in update_data or "question_type" in update_data:
+            question.options = serialize_options(new_options)
+        if "answer" in update_data:
+            question.answer = request.answer
+        if "category" in update_data or "subject_id" in update_data:
+            question.category = serialize_categories(new_categories)
+        if "subject_id" in update_data:
+            question.subject_id = new_subject_id
+        if "difficulty" in update_data:
+            question.difficulty = request.difficulty.value if request.difficulty else None
 
+        await self.session.flush()
         await self.session.refresh(question)
 
         logger.info("MockService.update completed, question_id: %d", question_id)
@@ -489,9 +567,9 @@ class MockService:
             question_type=question.question_type,
             title=question.title,
             content=question.content,
-            options=question.options,
+            options=parse_options(question.options),
             answer=question.answer,
-            category=question.category,
+            category=parse_categories(question.category),
             subject_id=question.subject_id,
             subject_name=subject_name,
             difficulty=question.difficulty,
@@ -579,7 +657,7 @@ class MockService:
 
         return sorted(list(category_set))
 
-    async def count_by_subject(self) -> List[dict]:
+    async def count_by_subject(self) -> List[MockSubjectStatItem]:
         """
         按科目统计模拟题数量
 
@@ -600,11 +678,11 @@ class MockService:
         rows = result.all()
 
         return [
-            {
-                "subject_id": row.id,
-                "subject_name": row.name,
-                "count": row.count or 0
-            }
+            MockSubjectStatItem(
+                subject_id=row.id,
+                subject_name=row.name,
+                count=row.count or 0,
+            )
             for row in rows
         ]
 
@@ -632,4 +710,4 @@ class MockService:
         result = await self.session.exec(stmt)
         titles = result.all()
 
-        return [t[0] for t in titles if t[0]]
+        return [title for title in titles if title]

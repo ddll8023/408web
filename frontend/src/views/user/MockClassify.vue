@@ -420,8 +420,8 @@ const loadQuestions = async (isReset = false) => {
 
     const res = await getMockQuestions(params)
     if (res.code === 200) {
-      const pageData = res.data?.data || []
-      const serverTotal = res.data?.total || 0
+      const pageData = res.data?.lists || []
+      const serverTotal = res.data?.pagination?.total || 0
       
       if (isReset) {
         questionList.value = pageData

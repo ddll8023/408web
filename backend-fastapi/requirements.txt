@@ -9,6 +9,7 @@ httpx
 # Data Validation & Settings
 pydantic
 pydantic-settings
+python-dotenv
 
 # ORM & Database
 sqlmodel

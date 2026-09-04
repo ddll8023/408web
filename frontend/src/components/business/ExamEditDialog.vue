@@ -479,17 +479,17 @@ const handleSubmit = async () => {
       answer: form.answer || null,
       difficulty: form.difficulty || null,
       questionNumber: form.questionNumber || null,
-      categoryIds: form.category ? (Array.isArray(form.category) ? form.category : [form.category]) : []
+      category: form.category ? (Array.isArray(form.category) ? form.category : [form.category]) : []
     }
 
     // 选择题额外字段
     if (form.questionType === 'CHOICE') {
-      data.options = JSON.stringify({
+      data.options = {
         A: form.optionA,
         B: form.optionB,
         C: form.optionC,
         D: form.optionD
-      })
+      }
     }
 
     let response

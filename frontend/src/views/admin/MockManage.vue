@@ -330,8 +330,8 @@ const loadMockList = async () => {
     })
 
     if (response.code === 200) {
-      mockQuestions.value = response.data.data || []
-      pagination.total = response.data.total || 0
+      mockQuestions.value = response.data?.lists || []
+      pagination.total = response.data?.pagination?.total || 0
     } else {
       showToast(response.message || '加载失败', 'error')
     }

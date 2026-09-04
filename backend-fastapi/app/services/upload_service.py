@@ -1,287 +1,310 @@
-"""
-文件上传服务模块
-实现图片上传、列表管理、引用检查和清理功能
-"""
-import os
+"""图片上传、引用扫描和清理服务。"""
+import asyncio
 import uuid
 from pathlib import Path
-from typing import List, Optional
+from typing import Optional
+
+import aiofiles
+from fastapi import UploadFile
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
+
+from app.exception import (
+    ConflictException,
+    InfrastructureException,
+    NotFoundException,
+    ValidationException,
+)
 from app.models.entities import ExamQuestion, MockQuestion
-from app.exception import NotFoundException, ValidationException
 from app.schemas.image import ImageResourceResponse, ImageUsageResponse
 from app.utils.logger import setup_logger
 
 
-# 获取服务日志记录器
 logger = setup_logger(__name__)
 
 
 class UploadService:
-    """文件上传服务类"""
+    """图片文件服务。"""
 
-    # 允许的文件扩展名
     ALLOWED_EXTENSIONS = {"jpg", "jpeg", "png", "gif", "webp"}
+    CONTENT_TYPES = {
+        "jpg": {"image/jpeg", "image/jpg"},
+        "jpeg": {"image/jpeg", "image/jpg"},
+        "png": {"image/png"},
+        "gif": {"image/gif"},
+        "webp": {"image/webp"},
+    }
 
-    def __init__(self, session: AsyncSession, upload_dir: str = "uploads/images"):
+    def __init__(
+        self,
+        session: AsyncSession,
+        upload_dir: str = "uploads/images",
+        max_file_size: int = 10 * 1024 * 1024,
+    ) -> None:
         self.session = session
-        self.upload_dir = Path(upload_dir)
+        self.upload_dir = Path(upload_dir).expanduser().resolve()
+        self.max_file_size = max_file_size
 
-    async def upload_image(self, file) -> str:
-        """
-        上传图片文件
-
-        Args:
-            file: 上传的文件对象 (UploadFile)
-
-        Returns:
-            图片访问URL
-
-        Raises:
-            ValidationException: 文件为空、文件名无效或文件类型不支持
-        """
-        # 校验文件
-        if not file or not file.filename:
+    async def upload_image(self, file: UploadFile) -> str:
+        """校验并保存图片，返回公开访问 URL。"""
+        if not file.filename or not file.filename.strip():
             raise ValidationException("文件不能为空")
 
-        # 校验文件名
-        filename = file.filename
-        if not filename or not filename.strip():
-            raise ValidationException("文件名无效")
-
-        # 校验文件类型
-        extension = self._get_file_extension(filename).lower()
-        if not extension:
-            raise ValidationException("无法识别文件类型")
+        extension = self._get_file_extension(file.filename)
         if extension not in self.ALLOWED_EXTENSIONS:
-            raise ValidationException(f"不支持的文件类型: {extension}")
+            raise ValidationException(f"不支持的文件类型: {extension or 'unknown'}")
+        if file.content_type not in self.CONTENT_TYPES[extension]:
+            raise ValidationException("文件类型与内容类型不匹配")
+
+        unique_filename = f"{uuid.uuid4().hex}.{extension}"
+        target_path = self.upload_dir / unique_filename
+        temporary_path = self.upload_dir / f".{uuid.uuid4().hex}.part"
 
         try:
-            # 生成UUID文件名
-            unique_filename = f"{uuid.uuid4().hex}.{extension}"
+            await asyncio.to_thread(self.upload_dir.mkdir, parents=True, exist_ok=True)
+            total_size = 0
+            header = b""
+            async with aiofiles.open(temporary_path, "wb") as output:
+                while True:
+                    chunk = await file.read(1024 * 1024)
+                    if not chunk:
+                        break
+                    total_size += len(chunk)
+                    if total_size > self.max_file_size:
+                        raise ValidationException(
+                            f"文件大小不能超过 {self.max_file_size} 字节"
+                        )
+                    if len(header) < 16:
+                        header += chunk[: 16 - len(header)]
+                    await output.write(chunk)
 
-            # 确保目录存在
-            self.upload_dir.mkdir(parents=True, exist_ok=True)
+            if total_size == 0:
+                raise ValidationException("文件不能为空")
+            if not self._matches_signature(extension, header):
+                raise ValidationException("文件内容不是有效的图片")
 
-            # 文件路径
-            file_path = self.upload_dir / unique_filename
-
-            # 异步写入文件
-            import aiofiles
-            content = await file.read()
-            async with aiofiles.open(file_path, "wb") as f:
-                await f.write(content)
-
-            # 返回相对URL
+            await asyncio.to_thread(temporary_path.replace, target_path)
             return f"/uploads/images/{unique_filename}"
+        except ValidationException:
+            await self._remove_if_exists(temporary_path)
+            raise
+        except OSError as exc:
+            await self._remove_if_exists(temporary_path)
+            logger.error("图片文件写入失败", exc_info=True)
+            raise InfrastructureException("文件上传失败") from exc
+        except Exception as exc:
+            await self._remove_if_exists(temporary_path)
+            logger.error("图片上传出现未处理异常", exc_info=True)
+            raise InfrastructureException("文件上传失败") from exc
 
-        except Exception as e:
-            raise ValidationException(f"文件上传失败: {str(e)}")
-
-    async def list_images(
-        self,
-        only_unreferenced: bool = False
-    ) -> List[ImageResourceResponse]:
-        """
-        查询已上传图片列表
-
-        Args:
-            only_unreferenced: 是否只查询未引用的图片
-
-        Returns:
-            图片资源列表
-        """
-        logger.info("UploadService.list_images started, only_unreferenced: %s", only_unreferenced)
-
-        if not self.upload_dir.exists() or not self.upload_dir.is_dir():
-            logger.info("UploadService.list_images completed, upload_dir not exists")
+    async def list_images(self, only_unreferenced: bool = False) -> list[ImageResourceResponse]:
+        """查询图片元数据及引用状态。"""
+        logger.info(
+            "UploadService.list_images started, only_unreferenced: %s",
+            only_unreferenced,
+        )
+        if not await asyncio.to_thread(self.upload_dir.is_dir):
             return []
 
-        images = []
-        for file_path in self.upload_dir.iterdir():
-            if file_path.is_file():
-                stat = file_path.stat()
-                images.append(ImageResourceResponse(
+        file_paths = await asyncio.to_thread(self._list_image_paths)
+        images: list[ImageResourceResponse] = []
+        for file_path in file_paths:
+            stat = await asyncio.to_thread(file_path.stat)
+            images.append(
+                ImageResourceResponse(
                     filename=file_path.name,
                     url=f"/uploads/images/{file_path.name}",
                     size=stat.st_size,
                     last_modified=int(stat.st_mtime * 1000),
                     referenced=False,
-                    exams=[]
-                ))
+                    exams=[],
+                )
+            )
 
-        # 检查图片引用
         await self._check_image_references(images)
-
-        # 过滤未引用图片
         if only_unreferenced:
-            images = [img for img in images if not img.referenced]
-
-        # 按最后修改时间降序排序
-        images.sort(key=lambda x: x.last_modified, reverse=True)
-
-        logger.info("UploadService.list_images completed, count: %d", len(images))
+            images = [image for image in images if not image.referenced]
+        images.sort(key=lambda image: image.last_modified, reverse=True)
         return images
 
-    async def cleanup_unreferenced_images(self) -> int:
-        """
-        删除所有未被题目引用的图片
-
-        Returns:
-            删除的图片数量
-        """
-        logger.info("UploadService.cleanup_unreferenced_images started")
+    async def cleanup_unreferenced_images(self, *, confirm: bool) -> int:
+        """重新确认引用后清理未引用图片。"""
+        if not confirm:
+            raise ValidationException("未确认图片清理操作")
 
         images = await self.list_images(only_unreferenced=True)
-
         delete_count = 0
         for image in images:
-            file_path = self.upload_dir / image.filename
-            if file_path.exists() and file_path.is_file():
-                try:
-                    file_path.unlink()
+            # 列表扫描和实际删除之间可能发生题目保存，因此逐文件复核。
+            if await self._is_image_referenced(image.filename):
+                continue
+            try:
+                file_path = self._safe_file_path(image.filename)
+                if await asyncio.to_thread(file_path.is_file):
+                    await asyncio.to_thread(file_path.unlink)
                     delete_count += 1
-                    logger.info("UploadService.cleanup_unreferenced_images: deleted %s", image.filename)
-                except OSError:
-                    logger.warning("UploadService.cleanup_unreferenced_images: failed to delete %s", image.filename)
-                    continue
+            except OSError:
+                logger.warning(
+                    "未引用图片删除失败: filename=%s",
+                    image.filename,
+                    exc_info=True,
+                )
 
-        logger.info("UploadService.cleanup_unreferenced_images completed, deleted: %d", delete_count)
+        logger.info(
+            "UploadService.cleanup_unreferenced_images completed, deleted: %d",
+            delete_count,
+        )
         return delete_count
 
-    async def delete_image(self, filename: str) -> None:
-        """
-        删除指定图片
+    async def delete_image(self, filename: str, *, confirm: bool) -> None:
+        """删除未被题目引用的指定图片。"""
+        if not confirm:
+            raise ValidationException("未确认图片删除操作")
 
-        Args:
-            filename: 文件名
+        file_path = self._safe_file_path(filename)
+        if not await asyncio.to_thread(file_path.is_file):
+            raise NotFoundException("文件")
+        if await self._is_image_referenced(filename):
+            raise ConflictException("图片仍被题目引用，无法删除")
 
-        Raises:
-            ValidationException: 文件名为空或不合法
-            NotFoundException: 文件不存在
-        """
-        logger.info("UploadService.delete_image started, filename: %s", filename)
+        try:
+            await asyncio.to_thread(file_path.unlink)
+        except OSError as exc:
+            logger.error("图片文件删除失败: filename=%s", filename, exc_info=True)
+            raise InfrastructureException("文件删除失败") from exc
 
-        # 校验文件名
-        if not filename or not filename.strip():
-            raise ValidationException("文件名不能为空")
+    def _list_image_paths(self) -> list[Path]:
+        """同步列出安全的图片文件，由线程池调用。"""
+        return sorted(
+            (
+                path
+                for path in self.upload_dir.iterdir()
+                if path.is_file()
+                and not path.is_symlink()
+                and path.suffix.lower().lstrip(".") in self.ALLOWED_EXTENSIONS
+            ),
+            key=lambda path: path.name,
+        )
 
-        # 检查文件名安全性
-        if ".." in filename or "/" in filename or "\\" in filename:
+    def _safe_file_path(self, filename: str) -> Path:
+        """将文件名限制在上传根目录内。"""
+        if not filename or Path(filename).name != filename:
+            raise ValidationException("文件名不合法")
+        if any(part in filename for part in ("..", "/", "\\")):
             raise ValidationException("文件名不合法")
 
-        # 验证文件存在
-        file_path = self.upload_dir / filename
-        if not file_path.exists() or not file_path.is_file():
-            logger.warning("UploadService.delete_image: file not found: %s", filename)
-            raise NotFoundException("文件不存在")
+        path = self.upload_dir / filename
+        if path.is_symlink():
+            raise ValidationException("不允许操作符号链接")
+        resolved_root = self.upload_dir.resolve()
+        resolved_path = path.resolve(strict=False)
+        if resolved_path.parent != resolved_root:
+            raise ValidationException("文件路径不合法")
+        return path
 
-        # 删除文件
-        file_path.unlink()
-
-        logger.info("UploadService.delete_image completed, filename: %s", filename)
+    async def _is_image_referenced(self, filename: str) -> bool:
+        """扫描全部题目，确认单张图片是否仍被引用。"""
+        image = ImageResourceResponse(
+            filename=filename,
+            url=f"/uploads/images/{filename}",
+            size=0,
+            last_modified=0,
+            referenced=False,
+            exams=[],
+        )
+        await self._check_image_references([image])
+        return image.referenced
 
     async def _check_image_references(
         self,
-        images: List[ImageResourceResponse]
+        images: list[ImageResourceResponse],
     ) -> None:
-        """
-        检查图片是否被真题或模拟题引用
-
-        Args:
-            images: 图片资源列表
-        """
+        """扫描真题和模拟题的题干、选项及答案引用。"""
         if not images:
             return
 
-        # 构建文件名集合用于快速查找
-        filename_set = {img.filename for img in images}
-        if not filename_set:
-            return
+        filename_set = {image.filename for image in images}
+        image_map = {image.filename: image for image in images}
 
-        # 批量查询真题
-        exam_stmt = select(ExamQuestion.id, ExamQuestion.year,
-                          ExamQuestion.question_number, ExamQuestion.title,
-                          ExamQuestion.content, ExamQuestion.answer, ExamQuestion.options)
-        exam_result = await self.session.exec(exam_stmt)
-        exams = exam_result.all()
+        exam_result = await self.session.exec(
+            select(
+                ExamQuestion.id,
+                ExamQuestion.year,
+                ExamQuestion.question_number,
+                ExamQuestion.title,
+                ExamQuestion.content,
+                ExamQuestion.answer,
+                ExamQuestion.options,
+            )
+        )
+        mock_result = await self.session.exec(
+            select(
+                MockQuestion.id,
+                MockQuestion.question_number,
+                MockQuestion.title,
+                MockQuestion.source,
+                MockQuestion.content,
+                MockQuestion.answer,
+                MockQuestion.options,
+            )
+        )
 
-        # 批量查询模拟题
-        mock_stmt = select(MockQuestion.id, MockQuestion.question_number,
-                          MockQuestion.title, MockQuestion.source,
-                          MockQuestion.content, MockQuestion.answer, MockQuestion.options)
-        mock_result = await self.session.exec(mock_stmt)
-        mocks = mock_result.all()
-
-        # 创建文件名到ImageResourceResponse的映射
-        image_map = {img.filename: img for img in images}
-
-        # 检查真题引用
-        for exam in exams:
-            text_parts = []
-            if exam.content:
-                text_parts.append(exam.content)
-            if exam.answer:
-                text_parts.append(exam.answer)
-            if exam.options:
-                text_parts.append(exam.options)
-
-            text = " ".join(text_parts)
-            if not text:
-                continue
-
+        for exam in exam_result.all():
+            text = " ".join(
+                part for part in (exam.content, exam.answer, exam.options) if part
+            )
             for filename in filename_set:
                 if filename in text:
-                    img = image_map[filename]
-                    img.referenced = True
-                    img.exams.append(ImageUsageResponse(
-                        id=exam.id,
-                        year=exam.year,
-                        question_number=exam.question_number,
-                        title=exam.title or f"真题-{exam.year}年第{exam.question_number or '?'}题"
-                    ))
+                    image = image_map[filename]
+                    image.referenced = True
+                    image.exams.append(
+                        ImageUsageResponse(
+                            id=exam.id,
+                            year=exam.year,
+                            question_number=exam.question_number,
+                            title=exam.title
+                            or f"真题-{exam.year}年第{exam.question_number or '?'}题",
+                        )
+                    )
 
-        # 检查模拟题引用
-        for mock in mocks:
-            text_parts = []
-            if mock.content:
-                text_parts.append(mock.content)
-            if mock.answer:
-                text_parts.append(mock.answer)
-            if mock.options:
-                text_parts.append(mock.options)
-
-            text = " ".join(text_parts)
-            if not text:
-                continue
-
+        for mock in mock_result.all():
+            text = " ".join(
+                part for part in (mock.content, mock.answer, mock.options) if part
+            )
             for filename in filename_set:
                 if filename in text:
-                    img = image_map[filename]
-                    img.referenced = True
-                    # 避免重复添加
-                    if not any(e.id == mock.id for e in img.exams):
-                        img.exams.append(ImageUsageResponse(
-                            id=mock.id,
-                            year=None,
-                            question_number=mock.question_number,
-                            title=f"[模拟题] {mock.title or mock.source}"
-                        ))
+                    image = image_map[filename]
+                    image.referenced = True
+                    if not any(item.id == mock.id for item in image.exams):
+                        image.exams.append(
+                            ImageUsageResponse(
+                                id=mock.id,
+                                year=None,
+                                question_number=mock.question_number,
+                                title=f"[模拟题] {mock.title or mock.source}",
+                            )
+                        )
 
-    def _get_file_extension(self, filename: str) -> str:
-        """
-        获取文件扩展名
+    async def _remove_if_exists(self, path: Path) -> None:
+        """清理上传失败留下的临时文件。"""
+        try:
+            await asyncio.to_thread(path.unlink, missing_ok=True)
+        except OSError:
+            logger.warning("临时图片文件清理失败", exc_info=True)
 
-        Args:
-            filename: 文件名
+    @staticmethod
+    def _get_file_extension(filename: str) -> str:
+        """获取标准化文件扩展名。"""
+        return Path(filename).suffix.lower().lstrip(".")
 
-        Returns:
-            扩展名（不含点）
-        """
-        if not filename:
-            return ""
-        last_dot = filename.rfind(".")
-        if last_dot > 0 and last_dot < len(filename) - 1:
-            return filename[last_dot + 1:]
-        return ""
+    @staticmethod
+    def _matches_signature(extension: str, header: bytes) -> bool:
+        """检查常见图片文件头。"""
+        signatures = {
+            "jpg": header.startswith(b"\xff\xd8\xff"),
+            "jpeg": header.startswith(b"\xff\xd8\xff"),
+            "png": header.startswith(b"\x89PNG\r\n\x1a\n"),
+            "gif": header.startswith((b"GIF87a", b"GIF89a")),
+            "webp": header.startswith(b"RIFF") and header[8:12] == b"WEBP",
+        }
+        return signatures.get(extension, False)

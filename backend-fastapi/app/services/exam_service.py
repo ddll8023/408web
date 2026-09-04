@@ -4,12 +4,12 @@
 """
 import json
 from datetime import datetime
-from typing import List, Optional, Tuple, Dict
-from sqlmodel import select, func, and_, or_, text
+from typing import List, Optional
+from sqlalchemy import case
+from sqlmodel import select, func, and_, or_
 from sqlmodel.ext.asyncio.session import AsyncSession
-from sqlalchemy.sql.sqltypes import Integer
 from app.models.entities import ExamQuestion, Subject, User
-from app.exception import NotFoundException, ConflictException
+from app.exception import ConflictException, NotFoundException, ValidationException
 from app.schemas.exam import (
     ExamQueryParams,
     ExamCreateRequest,
@@ -22,7 +22,16 @@ from app.schemas.exam import (
     ExamIndexItem,
     ExamIndexResponse,
     PaginatedExamResponse,
-    ExportResultResponse
+    ExportResultResponse,
+)
+from app.schemas.common import PageInfo
+from app.services.question_helpers import (
+    parse_categories,
+    parse_options,
+    serialize_categories,
+    serialize_options,
+    validate_question_scope,
+    validate_question_values,
 )
 from app.utils.logger import setup_logger
 
@@ -111,11 +120,15 @@ class ExamService:
 
         logger.info("ExamService.get_paginated completed, total: %d", total)
 
+        total_pages = (total + params.page_size - 1) // params.page_size if total else 0
         return PaginatedExamResponse(
-            data=data_list,
-            total=total,
-            page=params.page,
-            page_size=params.page_size
+            lists=data_list,
+            pagination=PageInfo(
+                page=params.page,
+                page_size=params.page_size,
+                total=total,
+                total_pages=total_pages,
+            ),
         )
 
     def _get_order_column(self, sort_field: str):
@@ -225,9 +238,9 @@ class ExamService:
                 ExamQuestion.year,
                 func.count().label("count"),
                 func.sum(
-                    func.cast(
-                        func.if_(ExamQuestion.question_type == "CHOICE", 1, 0),
-                        Integer
+                    case(
+                        (ExamQuestion.question_type == "CHOICE", 1),
+                        else_=0,
                     )
                 ).label("choice_count")
             )
@@ -398,10 +411,16 @@ class ExamService:
         Raises:
             ConflictException: 题目已存在
         """
-        logger.info("ExamService.create started, year: %d, question_number: %s, subject_id: %d",
-                    request.year, request.question_number, request.subject_id)
+        logger.info(
+            "ExamService.create started, year: %d, question_number: %s, subject_id: %s",
+            request.year,
+            request.question_number,
+            request.subject_id,
+        )
 
-        # 查重检查
+        validate_question_values(request.question_type, request.content, request.options)
+        await validate_question_scope(self.session, request.subject_id, request.category)
+
         if request.question_number is not None:
             dup_result = await self.check_duplicate(request.year, request.question_number)
             if dup_result.is_duplicate:
@@ -410,21 +429,21 @@ class ExamService:
                     f"年份 {request.year} 的题号 {request.question_number} 已存在"
                 )
 
-        # 创建真题
         question = ExamQuestion(
             year=request.year,
             question_number=request.question_number,
-            question_type=request.question_type,
+            question_type=request.question_type.value,
             title=request.title,
             content=request.content,
-            options=request.options,
+            options=serialize_options(request.options),
             answer=request.answer,
-            category=request.category,
+            category=serialize_categories(request.category),
             subject_id=request.subject_id,
-            difficulty=request.difficulty,
-            author_id=author_id
+            difficulty=request.difficulty.value if request.difficulty else None,
+            author_id=author_id,
         )
         self.session.add(question)
+        await self.session.flush()
         await self.session.refresh(question)
 
         logger.info("ExamService.create completed, question_id: %d", question.id)
@@ -460,14 +479,51 @@ class ExamService:
             logger.warning("ExamService.update: question not found, id: %d", question_id)
             raise NotFoundException(f"真题不存在：ID={question_id}")
 
-        # 检查唯一性冲突
-        new_year = request.year if request.year is not None else question.year
-        new_number = request.question_number if request.question_number is not None else question.question_number
+        update_data = request.model_dump(exclude_unset=True)
+        existing_categories = parse_categories(question.category)
+        existing_options = parse_options(question.options)
+        new_type = (
+            request.question_type.value
+            if request.question_type is not None
+            else question.question_type
+        )
+        new_content = request.content if request.content is not None else question.content
+        new_options = request.options if "options" in update_data else existing_options
+        if new_type == "ESSAY":
+            new_options = None
+
+        validate_question_values(new_type, new_content, new_options)
+
+        new_subject_id = (
+            request.subject_id
+            if "subject_id" in update_data
+            else question.subject_id
+        )
+        new_categories = (
+            request.category
+            if "category" in update_data
+            else existing_categories
+        )
+        await validate_question_scope(
+            self.session,
+            new_subject_id,
+            new_categories,
+            existing_subject_id=question.subject_id,
+            existing_categories=existing_categories,
+        )
+
+        new_year = request.year if "year" in update_data else question.year
+        new_number = (
+            request.question_number
+            if "question_number" in update_data
+            else question.question_number
+        )
+        if new_year is None:
+            raise ValidationException("年份不能为空")
 
         if new_number is not None:
             year_changed = new_year != question.year
             number_changed = new_number != question.question_number
-
             if year_changed or number_changed:
                 dup_result = await self.check_duplicate(new_year, new_number, question_id)
                 if dup_result.is_duplicate:
@@ -476,11 +532,28 @@ class ExamService:
                         f"年份 {new_year} 的题号 {new_number} 已存在"
                     )
 
-        # 更新字段
-        update_data = request.model_dump(exclude_unset=True)
-        for field, value in update_data.items():
-            setattr(question, field, value)
+        if "year" in update_data:
+            question.year = new_year
+        if "question_number" in update_data:
+            question.question_number = new_number
+        if "question_type" in update_data:
+            question.question_type = new_type
+        if "title" in update_data:
+            question.title = request.title
+        if "content" in update_data:
+            question.content = new_content
+        if "options" in update_data or "question_type" in update_data:
+            question.options = serialize_options(new_options)
+        if "answer" in update_data:
+            question.answer = request.answer
+        if "category" in update_data or "subject_id" in update_data:
+            question.category = serialize_categories(new_categories)
+        if "subject_id" in update_data:
+            question.subject_id = new_subject_id
+        if "difficulty" in update_data:
+            question.difficulty = request.difficulty.value if request.difficulty else None
 
+        await self.session.flush()
         await self.session.refresh(question)
 
         logger.info("ExamService.update completed, question_id: %d", question_id)
@@ -533,15 +606,7 @@ class ExamService:
             if user:
                 author_name = user.username
 
-        # 解析 category JSON 字符串为数组
-        category_list = None
-        if question.category:
-            try:
-                category_list = json.loads(question.category)
-                if not isinstance(category_list, list):
-                    category_list = None
-            except json.JSONDecodeError:
-                category_list = None
+        category_list = parse_categories(question.category)
 
         return ExamResponse(
             id=question.id,
@@ -550,7 +615,7 @@ class ExamService:
             question_type=question.question_type,
             title=question.title,
             content=question.content,
-            options=question.options,
+            options=parse_options(question.options),
             answer=question.answer,
             category=category_list,
             subject_id=question.subject_id,
@@ -686,7 +751,7 @@ class ExamService:
     async def find_for_nav_index(
         self,
         category: Optional[str] = None
-    ) -> List[Dict]:
+    ) -> List[ExamNavItem]:
         """
         查询用于侧边栏导航的轻量级真题索引数据
 
@@ -723,20 +788,17 @@ class ExamService:
         result = await self.session.exec(stmt)
         rows = result.all()
 
-        # 转换为字典列表
-        nav_items = []
+        nav_items: List[ExamNavItem] = []
         for row in rows:
-            # 解析 category 字段（JSON字符串 -> 列表）
-            category_str = row.category
-            category_list = json.loads(category_str) if category_str else None
-
-            nav_items.append({
-                "id": row.id,
-                "year": row.year,
-                "questionNumber": row.question_number,
-                "title": row.title,
-                "category": category_list
-            })
+            nav_items.append(
+                ExamNavItem(
+                    id=row.id,
+                    year=row.year,
+                    question_number=row.question_number,
+                    title=row.title,
+                    category=parse_categories(row.category),
+                )
+            )
 
         logger.info("ExamService.find_for_nav_index completed, count: %d", len(nav_items))
         return nav_items

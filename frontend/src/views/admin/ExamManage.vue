@@ -308,8 +308,8 @@ const loadExamList = async () => {
     })
 
     if (response.code === 200) {
-      exams.value = response.data.data || []
-      pagination.total = response.data.total || 0
+      exams.value = response.data?.lists || []
+      pagination.total = response.data?.pagination?.total || 0
     } else {
       showToast(response.message || '加载失败', 'error')
     }

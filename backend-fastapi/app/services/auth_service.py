@@ -2,13 +2,11 @@
 认证服务模块
 实现用户注册和登录业务逻辑
 """
-import time
-from typing import Optional
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 from app.models.entities import User
 from app.models.enums import UserRoleEnum
-from app.utils.security import get_password_hash, create_access_token
+from app.utils.security import create_access_token, get_password_hash, verify_password
 from app.exception import ConflictException, UnauthorizedException
 from app.schemas.auth import RegisterRequest, LoginRequest, AuthResponse
 from app.utils.logger import setup_logger
@@ -85,7 +83,6 @@ class AuthService:
             raise UnauthorizedException("用户名或密码错误")
 
         # 验证密码
-        from app.utils.security import verify_password
         if user.password and not verify_password(request.password, user.password):
             logger.warning("AuthService.login failed: invalid password for user: %s", request.username)
             raise UnauthorizedException("用户名或密码错误")
@@ -96,9 +93,7 @@ class AuthService:
             raise UnauthorizedException("账户已被禁用")
 
         # 生成Token
-        token = create_access_token(
-            data={"username": user.username, "role": user.role}
-        )
+        token = create_access_token(data={"sub": str(user.id)})
 
         logger.info("AuthService.login completed for user: %s", request.username)
 

@@ -1,94 +1,89 @@
-"""
-数据库连接与会话管理模块
-使用 SQLModel + aiosqlite 实现异步数据库操作
-"""
-from typing import Annotated, AsyncGenerator
+"""异步 SQLite 连接、事务和 FastAPI 会话依赖。"""
 from contextlib import asynccontextmanager
+from typing import Annotated, AsyncGenerator, Protocol
+
 from fastapi import Depends
-from sqlmodel import SQLModel, Session, select
-from sqlmodel.ext.asyncio.session import AsyncSession
+from sqlalchemy import event
 from sqlalchemy.ext.asyncio import create_async_engine
+from sqlmodel import SQLModel
+from sqlmodel.ext.asyncio.session import AsyncSession
+
 from app.config.settings import settings
 
 
-# SQLite 数据库连接配置
-# 注意：SQLite 在多进程环境下有限制，生产环境建议使用 MySQL/PostgreSQL
 DATABASE_URL = settings.database.database_url
 
-# 创建异步引擎
-# connect_args 用于传递特定驱动的连接参数
+
+class SqliteCursor(Protocol):
+    """SQLite DB-API 游标的最小接口。"""
+
+    def execute(self, statement: str) -> object: ...
+
+    def close(self) -> None: ...
+
+
+class SqliteConnection(Protocol):
+    """SQLite DB-API 连接的最小接口。"""
+
+    def cursor(self) -> SqliteCursor: ...
+
+
 engine = create_async_engine(
     DATABASE_URL,
-    connect_args={"check_same_thread": False},
-    echo=False,  # SQL日志由服务层统一记录，此处关闭
+    connect_args={"check_same_thread": False, "timeout": 5},
+    echo=False,
 )
 
 
-async def init_db():
-    """
-    初始化数据库
-    在应用启动时调用，创建所有表结构
-    """
-    # SQLModel.metadata 包含所有定义的表模型
+if DATABASE_URL.startswith("sqlite"):
+
+    @event.listens_for(engine.sync_engine, "connect")
+    def configure_sqlite_connection(
+        dbapi_connection: SqliteConnection,
+        _connection_record: object,
+    ) -> None:
+        """为每个 SQLite 连接启用外键、WAL 和忙等待。"""
+        cursor = dbapi_connection.cursor()
+        try:
+            cursor.execute("PRAGMA foreign_keys=ON")
+            cursor.execute("PRAGMA journal_mode=WAL")
+            cursor.execute("PRAGMA busy_timeout=5000")
+        finally:
+            cursor.close()
+
+
+async def init_db() -> None:
+    """按当前 SQLModel 定义创建缺失表。"""
     async with engine.begin() as conn:
         await conn.run_sync(SQLModel.metadata.create_all)
 
 
-def get_session():
-    """获取数据库会话（同步版本，用于非异步场景）"""
-    with Session(engine) as session:
-        try:
-            yield session
-            session.commit()
-        except Exception:
-            session.rollback()
-            raise
-        finally:
-            session.close()
-
-
 async def get_async_session() -> AsyncGenerator[AsyncSession, None]:
-    """
-    获取异步数据库会话
-    用作 FastAPI 依赖注入
-    """
-    async with AsyncSession(engine) as session:
+    """提供每请求独立的异步数据库会话。"""
+    async with AsyncSession(engine, expire_on_commit=False) as session:
         try:
             yield session
             await session.commit()
         except Exception:
             await session.rollback()
             raise
-        finally:
-            await session.close()
 
 
 @asynccontextmanager
 async def get_session_context() -> AsyncGenerator[AsyncSession, None]:
-    """
-    异步上下文管理器方式的数据库会话
-    用于非 FastAPI 依赖注入场景
-    """
-    async with AsyncSession(engine) as session:
+    """提供非 FastAPI 场景使用的异步会话上下文。"""
+    async with AsyncSession(engine, expire_on_commit=False) as session:
         try:
             yield session
             await session.commit()
         except Exception:
             await session.rollback()
             raise
-        finally:
-            await session.close()
 
 
 def get_db_url() -> str:
-    """获取数据库连接 URL"""
+    """获取数据库连接 URL。"""
     return DATABASE_URL
 
 
-# ============================================
-# 依赖注入类型别名（官方推荐写法）
-# ============================================
-# 使用 Annotated 简化依赖注入，参考 FastAPI 官方文档
-# 用法：session: SessionDep
-# ============================================
 SessionDep = Annotated[AsyncSession, Depends(get_async_session)]

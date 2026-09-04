@@ -54,23 +54,23 @@ class GlobalCorsMiddleware(BaseHTTPMiddleware):
         # 从请求头获取原始来源，用于动态响应
         origin = request.headers.get("Origin", "")
 
-        # 如果是允许的来源之一，使用该来源；否则拒绝请求
-        allowed_origins = settings.cors.origins
+        # 只对配置中的来源返回允许头；其他来源不授予跨域访问权限。
+        allowed_origins = settings.cors.allowed_origins
         if origin in allowed_origins:
             response.headers["Access-Control-Allow-Origin"] = origin
         elif not origin:
             # 如果没有Origin头（非浏览器请求），使用通配符
             response.headers["Access-Control-Allow-Origin"] = "*"
         else:
-            # 未授权的来源，使用通配符但不允许凭证
-            response.headers["Access-Control-Allow-Origin"] = "*"
+            # 未授权来源不返回允许的 Origin。
+            response.headers.pop("Access-Control-Allow-Origin", None)
 
         # 允许携带凭证（仅当使用具体来源时）
         if response.headers.get("Access-Control-Allow-Origin") != "*":
             response.headers["Access-Control-Allow-Credentials"] = "true"
 
         # 允许的请求方法
-        response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS, PATCH"
+        response.headers["Access-Control-Allow-Methods"] = "POST, OPTIONS"
 
         # 允许的请求头
         response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, Accept, X-Requested-With"

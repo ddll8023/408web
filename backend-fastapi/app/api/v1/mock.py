@@ -1,297 +1,229 @@
-"""
-模拟题管理模块路由
-提供模拟题管理的RESTful API接口
-遵循Spring Boot旧项目接口规范
-"""
-from typing import Optional, List
-from fastapi import APIRouter, Depends, Query, Path, status
+"""模拟题查询和维护路由。"""
+from fastapi import APIRouter, Depends, Path
+
 from app.database.connection import SessionDep
-from app.services.mock_service import MockService
+from app.middleware.auth import AuthUser, get_current_admin
+from app.schemas.common import ApiResponse
 from app.schemas.mock import (
-    MockQueryParams,
+    MockCategoryFilterRequest,
+    MockCategoryStatsResponse,
     MockCreateRequest,
-    MockUpdateRequest,
+    MockDuplicateCheckResponse,
+    MockDuplicateRequest,
+    MockQueryParams,
     MockResponse,
+    MockSourceQueryRequest,
     MockSourceStatResponse,
     MockSourcesResponse,
-    MockCategoryStatsResponse,
-    PaginatedMockResponse
+    MockSubjectStatItem,
+    MockUpdateRequest,
+    PaginatedMockResponse,
 )
-from app.schemas.common import Response
-from app.middleware.auth import get_current_user, get_current_admin, AuthUser
+from app.services.mock_service import MockService
+
 
 router = APIRouter()
 
 
-@router.get(
-    "",
-    response_model=Response[PaginatedMockResponse],
+@router.post(
+    "/query",
+    response_model=ApiResponse[PaginatedMockResponse],
     summary="分页查询模拟题",
-    description="支持多条件筛选、分页、排序"
+    description="支持多条件筛选、分页和排序",
 )
 async def get_mock_questions(
+    request: MockQueryParams,
     session: SessionDep,
-    page: int = Query(default=1, ge=1, description="页码"),
-    page_size: int = Query(default=10, ge=1, le=100, description="每页大小"),
-    source: Optional[str] = Query(default=None, description="来源机构筛选"),
-    category: Optional[str] = Query(default=None, description="分类筛选"),
-    subject_id: Optional[int] = Query(default=None, description="科目ID筛选"),
-    no_category: Optional[bool] = Query(default=None, description="是否筛选无分类"),
-    keyword: Optional[str] = Query(default=None, description="关键词搜索"),
-    sort_field: str = Query(default="update_time", description="排序字段"),
-    sort_order: str = Query(default="desc", description="排序方向")
-) -> Response[PaginatedMockResponse]:
-    """
-    分页查询模拟题
-
-    支持按来源、分类、科目、关键词等条件筛选，支持分页和排序。
-    """
-    params = MockQueryParams(
-        page=page,
-        page_size=page_size,
-        source=source,
-        category=category,
-        subject_id=subject_id,
-        no_category=no_category,
-        keyword=keyword,
-        sort_field=sort_field,
-        sort_order=sort_order
-    )
-    service = MockService(session)
-    result = await service.get_paginated(params)
-    return Response(data=result)
+) -> ApiResponse[PaginatedMockResponse]:
+    """分页查询模拟题。"""
+    result = await MockService(session).get_paginated(request)
+    return ApiResponse(data=result)
 
 
-@router.get(
+@router.post(
     "/source/{source}",
-    response_model=Response[List[MockResponse]],
+    response_model=ApiResponse[list[MockResponse]],
     summary="根据来源查询模拟题",
-    description="查询指定来源机构的所有模拟题"
+    description="查询指定来源机构的所有模拟题",
 )
 async def find_by_source(
+    request: MockSourceQueryRequest,
     session: SessionDep,
-    source: str = Path(..., description="来源机构"),
-    category: Optional[str] = Query(default=None, description="分类"),
-    subject_id: Optional[int] = Query(default=None, description="科目ID")
-) -> Response[List[MockResponse]]:
-    """
-    根据来源查询模拟题
-
-    - 权限：公开
-    - 返回指定来源机构的所有模拟题列表
-    """
-    service = MockService(session)
-    mocks = await service.find_by_source(source, category, subject_id)
-    return Response(data=mocks)
+    source: str = Path(..., min_length=1, max_length=100, description="来源机构"),
+) -> ApiResponse[list[MockResponse]]:
+    """根据来源查询模拟题。"""
+    mocks = await MockService(session).find_by_source(
+        source,
+        request.category,
+        request.subject_id,
+    )
+    return ApiResponse(data=mocks)
 
 
-@router.get(
+@router.post(
     "/source-stats",
-    response_model=Response[List[MockSourceStatResponse]],
+    response_model=ApiResponse[list[MockSourceStatResponse]],
     summary="查询来源统计",
-    description="按来源机构统计模拟题数量"
+    description="按来源机构统计模拟题数量",
 )
 async def get_source_stats(
+    request: MockCategoryFilterRequest,
     session: SessionDep,
-    category: Optional[str] = Query(default=None, description="分类筛选")
-) -> Response[List[MockSourceStatResponse]]:
-    """
-    获取来源统计
-
-    - 权限：公开
-    - 返回各来源机构的模拟题数量统计
-    """
-    service = MockService(session)
-    stats = await service.get_source_stats(category)
-    return Response(data=stats)
+) -> ApiResponse[list[MockSourceStatResponse]]:
+    """查询模拟题来源统计。"""
+    stats = await MockService(session).get_source_stats(request.category)
+    return ApiResponse(data=stats)
 
 
-@router.get(
+@router.post(
     "/sources",
-    response_model=Response[MockSourcesResponse],
+    response_model=ApiResponse[MockSourcesResponse],
     summary="查询所有来源机构",
-    description="获取所有不重复的来源机构列表"
+    description="获取所有不重复的来源机构列表",
 )
-async def get_all_sources(
-    session: SessionDep
-) -> Response[MockSourcesResponse]:
-    """
-    获取来源列表
-
-    - 权限：公开
-    - 返回所有来源机构及其对应的模拟题数量
-    """
-    service = MockService(session)
-    sources = await service.get_sources()
-    return Response(data=sources)
+async def get_all_sources(session: SessionDep) -> ApiResponse[MockSourcesResponse]:
+    """查询来源机构列表。"""
+    sources = await MockService(session).get_sources()
+    return ApiResponse(data=sources)
 
 
-@router.get(
+@router.post(
     "/categories/{subject_id}",
-    response_model=Response[List[str]],
+    response_model=ApiResponse[list[str]],
     summary="查询科目下的分类",
-    description="查询指定科目下实际存在模拟题的分类列表"
+    description="查询指定科目下实际存在模拟题的分类列表",
 )
 async def find_categories_by_subject(
     session: SessionDep,
-    subject_id: int = Path(..., description="科目ID")
-) -> Response[List[str]]:
-    """
-    查询科目下的分类列表
-
-    - 权限：公开
-    - 返回指定科目下实际存在模拟题的分类名列表（去重）
-    """
-    service = MockService(session)
-    categories = await service.find_categories_by_subject(subject_id)
-    return Response(data=categories)
+    subject_id: int = Path(..., ge=1, description="科目 ID"),
+) -> ApiResponse[list[str]]:
+    """查询模拟题分类列表。"""
+    categories = await MockService(session).find_categories_by_subject(subject_id)
+    return ApiResponse(data=categories)
 
 
-@router.get(
+@router.post(
     "/category-stats/{subject_id}",
-    response_model=Response[MockCategoryStatsResponse],
-    summary="查询科目下的分类（带统计）",
-    description="查询指定科目下实际存在模拟题的分类列表，包含每个分类的题目数量"
+    response_model=ApiResponse[MockCategoryStatsResponse],
+    summary="查询科目下的分类统计",
+    description="查询指定科目下模拟题分类及题目数量",
 )
 async def find_category_stats_by_subject(
     session: SessionDep,
-    subject_id: int = Path(..., description="科目ID")
-) -> Response[MockCategoryStatsResponse]:
-    """
-    获取分类统计
-
-    - 权限：公开
-    - 按科目获取模拟题的分类统计（从JSON数组展开）
-    """
-    service = MockService(session)
-    stats = await service.get_category_stats(subject_id)
-    return Response(data=stats)
+    subject_id: int = Path(..., ge=1, description="科目 ID"),
+) -> ApiResponse[MockCategoryStatsResponse]:
+    """查询模拟题分类统计。"""
+    stats = await MockService(session).get_category_stats(subject_id)
+    return ApiResponse(data=stats)
 
 
-@router.get(
+@router.post(
     "/subject-stats",
-    response_model=Response[List[dict]],
+    response_model=ApiResponse[list[MockSubjectStatItem]],
     summary="按科目统计数量",
-    description="按科目分组统计模拟题数量"
+    description="按科目分组统计模拟题数量",
 )
-async def count_by_subject(
-    session: SessionDep
-) -> Response[List[dict]]:
-    """
-    按科目统计模拟题数量
-
-    - 权限：公开
-    - 返回各科目的模拟题数量统计
-    """
-    service = MockService(session)
-    stats = await service.count_by_subject()
-    return Response(data=stats)
+async def count_by_subject(session: SessionDep) -> ApiResponse[list[MockSubjectStatItem]]:
+    """按科目统计模拟题数量。"""
+    stats = await MockService(session).count_by_subject()
+    return ApiResponse(data=stats)
 
 
-@router.get(
+@router.post(
     "/titles/{source}",
-    response_model=Response[List[str]],
+    response_model=ApiResponse[list[str]],
     summary="根据来源查询标题列表",
-    description="获取指定来源下所有不重复的标题列表"
+    description="获取指定来源下所有不重复的标题列表",
 )
 async def get_titles_by_source(
     session: SessionDep,
-    source: str = Path(..., description="来源机构")
-) -> Response[List[str]]:
-    """
-    根据来源查询标题列表
-
-    - 权限：公开
-    - 获取指定来源下所有不重复的标题列表
-    - 用途：编辑模拟题时，根据选择的来源动态加载标题下拉选项
-    """
-    service = MockService(session)
-    titles = await service.get_titles_by_source(source)
-    return Response(data=titles)
+    source: str = Path(..., min_length=1, max_length=100, description="来源机构"),
+) -> ApiResponse[list[str]]:
+    """根据来源查询标题列表。"""
+    titles = await MockService(session).get_titles_by_source(source)
+    return ApiResponse(data=titles)
 
 
-@router.get(
-    "/{mock_id}",
-    response_model=Response[MockResponse],
+@router.post(
+    "/{mock_id}/detail",
+    response_model=ApiResponse[MockResponse],
     summary="查询模拟题详情",
-    description="根据ID查询模拟题详细信息"
+    description="根据 ID 查询模拟题详细信息",
 )
 async def get_mock_detail(
     session: SessionDep,
-    mock_id: int = Path(..., description="模拟题ID")
-) -> Response[MockResponse]:
-    """
-    按ID查询模拟题详情
+    mock_id: int = Path(..., ge=1, description="模拟题 ID"),
+) -> ApiResponse[MockResponse]:
+    """查询模拟题详情。"""
+    mock = await MockService(session).get_by_id(mock_id)
+    return ApiResponse(data=mock)
 
-    - 权限：公开
-    """
-    service = MockService(session)
-    mock = await service.get_by_id(mock_id)
-    return Response(data=mock)
+
+@router.post(
+    "/check-duplicate",
+    response_model=ApiResponse[MockDuplicateCheckResponse],
+    summary="检查模拟题重复",
+    description="检查来源、标题和题号组合是否已存在，仅管理员可访问",
+)
+async def check_mock_duplicate(
+    request: MockDuplicateRequest,
+    session: SessionDep,
+    _admin: AuthUser = Depends(get_current_admin),
+) -> ApiResponse[MockDuplicateCheckResponse]:
+    """检查模拟题重复。"""
+    existing = await MockService(session).check_duplicate(
+        request.source,
+        request.title,
+        request.question_number,
+        request.exclude_id,
+    )
+    return ApiResponse(data=existing)
 
 
 @router.post(
     "",
-    response_model=Response[MockResponse],
+    response_model=ApiResponse[MockResponse],
     summary="创建模拟题",
-    description="创建新模拟题，仅管理员可访问"
+    description="创建新模拟题，仅管理员可访问",
 )
 async def create_mock(
-    session: SessionDep,
     request: MockCreateRequest,
-    current_user: AuthUser = Depends(get_current_admin)
-) -> Response[MockResponse]:
-    """
-    创建模拟题
-
-    - 权限：ADMIN
-    - 创建时自动关联当前管理员为作者，并校验唯一性约束
-    """
-    service = MockService(session)
-    mock = await service.create(request, current_user.user_id)
-    return Response(data=mock, message="创建成功")
+    session: SessionDep,
+    admin: AuthUser = Depends(get_current_admin),
+) -> ApiResponse[MockResponse]:
+    """创建模拟题。"""
+    mock = await MockService(session).create(request, admin.user_id)
+    return ApiResponse(data=mock, message="创建成功")
 
 
 @router.post(
     "/{mock_id}",
-    response_model=Response[MockResponse],
+    response_model=ApiResponse[MockResponse],
     summary="更新模拟题",
-    description="更新指定模拟题的信息，仅管理员可访问"
+    description="更新指定模拟题的信息，仅管理员可访问",
 )
 async def update_mock(
+    request: MockUpdateRequest,
     session: SessionDep,
-    mock_id: int = Path(..., description="模拟题ID"),
-    request: MockUpdateRequest = None,
-    current_user: AuthUser = Depends(get_current_admin)
-) -> Response[MockResponse]:
-    """
-    更新模拟题
-
-    - 权限：ADMIN
-    - 支持部分字段更新，更新时校验唯一性约束
-    """
-    service = MockService(session)
-    mock = await service.update(mock_id, request)
-    return Response(data=mock, message="更新成功")
+    mock_id: int = Path(..., ge=1, description="模拟题 ID"),
+    _admin: AuthUser = Depends(get_current_admin),
+) -> ApiResponse[MockResponse]:
+    """更新模拟题。"""
+    mock = await MockService(session).update(mock_id, request)
+    return ApiResponse(data=mock, message="更新成功")
 
 
 @router.post(
     "/{mock_id}/delete",
-    response_model=Response[None],
+    response_model=ApiResponse[None],
     summary="删除模拟题",
-    description="删除指定模拟题，仅管理员可访问"
+    description="删除指定模拟题，仅管理员可访问",
 )
 async def delete_mock(
     session: SessionDep,
-    mock_id: int = Path(..., description="模拟题ID"),
-    current_user: AuthUser = Depends(get_current_admin)
-) -> Response[None]:
-    """
-    删除模拟题
-
-    - 权限：ADMIN
-    - 物理删除模拟题记录，无法撤销
-    """
-    service = MockService(session)
-    await service.delete(mock_id)
-    return Response(message="删除成功")
+    mock_id: int = Path(..., ge=1, description="模拟题 ID"),
+    _admin: AuthUser = Depends(get_current_admin),
+) -> ApiResponse[None]:
+    """删除模拟题。"""
+    await MockService(session).delete(mock_id)
+    return ApiResponse(message="删除成功")

@@ -284,12 +284,12 @@ export function useQuestionForm(options = {}) {
 
     if (form.questionType === 'CHOICE') {
       data.content = form.content
-      data.options = JSON.stringify({
+      data.options = {
         A: form.optionA,
         B: form.optionB,
         C: form.optionC,
         D: form.optionD
-      })
+      }
       data.answer = form.answer || null
     } else {
       data.content = form.content

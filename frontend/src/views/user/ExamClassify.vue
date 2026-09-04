@@ -122,7 +122,7 @@
 import { ref, onMounted, computed, nextTick, onActivated } from 'vue'
 import { useRoute } from 'vue-router'
 import { getEnabledSubjects } from '@/api/subject'
-import { getExamList, deleteExam, getExamDetail } from '@/api/exam'
+import { getExamList, deleteExam, getExamDetail, exportExamsBySubject } from '@/api/exam'
 import { getEnabledCategoryTreeBySubject } from '@/api/category'
 import { useAuthStore } from '@/stores/auth'
 import toast from '@/utils/toast'
@@ -831,8 +831,8 @@ const loadQuestions = async (isReset = false) => {
 
     const res = await getExamList(params)
     if (res.code === 200) {
-      const pageData = res.data?.data || []
-      const serverTotal = res.data?.total || 0
+      const pageData = res.data?.lists || []
+      const serverTotal = res.data?.pagination?.total || 0
       
       if (isReset) {
         questionList.value = pageData
@@ -872,37 +872,26 @@ const handleExportCommand = async (format) => {
     toast.warning('请先选择科目')
     return
   }
-
-  const formatMap = {
-    'markdown': { ext: 'md', label: 'Markdown' },
-    'docx': { ext: 'docx', label: 'Word' }
-  }
-
-  const config = formatMap[format]
-  if (!config) {
-    toast.warning('不支持的导出格式')
+  if (format !== 'markdown') {
+    toast.warning('当前仅支持 Markdown 导出')
     return
   }
 
   try {
-    const subjectName = activeSubjectName.value
-    const filename = `408-${subjectName}-全部真题.${config.ext}`
-    
-    // 直接通过URL下载（后端返回文件流）
-    const url = `/api/exam/export?subjectId=${activeSubjectId.value}&format=${format}`
-    
-    // 创建下载链接
+    const response = await exportExamsBySubject(activeSubjectId.value, format)
+    const blob = response.data
+    const downloadUrl = URL.createObjectURL(blob)
     const link = document.createElement('a')
-    link.href = url
-    link.download = filename
+    link.href = downloadUrl
+    link.download = `408-${activeSubjectName.value}-全部真题.md`
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
-    
-    toast.success(`${config.label} 导出已开始`)
+    URL.revokeObjectURL(downloadUrl)
+    toast.success('Markdown 导出已开始')
   } catch (error) {
     toast.error('导出失败，请重试')
-    console.error(`${config.label}导出失败:`, error)
+    console.error('Markdown 导出失败:', error)
   }
 }
 

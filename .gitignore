@@ -11,6 +11,10 @@ nul
 # Backend build and runtime files
 backend/target
 backend-fastapi/.venv
+backend-fastapi/.env
+backend-fastapi/data/*.pre_*.db.backup
+backend-fastapi/data/*.db-wal
+backend-fastapi/data/*.db-shm
 backend-fastapi/app/logs
 backend-fastapi/logs
 backend-fastapi/nul

@@ -4,7 +4,8 @@
 """
 from datetime import datetime
 from typing import Optional, List
-from sqlmodel import Field, Relationship, Column, JSON
+from sqlalchemy import CheckConstraint, Index, text
+from sqlmodel import Field, Relationship
 from app.models.base import BaseModel
 from app.models.enums import UserRoleEnum, QuestionTypeEnum, DifficultyEnum
 
@@ -15,9 +16,15 @@ from app.models.enums import UserRoleEnum, QuestionTypeEnum, DifficultyEnum
 class User(BaseModel, table=True):
     """用户模型"""
     __tablename__ = "user"
+    __table_args__ = (
+        CheckConstraint(
+            "role IN ('ADMIN', 'USER', 'GUEST')",
+            name="ck_user_role",
+        ),
+    )
 
     username: str = Field(unique=True, index=True, description="用户名")
-    password: str = Field(description="BCrypt加密密码")
+    password: str = Field(description="Argon2 加密密码")
     email: Optional[str] = Field(default=None, description="邮箱")
     role: str = Field(default=UserRoleEnum.USER.value, description="角色")
     enabled: bool = Field(default=True, description="账户启用状态")
@@ -78,6 +85,10 @@ class Chapter(BaseModel, table=True):
 class ExamCategory(BaseModel, table=True):
     """分类标签模型"""
     __tablename__ = "exam_category"
+    __table_args__ = (
+        Index("uq_exam_category_subject_name", "subject_id", "name", unique=True),
+        Index("uq_exam_category_subject_code", "subject_id", "code", unique=True),
+    )
 
     subject_id: int = Field(foreign_key="subject.id", description="所属科目ID")
     parent_id: Optional[int] = Field(default=None, foreign_key="exam_category.id", description="父分类ID")
@@ -102,6 +113,23 @@ class ExamCategory(BaseModel, table=True):
 class ExamQuestion(BaseModel, table=True):
     """真题模型"""
     __tablename__ = "exam_question"
+    __table_args__ = (
+        CheckConstraint(
+            "question_type IN ('CHOICE', 'ESSAY')",
+            name="ck_exam_question_type",
+        ),
+        CheckConstraint(
+            "difficulty IS NULL OR difficulty IN ('EASY', 'MEDIUM', 'HARD')",
+            name="ck_exam_question_difficulty",
+        ),
+        Index(
+            "uq_exam_question_year_number",
+            "year",
+            "question_number",
+            unique=True,
+            sqlite_where=text("question_number IS NOT NULL"),
+        ),
+    )
 
     year: int = Field(description="年份")
     question_number: Optional[int] = Field(default=None, description="题号")
@@ -126,6 +154,24 @@ class ExamQuestion(BaseModel, table=True):
 class MockQuestion(BaseModel, table=True):
     """模拟题模型"""
     __tablename__ = "mock_question"
+    __table_args__ = (
+        CheckConstraint(
+            "question_type IN ('CHOICE', 'ESSAY')",
+            name="ck_mock_question_type",
+        ),
+        CheckConstraint(
+            "difficulty IS NULL OR difficulty IN ('EASY', 'MEDIUM', 'HARD')",
+            name="ck_mock_question_difficulty",
+        ),
+        Index(
+            "uq_mock_question_source_title_number",
+            "source",
+            "title",
+            "question_number",
+            unique=True,
+            sqlite_where=text("title IS NOT NULL AND question_number IS NOT NULL"),
+        ),
+    )
 
     source: str = Field(description="来源机构")
     question_number: Optional[int] = Field(default=None, description="题号")
@@ -171,7 +217,11 @@ class ExamRandomStat(BaseModel, table=True):
     """随机出题统计模型"""
     __tablename__ = "exam_random_stat"
 
-    user_id: int = Field(unique=True, description="用户ID")
+    user_id: int = Field(
+        unique=True,
+        foreign_key="user.id",
+        description="用户ID",
+    )
     total_attempts: int = Field(default=0, description="完成次数")
     last_attempt_time: datetime = Field(default_factory=datetime.utcnow, description="最近完成时间")
 
@@ -190,7 +240,11 @@ class KnowledgePoint(BaseModel, table=True):
     author_id: int = Field(foreign_key="user.id", description="作者ID")
     view_count: int = Field(default=0, description="浏览次数")
     create_time: datetime = Field(default_factory=datetime.utcnow, description="创建时间")
-    update_time: datetime = Field(default_factory=datetime.utcnow, description="更新时间")
+    update_time: datetime = Field(
+        default_factory=datetime.utcnow,
+        sa_column_kwargs={"onupdate": datetime.utcnow},
+        description="更新时间",
+    )
 
     # 关系
     chapter: Optional[Chapter] = Relationship(back_populates="knowledge_points")

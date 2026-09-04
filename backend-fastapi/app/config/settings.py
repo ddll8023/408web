@@ -1,97 +1,156 @@
-"""
-项目配置模块
-使用 pydantic-settings 管理环境变量配置
-"""
-from typing import List
+"""项目配置模块。"""
 from functools import lru_cache
-from pydantic_settings import BaseSettings
+from pathlib import Path
+from typing import Literal
+
+from pydantic import Field
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+ENV_FILE = Path(__file__).resolve().parents[2] / ".env"
 
 
 class DatabaseConfig(BaseSettings):
-    """数据库配置"""
-    database_url: str = "sqlite+aiosqlite:///./data/web408.db"
+    """数据库配置。"""
 
-    class Config:
-        env_prefix = "DATABASE_"
+    database_url: str = Field(
+        default="sqlite+aiosqlite:///./data/web408.db",
+        validation_alias="DATABASE_URL",
+    )
 
-
-class JwtConfig(BaseSettings):
-    """JWT认证配置"""
-    secret: str = "3f8b9e2a7c1d4f6e8a9b3c5d7e9f1a3b5c7d9e1f3a5b7c9d1e3f5a7b9c1d3e5f"
-    algorithm: str = "HS256"
-
-    class Config:
-        env_prefix = "JWT_"
-
-
-class UploadConfig(BaseSettings):
-    """文件上传配置"""
-    upload_dir: str = "uploads/images"
-    max_file_size: int = 104857600  # 100MB
-
-    class Config:
-        env_prefix = "UPLOAD_"
-
-
-class ServerConfig(BaseSettings):
-    """服务器配置"""
-    host: str = "0.0.0.0"
-    port: int = 8081
-    api_prefix: str = "/api"
-
-    class Config:
-        env_prefix = "SERVER_"
-
-
-class CorsConfig(BaseSettings):
-    """CORS配置"""
-    origins: List[str] = ["http://localhost:5173", "http://localhost:5174"]
-
-    class Config:
-        env_prefix = "CORS_"
-
-    @classmethod
-    def from_env(cls):
-        """从环境变量解析逗号分隔的 origins"""
-        import os
-        origins_env = os.getenv("CORS_ORIGINS", "")
-        if origins_env:
-            return cls(origins=origins_env.split(","))
-        return cls()
-
-
-class LoggingConfig(BaseSettings):
-    """日志配置"""
-    log_dir: str = "logs"
-    log_file: str = "app.log"
-    log_level: str = "INFO"
-    max_bytes: int = 10485760  # 10MB
-    backup_count: int = 5
-
-    class Config:
-        env_prefix = "LOGGING_"
-
-
-class Settings(BaseSettings):
-    """项目聚合配置（所有配置类的统一入口）"""
-    database: DatabaseConfig = DatabaseConfig()
-    jwt: JwtConfig = JwtConfig()
-    upload: UploadConfig = UploadConfig()
-    server: ServerConfig = ServerConfig()
-    cors: CorsConfig = CorsConfig()
-    logging: LoggingConfig = LoggingConfig()
-
-    class Config:
-        env_prefix = ""
-
-
-@lru_cache()
-def get_settings() -> Settings:
-    """获取配置单例（带缓存），优先从环境变量加载 CORS 配置"""
-    return Settings(
-        cors=CorsConfig.from_env()
+    model_config = SettingsConfigDict(
+        env_file=ENV_FILE,
+        env_file_encoding="utf-8",
+        extra="ignore",
+        case_sensitive=False,
     )
 
 
-# 便捷访问方式
+class JwtConfig(BaseSettings):
+    """JWT 认证配置。"""
+
+    secret: str = Field(
+        ...,
+        min_length=32,
+        validation_alias="JWT_SECRET",
+        description="必须从环境变量或密钥管理系统提供",
+    )
+    algorithm: Literal["HS256"] = Field(
+        default="HS256",
+        validation_alias="JWT_ALGORITHM",
+    )
+    access_token_expire_minutes: int = Field(
+        default=60,
+        gt=0,
+        le=1440,
+        validation_alias="ACCESS_TOKEN_EXPIRE_MINUTES",
+    )
+
+    model_config = SettingsConfigDict(
+        env_file=ENV_FILE,
+        env_file_encoding="utf-8",
+        extra="ignore",
+        case_sensitive=False,
+    )
+
+
+class UploadConfig(BaseSettings):
+    """文件上传配置。"""
+
+    upload_dir: str = Field(
+        default="uploads/images",
+        validation_alias="UPLOAD_DIR",
+    )
+    max_file_size: int = Field(
+        default=10 * 1024 * 1024,
+        gt=0,
+        le=100 * 1024 * 1024,
+        validation_alias="MAX_FILE_SIZE",
+    )
+
+    model_config = SettingsConfigDict(
+        env_file=ENV_FILE,
+        env_file_encoding="utf-8",
+        extra="ignore",
+        case_sensitive=False,
+    )
+
+
+class ServerConfig(BaseSettings):
+    """服务器配置。"""
+
+    host: str = Field(default="0.0.0.0", validation_alias="SERVER_HOST")
+    port: int = Field(default=8081, ge=1, le=65535, validation_alias="SERVER_PORT")
+    api_prefix: str = Field(default="/api", validation_alias="API_PREFIX")
+
+    model_config = SettingsConfigDict(
+        env_file=ENV_FILE,
+        env_file_encoding="utf-8",
+        extra="ignore",
+        case_sensitive=False,
+    )
+
+
+class CorsConfig(BaseSettings):
+    """CORS 配置。"""
+
+    origins: str = Field(
+        default="http://localhost:5173,http://localhost:5174",
+        validation_alias="CORS_ORIGINS",
+    )
+
+    model_config = SettingsConfigDict(
+        env_file=ENV_FILE,
+        env_file_encoding="utf-8",
+        extra="ignore",
+        case_sensitive=False,
+    )
+
+    @property
+    def allowed_origins(self) -> list[str]:
+        """返回清理后的允许来源列表。"""
+        return [origin.strip() for origin in self.origins.split(",") if origin.strip()]
+
+
+class LoggingConfig(BaseSettings):
+    """日志配置。"""
+
+    log_dir: str = "logs"
+    log_file: str = "app.log"
+    log_level: str = "INFO"
+    max_bytes: int = 10 * 1024 * 1024
+    backup_count: int = 5
+
+    model_config = SettingsConfigDict(
+        env_file=ENV_FILE,
+        env_file_encoding="utf-8",
+        extra="ignore",
+        case_sensitive=False,
+    )
+
+
+class Settings(BaseSettings):
+    """项目聚合配置。"""
+
+    database: DatabaseConfig = Field(default_factory=DatabaseConfig)
+    jwt: JwtConfig = Field(default_factory=JwtConfig)
+    upload: UploadConfig = Field(default_factory=UploadConfig)
+    server: ServerConfig = Field(default_factory=ServerConfig)
+    cors: CorsConfig = Field(default_factory=CorsConfig)
+    logging: LoggingConfig = Field(default_factory=LoggingConfig)
+
+    model_config = SettingsConfigDict(
+        env_file=ENV_FILE,
+        env_file_encoding="utf-8",
+        extra="ignore",
+        case_sensitive=False,
+    )
+
+
+@lru_cache(maxsize=1)
+def get_settings() -> Settings:
+    """获取缓存的项目配置。"""
+    return Settings()
+
+
 settings = get_settings()

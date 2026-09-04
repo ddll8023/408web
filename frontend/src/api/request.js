@@ -45,6 +45,10 @@ request.interceptors.request.use(
  */
 request.interceptors.response.use(
   response => {
+    if (response.config?.responseType === 'blob' || response.config?.responseType === 'arraybuffer') {
+      return response
+    }
+
     const res = response.data
 
     // 判断业务状态码
