@@ -18,6 +18,7 @@ from app.schemas.category import (
     ExamCategoryUsageResponse,
     SubjectStatItem
 )
+from app.services.question_helpers import parse_categories
 from app.utils.logger import setup_logger
 
 
@@ -49,16 +50,9 @@ class ExamCategoryService:
         result = await self.session.exec(stmt)
         categories = result.all()
 
-        responses = []
-        for c in categories:
-            response = self._to_response(c)
-            # 填充题目统计
-            if question_type == "mock":
-                count = await self._count_mock_questions(c.subject_id, c.name)
-            else:
-                count = await self._count_exam_questions(c.subject_id, c.name)
-            response.question_count = count
-            responses.append(response)
+        # 转换为响应对象并填充直接引用数和子树去重数
+        responses = [self._to_response(category) for category in categories]
+        await self._apply_question_counts(responses, question_type)
 
         logger.info("ExamCategoryService.get_all_categories completed, count: %d", len(responses))
         return responses
@@ -120,22 +114,81 @@ class ExamCategoryService:
         result = await self.session.exec(stmt)
         categories = result.all()
 
-        # 转换为响应对象并填充统计
-        responses = []
-        for c in categories:
-            response = self._to_response(c)
-
-            # 填充题目统计
-            if question_type == "mock":
-                count = await self._count_mock_questions(subject_id, c.name)
-            else:
-                count = await self._count_exam_questions(subject_id, c.name)
-            response.question_count = count
-
-            responses.append(response)
+        # 转换为响应对象并填充直接引用数和子树去重数
+        responses = [self._to_response(category) for category in categories]
+        await self._apply_question_counts(responses, question_type)
 
         logger.info("ExamCategoryService.get_categories_by_subject completed, count: %d", len(responses))
         return responses
+
+    async def _get_question_ids_by_category(
+        self,
+        subject_id: int,
+        question_type: str,
+    ) -> dict[str, set[int]]:
+        """读取指定科目下各分类对应的题目 ID，按题目去重。"""
+        question_model = MockQuestion if question_type == "mock" else ExamQuestion
+        stmt = select(
+            question_model.id,
+            question_model.category,
+        ).where(
+            and_(
+                question_model.subject_id == subject_id,
+                question_model.category.isnot(None),
+            )
+        )
+        result = await self.session.exec(stmt)
+
+        question_ids_by_category: dict[str, set[int]] = defaultdict(set)
+        for row in result.all():
+            categories = parse_categories(row[1])
+            if not categories:
+                continue
+            for category_name in set(categories):
+                question_ids_by_category[category_name].add(row[0])
+        return question_ids_by_category
+
+    async def _apply_question_counts(
+        self,
+        categories: List[ExamCategoryResponse],
+        question_type: str,
+    ) -> None:
+        """为分类响应填充直接引用数和子树范围内的去重题数。"""
+        categories_by_subject: dict[int, List[ExamCategoryResponse]] = defaultdict(list)
+        for category in categories:
+            categories_by_subject[category.subject_id].append(category)
+
+        for subject_categories in categories_by_subject.values():
+            question_ids_by_category = await self._get_question_ids_by_category(
+                subject_categories[0].subject_id,
+                question_type,
+            )
+            children_map: dict[Optional[int], List[ExamCategoryResponse]] = defaultdict(list)
+            for category in subject_categories:
+                direct_ids = question_ids_by_category.get(category.name, set())
+                category.question_count = len(direct_ids)
+                children_map[category.parent_id].append(category)
+
+            subtree_cache: dict[int, set[int]] = {}
+            visiting: set[int] = set()
+
+            def collect_question_ids(category: ExamCategoryResponse) -> set[int]:
+                if category.id in subtree_cache:
+                    return subtree_cache[category.id]
+                if category.id in visiting:
+                    return set(question_ids_by_category.get(category.name, set()))
+
+                visiting.add(category.id)
+                question_ids = set(question_ids_by_category.get(category.name, set()))
+                for child in children_map.get(category.id, []):
+                    question_ids.update(collect_question_ids(child))
+                visiting.remove(category.id)
+                subtree_cache[category.id] = question_ids
+                category.subtree_question_count = len(question_ids)
+                return question_ids
+
+            for category in subject_categories:
+                collect_question_ids(category)
 
     async def get_category_tree(
         self,
@@ -240,6 +293,7 @@ class ExamCategoryService:
                 order_num=c.order_num,
                 enabled=c.enabled,
                 question_count=c.question_count,
+                subtree_question_count=c.subtree_question_count,
                 children=[]
             )
 
@@ -902,6 +956,7 @@ class ExamCategoryService:
             order_num=category.order_num,
             enabled=category.enabled,
             question_count=None,  # 单独统计
+            subtree_question_count=None,  # 单独统计
             create_time=category.create_time.isoformat() if category.create_time else None,
             update_time=category.update_time.isoformat() if category.update_time else None
         )

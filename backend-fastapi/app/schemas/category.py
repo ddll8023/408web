@@ -156,7 +156,12 @@ class ExamCategoryResponse(BaseModel):
     enabled: bool = Field(..., description="是否启用", examples=[True])
     question_count: Optional[int] = Field(
         default=None,
-        description="题目数量（统计）",
+        description="直接引用该分类的题目数量（统计）",
+        examples=[10]
+    )
+    subtree_question_count: Optional[int] = Field(
+        default=None,
+        description="该分类及其子分类去重后的题目数量",
         examples=[10]
     )
     create_time: Optional[str] = Field(default=None, description="创建时间")
@@ -181,7 +186,12 @@ class ExamCategoryTreeResponse(BaseModel):
     enabled: bool = Field(..., description="是否启用", examples=[True])
     question_count: Optional[int] = Field(
         default=None,
-        description="题目数量（统计）",
+        description="直接引用该分类的题目数量（统计）",
+        examples=[10]
+    )
+    subtree_question_count: Optional[int] = Field(
+        default=None,
+        description="该分类及其子分类去重后的题目数量",
         examples=[10]
     )
     children: List["ExamCategoryTreeResponse"] = Field(

@@ -134,10 +134,10 @@ cp .env.example .env
 python scripts/migrate_high_priority.py
 
 # 启动服务
-python -m uvicorn app.main:app --host 0.0.0.0 --port 8081 --reload
+python -m uvicorn app.main:app --host 0.0.0.0 --port 7785 --reload
 ```
 
-后端服务将在 `http://localhost:8081` 启动
+后端服务将在 `http://localhost:7785` 启动
 
 ### 3. 前端部署
 
@@ -151,11 +151,11 @@ npm install
 npm run dev
 ```
 
-前端服务将在 `http://localhost:5173` 启动
+前端服务将在 `http://localhost:7784` 启动
 
 ### 4. 访问应用
 
-打开浏览器访问 `http://localhost:5173`
+打开浏览器访问 `http://localhost:7784`
 
 ## API文档
 
@@ -212,12 +212,11 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24  # 24小时
 
 # 服务器配置
 HOST = "0.0.0.0"
-PORT = 8081
+PORT = 7785
 
 # CORS配置
 CORS_ORIGINS = [
-    "http://localhost:5173",
-    "http://localhost:5174"
+    "http://localhost:7784"
 ]
 ```
 

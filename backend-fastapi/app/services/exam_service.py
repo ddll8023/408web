@@ -21,6 +21,7 @@ from app.schemas.exam import (
     ExamDuplicateCheckResponse,
     ExamIndexItem,
     ExamIndexResponse,
+    ExamNavItem,
     PaginatedExamResponse,
     ExportResultResponse,
 )

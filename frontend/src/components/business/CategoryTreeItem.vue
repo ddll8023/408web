@@ -255,18 +255,11 @@ const countClasses = computed(() => {
 })
 
 /**
- * 递归计算分类的总题目数（包含所有子分类）
+ * 获取分类及其所有子孙分类的去重题目数
  */
 function calculateTotalCount(cat) {
   if (!cat || typeof cat !== 'object') return 0
-
-  let total = cat.questionCount || 0
-  if (cat.children && Array.isArray(cat.children)) {
-    cat.children.forEach(child => {
-      total += calculateTotalCount(child)
-    })
-  }
-  return total
+  return cat.subtreeQuestionCount ?? cat.questionCount ?? 0
 }
 
 /**

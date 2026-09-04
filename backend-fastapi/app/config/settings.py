@@ -80,7 +80,7 @@ class ServerConfig(BaseSettings):
     """服务器配置。"""
 
     host: str = Field(default="0.0.0.0", validation_alias="SERVER_HOST")
-    port: int = Field(default=8081, ge=1, le=65535, validation_alias="SERVER_PORT")
+    port: int = Field(default=7785, ge=1, le=65535, validation_alias="SERVER_PORT")
     api_prefix: str = Field(default="/api", validation_alias="API_PREFIX")
 
     model_config = SettingsConfigDict(
@@ -95,7 +95,7 @@ class CorsConfig(BaseSettings):
     """CORS 配置。"""
 
     origins: str = Field(
-        default="http://localhost:5173,http://localhost:5174",
+        default="http://localhost:7784",
         validation_alias="CORS_ORIGINS",
     )
 

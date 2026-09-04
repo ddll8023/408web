@@ -8,7 +8,7 @@ setlocal enabledelayedexpansion
 
 set "SCRIPT_DIR=%~dp0"
 set "FRONTEND_DIR=%SCRIPT_DIR%frontend"
-set "PORT=5174"
+set "PORT=7784"
 
 :: 检查前端目录是否存在
 if not exist "%FRONTEND_DIR%" (

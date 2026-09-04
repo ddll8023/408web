@@ -25,11 +25,11 @@ export default defineConfig({
   
   // 开发服务器配置
   server: {
-    port: 5174,
+    port: 7784,
     // API代理配置（开发环境）
     proxy: {
       '/api': {
-        target: 'http://localhost:8081',
+        target: 'http://localhost:7785',
         changeOrigin: true,
         // 不重写路径，保持/api前缀
         rewrite: (path) => path

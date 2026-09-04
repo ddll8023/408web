@@ -5,7 +5,7 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 BACKEND_DIR="$SCRIPT_DIR/backend-fastapi"
 PYTHON="$BACKEND_DIR/.venv/bin/python"
-PORT=8081
+PORT=7785
 
 if [[ ! -d "$BACKEND_DIR" ]]; then
   echo "[ERROR] 未找到后端项目目录：$BACKEND_DIR"

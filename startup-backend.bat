@@ -15,10 +15,10 @@ if not exist ".venv\Scripts\python.exe" (
 )
 
 echo [INFO] 启动 FastAPI 服务...
-echo [INFO] 服务地址: http://localhost:8081
-echo [INFO] API文档:   http://localhost:8081/docs
+echo [INFO] 服务地址: http://localhost:7785
+echo [INFO] API文档:   http://localhost:7785/docs
 echo.
 
-.venv\Scripts\python.exe -m uvicorn app.main:app --host 0.0.0.0 --port 8081 --reload
+.venv\Scripts\python.exe -m uvicorn app.main:app --host 0.0.0.0 --port 7785 --reload
 
 pause

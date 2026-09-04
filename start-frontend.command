@@ -4,7 +4,7 @@ set -e
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 FRONTEND_DIR="$SCRIPT_DIR/frontend"
-PORT=5174
+PORT=7784
 
 if [[ ! -d "$FRONTEND_DIR" || ! -f "$FRONTEND_DIR/package.json" ]]; then
   echo "[ERROR] 未找到前端项目目录或 package.json：$FRONTEND_DIR"

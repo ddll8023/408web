@@ -651,6 +651,29 @@ const loadSubjectOptions = async () => {
 }
 
 /**
+ * 统一处理 API 已转换为驼峰命名的分类数据
+ */
+const normalizeCategory = (item) => ({
+  ...item,
+  parentId: item.parentId ?? null,
+  subjectId: item.subjectId,
+  subjectName: item.subjectName,
+  questionCount: item.questionCount ?? 0,
+  subtreeQuestionCount: item.subtreeQuestionCount ?? item.questionCount ?? 0,
+  orderNum: item.orderNum ?? 0
+})
+
+/**
+ * 用指定科目的最新分类数据替换全部分类中的对应科目
+ */
+const replaceSubjectCategories = (subjectId, subjectCategories) => {
+  allCategories.value = [
+    ...allCategories.value.filter(item => item.subjectId !== subjectId),
+    ...subjectCategories
+  ]
+}
+
+/**
  * 加载科目统计数据（用于科目筛选列表）
  * 根据题目类型使用不同的 API
  */
@@ -663,8 +686,8 @@ const loadCategoryStats = async () => {
         const stats = response.data || []
         categoryStats.value = {
           subjectStats: stats.map(s => ({
-            subjectId: s.subject_id,
-            subjectName: s.subject_name,
+            subjectId: s.subjectId,
+            subjectName: s.subjectName,
             questionCount: s.count
           })),
           totalQuestionCount: stats.reduce((sum, s) => sum + s.count, 0)
@@ -675,12 +698,12 @@ const loadCategoryStats = async () => {
       const response = await getCategoryStats(questionType.value)
       if (response.code === 200) {
         categoryStats.value = {
-          subjectStats: response.data?.subject_stats?.map(s => ({
-            subjectId: s.subject_id,
-            subjectName: s.subject_name,
-            questionCount: s.question_count
+          subjectStats: response.data?.subjectStats?.map(s => ({
+            subjectId: s.subjectId,
+            subjectName: s.subjectName,
+            questionCount: s.questionCount
           })) || [],
-          totalQuestionCount: response.data?.total_question_count || 0
+          totalQuestionCount: response.data?.totalQuestionCount || 0
         }
       }
     }
@@ -707,10 +730,10 @@ const loadCategories = async () => {
           const stats = response.data?.stats || []
           // 转换格式：扁平结构，适配前端显示
           // 统一ID生成逻辑：使用 科目ID-分类名 格式
-          categories.value = stats.map(item => ({
+          const subjectCategories = stats.map(item => ({
             id: `${filterSubjectId.value}-${item.category}`,
             subjectId: filterSubjectId.value,
-            subjectName: response.data?.subject_name,
+            subjectName: response.data?.subjectName,
             parentId: null,
             parentName: null,
             name: item.category,
@@ -719,10 +742,11 @@ const loadCategories = async () => {
             orderNum: 0,
             enabled: true,
             questionCount: item.count,
+            subtreeQuestionCount: item.count,
             question_type: 'mock'
           }))
-          // 同步更新全部分类数据
-          allCategories.value = [...categories.value]
+          categories.value = subjectCategories
+          replaceSubjectCategories(filterSubjectId.value, subjectCategories)
         }
       } else {
         // 没有选择科目，加载所有科目的模拟题分类
@@ -763,24 +787,13 @@ const loadCategories = async () => {
       }
 
       if (response.code === 200) {
-        // 转换字段名：将 snake_case 转换为 camelCase
-        categories.value = (response.data || []).map(item => ({
-          ...item,
-          parentId: item.parent_id,
-          subjectId: item.subject_id,
-          subjectName: item.subject_name,
-          questionCount: item.question_count,
-          orderNum: item.order_num
-        }))
-        // 同步更新全部分类数据（保证统计数据实时）
-        allCategories.value = (response.data || []).map(item => ({
-          ...item,
-          parentId: item.parent_id,
-          subjectId: item.subject_id,
-          subjectName: item.subject_name,
-          questionCount: item.question_count,
-          orderNum: item.order_num
-        }))
+        const mappedCategories = (response.data || []).map(normalizeCategory)
+        categories.value = mappedCategories
+        if (filterSubjectId.value) {
+          replaceSubjectCategories(filterSubjectId.value, mappedCategories)
+        } else {
+          allCategories.value = mappedCategories
+        }
       } else {
         showToast(response.message || '加载分类列表失败', 'error')
       }
@@ -800,7 +813,8 @@ const loadCategories = async () => {
 const handleQuestionTypeChange = async () => {
   // 加载科目统计数据（用于科目筛选列表显示题目数）
   await loadCategoryStats()
-  // 加载所有科目的分类数据（用于统计分类数量）
+  // 先清除筛选，确保按新题目类型加载全部科目的分类数据
+  filterSubjectId.value = null
   await loadCategories()
   // 默认选中第一个科目
   if (subjectOptions.value.length > 0) {
@@ -961,9 +975,10 @@ const handleSubmit = async () => {
         // 恢复树形视图展开状态
         restoreTreeExpandedKeys(savedTreeExpandedKeys)
       } else {
-        // 编辑：局部更新本地数据，避免页面刷新
-        const updatedData = response.data
-        updateLocalCategory(form.id, updatedData)
+        // 编辑后重新读取统计，确保重命名或移动分类时数量保持准确
+        const savedTreeExpandedKeys = getTreeExpandedKeys()
+        await loadCategories()
+        restoreTreeExpandedKeys(savedTreeExpandedKeys)
       }
     } else {
       showToast(response.message || '操作失败', 'error')
@@ -973,40 +988,6 @@ const handleSubmit = async () => {
     showToast(dialogMode.value === 'add' ? '创建失败' : '更新失败', 'error')
   } finally {
     submitLoading.value = false
-  }
-}
-
-/**
- * 局部更新本地分类数据
- * 用后端返回的数据更新 categories 和 allCategories 中对应的项
- * @param {Number} id 分类ID
- * @param {Object} newData 后端返回的更新后数据
- */
-const updateLocalCategory = (id, newData) => {
-  // 转换字段名：将 snake_case 转换为 camelCase（前端内部使用驼峰）
-  const mappedData = {
-    ...newData,
-    // 转换 snake_case -> camelCase
-    parentId: newData.parent_id,
-    subjectId: newData.subject_id,
-    subjectName: newData.subject_name,
-    questionCount: newData.question_count,
-    orderNum: newData.order_num  // 添加 orderNum 转换
-  }
-
-  // 更新 categories 数组
-  const index = categories.value.findIndex(c => c.id === id)
-  if (index !== -1) {
-    // 保留原有的 children 引用（如果有），因为后端返回的数据可能不包含 children
-    const oldChildren = categories.value[index].children
-    categories.value[index] = { ...mappedData, children: oldChildren }
-  }
-
-  // 同步更新 allCategories 数组
-  const allIndex = allCategories.value.findIndex(c => c.id === id)
-  if (allIndex !== -1) {
-    const oldChildren = allCategories.value[allIndex].children
-    allCategories.value[allIndex] = { ...mappedData, children: oldChildren }
   }
 }
 
@@ -1054,18 +1035,10 @@ const handleDelete = async (row) => {
 }
 
 /**
- * 计算分类及其所有子孙分类的题目数总和（支持三级分类）
+ * 获取分类及其所有子孙分类的去重题目数
  */
 const getChildrenQuestionCount = (category) => {
-  // 分类自身的题目数
-  let total = category.questionCount || 0
-  // 递归计算子分类的题目数
-  if (category.children && category.children.length > 0) {
-    for (const child of category.children) {
-      total += getChildrenQuestionCount(child)
-    }
-  }
-  return total
+  return category.subtreeQuestionCount ?? category.questionCount ?? 0
 }
 
 /**
@@ -1141,11 +1114,7 @@ onMounted(async () => {
     // 真题：使用真题 API
     const allResponse = await getAllCategories(questionType.value)
     if (allResponse.code === 200) {
-      allCategories.value = (allResponse.data || []).map(item => ({
-        ...item,
-        parentId: item.parent_id,
-        orderNum: item.order_num
-      }))
+      allCategories.value = (allResponse.data || []).map(normalizeCategory)
     }
   }
   // 第二步：加载科目统计数据（用于科目筛选列表显示题目数）
