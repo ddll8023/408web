@@ -15,7 +15,7 @@
   </teleport>
 </template>
 
-<script setup>
+<script setup lang="ts">
 /**
  * Toast 消息提示组件
  * 使用单例模式，确保同时只有一个 Toast 显示
@@ -27,7 +27,7 @@ const message = ref('')
 const type = ref('success')
 
 const typeClass = computed(() => {
-  const classes = {
+  const classes: Record<string, string> = {
     success: 'bg-green-600',
     error: 'bg-red-600',
     warning: 'bg-yellow-600',
@@ -37,7 +37,7 @@ const typeClass = computed(() => {
 })
 
 const icon = computed(() => {
-  const icons = {
+  const icons: Record<string, string[]> = {
     success: ['fas', 'check-circle'],
     error: ['fas', 'times-circle'],
     warning: ['fas', 'exclamation-circle'],
@@ -46,9 +46,9 @@ const icon = computed(() => {
   return icons[type.value] || icons.info
 })
 
-let timer = null
+let timer: ReturnType<typeof setTimeout> | undefined
 
-const show = (msg, msgType = 'success', duration = 3000) => {
+const show = (msg: string, msgType = 'success', duration = 3000) => {
   message.value = msg
   type.value = msgType
   visible.value = true

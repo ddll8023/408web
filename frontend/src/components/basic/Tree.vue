@@ -38,7 +38,8 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts" generic="T extends TreeShape<T>">
+import type { TreeShape, TreeDropType, TreeDrop, AllowDrop } from './types'
 /**
  * Tree 树形组件
  * 功能：替代 Element Plus 的 el-tree，支持拖拽排序和自定义节点内容
@@ -48,50 +49,13 @@
 import { computed } from 'vue'
 import TreeItem from './TreeItem.vue'
 
-const props = defineProps({
-  // 树形数据
-  data: {
-    type: Array,
-    default: () => []
-  },
-  // 节点唯一标识字段
-  nodeKey: {
-    type: String,
-    default: 'id'
-  },
-  // 显示字段
-  label: {
-    type: String,
-    default: 'name'
-  },
-  // 子节点字段
-  childrenKey: {
-    type: String,
-    default: 'children'
-  },
-  // 已展开的节点ID数组
-  expandedKeys: {
-    type: Array,
-    default: () => []
-  },
-  // 是否可拖拽
-  draggable: {
-    type: Boolean,
-    default: false
-  },
-  // 放置规则函数
-  allowDrop: {
-    type: Function,
-    default: () => true
-  },
-  // 拖拽规则函数
-  allowDrag: {
-    type: Function,
-    default: () => true
-  }
-})
-
-const emit = defineEmits(['update:expandedKeys', 'node-expand', 'node-collapse', 'node-drop'])
+const props = withDefaults(defineProps<{
+  data?: T[]
+  nodeKey?: 'id'; label?: 'name'; childrenKey?: 'children'; expandedKeys?: number[]
+  draggable?: boolean; allowDrop?: AllowDrop<T>; allowDrag?: (node: T) => boolean
+}>(), { data: () => [], nodeKey: 'id', label: 'name', childrenKey: 'children', expandedKeys: () => [], draggable: false, allowDrop: () => true, allowDrag: () => true })
+const emit = defineEmits<{ 'update:expandedKeys': [keys: number[]]; 'node-expand': [node: { id: number }]; 'node-collapse': [node: { id: number }]; 'node-drop': [drop: TreeDrop<T>] }>()
+defineSlots<{ default?: (props: { node: T; level: number }) => unknown; empty?: () => unknown; actions?: (props: { node: T }) => unknown }>()
 
 // 规范化数据
 const normalizedData = computed(() => {
@@ -104,7 +68,7 @@ const label = computed(() => props.label)
 const childrenKey = computed(() => props.childrenKey)
 
 // 处理展开/折叠
-const handleToggleExpand = (nodeId) => {
+const handleToggleExpand = (nodeId: number) => {
   const keys = [...props.expandedKeys]
   const index = keys.indexOf(nodeId)
 
@@ -122,25 +86,27 @@ const handleToggleExpand = (nodeId) => {
 }
 
 // 拖拽开始
-const handleDragStart = (event, node) => {
+const handleDragStart = (event: DragEvent, node: T) => {
   if (!props.allowDrag(node)) {
     event.preventDefault()
     return
   }
+  if (!event.dataTransfer) return
   event.dataTransfer.effectAllowed = 'move'
-  event.dataTransfer.setData('nodeId', node[props.nodeKey])
+  event.dataTransfer.setData('nodeId', String(node[props.nodeKey]))
 }
 
 // 拖拽经过
-const handleDragOver = (event, node) => {
+const handleDragOver = (event: DragEvent, node: T) => {
   event.preventDefault()
-  event.dataTransfer.dropEffect = 'move'
+  if (event.dataTransfer) event.dataTransfer.dropEffect = 'move'
 }
 
 // 放置
-const handleDrop = (event, targetNode, dropType) => {
+const handleDrop = (event: DragEvent, targetNode: T, dropType: TreeDropType) => {
   event.preventDefault()
 
+  if (!event.dataTransfer) return
   const draggingNodeId = parseInt(event.dataTransfer.getData('nodeId'))
   const targetNodeId = targetNode[props.nodeKey]
 
@@ -160,7 +126,7 @@ const handleDrop = (event, targetNode, dropType) => {
 }
 
 // 根据ID查找节点
-const findNodeById = (nodes, id) => {
+const findNodeById = (nodes: T[], id: number): T | null => {
   for (const node of nodes) {
     if (node[props.nodeKey] === id) {
       return node
@@ -174,9 +140,9 @@ const findNodeById = (nodes, id) => {
 }
 
 // 拖拽事件包装函数（解决模板中箭头函数参数作用域问题）
-const onDragStart = (event, node) => handleDragStart(event, node)
-const onDragOver = (event, node) => handleDragOver(event, node)
-const onDrop = (event, node, dropType) => handleDrop(event, node, dropType)
+const onDragStart = (event: DragEvent, node: T) => handleDragStart(event, node)
+const onDragOver = (event: DragEvent, node: T) => handleDragOver(event, node)
+const onDrop = (event: DragEvent, node: T, dropType: TreeDropType) => handleDrop(event, node, dropType)
 </script>
 
 <style scoped>

@@ -79,7 +79,8 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
+import { errorMessage } from "@/utils/errors"
 /**
  * 用户注册页面
  * 功能：处理用户注册，包含表单验证、密码确认、错误处理
@@ -119,7 +120,7 @@ const errors = reactive({
  * 验证单个字段
  * @param {string} field - 字段名
  */
-const validateField = (field) => {
+const validateField = (field: keyof typeof errors) => {
   if (field === 'username') {
     errors.username = registerForm.username.trim()
       ? (registerForm.username.length < 3 || registerForm.username.length > 50 ? '用户名长度在3-50字符之间' : '')
@@ -217,7 +218,7 @@ const handleRegister = async () => {
   } catch (error) {
     console.error('注册失败：', error)
     // 展示后端返回的错误信息
-    showToast(error?.response?.data?.message || error?.message || '注册失败，请稍后重试', 'error')
+    showToast(errorMessage(error, '注册失败，请稍后重试'), 'error')
   } finally {
     loading.value = false
   }

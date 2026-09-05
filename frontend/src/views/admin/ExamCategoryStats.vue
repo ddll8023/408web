@@ -68,7 +68,7 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 /**
  * 真题分类统计页面
  * 功能描述：展示真题按分类的统计数据，支持按科目筛选和导出功能
@@ -89,13 +89,14 @@ import Dropdown from '@/components/basic/Dropdown.vue'
 import DropdownItem from '@/components/basic/DropdownItem.vue'
 import Select from '@/components/basic/Select.vue'
 import Table from '@/components/basic/Table.vue'
-import Toast from '@/components/basic/Toast.vue'
+import Toast from '@/utils/toast'
+import type { Subject } from '@/types'
 
 // State
 const statsLoading = ref(false)
-const statsData = ref([])
-const statsSubjectId = ref(null)
-const subjectOptions = ref([])
+const statsData = ref<{subjectName: string; category: string; choiceCount: number; subjectiveCount: number; count: number}[]>([])
+const statsSubjectId = ref<number | null>(null)
+const subjectOptions = ref<Subject[]>([])
 
 // 表格列配置
 const tableColumns = [
@@ -158,7 +159,7 @@ const totalQuestions = computed(() => {
   return statsData.value.reduce((sum, item) => sum + (item.count || 0), 0)
 })
 
-const handleExportCommand = (command) => {
+const handleExportCommand = (command: string | number) => {
   switch (command) {
     case 'markdown-no-answer':
       exportStats('markdown', false)
@@ -174,7 +175,7 @@ const handleExportCommand = (command) => {
   }
 }
 
-const exportStats = (format, includeAnswer = false) => {
+const exportStats = (format: string, includeAnswer = false) => {
   if (!statsData.value || statsData.value.length === 0) {
     Toast.warning('暂无数据可导出')
     return

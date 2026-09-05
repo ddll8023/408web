@@ -70,13 +70,16 @@
 
 </template>
 
-<script setup>
+<script setup lang="ts">
+import type { PropType } from 'vue'
+import type { ExamQuestion, MockQuestion } from '@/types'
 /**
  * 通用题目卡片组件（紧凑样式）
  * 用途：统一渲染题干、选项与答案区域，替换各页面重复模板
  * 设计：遵循 KISS/YAGNI/SOLID（单一职责：渲染题目与答案）
  * Source: Element Plus 官方文档；@kangc/v-md-editor 官方文档
  */
+import { parseOptions } from '@/composables/questionFormTypes'
 import { computed, ref, watch } from 'vue'
 import MarkdownViewer from '@/components/basic/MarkdownViewer.vue'
 import CustomButton from '@/components/basic/CustomButton.vue'
@@ -86,7 +89,7 @@ import CustomButton from '@/components/basic/CustomButton.vue'
  */
 const props = defineProps({
   /** 题目对象 */
-  exam: { type: Object, required: true },
+  exam: { type: Object as PropType<ExamQuestion | MockQuestion>, required: true },
   /** 是否显示答案 */
   showAnswer: { type: Boolean, default: false },
   /** 紧凑密度：compact | comfortable */
@@ -97,12 +100,12 @@ const props = defineProps({
   selectable: { type: Boolean, default: true }
 })
 
-const emit = defineEmits(['toggle-answer', 'answered'])
+const emit = defineEmits<{ 'toggle-answer': []; answered: [payload: { optionKey: string; correct: boolean }] }>()
 
 /**
  * 显示提示消息
  */
-const showToast = (message, type = 'success') => {
+const showToast = (message: string, type: 'success' | 'error' = 'success') => {
   const colors = {
     success: 'bg-green-500',
     error: 'bg-red-500'
@@ -136,7 +139,7 @@ const maxImageHeight = computed(() => {
 /**
  * 用户选择的选项（用于视觉反馈）
  */
-const selectedOption = ref(null)
+const selectedOption = ref<string | null>(null)
 
 /**
  * 监听 showAnswer 变化，当答案隐藏时重置选中状态
@@ -151,7 +154,7 @@ watch(() => props.showAnswer, (newVal) => {
  * 处理选项点击事件
  * 点击选项后，如果答案未显示，则自动显示答案
  */
-const handleOptionClick = (optionKey) => {
+const handleOptionClick = (optionKey: string) => {
   // 如果不可选择或答案已显示，则不处理
   if (!props.selectable || props.showAnswer) {
     return
@@ -186,7 +189,7 @@ const parsedOptions = computed(() => {
   if (!options) return {}
   try {
     if (typeof options === 'string') {
-      return JSON.parse(options)
+      return parseOptions(options)
     }
     if (typeof options === 'object') {
       return options

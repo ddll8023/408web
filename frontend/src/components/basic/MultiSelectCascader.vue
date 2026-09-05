@@ -246,7 +246,9 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
+import type { PropType } from 'vue'
+import type { CascaderOption, NormalizedCascaderOption } from './types'
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 
 /**
@@ -256,11 +258,11 @@ import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
  */
 const props = defineProps({
   modelValue: {
-    type: Array,
+    type: Array as PropType<string[]>,
     default: () => []
   },
   options: {
-    type: Array,
+    type: Array as PropType<CascaderOption[]>,
     default: () => []
   },
   placeholder: {
@@ -277,19 +279,19 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['update:modelValue', 'change'])
+const emit = defineEmits<{ 'update:modelValue': [value: string[]]; change: [value: string[]] }>()
 
-const containerRef = ref(null)
+const containerRef = ref<HTMLElement | null>(null)
 const dropdownVisible = ref(false)
 const searchKeyword = ref('')
-const expandedKeys = ref([])
+const expandedKeys = ref<string[]>([])
 
 // 标准化选项数据
 const normalizedOptions = computed(() => {
-  const normalize = (items) => {
+  const normalize = (items: CascaderOption[]): NormalizedCascaderOption[] => {
     return items.map(item => ({
-      value: item.value || item.name,
-      label: item.label || item.name,
+      value: item.value || item.name || '',
+      label: item.label || item.name || '',
       children: item.children ? normalize(item.children) : []
     }))
   }
@@ -301,13 +303,13 @@ const filteredOptions = computed(() => {
   if (!searchKeyword.value) return normalizedOptions.value
 
   const keyword = searchKeyword.value.toLowerCase()
-  const result = []
+  const result: NormalizedCascaderOption[] = []
 
-  const filterItems = (items) => {
+  const filterItems = (items: NormalizedCascaderOption[]): NormalizedCascaderOption[] => {
     const matched = []
     for (const item of items) {
       const labelMatch = item.label.toLowerCase().includes(keyword)
-      let children = []
+      let children: NormalizedCascaderOption[] = []
 
       if (item.children && item.children.length > 0) {
         children = filterItems(item.children)
@@ -337,8 +339,8 @@ const selectedValues = computed({
 
 // 选中的选项
 const selectedItems = computed(() => {
-  const result = []
-  const findItems = (items) => {
+  const result: NormalizedCascaderOption[] = []
+  const findItems = (items: NormalizedCascaderOption[]) => {
     for (const item of items) {
       if (selectedValues.value.includes(item.value)) {
         result.push(item)
@@ -353,12 +355,12 @@ const selectedItems = computed(() => {
 })
 
 // 判断是否选中
-const isSelected = (value) => {
+const isSelected = (value: string) => {
   return selectedValues.value.includes(value)
 }
 
 // 切换选择
-const toggleSelect = (item) => {
+const toggleSelect = (item: NormalizedCascaderOption) => {
   const newValues = [...selectedValues.value]
   const index = newValues.indexOf(item.value)
 
@@ -372,7 +374,7 @@ const toggleSelect = (item) => {
 }
 
 // 移除标签
-const removeTag = (value) => {
+const removeTag = (value: string) => {
   const newValues = selectedValues.value.filter(v => v !== value)
   selectedValues.value = newValues
 }
@@ -383,7 +385,7 @@ const clearAll = () => {
 }
 
 // 切换展开
-const toggleExpand = (value) => {
+const toggleExpand = (value: string) => {
   const index = expandedKeys.value.indexOf(value)
   if (index > -1) {
     expandedKeys.value.splice(index, 1)
@@ -393,7 +395,7 @@ const toggleExpand = (value) => {
 }
 
 // 获取子项选中数量
-const getSelectedCount = (item) => {
+const getSelectedCount = (item: NormalizedCascaderOption) => {
   if (!item.children || item.children.length === 0) return 0
   return item.children.filter(child => selectedValues.value.includes(child.value)).length
 }
@@ -416,7 +418,8 @@ const toggleDropdown = () => {
 }
 
 // 点击外部关闭
-const handleClickOutside = (event) => {
+const handleClickOutside = (event: MouseEvent) => {
+  if (!(event.target instanceof Element)) return
   if (containerRef.value && !containerRef.value.contains(event.target)) {
     dropdownVisible.value = false
   }
@@ -427,15 +430,15 @@ watch(() => props.options, (newOptions) => {
   if (newOptions && newOptions.length > 0) {
     // 保持已选择的分类展开状态
     const selectedValuesSet = new Set(selectedValues.value)
-    const keysToExpand = []
+    const keysToExpand: string[] = []
 
-    const findParentKeys = (items, parentKey = null) => {
+    const findParentKeys = (items: CascaderOption[], parentKey: string | null = null) => {
       for (const item of items) {
-        if (selectedValuesSet.has(item.value) && parentKey) {
+        if (item.value !== undefined && selectedValuesSet.has(item.value) && parentKey) {
           keysToExpand.push(parentKey)
         }
         if (item.children && item.children.length > 0) {
-          findParentKeys(item.children, item.value)
+          findParentKeys(item.children, item.value ?? null)
         }
       }
     }

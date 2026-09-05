@@ -2,6 +2,10 @@
  * 题目表单公共逻辑 composable
  * 抽取真题/模拟题编辑弹窗的公共逻辑
  */
+import type { FormInstance } from 'element-plus'
+import type { CategoryTreeNode, QuestionCreateFields } from '@/types'
+import type { QuestionForm, QuestionFormData } from './questionFormTypes'
+import { parseOptions } from './questionFormTypes'
 import { ref, reactive, computed } from 'vue'
 import { getEnabledCategoriesBySubject, getEnabledCategoryTreeBySubject } from '@/api/category'
 import { useSubjects } from './useSubjects'
@@ -12,11 +16,11 @@ import { useSubjects } from './useSubjects'
  * @param {Array} options.extraFields - 额外的表单字段定义
  * @returns {Object} 表单状态和方法
  */
-export function useQuestionForm(options = {}) {
+export function useQuestionForm(options: { extraFields?: Partial<QuestionForm> } = {}) {
   const { extraFields = {} } = options
 
   // 基础状态
-  const formRef = ref(null)
+  const formRef = ref<FormInstance | null>(null)
   const loading = ref(false)
   const saving = ref(false)
 
@@ -24,12 +28,14 @@ export function useQuestionForm(options = {}) {
   const { subjectOptions, loadSubjectOptions } = useSubjects()
 
   // 选项数据
-  const categoryOptions = ref([])
+  const categoryOptions = ref<{ label: string; value: string }[]>([])
   // 树形分类数据（用于级联选择器）
-  const categoryTreeOptions = ref([])
+  interface TreeOption { value: string; label: string; children?: TreeOption[] }
+  const categoryTreeOptions = ref<TreeOption[]>([])
 
   // 基础表单字段
-  const baseFormFields = {
+  const baseFormFields: QuestionForm = {
+    year: new Date().getFullYear(), source: '', questionNumber: null,
     questionType: 'ESSAY',
     subjectId: null,
     title: '',
@@ -44,7 +50,7 @@ export function useQuestionForm(options = {}) {
   }
 
   // 合并额外字段
-  const form = reactive({
+  const form = reactive<QuestionForm>({
     ...baseFormFields,
     ...extraFields
   })
@@ -91,7 +97,7 @@ export function useQuestionForm(options = {}) {
    * 重置表单到初始状态
    * @param {Object} extraDefaults - 额外字段的默认值
    */
-  const resetForm = (extraDefaults = {}) => {
+  const resetForm = (extraDefaults: Partial<QuestionForm> = {}) => {
     Object.assign(form, {
       ...baseFormFields,
       ...extraFields,
@@ -105,7 +111,7 @@ export function useQuestionForm(options = {}) {
    * 根据科目加载分类选项（扁平列表，兼容旧逻辑）
    * @param {Number} subjectId - 科目ID
    */
-  const loadSubjectCategoryOptions = async (subjectId) => {
+  const loadSubjectCategoryOptions = async (subjectId: number | null) => {
     if (!subjectId) {
       categoryOptions.value = []
       return
@@ -139,7 +145,7 @@ export function useQuestionForm(options = {}) {
    * 根据科目加载树形分类选项（用于级联选择器）
    * @param {Number} subjectId - 科目ID
    */
-  const loadSubjectCategoryTreeOptions = async (subjectId) => {
+  const loadSubjectCategoryTreeOptions = async (subjectId: number | null) => {
     if (!subjectId) {
       categoryTreeOptions.value = []
       return
@@ -150,7 +156,7 @@ export function useQuestionForm(options = {}) {
       if (res.code === 200) {
         // 转换为级联选择器需要的格式
         // 注意：checkStrictly: true 允许选择任意层级分类
-        const transformTree = (nodes) => {
+        const transformTree = (nodes: CategoryTreeNode[]): TreeOption[] => {
           return (nodes || []).map(node => ({
             value: node.name,
             label: node.name,
@@ -170,7 +176,7 @@ export function useQuestionForm(options = {}) {
    * 处理科目变更
    * @param {Number} subjectId - 科目ID
    */
-  const handleSubjectChange = async (subjectId) => {
+  const handleSubjectChange = async (subjectId: number | '' | null) => {
     if (!subjectId) {
       form.subjectId = null
       form.category = []
@@ -208,7 +214,7 @@ export function useQuestionForm(options = {}) {
    * 从API响应数据填充表单
    * @param {Object} data - API返回的题目数据
    */
-  const fillFormFromData = async (data) => {
+  const fillFormFromData = async (data: QuestionFormData) => {
     // 同时支持 camelCase 和 snake_case 格式的字段
     const questionType = data.questionType ?? data.question_type ?? 'ESSAY'
     const subjectId = data.subjectId ?? data.subject_id ?? null
@@ -219,15 +225,15 @@ export function useQuestionForm(options = {}) {
     form.content = data.content || ''
 
     // 处理分类字段：可能是JSON字符串或数组
-    let categoryValue = data.category
+    let categoryValue: unknown = data.category
     if (typeof categoryValue === 'string' && categoryValue) {
       try {
         categoryValue = JSON.parse(categoryValue)
       } catch (e) {
-        categoryValue = [categoryValue]
+        categoryValue = [data.category]
       }
     }
-    form.category = Array.isArray(categoryValue) ? categoryValue : (categoryValue ? [categoryValue] : [])
+    form.category = Array.isArray(categoryValue) ? categoryValue.filter((item: unknown): item is string => typeof item === 'string') : (typeof categoryValue === 'string' && categoryValue ? [categoryValue] : [])
 
     form.difficulty = data.difficulty || ''
 
@@ -246,9 +252,7 @@ export function useQuestionForm(options = {}) {
     if (questionType === 'CHOICE') {
       if (data.options) {
         try {
-          const options = typeof data.options === 'string'
-            ? JSON.parse(data.options)
-            : data.options
+          const options = parseOptions(data.options)
           form.optionA = options.A || ''
           form.optionB = options.B || ''
           form.optionC = options.C || ''
@@ -272,8 +276,9 @@ export function useQuestionForm(options = {}) {
    * @param {Object} extraData - 额外的提交字段
    * @returns {Object} 提交数据
    */
-  const buildSubmitData = (extraData = {}) => {
-    const data = {
+  const buildSubmitData = <T extends object>(extraData: T) => {
+    const data: QuestionCreateFields & T = {
+      content: form.content,
       questionType: form.questionType,
       subjectId: form.subjectId || null,
       title: form.title || null,

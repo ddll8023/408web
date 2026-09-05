@@ -20,7 +20,7 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 /**
  * 应用根组件
  * 管理全局布局结构：导航栏 + 内容区域

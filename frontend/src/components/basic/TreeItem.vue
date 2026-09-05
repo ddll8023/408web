@@ -63,9 +63,9 @@
         :allow-drop="allowDrop"
         :allow-drag="allowDrag"
         @toggle-expand="$emit('toggle-expand', $event)"
-        @dragstart="handleDragStart"
-        @dragover="handleDragOver"
-        @drop="handleDrop"
+        @dragstart="(event, node) => emit('dragstart', event, node)"
+        @dragover="(event, node) => emit('dragover', event, node)"
+        @drop="(event, node, type) => emit('drop', event, node, type)"
         @dragend="handleDragEnd"
       >
         <template #default="{ node: childNode, level: childLevel }">
@@ -76,7 +76,9 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts" generic="T extends TreeShape<T>">
+import { computed, ref } from 'vue'
+import type { TreeShape, TreeDropType, TreeDrop, AllowDrop } from './types'
 /**
  * TreeItem 树节点递归组件
  * 功能：渲染单个树节点，支持展开/折叠和拖拽
@@ -88,64 +90,14 @@ defineOptions({
   name: 'TreeItem'
 })
 
-import { computed, ref } from 'vue'
 
-const props = defineProps({
-  // 节点数据
-  node: {
-    type: Object,
-    required: true
-  },
-  // 节点唯一标识字段
-  nodeKey: {
-    type: String,
-    default: 'id'
-  },
-  // 显示字段
-  label: {
-    type: String,
-    default: 'name'
-  },
-  // 子节点字段
-  childrenKey: {
-    type: String,
-    default: 'children'
-  },
-  // 已展开的节点ID数组
-  expandedKeys: {
-    type: Array,
-    default: () => []
-  },
-  // 当前层级
-  level: {
-    type: Number,
-    default: 0
-  },
-  // 是否可拖拽
-  draggable: {
-    type: Boolean,
-    default: false
-  },
-  // 放置规则
-  allowDrop: {
-    type: Function,
-    default: () => true
-  },
-  // 拖拽规则
-  allowDrag: {
-    type: Function,
-    default: () => true
-  }
-})
-
-const emit = defineEmits([
-  'click',
-  'toggle-expand',
-  'dragstart',
-  'dragover',
-  'dragleave',
-  'drop'
-])
+const props = withDefaults(defineProps<{
+  node: T; level?: number
+  nodeKey?: 'id'; label?: 'name'; childrenKey?: 'children'; expandedKeys?: number[]
+  draggable?: boolean; allowDrop?: AllowDrop<T>; allowDrag?: (node: T) => boolean
+}>(), { level: 0, nodeKey: 'id', label: 'name', childrenKey: 'children', expandedKeys: () => [], draggable: false, allowDrop: () => true, allowDrag: () => true })
+const emit = defineEmits<{ click: [node: T]; 'toggle-expand': [id: number]; dragstart: [event: DragEvent, node: T]; dragover: [event: DragEvent, node: T]; dragleave: []; drop: [event: DragEvent, node: T, type: TreeDropType] }>()
+defineSlots<{ default?: (props: { node: T; level: number }) => unknown; empty?: () => unknown; actions?: (props: { node: T }) => unknown }>()
 
 // 拖拽状态
 const isDragging = ref(false)
@@ -194,13 +146,13 @@ const toggleExpand = () => {
 }
 
 // 拖拽开始
-const handleDragStart = (event) => {
+const handleDragStart = (event: DragEvent) => {
   isDragging.value = true
   emit('dragstart', event, props.node)
 }
 
 // 拖拽经过
-const handleDragOver = (event) => {
+const handleDragOver = (event: DragEvent) => {
   event.preventDefault()
   isDropTarget.value = true
   emit('dragover', event, props.node)
@@ -212,13 +164,14 @@ const handleDragLeave = () => {
 }
 
 // 放置
-const handleDrop = (event) => {
+const handleDrop = (event: DragEvent) => {
   isDropTarget.value = false
 
   // 计算放置类型
+  if (!(event.currentTarget instanceof HTMLElement)) return
   const rect = event.currentTarget.getBoundingClientRect()
   const midY = rect.top + rect.height / 2
-  let dropType = 'inner'
+  let dropType: TreeDropType = 'inner'
 
   if (event.clientY < midY - 10) {
     dropType = 'before'

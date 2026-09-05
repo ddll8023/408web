@@ -13,7 +13,7 @@ export function useToast() {
    * @param {string} type - 消息类型：success, error, warning, info
    * @param {number} duration - 显示时长（毫秒）
    */
-  const showToast = (message, type = 'success', duration = 3000) => {
+  const showToast = (message: string, type: 'success' | 'error' | 'warning' | 'info' = 'success', duration = 3000) => {
     // 创建一个临时的 toast 元素
     const toast = document.createElement('div')
     toast.setAttribute('data-toast-component', 'true')

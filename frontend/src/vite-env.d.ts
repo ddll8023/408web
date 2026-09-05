@@ -8,12 +8,3 @@ interface ImportMetaEnv {
 interface ImportMeta {
   readonly env: ImportMetaEnv
 }
-
-declare module 'vue-router' {
-  interface RouteMeta {
-    /** 需要登录才能访问 */
-    requiresAuth?: boolean
-    /** 需要管理员权限才能访问 */
-    requiresAdmin?: boolean
-  }
-}

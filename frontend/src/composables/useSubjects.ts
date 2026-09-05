@@ -31,7 +31,7 @@ export function useSubjects() {
    * @param {Number} subjectId 科目ID
    * @returns {String} 科目名称
    */
-  const getSubjectName = (subjectId) => {
+  const getSubjectName = (subjectId: number | null | undefined) => {
     return subjectsStore.getSubjectName(subjectId)
   }
 

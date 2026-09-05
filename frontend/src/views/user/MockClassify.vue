@@ -95,7 +95,11 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
+import type { MockQuestion, Subject, CategoryTreeNode, ExamNavItem } from "@/types"
+import { queryString } from "@/utils/storage"
+import { parseQuestionOptions } from "@/utils/questionOptions"
+import { errorMessage } from "@/utils/errors"
 /**
  * 模拟题分类浏览页面
  * 功能：按科目聚合展示模拟题，支持分类筛选
@@ -128,8 +132,8 @@ const isAdmin = computed(() => authStore.isAdmin())
 
 // 编辑弹窗状态
 const editDialogVisible = ref(false)
-const editingMockId = ref(null)
-const editingMockData = ref(null)  // 编辑时传递的完整数据（避免重复请求API）
+const editingMockId = ref<number | null>(null)
+const editingMockData = ref<MockQuestion | null>(null)  // 编辑时传递的完整数据（避免重复请求API）
 
 // UI State
 const isNavCollapsed = ref(false)
@@ -137,11 +141,11 @@ const loadingSubjects = ref(false)
 const questionsLoading = ref(false)
 
 // Data
-const subjects = ref([])
-const subjectCategories = ref({})
-const activeSubjectId = ref(null)
+const subjects = ref<Subject[]>([])
+const subjectCategories = ref<Record<number, CategoryTreeNode[]>>({})
+const activeSubjectId = ref<number | null>(null)
 const activeSubjectName = ref('')
-const expandedSubjectId = ref(null)
+const expandedSubjectId = ref<number | null>(null)
 
 // Pagination State
 const currentPage = ref(1)
@@ -160,9 +164,9 @@ const questionTypeOptions = [
 ]
 
 // Questions Data
-const questionList = ref([])
+const questionList = ref<MockQuestion[]>([])
 const total = ref(0)
-const showAnswers = ref({})
+const showAnswers = ref<Record<number, boolean>>({})
 
 
 
@@ -185,7 +189,7 @@ const groupedQuestions = computed(() => {
     list = list.filter(q => q.questionType !== 'CHOICE')
   }
 
-  const groupsMap = new Map()
+  const groupsMap = new Map<string, MockQuestion[]>()
 
   list.forEach((question) => {
     const categories = Array.isArray(question.category) && question.category.length
@@ -197,7 +201,7 @@ const groupedQuestions = computed(() => {
       if (!groupsMap.has(cat)) {
         groupsMap.set(cat, [])
       }
-      groupsMap.get(cat).push(question)
+      groupsMap.get(cat)?.push(question)
     })
   })
 
@@ -237,7 +241,7 @@ const loadSubjects = async () => {
       try {
         const statsRes = await getMockSubjectStats()
         if (statsRes.code === 200 && statsRes.data) {
-          const statsMap = {}
+          const statsMap: Record<number, number> = {}
           statsRes.data.forEach(item => {
             statsMap[item.subjectId] = item.count
           })
@@ -252,10 +256,10 @@ const loadSubjects = async () => {
       }
       
       // 检查URL参数
-      const subjectFromRoute = route.query.subject
-      const categoryFromRoute = route.query.category
+      const subjectFromRoute = queryString(route.query.subject)
+      const categoryFromRoute = queryString(route.query.category)
       
-      let initialSubject = null
+      let initialSubject: Subject | undefined
       
       if (subjectFromRoute && subjects.value.length > 0) {
         initialSubject = subjects.value.find(s => s.name === subjectFromRoute)
@@ -318,7 +322,7 @@ const handleHashScroll = async () => {
   }
 }
 
-const loadCategoriesForSubject = async (subjectId) => {
+const loadCategoriesForSubject = async (subjectId: number) => {
   if (subjectCategories.value[subjectId]) {
     return
   }
@@ -339,7 +343,7 @@ const loadCategoriesForSubject = async (subjectId) => {
 }
 
 // Interaction: Select Subject
-const handleSubjectSelect = async (subject) => {
+const handleSubjectSelect = async (subject: Subject) => {
   if (activeSubjectId.value === subject.id) return
 
   activeSubjectId.value = subject.id
@@ -356,7 +360,8 @@ const handleSubjectSelect = async (subject) => {
   ])
 }
 
-const toggleSubjectExpand = async (subject) => {
+const toggleSubjectExpand = async (subject: Subject | null) => {
+  if (!subject) { expandedSubjectId.value = null; return }
   const id = subject.id
 
   if (expandedSubjectId.value === id) {
@@ -368,7 +373,7 @@ const toggleSubjectExpand = async (subject) => {
   expandedSubjectId.value = id
 }
 
-const handleCategorySelect = (subject, category) => {
+const handleCategorySelect = (subject: Subject, category: string) => {
   if (activeSubjectId.value !== subject.id) {
     activeSubjectId.value = subject.id
     activeSubjectName.value = subject.name
@@ -385,7 +390,7 @@ const handleCategorySelect = (subject, category) => {
 
 
 
-const toggleAnswer = (id) => {
+const toggleAnswer = (id: number) => {
   showAnswers.value[id] = !showAnswers.value[id]
 }
 
@@ -450,7 +455,7 @@ const loadQuestions = async (isReset = false) => {
 }
 
 // 复制工具函数
-const copyToClipboard = async (text) => {
+const copyToClipboard = async (text: string) => {
   try {
     if (navigator.clipboard && window.isSecureContext) {
       await navigator.clipboard.writeText(text)
@@ -484,7 +489,7 @@ const copyToClipboard = async (text) => {
  * - 方括号数字：[1] [2] [3] 等
  * - 大写字母 + 括号：(A) (B) (C) (D) 等
  */
-const normalizeLineBreaks = (text) => {
+const normalizeLineBreaks = (text: string) => {
   if (!text || typeof text !== 'string') return text
   
   // 如果文本已经在这些模式前有换行符，跳过处理
@@ -519,10 +524,10 @@ const normalizeLineBreaks = (text) => {
 /**
  * 解析选项JSON为对象
  */
-const parseOptions = (mock) => {
+const parseOptions = (mock: MockQuestion) => {
   if (mock?.questionType !== 'CHOICE' || !mock?.options) return null
   try {
-    return JSON.parse(mock.options)
+    return parseQuestionOptions(mock.options)
   } catch (e) {
     return null
   }
@@ -531,7 +536,7 @@ const parseOptions = (mock) => {
 /**
  * 获取题目元信息标签
  */
-const getMockTags = (mock) => {
+const getMockTags = (mock: MockQuestion) => {
   const questionType = mock.questionType === 'CHOICE' ? '选择题' : '主观题'
   const category = Array.isArray(mock.category) ? mock.category.join(', ') : (mock.category || '')
   const tags = [questionType, category].filter(Boolean)
@@ -544,14 +549,14 @@ const getMockTags = (mock) => {
  * 获取标题和题号组合的标识字符串
  * 格式: "标题·第X题" 或 "标题" 或 "第X题"
  */
-const getMockTitleLine = (mock) => {
+const getMockTitleLine = (mock: MockQuestion) => {
   const parts = []
   if (mock?.title) parts.push(mock.title)
   if (mock?.questionNumber) parts.push(`第${mock.questionNumber}题`)
   return parts.join(' · ')
 }
 
-const formatQuestionMarkdown = (mock) => {
+const formatQuestionMarkdown = (mock: MockQuestion) => {
   if (!mock?.content) return ''
   const parts = []
   const tags = getMockTags(mock)
@@ -569,7 +574,7 @@ const formatQuestionMarkdown = (mock) => {
   return parts.join('\n')
 }
 
-const formatOptionsMarkdown = (mock) => {
+const formatOptionsMarkdown = (mock: MockQuestion) => {
   const optionsObj = parseOptions(mock)
   if (!optionsObj) return ''
   const parts = ['### 选项']
@@ -579,12 +584,12 @@ const formatOptionsMarkdown = (mock) => {
   return parts.join('\n')
 }
 
-const formatAnswerMarkdown = (mock) => {
+const formatAnswerMarkdown = (mock: MockQuestion) => {
   if (!mock?.answer) return ''
   return ['### 答案', normalizeLineBreaks(mock.answer)].join('\n')
 }
 
-const formatFullMarkdown = (mock) => {
+const formatFullMarkdown = (mock: MockQuestion) => {
   const parts = []
   const tags = getMockTags(mock)
   const titleLine = getMockTitleLine(mock)
@@ -624,7 +629,7 @@ const formatFullMarkdown = (mock) => {
 
 // ==================== 纯文本格式化函数 ====================
 
-const formatQuestionText = (mock) => {
+const formatQuestionText = (mock: MockQuestion) => {
   if (!mock?.content) return ''
   const questionType = mock.questionType === 'CHOICE' ? '选择题' : '主观题'
   const category = Array.isArray(mock.category) ? mock.category.join(', ') : (mock.category || '')
@@ -643,7 +648,7 @@ const formatQuestionText = (mock) => {
   return parts.join('\n')
 }
 
-const formatOptionsText = (mock) => {
+const formatOptionsText = (mock: MockQuestion) => {
   const optionsObj = parseOptions(mock)
   if (!optionsObj) return ''
   const parts = ['【选项】']
@@ -653,12 +658,12 @@ const formatOptionsText = (mock) => {
   return parts.join('\n')
 }
 
-const formatAnswerText = (mock) => {
+const formatAnswerText = (mock: MockQuestion) => {
   if (!mock?.answer) return ''
   return ['【答案】', normalizeLineBreaks(mock.answer)].join('\n')
 }
 
-const formatFullText = (mock) => {
+const formatFullText = (mock: MockQuestion) => {
   const questionType = mock.questionType === 'CHOICE' ? '选择题' : '主观题'
   const category = Array.isArray(mock.category) ? mock.category.join(', ') : (mock.category || '')
   const titleLine = getMockTitleLine(mock)
@@ -698,7 +703,7 @@ const formatFullText = (mock) => {
 }
 
 // 统一处理复制逻辑（支持 md-* 和 text-* 两种格式）
-const handleCopy = async (command, mock) => {
+const handleCopy = async (command: string, mock: MockQuestion) => {
   let text = ''
   let message = ''
 
@@ -754,7 +759,7 @@ const handleCopy = async (command, mock) => {
   }
 }
 
-const handleEdit = (mock) => {
+const handleEdit = (mock: MockQuestion) => {
   if (!mock?.id) return
   editingMockId.value = mock.id
   editingMockData.value = mock  // 传递完整数据，避免重复请求API
@@ -768,7 +773,7 @@ const handleEditSuccess = async () => {
   editingMockData.value = null
 }
 
-const handleDelete = async (id) => {
+const handleDelete = async (id: number) => {
   try {
     await ElMessageBox.confirm(
       '此操作将永久删除该模拟题，是否继续？',

@@ -80,7 +80,7 @@
               density="compact"
               @copy="(cmd) => handleCopy(cmd, exam)"
               @edit="handleEdit"
-              @delete="(id) => handleDelete(id)"
+              @delete="(id: number) => handleDelete(id)"
               @toggle-answer="toggleYearAnswer(exam.id)"
             />
           </div>
@@ -114,7 +114,11 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
+import type { ExamQuestion, Subject, CategoryTreeNode, ExamNavItem } from "@/types"
+import { queryString } from "@/utils/storage"
+import { parseQuestionOptions } from "@/utils/questionOptions"
+import { errorMessage } from "@/utils/errors"
 /**
  * 真题主页面
  * 功能：左侧年份导航，右侧显示选中真题的详细内容
@@ -148,18 +152,20 @@ const authStore = useAuthStore()
 const isAdmin = computed(() => authStore.isAdmin())
 
 // 年份树数据
-const yearList = ref([])
+type NavQuestion = Omit<ExamNavItem, "year">
+type NavYear = {year: number; exams: NavQuestion[]}
+const yearList = ref<NavYear[]>([])
 const loadingYearList = ref(false)
 
 // 当前分类（来自路由查询参数）
-const activeCategory = ref(route.query.category || '')
+const activeCategory = ref(queryString(route.query.category))
 
 // 当前激活的年份和题目
-const activeYear = ref(null)
-const activeExamId = ref(null)
+const activeYear = ref<number | null>(null)
+const activeExamId = ref<number | null>(null)
 
 // 当前年份的所有题目
-const examList = ref([])
+const examList = ref<ExamQuestion[]>([])
 
 // 标题：显示当前年份
 const currentTitle = computed(() => {
@@ -177,23 +183,23 @@ const displayTotal = computed(() => {
 const loading = ref(false)
 
 // 年份视图下,每道题的答案显示状态
-const showAnswers = ref({})
+const showAnswers = ref<Record<number, boolean>>({})
 
 // 导航栏是否折叠
 const isNavCollapsed = ref(false)
 
 // 题目编辑弹窗状态
 const editDialogVisible = ref(false)
-const editingExamId = ref(null)
+const editingExamId = ref<number | null>(null)
 
 // 记录从哪个题目进入编辑页，以便返回时滚回该题目
 const RETURN_SCROLL_KEY = 'exam-return-position'
 
 // 导航数据缓存（按分类缓存，避免重复请求）
-const navCache = new Map()
+const navCache = new Map<string, NavYear[]>()
 
 // 复制工具函数
-const copyToClipboard = async (text) => {
+const copyToClipboard = async (text: string) => {
   try {
     if (navigator.clipboard && window.isSecureContext) {
       await navigator.clipboard.writeText(text)
@@ -227,8 +233,10 @@ const applyReturnScrollIfNeeded = () => {
     const raw = sessionStorage.getItem(RETURN_SCROLL_KEY)
     if (!raw) return
 
-    const info = JSON.parse(raw)
-    if (info.source === 'year' && info.year === activeYear.value && info.questionNumber) {
+    const info: unknown = JSON.parse(raw)
+    if (typeof info !== 'object' || info === null) return
+    if ('source' in info && info.source === 'year' && 'year' in info && info.year === activeYear.value
+      && 'questionNumber' in info && typeof info.questionNumber === 'number' && info.questionNumber) {
       scrollToExam(info.questionNumber)
       sessionStorage.removeItem(RETURN_SCROLL_KEY)
     }
@@ -244,7 +252,7 @@ const applyReturnScrollIfNeeded = () => {
  * @param {Object} exam - 题目对象
  * @returns {string} 格式化的标签字符串，如 "[选择题] [数据结构]"
  */
-const getExamTags = (exam) => {
+const getExamTags = (exam: ExamQuestion) => {
   const questionType = exam.questionType === 'CHOICE' ? '选择题' : '主观题'
   const category = Array.isArray(exam.category) ? exam.category.join(', ') : (exam.category || '')
   const difficulty = exam.difficulty ? getDifficultyLabel(exam.difficulty) : ''
@@ -257,10 +265,10 @@ const getExamTags = (exam) => {
  * @param {Object} exam - 题目对象
  * @returns {Object} 选项对象
  */
-const parseOptions = (exam) => {
+const parseOptions = (exam: ExamQuestion) => {
   if (exam?.questionType !== 'CHOICE' || !exam?.options) return null
   try {
-    return JSON.parse(exam.options)
+    return parseQuestionOptions(exam.options)
   } catch (e) {
     console.error('解析选项失败:', e)
     return null
@@ -277,7 +285,7 @@ const parseOptions = (exam) => {
  * - 方括号数字：[1] [2] [3] 等
  * - 大写字母 + 括号：(A) (B) (C) (D) 等
  */
-const normalizeLineBreaks = (text) => {
+const normalizeLineBreaks = (text: string) => {
   if (!text || typeof text !== 'string') return text
   
   const patterns = [
@@ -307,7 +315,7 @@ const normalizeLineBreaks = (text) => {
 /**
  * 格式化题目为 Markdown（与导出格式一致）
  */
-const formatQuestionMarkdown = (exam) => {
+const formatQuestionMarkdown = (exam: ExamQuestion) => {
   if (!exam?.content) return ''
   const parts = []
   const questionNumber = exam.questionNumber || ''
@@ -323,7 +331,7 @@ const formatQuestionMarkdown = (exam) => {
 /**
  * 格式化选项为 Markdown
  */
-const formatOptionsMarkdown = (exam) => {
+const formatOptionsMarkdown = (exam: ExamQuestion) => {
   const optionsObj = parseOptions(exam)
   if (!optionsObj) return ''
   const optionKeys = Object.keys(optionsObj).sort()
@@ -338,7 +346,7 @@ const formatOptionsMarkdown = (exam) => {
 /**
  * 格式化答案为 Markdown
  */
-const formatAnswerMarkdown = (exam) => {
+const formatAnswerMarkdown = (exam: ExamQuestion) => {
   if (!exam?.answer) return ''
   const parts = []
   parts.push('### 答案')
@@ -349,7 +357,7 @@ const formatAnswerMarkdown = (exam) => {
 /**
  * 格式化完整内容为 Markdown（与导出格式一致）
  */
-const formatFullMarkdown = (exam) => {
+const formatFullMarkdown = (exam: ExamQuestion) => {
   const parts = []
   const questionNumber = exam.questionNumber || ''
   const tags = getExamTags(exam)
@@ -392,7 +400,7 @@ const formatFullMarkdown = (exam) => {
 /**
  * 格式化题目为纯文本（保留换行）
  */
-const formatQuestionText = (exam) => {
+const formatQuestionText = (exam: ExamQuestion) => {
   if (!exam?.content) return ''
   const questionNumber = exam.questionNumber || ''
   const questionType = exam.questionType === 'CHOICE' ? '选择题' : '主观题'
@@ -409,7 +417,7 @@ const formatQuestionText = (exam) => {
 /**
  * 格式化选项为纯文本（保留换行）
  */
-const formatOptionsText = (exam) => {
+const formatOptionsText = (exam: ExamQuestion) => {
   const optionsObj = parseOptions(exam)
   if (!optionsObj) return ''
   const optionKeys = Object.keys(optionsObj).sort()
@@ -424,7 +432,7 @@ const formatOptionsText = (exam) => {
 /**
  * 格式化答案为纯文本（保留换行）
  */
-const formatAnswerText = (exam) => {
+const formatAnswerText = (exam: ExamQuestion) => {
   if (!exam?.answer) return ''
   const parts = []
   parts.push('【答案】')
@@ -435,7 +443,7 @@ const formatAnswerText = (exam) => {
 /**
  * 格式化完整内容为纯文本（保留换行）
  */
-const formatFullText = (exam) => {
+const formatFullText = (exam: ExamQuestion) => {
   const parts = []
   const questionNumber = exam.questionNumber || ''
   const questionType = exam.questionType === 'CHOICE' ? '选择题' : '主观题'
@@ -475,7 +483,7 @@ const formatFullText = (exam) => {
 }
 
 // 统一处理复制逻辑（支持 md-* 和 text-* 两种格式）
-const handleCopy = async (command, exam) => {
+const handleCopy = async (command: string, exam: ExamQuestion) => {
   let text = ''
   let message = ''
 
@@ -553,8 +561,8 @@ const handleCopy = async (command, exam) => {
 /**
  * 切换答案显示/隐藏(年份视图,指定题目ID)
  */
-const toggleYearAnswer = (examId) => {
-  showAnswers.value[examId] = !showAnswers.value[examId]
+const toggleYearAnswer = (examId: number | string) => {
+  showAnswers.value[Number(examId)] = !showAnswers.value[Number(examId)]
 }
 
 
@@ -566,7 +574,7 @@ const loadYearList = async () => {
   // 检查缓存
   const cacheKey = activeCategory.value || 'all'
   if (navCache.has(cacheKey)) {
-    yearList.value = navCache.get(cacheKey)
+    yearList.value = navCache.get(cacheKey) ?? []
     return
   }
 
@@ -580,12 +588,12 @@ const loadYearList = async () => {
     if (response.code === 200) {
       const exams = response.data || []
 
-      const yearMap = new Map()
+      const yearMap = new Map<number, NavQuestion[]>()
       exams.forEach(exam => {
         if (!yearMap.has(exam.year)) {
           yearMap.set(exam.year, [])
         }
-        yearMap.get(exam.year).push({
+        yearMap.get(exam.year)?.push({
           id: exam.id,
           title: exam.title,
           questionNumber: exam.questionNumber,
@@ -617,7 +625,7 @@ const loadYearList = async () => {
 /**
  * 加载指定年份的所有题目（可按分类过滤）
  */
-const loadExamsByYear = async (year) => {
+const loadExamsByYear = async (year: number | null) => {
   if (!year) {
     examList.value = []
     return
@@ -649,7 +657,7 @@ const loadExamsByYear = async (year) => {
 /**
  * 处理年份选择
  */
-const handleYearSelect = (year) => {
+const handleYearSelect = (year: number | null) => {
   activeYear.value = year
   activeExamId.value = null
   // 加载该年份的所有题目
@@ -659,7 +667,7 @@ const handleYearSelect = (year) => {
 /**
  * 滚动到指定题目
  */
-const scrollToExam = (questionNumber) => {
+const scrollToExam = (questionNumber: number | null | undefined) => {
   nextTick(() => {
     const targetElement = document.getElementById(`question-${questionNumber}`)
     if (targetElement) {
@@ -680,7 +688,7 @@ onActivated(() => {
 /**
  * 处理题目选择（锚点滚动）
  */
-const handleExamSelect = (exam) => {
+const handleExamSelect = (exam: NavQuestion) => {
   // 查找题目所属年份
   const yearData = yearList.value.find(y => 
     y.exams.some(e => e.id === exam.id)
@@ -704,7 +712,7 @@ const handleExamSelect = (exam) => {
 /**
  * 处理导航栏折叠状态变化
  */
-const handleNavCollapseChange = (collapsed) => {
+const handleNavCollapseChange = (collapsed: boolean) => {
   isNavCollapsed.value = collapsed
 }
 
@@ -718,7 +726,7 @@ const handleCreate = () => {
 /**
  * 处理编辑（跳转编辑页面）
  */
-const handleEdit = (exam) => {
+const handleEdit = (exam: ExamQuestion) => {
   if (!exam || !exam.id) {
     return
   }
@@ -737,7 +745,7 @@ const handleEditSuccess = async () => {
 /**
  * 处理删除
  */
-const handleDelete = async (id) => {
+const handleDelete = async (id: number) => {
   try {
     await confirm(
       '此操作将永久删除该真题，是否继续？',
@@ -774,7 +782,7 @@ const handleDelete = async (id) => {
 /**
  * 处理导出命令（下拉菜单）
  */
-const handleExportCommand = (command) => {
+const handleExportCommand = (command: string) => {
   switch (command) {
     case 'markdown':
       exportAsMarkdown()
@@ -825,7 +833,7 @@ const exportAsMarkdown = () => {
       parts.push('')
       
       // 题目内容
-      const question = formatQuestionMarkdown(exam)
+      const question = normalizeLineBreaks(exam.content)
       if (question) {
         parts.push('### 题目')
         parts.push(question)
@@ -836,7 +844,6 @@ const exportAsMarkdown = () => {
       if (exam.questionType === 'CHOICE') {
         const options = formatOptionsMarkdown(exam)
         if (options) {
-          parts.push('### 选项')
           parts.push(options)
           parts.push('')
         }
@@ -845,7 +852,6 @@ const exportAsMarkdown = () => {
       // 答案
       const answer = formatAnswerMarkdown(exam)
       if (answer) {
-        parts.push('### 答案')
         parts.push(answer)
         parts.push('')
       }
@@ -1014,7 +1020,7 @@ const exportAsDocx = async () => {
     
     toast.success(`已导出 ${examList.value.length} 道题目（Word格式）`)
   } catch (error) {
-    if (error.message && error.message.includes('Cannot find module')) {
+    if (errorMessage(error, '').includes('Cannot find module')) {
       toast.error('请先安装 docx 依赖：npm install docx')
     } else {
       toast.error('DOCX导出失败，请重试')
@@ -1029,7 +1035,7 @@ const exportAsDocx = async () => {
  * @param {string} filename - 文件名
  * @param {string} mimeType - MIME类型
  */
-const downloadFile = (content, filename, mimeType) => {
+const downloadFile = (content: BlobPart, filename: string, mimeType: string) => {
   // 创建Blob对象
   const blob = new Blob([content], { type: mimeType })
   
@@ -1053,7 +1059,7 @@ watch(
   () => route.params.year,
   (newYear) => {
     if (newYear) {
-      const year = parseInt(newYear)
+      const year = parseInt(queryString(newYear))
       activeYear.value = year
       handleYearSelect(year)
     }
@@ -1068,7 +1074,7 @@ watch(
     if (newCategory !== oldCategory) {
       navCache.clear()
     }
-    activeCategory.value = newCategory || ''
+    activeCategory.value = queryString(newCategory)
 
     // 使用缓存或重新加载
     loadYearList()
@@ -1087,7 +1093,7 @@ onMounted(async () => {
 
   // 如果路由有 year 参数，加载对应年份的真题
   if (route.params.year) {
-    const year = parseInt(route.params.year)
+    const year = parseInt(queryString(route.params.year))
     activeYear.value = year
     await loadExamsByYear(year)
   }

@@ -77,7 +77,7 @@
                   density="compact"
                   @copy="(cmd) => handleCopy(cmd, exam)"
                   @edit="handleEdit"
-                  @delete="(id) => handleDelete(id)"
+                  @delete="(id: number) => handleDelete(id)"
                   @toggle-answer="toggleAnswer(exam.id)"
                 />
               </template>
@@ -113,7 +113,11 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
+import type { ExamQuestion, Subject, CategoryTreeNode, ExamNavItem } from "@/types"
+import { queryString } from "@/utils/storage"
+import { parseQuestionOptions } from "@/utils/questionOptions"
+import { errorMessage } from "@/utils/errors"
 /**
  * 真题分类浏览页面 (重构版)
  * 功能：按科目聚合展示真题，支持分类与年份筛选
@@ -153,14 +157,14 @@ const questionsLoading = ref(false)
 
 // 题目编辑弹窗状态
 const editDialogVisible = ref(false)
-const editingExamId = ref(null)
+const editingExamId = ref<number | null>(null)
 
 // Data
-const subjects = ref([])
-const subjectCategories = ref({})
-const activeSubjectId = ref(null)
+const subjects = ref<Subject[]>([])
+const subjectCategories = ref<Record<number, CategoryTreeNode[]>>({})
+const activeSubjectId = ref<number | null>(null)
 const activeSubjectName = ref('')
-const expandedSubjectId = ref(null)
+const expandedSubjectId = ref<number | null>(null)
 
 // Pagination State
 const currentPage = ref(1)
@@ -180,9 +184,9 @@ const questionTypeOptions = [
 ]
 
 // Questions Data
-const questionList = ref([])
+const questionList = ref<ExamQuestion[]>([])
 const total = ref(0)
-const showAnswers = ref({}) // map: { examId: boolean }
+const showAnswers = ref<Record<number, boolean>>({}) // map: { examId: boolean }
 
 
 
@@ -205,9 +209,9 @@ const groupedQuestions = computed(() => {
     list = list.filter(exam => exam.questionType !== 'CHOICE')
   }
 
-  const groupsMap = new Map()
+  const groupsMap = new Map<string, ExamQuestion[]>()
 
-  list.forEach((exam) => {
+  list.forEach((exam: ExamQuestion) => {
     const categories = Array.isArray(exam.category) && exam.category.length
       ? exam.category
       : ['未分类']
@@ -221,7 +225,7 @@ const groupedQuestions = computed(() => {
           if (!groupsMap.has(filterCategory.value)) {
             groupsMap.set(filterCategory.value, [])
           }
-          groupsMap.get(filterCategory.value).push(exam)
+          groupsMap.get(filterCategory.value)?.push(exam)
           return
         }
         // 如果精确匹配失败，检查其他分类是否包含 filterCategory（部分匹配）
@@ -230,7 +234,7 @@ const groupedQuestions = computed(() => {
           if (!groupsMap.has(cat)) {
             groupsMap.set(cat, [])
           }
-          groupsMap.get(cat).push(exam)
+          groupsMap.get(cat)?.push(exam)
           return
         }
         // 不匹配，跳过该分类
@@ -241,13 +245,13 @@ const groupedQuestions = computed(() => {
       if (!groupsMap.has(cat)) {
         groupsMap.set(cat, [])
       }
-      groupsMap.get(cat).push(exam)
+      groupsMap.get(cat)?.push(exam)
     })
   })
 
   // 构建分类名称到 orderNum 的映射表（直接在 computed 内访问响应式数据）
-  const orderNumMap = new Map()
-  const currentCategories = subjectCategories.value[activeSubjectId.value]
+  const orderNumMap = new Map<string, number>()
+  const currentCategories = (activeSubjectId.value === null ? undefined : subjectCategories.value[activeSubjectId.value])
   if (currentCategories && Array.isArray(currentCategories)) {
     currentCategories.forEach((cat, parentIndex) => {
       // 父分类使用其 orderNum，若无则用索引
@@ -295,8 +299,10 @@ onActivated(() => {
     const raw = sessionStorage.getItem(RETURN_SCROLL_KEY)
     if (!raw) return
 
-    const info = JSON.parse(raw)
-    if (info.source === 'classify' && info.examId) {
+    const info: unknown = JSON.parse(raw)
+    if (typeof info !== 'object' || info === null) return
+    if ('source' in info && info.source === 'classify' && 'examId' in info
+      && typeof info.examId === 'number' && info.examId) {
       scrollToExamById(info.examId)
       sessionStorage.removeItem(RETURN_SCROLL_KEY)
     }
@@ -318,8 +324,8 @@ const loadSubjects = async () => {
       subjects.value = res.data || []
       
       // 检查URL参数，支持从收藏页面跳转
-      const subjectFromRoute = route.query.subject
-      const categoryFromRoute = route.query.category
+      const subjectFromRoute = queryString(route.query.subject)
+      const categoryFromRoute = queryString(route.query.category)
       
       // 只有URL明确指定科目时才自动选中并加载题目
       if (subjectFromRoute && subjects.value.length > 0) {
@@ -353,7 +359,7 @@ const loadSubjects = async () => {
 }
 
 // 根据题目ID滚动到对应题目卡片
-const scrollToExamById = (examId) => {
+const scrollToExamById = (examId: number | string) => {
   nextTick(() => {
     const targetElement = document.getElementById(`exam-${examId}`)
     if (targetElement) {
@@ -427,7 +433,7 @@ const handleHashScroll = async () => {
   }
 }
 
-const loadCategoriesForSubject = async (subjectId) => {
+const loadCategoriesForSubject = async (subjectId: number) => {
   if (subjectCategories.value[subjectId]) {
     return
   }
@@ -448,7 +454,7 @@ const loadCategoriesForSubject = async (subjectId) => {
 }
 
 // Interaction: Select Subject
-const handleSubjectSelect = async (subject) => {
+const handleSubjectSelect = async (subject: Subject) => {
   if (activeSubjectId.value === subject.id) return
 
   activeSubjectId.value = subject.id
@@ -473,7 +479,7 @@ const handleSubjectSelect = async (subject) => {
 }
 
 // Toggle subject categories expansion without changing active subject
-const toggleSubjectExpand = async (subject) => {
+const toggleSubjectExpand = async (subject: Subject | null) => {
   // 处理全部折叠的情况
   if (!subject) {
     expandedSubjectId.value = null
@@ -493,7 +499,7 @@ const toggleSubjectExpand = async (subject) => {
   expandedSubjectId.value = id
 }
 
-const handleCategorySelect = (subject, category) => {
+const handleCategorySelect = (subject: Subject, category: string) => {
   if (activeSubjectId.value !== subject.id) {
     activeSubjectId.value = subject.id
     activeSubjectName.value = subject.name
@@ -516,12 +522,12 @@ const handleCategorySelect = (subject, category) => {
  * 切换指定题目的答案显示/隐藏（分类视图）
  * 与 ExamList 中的 toggleYearAnswer 行为保持一致
  */
-const toggleAnswer = (examId) => {
-  showAnswers.value[examId] = !showAnswers.value[examId]
+const toggleAnswer = (examId: number | string) => {
+  showAnswers.value[Number(examId)] = !showAnswers.value[Number(examId)]
 }
 
 // 复制工具函数
-const copyToClipboard = async (text) => {
+const copyToClipboard = async (text: string) => {
   try {
     if (navigator.clipboard && window.isSecureContext) {
       await navigator.clipboard.writeText(text)
@@ -559,7 +565,7 @@ const copyToClipboard = async (text) => {
  * - 方括号数字：[1] [2] [3] 等
  * - 大写字母 + 括号：(A) (B) (C) (D) 等
  */
-const normalizeLineBreaks = (text) => {
+const normalizeLineBreaks = (text: string) => {
   if (!text || typeof text !== 'string') return text
 
   const patterns = [
@@ -587,43 +593,44 @@ const normalizeLineBreaks = (text) => {
 /**
  * 解析选项JSON为对象
  */
-const parseOptions = (exam) => {
+const parseOptions = (exam: ExamQuestion) => {
   if (exam?.questionType !== 'CHOICE' || !exam?.options) return null
   try {
-    return JSON.parse(exam.options)
+    return parseQuestionOptions(exam.options)
   } catch (e) {
     console.error('解析选项失败:', e)
     return null
   }
 }
 
-const formatQuestionMarkdown = (exam) => {
+const formatQuestionMarkdown = (exam: ExamQuestion) => {
   if (!exam?.content) return ''
   return normalizeLineBreaks(exam.content)
 }
 
-const formatOptionsMarkdown = (exam) => {
+const formatOptionsMarkdown = (exam: ExamQuestion) => {
   if (exam?.questionType !== 'CHOICE' || !exam?.options) {
     return ''
   }
-  let optionsObj = {}
+  let optionsObj: Record<string, string> | null = null
   try {
-    optionsObj = JSON.parse(exam.options)
+    optionsObj = parseQuestionOptions(exam.options)
   } catch (e) {
     console.error('解析选项失败:', e)
     return ''
   }
+  if (!optionsObj) return ''
   const optionKeys = Object.keys(optionsObj).sort()
   const optionLines = optionKeys.map(key => `${key}. ${normalizeLineBreaks(optionsObj[key])}`)
   return optionLines.join('\n')
 }
 
-const formatAnswerMarkdown = (exam) => {
+const formatAnswerMarkdown = (exam: ExamQuestion) => {
   if (!exam?.answer) return ''
   return normalizeLineBreaks(exam.answer)
 }
 
-const formatFullMarkdown = (exam) => {
+const formatFullMarkdown = (exam: ExamQuestion) => {
   const parts = []
 
   const question = formatQuestionMarkdown(exam)
@@ -653,7 +660,7 @@ const formatFullMarkdown = (exam) => {
 
 // ==================== 纯文本格式化函数 ====================
 
-const formatQuestionText = (exam) => {
+const formatQuestionText = (exam: ExamQuestion) => {
   if (!exam?.content) return ''
   const questionNumber = exam.questionNumber || ''
   const questionType = exam.questionType === 'CHOICE' ? '选择题' : '主观题'
@@ -667,8 +674,9 @@ const formatQuestionText = (exam) => {
   return parts.join('\n')
 }
 
-const formatOptionsText = (exam) => {
+const formatOptionsText = (exam: ExamQuestion) => {
   const optionsObj = parseOptions(exam)
+  if (!optionsObj) return ''
   if (!optionsObj) return ''
   const optionKeys = Object.keys(optionsObj).sort()
   const parts = []
@@ -679,7 +687,7 @@ const formatOptionsText = (exam) => {
   return parts.join('\n')
 }
 
-const formatAnswerText = (exam) => {
+const formatAnswerText = (exam: ExamQuestion) => {
   if (!exam?.answer) return ''
   const parts = []
   parts.push('【答案】')
@@ -687,7 +695,7 @@ const formatAnswerText = (exam) => {
   return parts.join('\n')
 }
 
-const formatFullText = (exam) => {
+const formatFullText = (exam: ExamQuestion) => {
   const parts = []
   const questionNumber = exam.questionNumber || ''
   const questionType = exam.questionType === 'CHOICE' ? '选择题' : '主观题'
@@ -708,7 +716,8 @@ const formatFullText = (exam) => {
   if (exam?.questionType === 'CHOICE') {
     const optionsObj = parseOptions(exam)
     if (optionsObj) {
-      const optionKeys = Object.keys(optionsObj).sort()
+      if (!optionsObj) return ''
+  const optionKeys = Object.keys(optionsObj).sort()
       parts.push('【选项】')
       optionKeys.forEach(key => {
         parts.push(`${key}. ${normalizeLineBreaks(optionsObj[key])}`)
@@ -726,7 +735,7 @@ const formatFullText = (exam) => {
   return parts.join('\n')
 }
 
-const handleCopy = async (command, exam) => {
+const handleCopy = async (command: string, exam: ExamQuestion) => {
   let text = ''
   let message = ''
 
@@ -820,7 +829,7 @@ const loadQuestions = async (isReset = false) => {
   }
 
   try {
-    const params = {
+    const params: import("@/types").ExamQueryParams = {
       page: currentPage.value,
       size: pageSize.value,
       subjectId: activeSubjectId.value,
@@ -867,7 +876,7 @@ const loadQuestions = async (isReset = false) => {
  * 统一导出处理函数
  * 遵循KISS原则：直接调用后端导出API
  */
-const handleExportCommand = async (format) => {
+const handleExportCommand = async (format: string) => {
   if (!activeSubjectId.value) {
     toast.warning('请先选择科目')
     return
@@ -895,7 +904,7 @@ const handleExportCommand = async (format) => {
   }
 }
 
-const handleEdit = (exam) => {
+const handleEdit = (exam: ExamQuestion) => {
   if (!exam || !exam.id) {
     return
   }
@@ -909,7 +918,7 @@ const handleEditSuccess = async () => {
   await loadQuestions(true)
 }
 
-const handleDelete = async (id) => {
+const handleDelete = async (id: number) => {
   try {
     await confirm(
       '此操作将永久删除该真题，是否继续？',

@@ -1,21 +1,22 @@
-import { createApp, ref } from 'vue'
+import { createApp } from 'vue'
+import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import Confirm from '@/components/basic/Confirm.vue'
 
-const confirmInstance = ref(null)
-let app = null
+let confirmInstance: InstanceType<typeof Confirm> | null = null
 
 const getConfirmInstance = () => {
-  if (!confirmInstance.value) {
-    app = createApp(Confirm)
+  if (!confirmInstance) {
+    const app = createApp(Confirm)
+    app.component('font-awesome-icon', FontAwesomeIcon)
     const container = document.createElement('div')
     document.body.appendChild(container)
-    confirmInstance.value = app.mount(container)
+    confirmInstance = app.mount(container) as InstanceType<typeof Confirm>
   }
-  return confirmInstance.value
+  return confirmInstance
 }
 
-export const confirm = (message, title = '提示', options = {}) => {
-  return new Promise((resolve, reject) => {
+export const confirm = (message: string, title = '提示', options: { confirmButtonText?: string; cancelButtonText?: string; type?: string } = {}) => {
+  return new Promise<string>((resolve, reject) => {
     const instance = getConfirmInstance()
 
     // 调用 show 方法传递选项和回调

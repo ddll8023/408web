@@ -102,7 +102,9 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
+import type { PropType } from 'vue'
+import type { SelectInput, SelectOption, OptionValue } from './types'
 /**
  * WheelPicker 滚动选择器组件
  * 功能：实现类似手机调闹钟时间的滚动选择效果
@@ -114,19 +116,19 @@
  * - 惯性滚动动画
  * - 高亮选中区域
  * - 可清除选择
- * 遵循前端页面规范：使用 Tailwind CSS + Font Awesome
+ * 遵循 `规范文档/前端规范文档.md`：使用 Tailwind CSS + Font Awesome
  */
 import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 
 const props = defineProps({
   // v-model 绑定值
   modelValue: {
-    type: [Number, String],
+    type: [Number, String, null],
     default: null
   },
   // 选项列表 [{ label: '2024年', value: 2024 }, ...]
   options: {
-    type: Array,
+    type: Array as PropType<SelectOption<string | number>[]>,
     default: () => [],
     required: true
   },
@@ -149,7 +151,7 @@ const props = defineProps({
   visibleCount: {
     type: Number,
     default: 5,
-    validator: (value) => value % 2 === 1 && value >= 3
+    validator: (value: number) => value % 2 === 1 && value >= 3
   },
   // 选项高度（像素）
   itemHeight: {
@@ -160,14 +162,14 @@ const props = defineProps({
   size: {
     type: String,
     default: 'md',
-    validator: (value) => ['sm', 'md', 'lg'].includes(value)
+    validator: (value: string) => ['sm', 'md', 'lg'].includes(value)
   }
 })
 
-const emit = defineEmits(['update:modelValue', 'change'])
+const emit = defineEmits<{ 'update:modelValue': [value: string | number | null]; change: [value: string | number | null] }>()
 
-const containerRef = ref(null)
-const pickerRef = ref(null)
+const containerRef = ref<HTMLElement | null>(null)
+const pickerRef = ref<HTMLElement | null>(null)
 const isOpen = ref(false)
 const offset = ref(0)
 const isAnimating = ref(false)
@@ -202,7 +204,7 @@ const selectedLabel = computed(() => {
 
 // 计算属性：尺寸样式
 const sizeClasses = computed(() => {
-  const sizeMap = {
+  const sizeMap: Record<string, string> = {
     sm: 'py-2 h-9 text-sm',
     md: 'py-2.5 h-[42px] text-base',
     lg: 'py-3 h-12 text-lg'
@@ -211,7 +213,7 @@ const sizeClasses = computed(() => {
 })
 
 // 计算属性：获取选项透明度类名
-const getOptionOpacity = (index) => {
+const getOptionOpacity = (index: number) => {
   const distance = Math.abs(index - currentIndex.value)
   if (distance === 0) return 'opacity-100'
   if (distance === 1) return 'opacity-70'
@@ -236,7 +238,7 @@ const closeDropdown = () => {
 }
 
 // 滚动到指定索引
-const scrollToIndex = (index, animate = true) => {
+const scrollToIndex = (index: number, animate = true) => {
   if (props.disabled || props.options.length === 0) return
 
   // 确保索引在有效范围内
@@ -258,7 +260,7 @@ const scrollToIndex = (index, animate = true) => {
 }
 
 // 处理鼠标滚轮
-const handleWheel = (e) => {
+const handleWheel = (e: WheelEvent) => {
   if (props.disabled || props.options.length === 0) return
 
   const delta = e.deltaY > 0 ? 1 : -1
@@ -276,7 +278,7 @@ const handleWheel = (e) => {
 }
 
 // 处理鼠标按下（拖动开始）
-const handleMouseDown = (e) => {
+const handleMouseDown = (e: MouseEvent) => {
   if (props.disabled || props.options.length === 0) return
 
   isDragging.value = true
@@ -289,7 +291,7 @@ const handleMouseDown = (e) => {
 }
 
 // 处理鼠标移动（拖动中）
-const handleMouseMove = (e) => {
+const handleMouseMove = (e: MouseEvent) => {
   if (!isDragging.value) return
 
   const deltaY = e.clientY - startY.value
@@ -297,7 +299,7 @@ const handleMouseMove = (e) => {
 }
 
 // 处理鼠标释放（拖动结束）
-const handleMouseUp = (e) => {
+const handleMouseUp = (e: MouseEvent) => {
   if (!isDragging.value) return
 
   isDragging.value = false
@@ -321,7 +323,7 @@ const handleMouseUp = (e) => {
 }
 
 // 处理触摸开始
-const handleTouchStart = (e) => {
+const handleTouchStart = (e: TouchEvent) => {
   if (props.disabled || props.options.length === 0) return
 
   isDragging.value = true
@@ -334,7 +336,7 @@ const handleTouchStart = (e) => {
 }
 
 // 处理触摸移动
-const handleTouchMove = (e) => {
+const handleTouchMove = (e: TouchEvent) => {
   if (!isDragging.value) return
   e.preventDefault()
 
@@ -343,7 +345,7 @@ const handleTouchMove = (e) => {
 }
 
 // 处理触摸结束
-const handleTouchEnd = (e) => {
+const handleTouchEnd = (e: TouchEvent) => {
   if (!isDragging.value) return
 
   isDragging.value = false
@@ -367,7 +369,7 @@ const handleTouchEnd = (e) => {
 }
 
 // 处理点击选项
-const handleSelect = (option, index) => {
+const handleSelect = (option: SelectOption<string | number>, index: number) => {
   if (props.disabled) return
 
   emit('update:modelValue', option.value)
@@ -387,7 +389,8 @@ const handleClear = () => {
 }
 
 // 点击外部关闭下拉框
-const handleClickOutside = (e) => {
+const handleClickOutside = (e: MouseEvent) => {
+  if (!(e.target instanceof Node)) return
   if (containerRef.value && !containerRef.value.contains(e.target)) {
     closeDropdown()
   }

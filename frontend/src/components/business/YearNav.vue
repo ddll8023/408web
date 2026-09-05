@@ -73,7 +73,7 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 /**
  * YearNav 年份导航栏
  * 功能描述：展示可展开/折叠的年份导航，支持题目选择
@@ -81,22 +81,25 @@
  */
 
 // 1. Vue 官方 API
+import type { PropType } from 'vue'
+import type { ExamNavItem } from '@/types'
+type NavQuestion = Omit<ExamNavItem, 'year'>
 import { ref, watch } from 'vue'
 
 const props = defineProps({
   // 年份数据，格式：[{ year: 2024, exams: [{ id, title, questionNumber, category }] }]
   yearList: {
-    type: Array,
+    type: Array as PropType<{ year: number; exams: NavQuestion[] }[]>,
     default: () => []
   },
   // 当前激活的年份
   activeYear: {
-    type: Number,
+    type: Number as PropType<number | null>,
     default: null
   },
   // 当前激活的题目ID
   activeExamId: {
-    type: [Number, String],
+    type: [Number, String] as PropType<number | string | null>,
     default: null
   },
   // 加载状态
@@ -106,13 +109,13 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['exam-select', 'year-select', 'collapse-change'])
+const emit = defineEmits<{ 'exam-select': [exam: NavQuestion]; 'year-select': [year: number]; 'collapse-change': [collapsed: boolean] }>()
 
 // 导航栏是否折叠
 const isCollapsed = ref(false)
 
 // 展开的年份列表
-const expandedYears = ref([])
+const expandedYears = ref<number[]>([])
 
 /**
  * 切换导航栏折叠状态
@@ -125,7 +128,7 @@ const toggleCollapse = () => {
 /**
  * 切换年份展开/折叠
  */
-const toggleYear = (year) => {
+const toggleYear = (year: number) => {
   const index = expandedYears.value.indexOf(year)
   if (index > -1) {
     expandedYears.value.splice(index, 1)
@@ -137,21 +140,21 @@ const toggleYear = (year) => {
 /**
  * 处理年份点击
  */
-const handleYearClick = (year) => {
+const handleYearClick = (year: number) => {
   emit('year-select', year)
 }
 
 /**
  * 处理题目点击
  */
-const handleExamClick = (exam) => {
+const handleExamClick = (exam: NavQuestion) => {
   emit('exam-select', exam)
 }
 
 /**
  * 获取题目显示文本
  */
-const getExamDisplayText = (exam) => {
+const getExamDisplayText = (exam: NavQuestion) => {
   // 优先显示标题
   if (exam.title) {
     return exam.title

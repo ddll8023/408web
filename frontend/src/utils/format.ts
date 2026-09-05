@@ -8,7 +8,7 @@
  * @param {string|Date} dateTime - 日期时间
  * @returns {string} 格式化后的字符串
  */
-export const formatDateTime = (dateTime) => {
+export const formatDateTime = (dateTime: string | number | Date | null | undefined) => {
   if (!dateTime) return ''
   const date = new Date(dateTime)
   return date.toLocaleString('zh-CN', {

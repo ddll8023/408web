@@ -18,7 +18,7 @@
   </button>
 </template>
 
-<script setup>
+<script setup lang="ts">
 /**
  * Switch 开关组件
  * 功能：替代 Element Plus 的 el-switch，提供开/关切换功能
@@ -39,7 +39,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['update:modelValue', 'change'])
+const emit = defineEmits<{ 'update:modelValue': [value: boolean]; change: [value: boolean] }>()
 
 // 切换开关
 const handleClick = () => {

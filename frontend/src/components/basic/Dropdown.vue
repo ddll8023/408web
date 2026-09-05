@@ -29,7 +29,7 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 /**
  * Dropdown 下拉菜单组件
  * 功能：提供下拉菜单功能，支持 click 和 hover 触发方式
@@ -42,7 +42,7 @@ const props = defineProps({
   trigger: {
     type: String,
     default: 'click',
-    validator: (value) => ['click', 'hover'].includes(value)
+    validator: (value: string) => ['click', 'hover'].includes(value)
   },
   // 菜单位置
   placement: {
@@ -56,17 +56,17 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['command', 'visible-change'])
+const emit = defineEmits<{ command: [value: string]; 'visible-change': [value: boolean] }>()
 
-const dropdownRef = ref(null)
-const menuRef = ref(null)
+const dropdownRef = ref<HTMLElement | null>(null)
+const menuRef = ref<HTMLElement | null>(null)
 const visible = ref(false)
-let showTimer = null
-let hideTimer = null
+let showTimer: ReturnType<typeof setTimeout> | undefined
+let hideTimer: ReturnType<typeof setTimeout> | undefined
 
 // 菜单位置样式
 const menuClasses = computed(() => {
-  const placementClasses = {
+  const placementClasses: Record<string, string> = {
     'bottom': 'left-1/2 -translate-x-1/2',
     'bottom-start': 'left-0',
     'bottom-end': 'right-0',
@@ -201,9 +201,10 @@ const updatePosition = () => {
 }
 
 // 处理菜单项点击
-const handleMenuClick = (event) => {
+const handleMenuClick = (event: MouseEvent) => {
+  if (!(event.target instanceof Element)) return
   // 查找被点击的菜单项元素
-  const target = event.target.closest('.dropdown-item')
+  const target = event.target.closest<HTMLElement>('.dropdown-item')
   if (!target) return
 
   // 检查是否禁用
@@ -217,14 +218,15 @@ const handleMenuClick = (event) => {
 }
 
 // 执行命令
-const handleCommand = (command) => {
+const handleCommand = (command: string) => {
   emit('command', command)
   visible.value = false
   emit('visible-change', false)
 }
 
 // 点击外部关闭
-const handleClickOutside = (event) => {
+const handleClickOutside = (event: MouseEvent) => {
+  if (!(event.target instanceof Element)) return
   if (props.disabled) return
   const container = dropdownRef.value
   if (container && !container.contains(event.target)) {

@@ -41,8 +41,8 @@
         </template>
 
         <!-- 时间列 -->
-        <template #last_modified="{ row }">
-          {{ formatTime(row.last_modified) }}
+        <template #lastModified="{ row }">
+          {{ formatTime(row.lastModified) }}
         </template>
 
         <!-- 引用题目列 -->
@@ -89,7 +89,9 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
+import type { ImageResource, ImageUsageExam } from "@/types"
+type ImageRow = ImageResource & { deleteLoading: boolean }
 /**
  * 图片资源管理页面
  * 功能描述：管理后台图片资源列表展示、删除未引用图片
@@ -105,13 +107,13 @@ import Table from '@/components/basic/Table.vue'
 import Tag from '@/components/basic/Tag.vue'
 import Confirm from '@/components/basic/Confirm.vue'
 
-const images = ref([])
+const images = ref<ImageRow[]>([])
 const loading = ref(false)
 const onlyUnreferenced = ref(false)
 const cleanupLoading = ref(false)
 
 // Confirm 组件引用
-const confirmRef = ref(null)
+const confirmRef = ref<InstanceType<typeof Confirm> | null>(null)
 
 // 图片预览状态
 const previewVisible = ref(false)
@@ -122,13 +124,13 @@ const tableColumns = [
   { prop: 'preview', label: '预览', width: '140px', align: 'center' },
   { prop: 'filename', label: '文件名', minWidth: '220px' },
   { prop: 'size', label: '大小', width: '120px', align: 'center' },
-  { prop: 'last_modified', label: '最后修改时间', width: '200px', align: 'center' },
+  { prop: 'lastModified', label: '最后修改时间', width: '200px', align: 'center' },
   { prop: 'exams', label: '引用题目', minWidth: '240px' },
   { prop: 'action', label: '操作', width: '120px', align: 'center' }
 ]
 
 // Toast 提示函数（替代 ElMessage）
-const showToast = (message, type = 'success') => {
+const showToast = (message: string, type = 'success') => {
   const bgColor = type === 'success' ? 'bg-green-500' : 'bg-red-500'
   const toast = document.createElement('div')
   toast.className = `fixed top-4 right-4 ${bgColor} text-white px-4 py-2 rounded-lg shadow-lg z-50 transition-opacity duration-300`
@@ -141,7 +143,7 @@ const showToast = (message, type = 'success') => {
 }
 
 // 打开预览
-const openPreview = (url) => {
+const openPreview = (url: string) => {
   previewUrl.value = getFullUrl(url)
   previewVisible.value = true
 }
@@ -155,7 +157,7 @@ const closePreview = () => {
 const loadImages = async () => {
   loading.value = true
   try {
-    const res = await getImageList({ only_unreferenced: onlyUnreferenced.value })
+    const res = await getImageList({ onlyUnreferenced: onlyUnreferenced.value })
     if (res.code === 200) {
       images.value = (res.data || []).map(item => ({ ...item, deleteLoading: false }))
     } else {
@@ -169,12 +171,12 @@ const loadImages = async () => {
   }
 }
 
-const getFullUrl = (url) => {
+const getFullUrl = (url: string) => {
   if (!url) return ''
   return getImageUrl(url)
 }
 
-const formatSize = (size) => {
+const formatSize = (size: number) => {
   if (!size || size <= 0) return '-'
   const kb = size / 1024
   if (kb < 1024) return kb.toFixed(1) + ' KB'
@@ -182,7 +184,7 @@ const formatSize = (size) => {
   return mb.toFixed(2) + ' MB'
 }
 
-const formatTime = (timestamp) => {
+const formatTime = (timestamp: number) => {
   if (!timestamp) return ''
   const date = new Date(timestamp)
   return date.toLocaleString('zh-CN', {
@@ -194,7 +196,7 @@ const formatTime = (timestamp) => {
   })
 }
 
-const formatExamLabel = (exam) => {
+const formatExamLabel = (exam: ImageUsageExam) => {
   if (!exam) return ''
   if (exam.year && exam.questionNumber) {
     return `${exam.year}年第${exam.questionNumber}题`
@@ -205,7 +207,7 @@ const formatExamLabel = (exam) => {
   return `ID: ${exam.id}`
 }
 
-const handleDelete = async (row) => {
+const handleDelete = async (row: ImageRow) => {
   confirmRef.value?.show(
     {
       title: '提示',

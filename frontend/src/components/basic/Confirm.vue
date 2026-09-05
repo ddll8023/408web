@@ -15,8 +15,8 @@
               <font-awesome-icon :icon="icon" class="text-xl" :class="iconClass" />
             </div>
             <div class="flex-1">
-              <h3 class="text-lg font-semibold text-gray-900 mb-2">{{ title }}</h3>
-              <p class="text-gray-600 text-base">{{ message }}</p>
+              <h3 class="text-lg font-semibold text-gray-900 mb-2">{{ props.title }}</h3>
+              <p class="text-gray-600 text-base">{{ props.message }}</p>
             </div>
           </div>
           <div class="flex justify-end gap-3 mt-6">
@@ -24,14 +24,14 @@
               class="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
               @click="handleCancel"
             >
-              {{ cancelText }}
+              {{ props.cancelText }}
             </button>
             <button
               class="px-4 py-2 text-white rounded-lg transition-colors"
               :class="confirmBtnClass"
               @click="handleConfirm"
             >
-              {{ confirmText }}
+              {{ props.confirmText }}
             </button>
           </div>
         </div>
@@ -40,7 +40,7 @@
   </teleport>
 </template>
 
-<script setup>
+<script setup lang="ts">
 /**
  * Confirm 确认对话框组件
  */
@@ -57,11 +57,11 @@ const props = reactive({
 const visible = ref(false)
 
 // 回调函数
-let onConfirmCallback = null
-let onCancelCallback = null
+let onConfirmCallback: (() => void) | null = null
+let onCancelCallback: (() => void) | null = null
 
 const icon = computed(() => {
-  const icons = {
+  const icons: Record<string, string[]> = {
     success: ['fas', 'check'],
     warning: ['fas', 'exclamation-triangle'],
     danger: ['fas', 'trash'],
@@ -71,7 +71,7 @@ const icon = computed(() => {
 })
 
 const iconBgClass = computed(() => {
-  const classes = {
+  const classes: Record<string, string> = {
     success: 'bg-green-100',
     warning: 'bg-yellow-100',
     danger: 'bg-red-100',
@@ -81,7 +81,7 @@ const iconBgClass = computed(() => {
 })
 
 const iconClass = computed(() => {
-  const classes = {
+  const classes: Record<string, string> = {
     success: 'text-green-600',
     warning: 'text-yellow-600',
     danger: 'text-red-600',
@@ -91,7 +91,7 @@ const iconClass = computed(() => {
 })
 
 const confirmBtnClass = computed(() => {
-  const classes = {
+  const classes: Record<string, string> = {
     success: 'bg-green-600 hover:bg-green-700',
     warning: 'bg-yellow-600 hover:bg-yellow-700',
     danger: 'bg-red-600 hover:bg-red-700',
@@ -100,7 +100,9 @@ const confirmBtnClass = computed(() => {
   return classes[props.type] || classes.info
 })
 
-const show = (options = {}, onConfirm, onCancel) => {
+export interface ConfirmOptions { title?: string; message?: string; confirmText?: string; cancelText?: string; type?: string }
+
+const show = (options: ConfirmOptions = {}, onConfirm: (() => void) | null = null, onCancel: (() => void) | null = null) => {
   props.title = options.title || '提示'
   props.message = options.message || '确定要执行此操作吗？'
   props.confirmText = options.confirmText || '确定'

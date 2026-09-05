@@ -23,7 +23,7 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 /**
  * Tooltip 工具提示组件
  * 功能：替代 Element Plus 的 el-tooltip，提供鼠标悬停显示提示信息
@@ -41,13 +41,13 @@ const props = defineProps({
   placement: {
     type: String,
     default: 'top',
-    validator: (value) => ['top', 'bottom', 'left', 'right'].includes(value)
+    validator: (value: string) => ['top', 'bottom', 'left', 'right'].includes(value)
   },
   // 触发方式
   trigger: {
     type: String,
     default: 'hover',
-    validator: (value) => ['hover', 'click'].includes(value)
+    validator: (value: string) => ['hover', 'click'].includes(value)
   },
   // 延迟显示（毫秒）
   showDelay: {
@@ -61,16 +61,16 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['show', 'hide'])
+const emit = defineEmits<{ show: []; hide: [] }>()
 
 const visible = ref(false)
-const tooltipRef = ref(null)
-let showTimer = null
-let hideTimer = null
+const tooltipRef = ref<HTMLElement | null>(null)
+let showTimer: ReturnType<typeof setTimeout> | undefined
+let hideTimer: ReturnType<typeof setTimeout> | undefined
 
 // 计算提示框位置
 const placementClass = computed(() => {
-  const classes = {
+  const classes: Record<string, string> = {
     top: 'bottom-full left-1/2 -translate-x-1/2 mb-2',
     bottom: 'top-full left-1/2 -translate-x-1/2 mt-2',
     left: 'right-full top-1/2 -translate-y-1/2 mr-2',
@@ -81,7 +81,7 @@ const placementClass = computed(() => {
 
 // 计算箭头位置
 const arrowClass = computed(() => {
-  const classes = {
+  const classes: Record<string, string> = {
     top: 'left-1/2 -translate-x-1/2 -bottom-1',
     bottom: 'left-1/2 -translate-x-1/2 -top-1',
     left: 'top-1/2 -translate-y-1/2 -right-1',
@@ -134,7 +134,8 @@ const handleClick = () => {
 }
 
 // 点击外部关闭
-const handleClickOutside = (event) => {
+const handleClickOutside = (event: MouseEvent) => {
+  if (!(event.target instanceof Element)) return
   if (props.trigger === 'click' && visible.value) {
     const tooltip = tooltipRef.value
     if (tooltip && !tooltip.contains(event.target) && !event.target.closest('.relative')) {

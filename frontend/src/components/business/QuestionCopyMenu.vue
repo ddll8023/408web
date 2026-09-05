@@ -1,6 +1,6 @@
 <template>
   <!-- 复制下拉菜单 -->
-  <Dropdown trigger="click" @command="(command) => $emit('copy', command)">
+  <Dropdown trigger="click" @command="(command) => $emit('copy', String(command))">
     <template #trigger>
       <CustomButton size="sm" type="text" :icon="['fas', 'copy']">复制</CustomButton>
     </template>
@@ -41,7 +41,9 @@
   </Dropdown>
 </template>
 
-<script setup>
+<script setup lang="ts">
+import type { PropType } from 'vue'
+import type { ExamQuestion, MockQuestion } from '@/types'
 /**
  * 公共复制菜单组件
  * 统一管理题目复制功能，支持 Markdown 和纯文本格式
@@ -54,10 +56,10 @@ import DropdownItem from '@/components/basic/DropdownItem.vue'
 defineProps({
   // 题目对象（真题或模拟题）
   question: {
-    type: Object,
+    type: Object as PropType<ExamQuestion | MockQuestion>,
     required: true
   }
 })
 
-defineEmits(['copy'])
+defineEmits<{ copy: [command: string] }>()
 </script>

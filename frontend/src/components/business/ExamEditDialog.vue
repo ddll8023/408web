@@ -263,7 +263,9 @@
   </teleport>
 </template>
 
-<script setup>
+<script setup lang="ts">
+import type { ExamCreateRequest, ExamQuestion } from '@/types'
+import type { PropType } from 'vue'
 /**
  * ExamEditDialog 真题编辑弹窗组件
  * 功能：创建和编辑考研真题题目，支持选择题和主观题两种题型
@@ -284,10 +286,10 @@ import Select from '@/components/basic/Select.vue'
 
 const props = defineProps({
   visible: { type: Boolean, default: false },
-  examId: { type: [Number, String], default: null }
+  examId: { type: [Number, String] as PropType<number | string | null>, default: null }
 })
 
-const emit = defineEmits(['update:visible', 'success'])
+const emit = defineEmits<{ 'update:visible': [visible: boolean]; success: [question: ExamQuestion | null] }>()
 
 const dialogVisible = computed({
   get: () => props.visible,
@@ -362,20 +364,16 @@ const validateForm = () => {
 }
 
 // 加载真题数据
-const loadExamData = async (id) => {
+const loadExamData = async (id: number | string | null) => {
   if (!id) return
   loading.value = true
   try {
-    const response = await getExamDetail(id)
+    const response = await getExamDetail(Number(id))
     if (response.code === 200) {
       const data = response.data
       await fillFormFromData(data)
       form.year = data.year
-      form.questionNumber = data.questionNumber
-      // 处理分类（多选）
-      if (data.categoryIds && Array.isArray(data.categoryIds)) {
-        form.category = data.categoryIds
-      }
+      form.questionNumber = data.questionNumber ?? null
     } else {
       ElMessage.error(response.message || '加载失败')
     }
@@ -446,19 +444,11 @@ const handleParseJson = async () => {
     form.year = data.year || form.year
     form.questionNumber = data.questionNumber || null
 
-    // 处理选择题选项
-    if (data.questionType === 'CHOICE' && data.options) {
-      const options = typeof data.options === 'string' ? JSON.parse(data.options) : data.options
-      form.optionA = options.A || ''
-      form.optionB = options.B || ''
-      form.optionC = options.C || ''
-      form.optionD = options.D || ''
-    }
 
     ElMessage.success('JSON解析成功，已填充到表单')
     jsonImportVisible.value = false
   } catch (e) {
-    ElMessage.error('JSON格式错误：' + e.message)
+    ElMessage.error('JSON格式错误：' + (e instanceof Error ? e.message : String(e)))
   }
 }
 
@@ -470,7 +460,7 @@ const handleSubmit = async () => {
   saving.value = true
   try {
     // 构建提交数据
-    const data = {
+    const data: ExamCreateRequest = {
       questionType: form.questionType,
       year: form.year,
       subjectId: form.subjectId,
@@ -496,7 +486,7 @@ const handleSubmit = async () => {
     if (isEditMode.value) {
       // 编辑模式：调用更新API
       const id = Number(props.examId)
-      response = await updateExam(id, { ...data, id })
+      response = await updateExam(id, data)
     } else {
       // 新建模式：调用创建API
       response = await createExam(data)

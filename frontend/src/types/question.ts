@@ -14,6 +14,7 @@ export interface QuestionOptions {
 
 /** 题目创建共用字段（对应 QuestionCreateFields，已转驼峰） */
 export interface QuestionCreateFields {
+  questionNumber?: number | null
   questionType?: QuestionType
   title?: string | null
   content: string

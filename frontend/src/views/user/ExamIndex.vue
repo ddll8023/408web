@@ -66,7 +66,8 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
+import { queryString } from "@/utils/storage"
 /**
  * 真题索引/入口页面
  * 功能:展示年份卡片,点击跳转到对应年份的真题页面
@@ -84,11 +85,11 @@ const router = useRouter()
 const route = useRoute()
 
 // 年份列表数据
-const yearList = ref([])
+const yearList = ref<{year: number; count: number}[]>([])
 const loading = ref(false)
 
 // 当前分类（来自路由查询参数）
-const activeCategory = ref(route.query.category || '')
+const activeCategory = ref(queryString(route.query.category))
 
 /**
  * 加载真题年份统计数据（可按分类过滤）
@@ -121,7 +122,7 @@ const loadYearData = async () => {
 /**
  * 跳转到指定年份的真题页面
  */
-const goToYear = (year) => {
+const goToYear = (year: number) => {
   // 保留当前分类查询参数
   const query = activeCategory.value
     ? { category: activeCategory.value }
@@ -136,7 +137,7 @@ const goToYear = (year) => {
 watch(
   () => route.query.category,
   (newCategory) => {
-    activeCategory.value = newCategory || ''
+    activeCategory.value = queryString(newCategory)
     loadYearData()
   }
 )

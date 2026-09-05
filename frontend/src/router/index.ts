@@ -6,10 +6,15 @@
  * Source: Vue Router 4.3.2 官方文档
  */
 import { createRouter, createWebHistory } from 'vue-router'
+import type { RouteRecordRaw } from 'vue-router'
+
+declare module 'vue-router' {
+  interface RouteMeta { requiresAuth?: boolean; requiresAdmin?: boolean; keepAlive?: boolean }
+}
 import { useAuthStore } from '@/stores/auth'
 
 // 路由配置
-const routes = [
+const routes: RouteRecordRaw[] = [
   {
     path: '/',
     redirect: '/exam' // 重定向到真题首页

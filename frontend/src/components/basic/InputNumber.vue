@@ -37,7 +37,7 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 /**
  * InputNumber 数字输入组件
  * 功能：替代 Element Plus 的 el-input-number，支持数值增减和直接输入
@@ -78,9 +78,9 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['update:modelValue', 'change', 'blur', 'focus'])
+const emit = defineEmits<{ 'update:modelValue': [value: number]; change: [value: number]; blur: [event: FocusEvent]; focus: [event: FocusEvent] }>()
 
-const inputRef = ref(null)
+const inputRef = ref<HTMLElement | null>(null)
 
 // 减少数值
 const decrement = () => {
@@ -103,7 +103,8 @@ const increment = () => {
 }
 
 // 处理输入
-const handleInput = (event) => {
+const handleInput = (event: Event) => {
+  if (!(event.target instanceof HTMLInputElement)) return
   let value = parseInt(event.target.value) || props.min
   // 限制范围
   if (value < props.min) value = props.min
@@ -113,12 +114,12 @@ const handleInput = (event) => {
 }
 
 // 处理失焦
-const handleBlur = (event) => {
+const handleBlur = (event: FocusEvent) => {
   emit('blur', event)
 }
 
 // 处理聚焦
-const handleFocus = (event) => {
+const handleFocus = (event: FocusEvent) => {
   emit('focus', event)
 }
 

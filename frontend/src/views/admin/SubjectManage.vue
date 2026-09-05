@@ -59,25 +59,25 @@
       <form ref="formRef" @submit.prevent="handleSubmit" class="space-y-4">
         <!-- 科目编码 -->
         <div>
-          <FormLabel label="科目编码" required>
-            <CustomInput
-              v-model="form.code"
-              placeholder="请输入科目编码（如：data_structure）"
-              maxlength="50"
-              clearable
-              :disabled="dialogMode === 'edit'"
-              :class="[
-                'transition-all duration-200',
-                dialogMode === 'edit' ? 'bg-gray-100 cursor-not-allowed opacity-75' : '',
-                errors.code ? 'border-red-300 focus:border-red-500 focus:ring-red-200' : ''
-              ]"
-            />
-          </FormLabel>
-          <p class="text-xs text-gray-500 mt-1 ml-24">
+          <FormLabel label="科目编码" required for-id="subject-code" class="mb-2" />
+          <CustomInput
+            id="subject-code"
+            v-model="form.code"
+            placeholder="请输入科目编码（如：data-structure）"
+            maxlength="50"
+            clearable
+            :disabled="dialogMode === 'edit'"
+            :class="[
+              'transition-all duration-200',
+              dialogMode === 'edit' ? 'bg-gray-100 cursor-not-allowed opacity-75' : '',
+              errors.code ? 'border-red-300 focus:border-red-500 focus:ring-red-200' : ''
+            ]"
+          />
+          <p class="text-xs text-gray-500 mt-1">
             <font-awesome-icon :icon="['fas', 'info-circle']" class="mr-1" />
-            科目编码创建后不可修改，仅支持字母、数字、下划线
+            科目编码创建后不可修改，长度不超过50字符
           </p>
-          <p v-if="errors.code" class="text-xs text-red-500 mt-1 ml-24 flex items-center gap-1">
+          <p v-if="errors.code" class="text-xs text-red-500 mt-1 flex items-center gap-1">
             <font-awesome-icon :icon="['fas', 'exclamation-circle']" />
             {{ errors.code }}
           </p>
@@ -85,19 +85,19 @@
 
         <!-- 科目名称 -->
         <div>
-          <FormLabel label="科目名称" required>
-            <CustomInput
-              v-model="form.name"
-              placeholder="请输入科目名称（如：数据结构）"
-              maxlength="100"
-              clearable
-              :class="[
-                'transition-all duration-200',
-                errors.name ? 'border-red-300 focus:border-red-500 focus:ring-red-200' : 'focus:border-[#8B6F47] focus:ring-[#8B6F47]/20'
-              ]"
-            />
-          </FormLabel>
-          <p v-if="errors.name" class="text-xs text-red-500 mt-1 ml-24 flex items-center gap-1">
+          <FormLabel label="科目名称" required for-id="subject-name" class="mb-2" />
+          <CustomInput
+            id="subject-name"
+            v-model="form.name"
+            placeholder="请输入科目名称（如：数据结构）"
+            maxlength="100"
+            clearable
+            :class="[
+              'transition-all duration-200',
+              errors.name ? 'border-red-300 focus:border-red-500 focus:ring-red-200' : 'focus:border-[#8B6F47] focus:ring-[#8B6F47]/20'
+            ]"
+          />
+          <p v-if="errors.name" class="text-xs text-red-500 mt-1 flex items-center gap-1">
             <font-awesome-icon :icon="['fas', 'exclamation-circle']" />
             {{ errors.name }}
           </p>
@@ -105,19 +105,19 @@
 
         <!-- 科目描述 -->
         <div>
-          <FormLabel label="科目描述">
-            <textarea
-              v-model="form.description"
-              rows="3"
-              maxlength="500"
-              placeholder="请输入科目描述（可选）"
-              class="w-full px-3 py-2 border border-gray-300 rounded-md
-                     focus:outline-none focus:ring-2 focus:ring-[#8B6F47]/20 focus:border-[#8B6F47]
-                     resize-none transition-all duration-200
-                     hover:border-gray-400"
-            ></textarea>
-          </FormLabel>
-          <div class="flex justify-between items-center mt-1 ml-24">
+          <FormLabel label="科目描述" for-id="subject-description" class="mb-2" />
+          <textarea
+            id="subject-description"
+            v-model="form.description"
+            rows="3"
+            maxlength="500"
+            placeholder="请输入科目描述（可选）"
+            class="w-full px-3 py-2 border border-gray-300 rounded-md
+                   focus:outline-none focus:ring-2 focus:ring-[#8B6F47]/20 focus:border-[#8B6F47]
+                   resize-none transition-all duration-200
+                   hover:border-gray-400"
+          ></textarea>
+          <div class="flex justify-between items-center mt-1">
             <p class="text-xs text-gray-500">
               <font-awesome-icon :icon="['fas', 'lightbulb']" class="mr-1" />
               简要描述科目内容和学习目标
@@ -130,33 +130,31 @@
 
         <!-- 排序顺序 -->
         <div>
-          <FormLabel label="排序顺序" required>
-            <InputNumber
-              v-model="form.sortOrder"
-              :min="0"
-              :max="9999"
-              placeholder="数字越小越靠前"
-              :class="[
-                'transition-all duration-200',
-                errors.sortOrder ? 'border-red-300' : ''
-              ]"
-            />
-          </FormLabel>
-          <p class="text-xs text-gray-500 mt-1 ml-24">
+          <FormLabel label="排序顺序" required class="mb-2" />
+          <InputNumber
+            v-model="form.orderNum"
+            :min="0"
+            :max="9999"
+            placeholder="数字越小越靠前"
+            :class="[
+              'transition-all duration-200',
+              errors.orderNum ? 'border-red-300' : ''
+            ]"
+          />
+          <p class="text-xs text-gray-500 mt-1">
             <font-awesome-icon :icon="['fas', 'sort-numeric-down']" class="mr-1" />
             数字越小越靠前，用于控制科目在列表中的显示顺序
           </p>
-          <p v-if="errors.sortOrder" class="text-xs text-red-500 mt-1 ml-24 flex items-center gap-1">
+          <p v-if="errors.orderNum" class="text-xs text-red-500 mt-1 flex items-center gap-1">
             <font-awesome-icon :icon="['fas', 'exclamation-circle']" />
-            {{ errors.sortOrder }}
+            {{ errors.orderNum }}
           </p>
         </div>
 
         <!-- 是否启用 -->
         <div>
-          <FormLabel label="是否启用">
-            <Switch v-model="form.enabled" />
-          </FormLabel>
+          <FormLabel label="是否启用" for-id="subject-enabled" class="mb-2" />
+          <Switch id="subject-enabled" v-model="form.enabled" />
         </div>
       </form>
 
@@ -170,7 +168,8 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
+import type { Subject } from "@/types"
 /**
  * 科目管理页面
  * 功能：科目的CRUD操作（仅ADMIN可访问）
@@ -215,7 +214,7 @@ const { showConfirm } = useConfirm()
 const loading = ref(false)
 
 // 科目列表
-const subjects = ref([])
+const subjects = ref<Subject[]>([])
 
 // 表格列定义
 const tableColumns = [
@@ -243,16 +242,16 @@ const formRef = ref(null)
 const errors = reactive({
   code: '',
   name: '',
-  sortOrder: ''
+  orderNum: ''
 })
 
 // 表单数据
 const form = reactive({
-  id: null,
+  id: null as number | null,
   code: '',
   name: '',
   description: '',
-  sortOrder: 0,
+  orderNum: 0,
   enabled: true
 })
 
@@ -263,7 +262,7 @@ const validateForm = () => {
   // 重置错误
   errors.code = ''
   errors.name = ''
-  errors.sortOrder = ''
+  errors.orderNum = ''
 
   // 验证科目编码
   if (!form.code.trim()) {
@@ -271,9 +270,6 @@ const validateForm = () => {
     isValid = false
   } else if (form.code.length > 50) {
     errors.code = '编码长度不能超过50字符'
-    isValid = false
-  } else if (!/^[a-zA-Z0-9_]+$/.test(form.code)) {
-    errors.code = '编码只能包含字母、数字和下划线'
     isValid = false
   }
 
@@ -287,8 +283,8 @@ const validateForm = () => {
   }
 
   // 验证排序顺序
-  if (form.sortOrder === null || form.sortOrder === undefined) {
-    errors.sortOrder = '请输入排序顺序'
+  if (form.orderNum === null || form.orderNum === undefined) {
+    errors.orderNum = '请输入排序顺序'
     isValid = false
   }
 
@@ -323,12 +319,12 @@ const resetForm = () => {
   form.code = ''
   form.name = ''
   form.description = ''
-  form.sortOrder = 0
+  form.orderNum = 0
   form.enabled = true
   // 重置错误信息
   errors.code = ''
   errors.name = ''
-  errors.sortOrder = ''
+  errors.orderNum = ''
 }
 
 /**
@@ -343,13 +339,13 @@ const handleAdd = () => {
 /**
  * 编辑科目
  */
-const handleEdit = (row) => {
+const handleEdit = (row: Subject) => {
   resetForm()
   form.id = row.id
   form.code = row.code
   form.name = row.name
   form.description = row.description || ''
-  form.sortOrder = row.sortOrder
+  form.orderNum = row.orderNum
   form.enabled = row.enabled
   dialogMode.value = 'edit'
   dialogVisible.value = true
@@ -371,7 +367,7 @@ const handleSubmit = async () => {
       code: form.code,
       name: form.name,
       description: form.description || null,
-      sortOrder: form.sortOrder,
+      orderNum: form.orderNum,
       enabled: form.enabled
     }
 
@@ -380,7 +376,7 @@ const handleSubmit = async () => {
       response = await createSubject(data)
     } else {
       // 更新科目
-      data.id = form.id
+      if (form.id === null) return
       response = await updateSubject(form.id, data)
     }
 
@@ -402,10 +398,10 @@ const handleSubmit = async () => {
 /**
  * 切换启用/禁用状态
  */
-const handleToggleStatus = async (row) => {
+const handleToggleStatus = async (row: Subject) => {
   const action = row.enabled ? '禁用' : '启用'
   try {
-    await showConfirm({
+    const confirmed = await showConfirm({
       title: '确认操作',
       message: `确认${action}科目"${row.name}"吗？`,
       type: 'warning',
@@ -413,12 +409,12 @@ const handleToggleStatus = async (row) => {
       cancelText: '取消'
     })
 
+    if (!confirmed) return
     const response = await updateSubject(row.id, {
-      id: row.id,
       code: row.code,
       name: row.name,
       description: row.description,
-      sortOrder: row.sortOrder,
+      orderNum: row.orderNum,
       enabled: !row.enabled
     })
 
@@ -439,9 +435,9 @@ const handleToggleStatus = async (row) => {
 /**
  * 删除科目
  */
-const handleDelete = async (row) => {
+const handleDelete = async (row: Subject) => {
   try {
-    await showConfirm({
+    const confirmed = await showConfirm({
       title: '删除确认',
       message: `确认删除科目"${row.name}"吗？删除后该科目下的所有章节也将无法访问。`,
       type: 'danger',
@@ -449,6 +445,7 @@ const handleDelete = async (row) => {
       cancelText: '取消'
     })
 
+    if (!confirmed) return
     const response = await deleteSubject(row.id)
     if (response.code === 200) {
       showToast('删除成功', 'success')

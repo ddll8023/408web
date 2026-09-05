@@ -1,3 +1,4 @@
+import type { LoginRequest, RegisterRequest, AuthResponse } from '@/types'
 /**
  * 认证相关API
  */
@@ -11,8 +12,8 @@ import request from './request'
  * @param {string} data.email 邮箱
  * @returns {Promise} API响应
  */
-export function register(data) {
-  return request({
+export function register(data: RegisterRequest) {
+  return request<null>({
     url: '/api/auth/register',
     method: 'post',
     data
@@ -26,8 +27,8 @@ export function register(data) {
  * @param {string} data.password 密码
  * @returns {Promise} API响应（包含Token）
  */
-export function login(data) {
-  return request({
+export function login(data: LoginRequest) {
+  return request<AuthResponse>({
     url: '/api/auth/login',
     method: 'post',
     data

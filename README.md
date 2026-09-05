@@ -15,15 +15,15 @@
 ## 技术栈
 
 ### 前端
-- **Vue 3** - 渐进式JavaScript框架
-- **Vite 6** - 现代化构建工具
+- **Vue 3 + TypeScript 5.9** - Composition API 与严格类型检查
+- **Vite 7** - 现代化构建工具
 - **Pinia** - 状态管理
 - **Vue Router 4** - 路由管理
 - **Element Plus** - Vue 3 UI组件库
 - **Axios** - HTTP客户端
 - **@kangc/v-md-editor** - Markdown编辑器
 - **KaTeX** - 数学公式渲染
-- **Sass** - CSS预处理器
+- **Tailwind CSS 4** - 样式工具
 
 ### 后端
 - **FastAPI** - 现代化Python异步Web框架
@@ -31,7 +31,7 @@
 - **AioSQLite** - 异步SQLite数据库
 - **JWT** - JSON Web Token认证
 - **Python-Jose** - JWT加密/解密
-- **Passlib** - 密码加密
+- **pwdlib[argon2]** - 密码哈希
 
 ## 项目结构
 
@@ -49,7 +49,13 @@
 │   │   ├── router/          # 路由配置
 │   │   ├── stores/          # Pinia状态管理
 │   │   ├── composables/     # 组合式函数
+│   │   ├── types/           # API 与业务公共类型
+│   │   ├── utils/           # 数据转换与输入校验
 │   │   └── styles/          # 样式文件
+│   ├── tests/              # Node 内置测试器回归测试
+│   ├── tsconfig.app.json    # 应用严格 TS 检查
+│   ├── tsconfig.node.json   # Vite 配置类型检查
+│   ├── vite.config.ts       # Vite 配置
 │   └── package.json
 │
 ├── backend-fastapi/          # FastAPI后端项目
@@ -64,10 +70,15 @@
 │   │   └── utils/           # 工具函数
 │   └── requirements.txt
 │
-├── backend/                  # Spring Boot后端（备用）
-├── data/                    # 数据库文件目录
-├── uploads/                 # 上传文件目录
-├── logs/                    # 日志目录
+├── doc/                      # 项目结构、模块设计与迁移验证文档
+│   ├── 项目结构文档.md
+│   ├── 模块说明文档.md
+│   ├── 模块/                  # 各业务模块开发设计
+│   └── 前端TypeScript迁移验证.md
+│
+├── backend-fastapi/data/     # SQLite数据库目录（运行时）
+├── backend-fastapi/uploads/  # 上传文件目录（运行时）
+├── backend-fastapi/logs/     # 后端日志目录（运行时）
 └── 规范文档/                 # 项目开发规范文档
 ```
 
@@ -101,7 +112,7 @@
 
 ### 环境要求
 
-- Node.js >= 16
+- Node.js 20.19+（20.x）或 >= 22.12（与 Vite 7 engines 一致）
 - Python >= 3.12
 - Git
 
@@ -153,6 +164,25 @@ npm run dev
 
 前端服务将在 `http://localhost:7784` 启动
 
+### 前端验证与构建
+
+在 `frontend/` 目录执行：
+
+```bash
+# 应用 SFC/TS 与 Vite 配置类型检查
+npm run type-check
+
+# API、业务数据和基础组件回归测试
+npm test
+
+# 类型检查后生成 dist/
+npm run build
+```
+
+应用源码使用 TypeScript，Vue 脚本使用 `lang="ts"`；`strict: true`、`allowJs: false`。PostCSS/Tailwind 配置及 Node 测试脚本保留工具原有格式。自动化测试使用模拟网络和自定义组件 renderer，不等同于真实浏览器全流程验证。
+
+迁移范围、自动验证结果和浏览器回归边界见 [`doc/前端TypeScript迁移验证.md`](./doc/前端TypeScript迁移验证.md)。
+
 ### 4. 访问应用
 
 打开浏览器访问 `http://localhost:7784`
@@ -193,31 +223,30 @@ npm run dev
 | `/api/mock` | POST | 创建模拟题 |
 | `/api/mock/{id}/detail` | POST | 获取模拟题详情 |
 
-详细API文档请参考 `规范文档/API接口文档.md`
+各模块的 API 目标契约和当前实现边界见 [`doc/模块/`](./doc/模块/)；实际路由与响应模型以 `backend-fastapi/app/api/v1/` 和 `backend-fastapi/app/schemas/` 为准。
 
 ## 配置说明
 
 ### 后端配置
 
-在 `backend-fastapi/app/config/settings.py` 中配置：
+在 `backend-fastapi/.env`（或环境变量）中配置：
 
-```python
+```env
 # 数据库配置
-DATABASE_URL = "sqlite+aiosqlite:///./data/web408.db"
+DATABASE_URL=sqlite+aiosqlite:///./data/web408.db
 
 # JWT配置
-JWT_SECRET = "your-secret-key"  # 建议使用环境变量
-JWT_ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24  # 24小时
+JWT_SECRET=replace-with-a-random-secret-at-least-32-characters
+JWT_ALGORITHM=HS256
+ACCESS_TOKEN_EXPIRE_MINUTES=60
 
 # 服务器配置
-HOST = "0.0.0.0"
-PORT = 7785
+SERVER_HOST=0.0.0.0
+SERVER_PORT=7785
+API_PREFIX=/api
 
 # CORS配置
-CORS_ORIGINS = [
-    "http://localhost:7784"
-]
+CORS_ORIGINS=http://localhost:7784
 ```
 
 ### 环境变量
@@ -232,7 +261,7 @@ ACCESS_TOKEN_EXPIRE_MINUTES=60
 
 ## 数据库
 
-项目使用 SQLite 数据库，数据库文件位于 `data/web408.db`。
+项目使用 SQLite 数据库；从 `backend-fastapi/` 启动时，数据库文件位于 `backend-fastapi/data/web408.db`。
 
 主要数据表：
 - `user` - 用户表
@@ -247,10 +276,9 @@ ACCESS_TOKEN_EXPIRE_MINUTES=60
 
 本项目遵循以下开发规范：
 
-- [前端组件规范](./规范文档/前端组件规范.md)
-- [前端页面规范](./规范文档/前端页面规范.md)
+- [前端规范文档](./规范文档/前端规范文档.md)
 - [后端规范文档](./规范文档/后端规范文档.md)
-- [API接口文档](./规范文档/API接口文档.md)
+- [模块开发设计文档](./doc/模块/)
 
 ## License
 

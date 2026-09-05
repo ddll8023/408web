@@ -151,7 +151,7 @@
                   :data-category-id="row.node.id"
                   :class="{
                     'opacity-60': !row.node.enabled,
-                    'is-drag-source': draggingIds.has(row.node.id),
+                    'is-drag-source': typeof row.node.id === 'number' && draggingIds.has(row.node.id),
                     'is-drop-before': dropTarget?.valid && dropTarget.targetId === row.node.id && dropTarget.position === 'before',
                     'is-drop-after': dropAfterRowId === row.node.id,
                     'is-drop-inside': dropTarget?.valid && dropTarget.targetId === row.node.id && dropTarget.position === 'inside',
@@ -193,7 +193,7 @@
                     :disabled="!canDrag"
                     :aria-label="`拖动 ${row.node.name}；点击或按回车编辑层级`"
                     title="拖动调整层级；点击编辑"
-                    @dragstart.stop="handleDragStart($event, row.node)"
+                    @dragstart.stop="startCategoryDrag($event, row.node)"
                     @dragend="resetDrag"
                     @click.stop="handleEdit(row.node)"
                   >
@@ -454,7 +454,12 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
+import type { CategoryNode, CategoryMoveRequest, Subject, CategoryQuestionType } from '@/types'
+type CategoryView = Omit<CategoryNode, 'id' | 'code'> & { id: number | string; code?: string }
+type CategoryViewTree = CategoryView & { children: CategoryViewTree[] }
+type OutlineRow = { node: CategoryViewTree; level: number; hasChildren: boolean; isLastSibling: boolean; guideLevels: number[] }
+
 /**
  * 分类标签管理页面
  * 功能：按科目管理分类标签的CRUD操作（仅ADMIN可访问）
@@ -498,22 +503,22 @@ const { showToast } = useToast()
 const { showConfirm } = useConfirm()
 
 // 所有分类列表（用于统计）
-const allCategories = ref([])
+const allCategories = ref<CategoryView[]>([])
 
 // 当前显示的分类列表（筛选后）
-const categories = ref([])
+const categories = ref<CategoryView[]>([])
 
 // 科目选项
-const subjectOptions = ref([])
+const subjectOptions = ref<Subject[]>([])
 
 // 筛选科目ID
-const filterSubjectId = ref(null)
+const filterSubjectId = ref<number | null>(null)
 
 // 题目类型筛选（exam=真题, mock=模拟题）
-const questionType = ref('exam')
+const questionType = ref<'exam' | 'mock'>('exam')
 
 // 大纲视图展开的节点ID列表（响应式，用于保持展开状态）
-const treeExpandedKeys = ref([])
+const treeExpandedKeys = ref<(number | string)[]>([])
 
 /**
  * 树形视图：全部展开
@@ -545,7 +550,7 @@ const getTreeExpandedKeys = () => {
  * 直接设置 treeExpandedKeys 数组
  * @param {Array} keys 需要展开的节点ID列表
  */
-const restoreTreeExpandedKeys = (keys) => {
+const restoreTreeExpandedKeys = (keys: (number | string)[]) => {
   if (!keys) return
   treeExpandedKeys.value = [...keys]
 }
@@ -553,9 +558,9 @@ const restoreTreeExpandedKeys = (keys) => {
 /**
  * 递归获取所有树节点ID
  */
-const getAllTreeNodes = (nodes) => {
-  const ids = []
-  const traverse = (list) => {
+const getAllTreeNodes = (nodes: CategoryViewTree[]) => {
+  const ids: (number | string)[] = []
+  const traverse = (list: CategoryViewTree[]): void => {
     list.forEach(node => {
       ids.push(node.id)
       if (node.children && node.children.length > 0) {
@@ -568,7 +573,7 @@ const getAllTreeNodes = (nodes) => {
 }
 
 // 科目统计数据（用于科目筛选列表）
-const categoryStats = ref({
+const categoryStats = ref<{ subjectStats: {subjectId: number; subjectName?: string | null; questionCount: number}[]; totalQuestionCount: number }>({
   subjectStats: [],  // 各科目题目数
   totalQuestionCount: 0  // 全局题目总数
 })
@@ -578,7 +583,7 @@ const loading = ref(false)
 const categoryLoadError = ref('')
 const moveSaving = ref(false)
 const moveMessage = ref('')
-const contentRef = ref(null)
+const contentRef = ref<HTMLElement | null>(null)
 let categoryLoadVersion = 0
 let statsLoadVersion = 0
 let viewChangeVersion = 0
@@ -595,7 +600,7 @@ const submitLoading = ref(false)
 const deleteLoading = ref(false)
 
 // 父分类选项
-const parentOptions = ref([])
+const parentOptions = ref<{value: number; label: string}[]>([])
 
 const parentLoading = ref(false)
 const parentLoadFailed = ref(false)
@@ -608,7 +613,7 @@ const {
   draggingId, draggingIds, dropTarget, dragMessage, canMove,
   handleDragStart, handleContainerDragOver, handleContainerDragLeave, handleDrop, resetDrag
 } = useCategoryDrag({
-  categories, enabled: canDrag, containerRef: contentRef, expandedKeys: treeExpandedKeys,
+  categories: computed(() => categories.value.filter((node): node is CategoryNode => typeof node.id === 'number' && typeof node.code === 'string')), enabled: canDrag, containerRef: contentRef, expandedKeys: treeExpandedKeys,
   onMove: (id, target) => handleMove(id, target)
 })
 
@@ -617,6 +622,11 @@ const {
  * 模拟题模式：按科目分组显示（扁平结构）
  * 真题模式：构建树形结构（支持多层级）
  */
+const startCategoryDrag = (event: DragEvent, node: CategoryView) => {
+  if (typeof node.id !== 'number' || typeof node.code !== 'string') return
+  handleDragStart(event, { ...node, id: node.id, code: node.code })
+}
+
 const treeCategories = computed(() => {
   const list = categories.value
   if (!list || list.length === 0) return []
@@ -632,24 +642,25 @@ const treeCategories = computed(() => {
 
   // 真题模式：构建树形结构
   // 创建id到节点的映射
-  const map = new Map()
+  const map = new Map<number | string, CategoryViewTree>()
   list.forEach(item => {
     map.set(item.id, { ...item, children: [] })
   })
 
-  const tree = []
+  const tree: CategoryViewTree[] = []
   list.forEach(item => {
     const node = map.get(item.id)
+    if (!node) return
     if (item.parentId && map.has(item.parentId)) {
-      map.get(item.parentId).children.push(node)
+      map.get(item.parentId)?.children.push(node)
     } else {
       tree.push(node)
     }
   })
 
   // 对每层按orderNum排序
-  const sortChildren = (nodes) => {
-    nodes.sort((a, b) => (a.orderNum || 0) - (b.orderNum || 0) || a.id - b.id)
+  const sortChildren = (nodes: CategoryViewTree[]): void => {
+    nodes.sort((a, b) => (a.orderNum || 0) - (b.orderNum || 0) || Number(a.id) - Number(b.id))
     nodes.forEach(node => {
       if (node.children && node.children.length > 0) {
         sortChildren(node.children)
@@ -683,9 +694,9 @@ const subjectStats = computed(() => {
 
 // 表单数据
 const form = reactive({
-  id: null,
-  subjectId: null,
-  parentId: null,
+  id: null as number | null,
+  subjectId: null as number | null,
+  parentId: null as number | null,
   code: '',
   name: '',
   description: '',
@@ -710,7 +721,7 @@ const loadSubjectOptions = async () => {
 /**
  * 统一处理 API 已转换为驼峰命名的分类数据
  */
-const normalizeCategory = (item) => ({
+const normalizeCategory = (item: CategoryNode) => ({
   ...item,
   parentId: item.parentId ?? null,
   subjectId: item.subjectId,
@@ -723,7 +734,7 @@ const normalizeCategory = (item) => ({
 /**
  * 用指定科目的最新分类数据替换全部分类中的对应科目
  */
-const replaceSubjectCategories = (subjectId, subjectCategories) => {
+const replaceSubjectCategories = (subjectId: number | null, subjectCategories: CategoryView[]) => {
   allCategories.value = [
     ...allCategories.value.filter(item => item.subjectId !== subjectId),
     ...subjectCategories
@@ -786,7 +797,7 @@ const loadCategories = async ({ background = false } = {}) => {
   loading.value = !background
   categoryLoadError.value = ''
   try {
-    let list
+    let list: CategoryView[]
     if (type === 'mock') {
       const subjects = subjectId
         ? subjectOptions.value.filter(subject => subject.id === subjectId)
@@ -799,7 +810,7 @@ const loadCategories = async ({ background = false } = {}) => {
           id: `${subject.id}-${item.category}`,
           subjectId: subject.id,
           subjectName: subject.name,
-          parentId: null,
+          parentId: null as number | null,
           name: item.category,
           orderNum: 0,
           enabled: true,
@@ -854,7 +865,7 @@ const handleQuestionTypeChange = async () => {
 /**
  * 点击统计卡片筛选
  */
-const handleStatClick = async (subjectId) => {
+const handleStatClick = async (subjectId: number | null) => {
   if (moveSaving.value) return
   ++viewChangeVersion
   resetDrag()
@@ -900,7 +911,7 @@ const handleSubjectChange = async () => {
 /**
  * 加载可选父分类
  */
-const loadParentOptions = async (subjectId, excludeId = null) => {
+const loadParentOptions = async (subjectId: number, excludeId: number | null = null) => {
   const version = ++parentLoadVersion
   parentLoading.value = true
   parentLoadFailed.value = false
@@ -911,12 +922,12 @@ const loadParentOptions = async (subjectId, excludeId = null) => {
     const byId = new Map(parents.map(parent => [parent.id, parent]))
     parentOptions.value = parents.map(parent => {
       const names = []
-      const visited = new Set()
-      let node = parent
+      const visited = new Set<number>()
+      let node: CategoryNode | undefined = parent
       while (node && !visited.has(node.id)) {
         visited.add(node.id)
         names.unshift(node.name)
-        node = byId.get(node.parentId)
+        node = node.parentId == null ? undefined : byId.get(node.parentId)
       }
       return {
         value: parent.id,
@@ -947,13 +958,14 @@ const handleAdd = () => {
 /**
  * 编辑分类
  */
-const handleEdit = async (row) => {
+const handleEdit = async (row: CategoryView) => {
+  if (typeof row.id !== 'number') return
   if (moveSaving.value || draggingId.value !== null) return
   resetForm()
   form.id = row.id
   form.subjectId = row.subjectId
   form.parentId = row.parentId || null
-  form.code = row.code
+  form.code = row.code ?? ''
   form.name = row.name
   form.description = row.description || ''
   form.orderNum = row.orderNum
@@ -992,18 +1004,19 @@ const handleSubmit = async () => {
   try {
     let response
     const data = {
-      subject_id: form.subjectId,
-      parent_id: form.parentId || null,
+      subjectId: form.subjectId,
+      parentId: form.parentId || null,
       code: form.code,
       name: form.name,
       description: form.description || null,
-      order_num: form.orderNum,
+      orderNum: form.orderNum,
       enabled: form.enabled
     }
 
     if (dialogMode.value === 'add') {
       response = await createCategory(data)
     } else {
+      if (form.id === null) return
       response = await updateCategory(form.id, data)
     }
 
@@ -1039,7 +1052,8 @@ const handleSubmit = async () => {
 /**
  * 删除分类
  */
-const handleDelete = async (row) => {
+const handleDelete = async (row: CategoryView) => {
+  if (typeof row.id !== 'number') return
   if (moveSaving.value || deleteLoading.value || submitLoading.value || draggingId.value !== null) return
   deleteLoading.value = true
   try {
@@ -1052,7 +1066,7 @@ const handleDelete = async (row) => {
       confirmMsg = `该分类被 ${usage} 道题目引用。删除后，这些题目的分类信息将不变，但无法再选择此分类。\n\n确认删除分类"${row.name}"吗？`
     }
 
-    await showConfirm({
+    const confirmed = await showConfirm({
       title: '删除确认',
       message: confirmMsg,
       confirmText: '确定',
@@ -1060,6 +1074,7 @@ const handleDelete = async (row) => {
       type: 'danger'
     })
 
+    if (!confirmed) return
     const response = await deleteCategory(row.id)
     if (response.code === 200) {
       showToast('删除成功', 'success')
@@ -1086,14 +1101,15 @@ const handleDelete = async (row) => {
 /**
  * 获取分类及其所有子孙分类的去重题目数
  */
-const getChildrenQuestionCount = (category) => {
+const getChildrenQuestionCount = (category: CategoryView) => {
   return category.subtreeQuestionCount ?? category.questionCount ?? 0
 }
 
 /**
  * 添加子分类（预填父分类和科目）
  */
-const handleAddChild = async (parent) => {
+const handleAddChild = async (parent: CategoryView) => {
+  if (typeof parent.id !== 'number') return
   if (moveSaving.value || draggingId.value !== null) return
   resetForm()
   form.subjectId = parent.subjectId
@@ -1123,8 +1139,8 @@ const OUTLINER_CONTENT_BASE = computed(() => OUTLINER_BASE + (questionType.value
  * 扁平化大纲行：按展开状态把树铺平成行列表
  */
 const outlineRows = computed(() => {
-  const rows = []
-  const walk = (nodes, level, guideLevels = []) => {
+  const rows: OutlineRow[] = []
+  const walk = (nodes: CategoryViewTree[], level: number, guideLevels: number[] = []): void => {
     nodes.forEach((node, index) => {
       const children = node.children || []
       const hasChildren = children.length > 0
@@ -1145,16 +1161,16 @@ const dropTargetLevel = computed(() => outlineRows.value.find(row => row.node.id
 const dropAfterRowId = computed(() => {
   if (!dropTarget.value?.valid || dropTarget.value.position !== 'after') return null
   const rows = outlineRows.value
-  const index = rows.findIndex(row => row.node.id === dropTarget.value.targetId)
+  const index = rows.findIndex(row => row.node.id === dropTarget.value?.targetId)
   if (index < 0) return null
   let last = index
   while (last + 1 < rows.length && rows[last + 1].level > rows[index].level) last++
   return rows[last].node.id
 })
 
-const isNodeExpanded = (id) => treeExpandedKeys.value.includes(id)
+const isNodeExpanded = (id: number | string) => treeExpandedKeys.value.includes(id)
 
-const toggleExpand = (id) => {
+const toggleExpand = (id: number | string) => {
   const index = treeExpandedKeys.value.indexOf(id)
   if (index > -1) {
     treeExpandedKeys.value.splice(index, 1)
@@ -1164,7 +1180,7 @@ const toggleExpand = (id) => {
 }
 
 /** 松手提交一次移动命令；等待期间保持原树，服务端成功后才更新布局。 */
-const handleMove = async (id, target) => {
+const handleMove = async (id: number, target: CategoryMoveRequest) => {
   // 请求入口再次按最新数据检查；无实际变化时不进入保存态，也不发送或刷新请求。
   if (!canDrag.value || !canMove(id, target)) return
   const subjectId = filterSubjectId.value
@@ -1198,7 +1214,7 @@ const handleMove = async (id, target) => {
       while (parentId && !visited.has(parentId) && byId.has(parentId)) {
         visited.add(parentId)
         keys.add(parentId)
-        parentId = byId.get(parentId).parentId
+        parentId = byId.get(parentId)?.parentId
       }
       restoreTreeExpandedKeys([...keys])
       await nextTick()

@@ -114,7 +114,7 @@
             <span
               class="cursor-pointer hover:text-[#8B6F47] transition-colors line-clamp-2"
               @click="handleView(row)"
-              :title="row.title"
+              :title="row.title ?? ''"
             >
               {{ row.title }}
             </span>
@@ -198,7 +198,10 @@
   </main>
 </template>
 
-<script setup>
+<script setup lang="ts">
+import type { MockQuestion } from "@/types"
+import { queryString } from "@/utils/storage"
+type QuestionRow = MockQuestion & { deleteLoading?: boolean }
 /**
  * 模拟题管理页面
  * 功能：模拟题的CRUD操作（仅ADMIN可访问）
@@ -277,19 +280,19 @@ const {
 
 // 编辑弹窗状态
 const editDialogVisible = ref(false)
-const editingMockId = ref(null)
-const editingMockData = ref(null)  // 编辑时传递的完整数据（避免重复请求API）
+const editingMockId = ref<number | null>(null)
+const editingMockData = ref<MockQuestion | null>(null)  // 编辑时传递的完整数据（避免重复请求API）
 
 // 模拟题列表
-const mockQuestions = ref([])
+const mockQuestions = ref<QuestionRow[]>([])
 
 // 来源机构选项（模拟题特有）
-const sourceOptions = ref([])
+const sourceOptions = ref<string[]>([])
 
 // 筛选条件
 const filters = reactive({
   source: '',
-  subjectId: null,
+  subjectId: null as number | null,
   category: '',
   keyword: '',
   noCategory: false
@@ -319,14 +322,14 @@ const loadMockList = async () => {
   try {
     const response = await getMockQuestions({
       page: pagination.page,
-      page_size: pagination.size,
+      pageSize: pagination.size,
       source: filters.source || undefined,
-      subject_id: filters.subjectId || undefined,
+      subjectId: filters.subjectId || undefined,
       category: filters.category || undefined,
       keyword: filters.keyword || undefined,
-      no_category: filters.noCategory || undefined,
-      sort_field: sorting.sortField || undefined,
-      sort_order: sorting.sortOrder || undefined
+      noCategory: filters.noCategory || undefined,
+      sortField: sorting.sortField || undefined,
+      sortOrder: sorting.sortOrder || undefined
     })
 
     if (response.code === 200) {
@@ -346,8 +349,8 @@ const loadMockList = async () => {
 /**
  * 科目筛选变更
  */
-const handleSubjectChange = async (subjectId) => {
-  filters.subjectId = subjectId || null
+const handleSubjectChange = async (subjectId: string | number | null) => {
+  filters.subjectId = subjectId ? Number(subjectId) : null
   filters.category = ''
   await loadSubjectCategoryOptions(filters.subjectId, getMockCategoriesBySubject)
 }
@@ -380,7 +383,7 @@ const handleReset = () => {
 /**
  * 处理排序变化（使用公共方法进行字段名和排序方向转换）
  */
-const handleSortChange = (sortInfo) => {
+const handleSortChange = (sortInfo: Parameters<typeof baseSortChange>[0]) => {
   baseSortChange(sortInfo, loadMockList)
 }
 
@@ -396,8 +399,8 @@ const handleAdd = () => {
  * 处理查看（在新标签页打开题目浏览页）
  * 构建URL: /mock?subject=科目名称#mock-题目ID
  */
-const handleView = (row) => {
-  const subjectName = subjectMap.value[row.subjectId]
+const handleView = (row: QuestionRow) => {
+  const subjectName = (row.subjectId == null ? '' : subjectMap.value[row.subjectId])
   if (!subjectName) {
     showToast('无法获取题目所属科目信息', 'warning')
     return
@@ -410,7 +413,7 @@ const handleView = (row) => {
 /**
  * 处理编辑（打开编辑弹窗）
  */
-const handleEdit = (row) => {
+const handleEdit = (row: QuestionRow) => {
   editingMockId.value = row.id
   editingMockData.value = row  // 传递完整数据，避免重复请求API
   editDialogVisible.value = true
@@ -429,7 +432,7 @@ const handleEditSuccess = () => {
 /**
  * 处理删除
  */
-const handleDelete = async (row) => {
+const handleDelete = async (row: QuestionRow) => {
   try {
     // 使用自定义Confirm替代ElMessageBox
     const confirmed = await showConfirm({
@@ -473,7 +476,7 @@ onMounted(() => {
 // 监听路由变化，支持导航栏搜索跳转
 watch(() => route.query.keyword, (newKeyword) => {
   if (newKeyword !== undefined) {
-    filters.keyword = newKeyword || ''
+    filters.keyword = queryString(newKeyword)
     pagination.page = 1
     loadMockList()
   }

@@ -52,7 +52,7 @@
   </teleport>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { computed, watch, onMounted, onUnmounted } from 'vue'
 
 const props = defineProps({
@@ -94,7 +94,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['update:visible', 'close'])
+const emit = defineEmits<{ 'update:visible': [value: boolean]; close: [] }>()
 
 // 容器样式
 const containerClass = computed(() => {
@@ -127,7 +127,7 @@ const handleBackdropClick = () => {
 }
 
 // 键盘事件
-const handleKeydown = (e) => {
+const handleKeydown = (e: KeyboardEvent) => {
   if (e.key === 'Escape' && props.visible && props.closeOnPressEscape) {
     handleClose()
   }

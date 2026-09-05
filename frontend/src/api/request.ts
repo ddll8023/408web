@@ -5,7 +5,8 @@
  * 
  * Source: Axios 1.7.2 官方文档
  */
-import axios from 'axios'
+import axios, { type AxiosRequestConfig, type AxiosResponse } from 'axios'
+import type { ApiResponse } from '@/types'
 import { getToken, removeToken } from '@/utils/token'
 import { ElMessage } from 'element-plus'
 import { convertKeysToCamel } from '@/utils/convertKeys'
@@ -13,7 +14,7 @@ import { convertKeysToCamel } from '@/utils/convertKeys'
 // 创建axios实例
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:7785'
 
-const request = axios.create({
+const client = axios.create({
   baseURL: API_BASE_URL,
   timeout: 15000,
   headers: {
@@ -25,7 +26,7 @@ const request = axios.create({
  * 请求拦截器
  * 自动添加Token到请求头
  */
-request.interceptors.request.use(
+client.interceptors.request.use(
   config => {
     const token = getToken()
     if (token) {
@@ -33,7 +34,7 @@ request.interceptors.request.use(
     }
     return config
   },
-  error => {
+  (error: unknown) => {
     console.error('请求错误：', error)
     return Promise.reject(error)
   }
@@ -43,32 +44,29 @@ request.interceptors.request.use(
  * 响应拦截器
  * 统一处理响应和错误
  */
-request.interceptors.response.use(
+client.interceptors.response.use(
   response => {
     if (response.config?.responseType === 'blob' || response.config?.responseType === 'arraybuffer') {
       return response
     }
 
-    const res = response.data
-
-    // 判断业务状态码
-    if (res.code === 200) {
-      // 统一转换数据键名为驼峰命名（前端规范）
-      if (res.data) {
-        res.data = convertKeysToCamel(res.data)
-      }
-      return res
-    } else {
-      // 业务错误
+    const res: unknown = response.data
+    if (!isApiResponse(res)) {
+      ElMessage.error('响应格式错误')
+      return Promise.reject(new Error('响应格式错误'))
+    }
+    if (res.code !== 200) {
       ElMessage.error(res.message || '请求失败')
       return Promise.reject(new Error(res.message || '请求失败'))
     }
+    response.data = { ...res, data: convertKeysToCamel(res.data) }
+    return response
   },
-  error => {
+  (error: unknown) => {
     console.error('响应错误：', error)
 
     // HTTP状态码错误处理
-    if (error.response) {
+    if (axios.isAxiosError<{ message?: string }>(error) && error.response) {
       const status = error.response.status
       const message = error.response.data?.message || '请求失败'
       const reqUrl = error.config?.url || ''
@@ -108,5 +106,22 @@ request.interceptors.response.use(
   }
 )
 
-export default request
+function isApiResponse(value: unknown): value is ApiResponse<unknown> {
+  return typeof value === 'object' && value !== null &&
+    'code' in value && typeof value.code === 'number' &&
+    'message' in value && typeof value.message === 'string' && 'data' in value
+}
+
+/** JSON 响应由统一拦截器校验信封并转换字段，泛型描述各接口已核对的业务契约。 */
+type JsonRequestConfig = Omit<AxiosRequestConfig, 'responseType'> & { responseType?: 'json' }
+
+export default async function request<T>(config: JsonRequestConfig): Promise<ApiResponse<T>> {
+  const response = await client.request<ApiResponse<T>>(config)
+  return response.data
+}
+
+/** 文件下载保留响应头，避免与 JSON 业务信封混用。 */
+export function requestBlob(config: AxiosRequestConfig): Promise<AxiosResponse<Blob>> {
+  return client.request<Blob>({ ...config, responseType: 'blob' })
+}
 

@@ -193,7 +193,10 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
+import type { ExamQuestion } from "@/types"
+import { queryString } from "@/utils/storage"
+type QuestionRow = ExamQuestion & { deleteLoading?: boolean }
 /**
  * 真题管理页面
  * 功能：真题的CRUD操作（仅ADMIN可访问）
@@ -252,10 +255,10 @@ const {
 
 // 编辑弹窗状态
 const editDialogVisible = ref(false)
-const editingExamId = ref(null)
+const editingExamId = ref<number | null>(null)
 
 // 真题列表
-const exams = ref([])
+const exams = ref<QuestionRow[]>([])
 
 // 年份选项（2009 - 当前年份，倒序排列）
 const currentYear = new Date().getFullYear()
@@ -282,8 +285,8 @@ const tableColumns = [
 
 // 筛选条件
 const filters = reactive({
-  year: null,
-  subjectId: null,
+  year: null as number | null,
+  subjectId: null as number | null,
   category: '',
   keyword: '',
   noCategory: false
@@ -297,14 +300,14 @@ const loadExamList = async () => {
   try {
     const response = await getExamList({
       page: pagination.page,
-      page_size: pagination.size,
+      pageSize: pagination.size,
       year: filters.year || undefined,
-      subject_id: filters.subjectId || undefined,
+      subjectId: filters.subjectId || undefined,
       category: filters.category || undefined,
       keyword: filters.keyword || undefined,
-      no_category: filters.noCategory || undefined,
-      sort_field: sorting.sortField || undefined,
-      sort_order: sorting.sortOrder || undefined
+      noCategory: filters.noCategory || undefined,
+      sortField: sorting.sortField || undefined,
+      sortOrder: sorting.sortOrder || undefined
     })
 
     if (response.code === 200) {
@@ -324,8 +327,8 @@ const loadExamList = async () => {
 /**
  * 科目筛选变更
  */
-const handleSubjectChange = async (subjectId) => {
-  filters.subjectId = subjectId || null
+const handleSubjectChange = async (subjectId: string | number | null) => {
+  filters.subjectId = subjectId ? Number(subjectId) : null
   filters.category = ''
   await loadSubjectCategoryOptions(filters.subjectId, getExamCategoriesBySubject)
 }
@@ -358,7 +361,7 @@ const handleReset = () => {
 /**
  * 处理排序变化（使用公共逻辑）
  */
-const handleSortChange = (sortInfo) => {
+const handleSortChange = (sortInfo: Parameters<typeof baseSortChange>[0]) => {
   baseSortChange(sortInfo, loadExamList)
 }
 
@@ -374,8 +377,8 @@ const handleAdd = () => {
  * 处理查看（在新标签页打开题目浏览页）
  * 构建URL: /exam/classify?subject=科目名称#exam-题目ID
  */
-const handleView = (row) => {
-  const subjectName = subjectMap.value[row.subjectId]
+const handleView = (row: QuestionRow) => {
+  const subjectName = (row.subjectId == null ? '' : subjectMap.value[row.subjectId])
   if (!subjectName) {
     showToast('无法获取题目所属科目信息', 'warning')
     return
@@ -388,7 +391,7 @@ const handleView = (row) => {
 /**
  * 处理编辑（打开编辑弹窗）
  */
-const handleEdit = (row) => {
+const handleEdit = (row: QuestionRow) => {
   editingExamId.value = row.id
   editDialogVisible.value = true
 }
@@ -403,7 +406,7 @@ const handleEditSuccess = () => {
 /**
  * 处理删除
  */
-const handleDelete = async (row) => {
+const handleDelete = async (row: QuestionRow) => {
   const ok = await showConfirm({
     title: '警告',
     message: `确定要删除真题"${row.title || row.year + '年 第' + row.questionNumber + '题'}"吗？`,
@@ -445,7 +448,7 @@ onMounted(() => {
 // 监听路由变化，支持导航栏搜索跳转
 watch(() => route.query.keyword, (newKeyword) => {
   if (newKeyword !== undefined) {
-    filters.keyword = newKeyword || ''
+    filters.keyword = queryString(newKeyword)
     pagination.page = 1
     loadExamList()
   }

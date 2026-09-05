@@ -17,13 +17,13 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 /**
  * CustomCard 自定义卡片组件
  * 功能：替代 Element Plus 的 el-card，提供统一的卡片样式
  * 遵循 KISS 原则：简洁实现，只包含必需功能
  */
-import { computed } from 'vue'
+import { computed, type CSSProperties } from 'vue'
 
 const props = defineProps({
   // 卡片标题
@@ -57,7 +57,7 @@ const cardClasses = computed(() => {
 
 // 卡片样式
 const cardStyle = computed(() => {
-  const style = {}
+  const style: CSSProperties = {}
   if (props.width) {
     style.width = props.width
   }

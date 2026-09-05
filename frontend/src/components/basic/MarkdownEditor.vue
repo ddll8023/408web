@@ -30,7 +30,7 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 /**
  * Markdown编辑器组件
  * 用于编辑Markdown内容，支持实时预览和数学公式渲染
@@ -41,7 +41,7 @@
  */
 import { ref, watch, onMounted, onUnmounted } from 'vue'
 import { uploadImage, getImageUrl } from '@/api/upload'
-import VMdEditor from '@kangc/v-md-editor'
+import VMdEditor, { type EditorInstance } from '@kangc/v-md-editor'
 import '@kangc/v-md-editor/lib/style/base-editor.css'
 // GitHub主题
 import githubTheme from '@kangc/v-md-editor/lib/theme/github.js'
@@ -98,12 +98,12 @@ const props = defineProps({
 /**
  * Emits定义
  */
-const emit = defineEmits(['update:modelValue', 'save'])
+const emit = defineEmits<{ 'update:modelValue': [value: string]; save: [content: {text: string; html: string}] }>()
 
 /**
  * 编辑器引用
  */
-const editorRef = ref(null)
+const editorRef = ref<EditorInstance | null>(null)
 
 /**
  * 本地内容状态
@@ -140,7 +140,7 @@ const customToolbar = {
       {
         name: 'link-image',
         text: '链接图片',
-        action(editor) {
+        action(editor: EditorInstance) {
           // 插入图片链接模板
           editor.insert(() => ({
             text: '![图片描述](图片链接)',
@@ -151,7 +151,7 @@ const customToolbar = {
       {
         name: 'upload-image',
         text: '上传图片',
-        action(editor) {
+        action(editor: EditorInstance) {
           selectImageFile(editor)
         }
       }
@@ -161,7 +161,7 @@ const customToolbar = {
     title: '数学公式',
     icon: 'v-md-icon-formula',
     text: '公式',
-    action(editor) {
+    action(editor: EditorInstance) {
       insertFormula(editor)
     }
   }
@@ -172,7 +172,7 @@ const customToolbar = {
  * 智能判断：选中文本包含换行则使用块级公式，否则使用行内公式
  * @param {Object} editor - 编辑器实例
  */
-const insertFormula = (editor) => {
+const insertFormula = (editor: EditorInstance) => {
   // 获取当前选中的文本
   const selectedText = editor.getCurrentSelectedStr() || ''
   
@@ -220,7 +220,7 @@ const insertFormula = (editor) => {
  * 处理内容更新
  * 同时更新本地状态（实时预览）和向父组件发出事件
  */
-const handleUpdate = (value) => {
+const handleUpdate = (value: string) => {
   localContent.value = value
   emit('update:modelValue', value)
 }
@@ -228,7 +228,7 @@ const handleUpdate = (value) => {
 /**
  * 处理保存（Ctrl+S快捷键触发）
  */
-const handleSave = (text, html) => {
+const handleSave = (text: string, html: string) => {
   emit('save', { text, html })
 }
 
@@ -240,7 +240,7 @@ const handleSave = (text, html) => {
  * @param {Object} editor - 编辑器实例
  * @returns {Promise<boolean>} 上传是否成功
  */
-const uploadImageFile = async (file, editor) => {
+const uploadImageFile = async (file: File, editor: EditorInstance) => {
   // 验证文件大小（100MB）
   if (file.size > 100 * 1024 * 1024) {
     alert('图片大小不能超过100MB')
@@ -274,14 +274,14 @@ const uploadImageFile = async (file, editor) => {
  * 打开文件选择对话框,上传到服务器后插入Markdown语法
  * @param {Object} editor - 编辑器实例
  */
-const selectImageFile = (editor) => {
+const selectImageFile = (editor: EditorInstance) => {
   // 创建文件输入元素
   const input = document.createElement('input')
   input.type = 'file'
   input.accept = 'image/jpeg,image/jpg,image/png,image/gif,image/webp'
   
   input.onchange = async (e) => {
-    const file = e.target.files[0]
+    const file = input.files?.[0]
     if (!file) return
     
     // 调用通用上传逻辑
@@ -296,7 +296,7 @@ const selectImageFile = (editor) => {
  * 处理粘贴事件（支持粘贴图片上传）
  * @param {ClipboardEvent} event - 粘贴事件对象
  */
-const handlePaste = async (event) => {
+const handlePaste = async (event: ClipboardEvent) => {
   // 获取剪贴板数据
   const items = event.clipboardData?.items
   if (!items) return

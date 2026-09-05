@@ -2,6 +2,7 @@
  * JSON导入功能 composable
  * 支持AI输出的宽松JSON格式解析
  */
+import { validateImportedQuestion } from './questionFormTypes'
 import { ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
@@ -19,7 +20,7 @@ export function useJsonImport() {
    * 转义字段值内部的双引号和反斜杠
    * 专门处理 AI 生成的宽松 JSON（如 SVG 内嵌双引号、LaTeX 反斜杠等）
    */
-  const escapeJsonFieldValue = (value) => {
+  const escapeJsonFieldValue = (value: string) => {
     if (!value) return value
 
     let result = ''
@@ -68,7 +69,7 @@ export function useJsonImport() {
   /**
    * 宽松 JSON 预处理：整体解析策略
    */
-  const normalizeRelaxedJsonText = (rawText) => {
+  const normalizeRelaxedJsonText = (rawText: string) => {
     if (!rawText) return rawText
 
     console.log('[JSON预处理] 开始处理，原始长度:', rawText.length)
@@ -129,19 +130,19 @@ export function useJsonImport() {
   /**
    * 解析JSON（支持宽松格式）
    */
-  const parseJsonWithRelaxedSupport = (rawText) => {
+  const parseJsonWithRelaxedSupport = (rawText: string) => {
     if (!rawText) {
       throw new Error('JSON内容为空')
     }
 
     try {
-      return JSON.parse(rawText)
+      return validateImportedQuestion(JSON.parse(rawText))
     } catch (strictError) {
       try {
         const fixedText = normalizeRelaxedJsonText(rawText)
-        return JSON.parse(fixedText)
+        return validateImportedQuestion(JSON.parse(fixedText))
       } catch (relaxedError) {
-        throw new Error(`${strictError.message}\n\n提示：请检查content/options/answer字段中是否有未转义的双引号或反斜杠`)
+        throw new Error(`${strictError instanceof Error ? strictError.message : String(strictError)}\n\n提示：请检查content/options/answer字段中是否有未转义的双引号或反斜杠`)
       }
     }
   }
@@ -180,8 +181,8 @@ export function useJsonImport() {
   /**
    * 显示JSON格式示例
    */
-  const showJsonExample = (type = 'exam') => {
-    const examples = {
+  const showJsonExample = (type: 'exam' | 'mock' | 'exercise' = 'exam') => {
+    const examples: Record<'exam' | 'mock' | 'exercise', { choice: string; essay?: string }> = {
       exam: {
         choice: `{
   "year": 2023,

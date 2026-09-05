@@ -258,7 +258,9 @@
   </teleport>
 </template>
 
-<script setup>
+<script setup lang="ts">
+import type { MockCreateRequest, MockQuestion } from '@/types'
+import type { PropType } from 'vue'
 /**
  * MockEditDialog 模拟题编辑弹窗组件
  * 功能：创建和编辑模拟题题目，支持选择题和主观题两种题型
@@ -280,11 +282,11 @@ import Select from '@/components/basic/Select.vue'
 
 const props = defineProps({
   visible: { type: Boolean, default: false },
-  mockId: { type: [Number, String], default: null },
-  mockData: { type: Object, default: null }  // 优先使用的编辑数据（来自列表）
+  mockId: { type: [Number, String] as PropType<number | string | null>, default: null },
+  mockData: { type: Object as PropType<MockQuestion | null>, default: null }  // 优先使用的编辑数据（来自列表）
 })
 
-const emit = defineEmits(['update:visible', 'success'])
+const emit = defineEmits<{ 'update:visible': [visible: boolean]; success: [question: MockQuestion | null] }>()
 
 const dialogVisible = computed({
   get: () => props.visible,
@@ -333,10 +335,10 @@ const difficultyOptions = [
 ]
 
 // 来源选项
-const sourceOptions = ref([])
+const sourceOptions = ref<string[]>([])
 
 // 标题选项（根据来源动态加载）
-const titleOptions = ref([])
+const titleOptions = ref<string[]>([])
 
 // 表单验证规则（简化版：手动验证）
 const validateForm = () => {
@@ -366,7 +368,7 @@ const loadSourceOptions = async () => {
   try {
     const response = await getAllMockSources()
     if (response.code === 200) {
-      sourceOptions.value = response.data || []
+      sourceOptions.value = response.data.sources.map(item => item.source)
     }
   } catch (error) {
     console.error('加载来源列表失败:', error)
@@ -374,16 +376,16 @@ const loadSourceOptions = async () => {
 }
 
 // 加载模拟题数据
-const loadMockData = async (id) => {
+const loadMockData = async (id: number | string | null) => {
   if (!id) return
   loading.value = true
   try {
-    const response = await getMockQuestionById(id)
+    const response = await getMockQuestionById(Number(id))
     if (response.code === 200) {
       const data = response.data
       await fillFormFromData(data)
       form.source = data.source || ''
-      form.questionNumber = data.questionNumber
+      form.questionNumber = data.questionNumber ?? null
     } else {
       ElMessage.error(response.message || '加载失败')
     }
@@ -423,11 +425,11 @@ const initDialog = async () => {
 
   // 编辑模式：加载已有数据
   // 优先使用传入的数据，否则调用API获取
-  if (hasData) {
+  if (props.mockData) {
     await fillFormFromData(props.mockData)
     // 还需要填充额外字段（模拟题特有的字段）
     form.source = props.mockData.source || ''
-    form.questionNumber = props.mockData.questionNumber ?? props.mockData.question_number
+    form.questionNumber = props.mockData.questionNumber ?? null
     loading.value = false  // 关闭 loading 状态
   } else if (hasId) {
     await loadMockData(props.mockId)
@@ -475,18 +477,11 @@ const handleParseJson = async () => {
     form.source = data.source || form.source
     form.questionNumber = data.questionNumber || null
 
-    if (data.questionType === 'CHOICE' && data.options) {
-      const options = typeof data.options === 'string' ? JSON.parse(data.options) : data.options
-      form.optionA = options.A || ''
-      form.optionB = options.B || ''
-      form.optionC = options.C || ''
-      form.optionD = options.D || ''
-    }
 
     ElMessage.success('JSON解析成功，已填充到表单')
     jsonImportVisible.value = false
   } catch (e) {
-    ElMessage.error('JSON格式错误：' + e.message)
+    ElMessage.error('JSON格式错误：' + (e instanceof Error ? e.message : String(e)))
   }
 }
 
@@ -506,7 +501,7 @@ const handleSubmit = async () => {
     if (isEditMode.value) {
       // 编辑模式：调用更新API
       const id = Number(props.mockId)
-      response = await updateMockQuestion(id, { ...data, id })
+      response = await updateMockQuestion(id, data)
     } else {
       // 新建模式：调用创建API
       response = await createMockQuestion(data)

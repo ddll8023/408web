@@ -14,7 +14,7 @@
   
 </template>
 
-<script setup>
+<script setup lang="ts">
 /**
  * Markdown查看器组件
  * 用于渲染Markdown内容，支持数学公式渲染
@@ -82,22 +82,23 @@ const props = defineProps({
   }
 })
 
-const rootRef = ref(null)
+const rootRef = ref<HTMLElement | null>(null)
 
 // 存储提取的公式
-const mathExpressions = ref([])
+interface MathExpression { placeholder: string; content: string; display: boolean; original: string }
+const mathExpressions = ref<MathExpression[]>([])
 
 /**
  * 公式提取与保护
  * 按优先级匹配：块级公式 → 行内公式
  * 使用唯一占位符替换，防止 Markdown 解析破坏
  */
-const extractMath = (text) => {
-  const expressions = []
+const extractMath = (text: string) => {
+  const expressions: MathExpression[] = []
   let index = 0
   
   // 占位符使用反引号包裹，Markdown 渲染为 <code> 标签
-  const placeholder = (i, isBlock) => 
+  const placeholder = (i: number, isBlock: boolean) =>
     `\`KATEX${isBlock ? 'B' : 'I'}${i}PH\``
   
   // 正则模式（按优先级排序）
@@ -130,7 +131,7 @@ const extractMath = (text) => {
 /**
  * 将公式内容渲染为 HTML 字符串
  */
-const renderMathToHtml = (content, display) => {
+const renderMathToHtml = (content: string, display: boolean) => {
   try {
     // 预处理：将 KaTeX 不支持的语法转换为兼容格式
     let processed = content
@@ -151,7 +152,7 @@ const renderMathToHtml = (content, display) => {
 /**
  * HTML 转义
  */
-const escapeHtml = (text) => {
+const escapeHtml = (text: string) => {
   const div = document.createElement('div')
   div.textContent = text
   return div.innerHTML
@@ -213,7 +214,7 @@ const processContent = () => {
  * @param {Array} images 图片URL数组
  * @param {Number} index 当前点击的图片索引
  */
-const handleImageClick = (images, index) => {
+const handleImageClick = (images: string[], index: number) => {
   if (!images || images.length === 0) return
 
   // 默认打开点击的图片

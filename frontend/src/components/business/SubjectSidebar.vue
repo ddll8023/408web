@@ -57,7 +57,7 @@
                 <span v-if="!isCollapsed" class="item-label flex-1 text-base font-medium text-gray-900 whitespace-nowrap overflow-hidden text-ellipsis">{{ sub.name }}</span>
               </transition>
               <transition name="fade" mode="out-in">
-                <span v-if="!isCollapsed && sub.questionCount > 0" class="count-badge text-xs text-gray-400 bg-black/5 px-1.5 py-0.5 rounded-full ml-auto">
+                <span v-if="!isCollapsed && (sub.questionCount ?? 0) > 0" class="count-badge text-xs text-gray-400 bg-black/5 px-1.5 py-0.5 rounded-full ml-auto">
                   {{ sub.questionCount }}
                 </span>
               </transition>
@@ -94,7 +94,7 @@
   </aside>
 </template>
 
-<script setup>
+<script setup lang="ts">
 /**
  * 科目侧边栏组件
  * 功能：展示科目列表和多级分类树，支持展开/折叠和分类筛选
@@ -102,6 +102,8 @@
  * 遵循SOLID原则：分类树渲染委托给 CategoryTreeItem 组件
  */
 // 1. Vue 官方 API
+import type { PropType } from 'vue'
+import type { Subject, CategoryTreeNode } from '@/types'
 import { ref } from 'vue'
 
 // 2. 子组件
@@ -117,7 +119,7 @@ import {
 } from '@fortawesome/free-solid-svg-icons'
 
 // 已展开的分类ID数组（支持多级分类同时展开）
-const expandedCategoryIds = ref([])
+const expandedCategoryIds = ref<number[]>([])
 
 const props = defineProps({
   // 侧边栏是否折叠
@@ -127,22 +129,22 @@ const props = defineProps({
   },
   // 科目列表
   subjects: {
-    type: Array,
+    type: Array as PropType<Subject[]>,
     default: () => []
   },
   // 当前激活的科目ID
   activeSubjectId: {
-    type: [String, Number],
+    type: [String, Number] as PropType<string | number | null>,
     default: null
   },
   // 当前展开的科目ID
   expandedSubjectId: {
-    type: [String, Number],
+    type: [String, Number] as PropType<string | number | null>,
     default: null
   },
   // 各科目的分类数据 { subjectId: [categoryTree] }
   subjectCategories: {
-    type: Object,
+    type: Object as PropType<Record<number, CategoryTreeNode[]>>,
     default: () => ({})
   },
   // 当前筛选的分类名称
@@ -157,7 +159,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['update:isCollapsed', 'select-subject', 'toggle-expand', 'select-category'])
+const emit = defineEmits<{ 'update:isCollapsed': [value: boolean]; 'select-subject': [subject: Subject]; 'toggle-expand': [subject: Subject | null]; 'select-category': [selection: { subject: Subject; category: string }] }>()
 
 /**
  * 切换侧边栏折叠状态
@@ -169,21 +171,21 @@ const toggleCollapse = () => {
 /**
  * 选中科目
  */
-const onSubjectSelect = (sub) => {
+const onSubjectSelect = (sub: Subject) => {
   emit('select-subject', sub)
 }
 
 /**
  * 切换科目展开状态
  */
-const onToggleExpand = (sub) => {
+const onToggleExpand = (sub: Subject) => {
   emit('toggle-expand', sub)
 }
 
 /**
  * 选中分类
  */
-const onCategorySelect = (sub, cat) => {
+const onCategorySelect = (sub: Subject, cat: string) => {
   emit('select-category', { subject: sub, category: cat })
 }
 
@@ -191,7 +193,7 @@ const onCategorySelect = (sub, cat) => {
  * 切换分类展开状态（支持多级分类）
  * 使用数组管理展开状态，允许多个分类同时展开
  */
-const toggleCategoryExpand = (categoryId) => {
+const toggleCategoryExpand = (categoryId: number) => {
   const index = expandedCategoryIds.value.indexOf(categoryId)
   if (index > -1) {
     expandedCategoryIds.value.splice(index, 1)
@@ -203,7 +205,7 @@ const toggleCategoryExpand = (categoryId) => {
 /**
  * 获取分类树（兼容旧版字符串数组和新版对象数组）
  */
-const getCategoryTree = (subjectId) => {
+const getCategoryTree = (subjectId: number) => {
   const cats = props.subjectCategories[subjectId]
   if (!cats || !Array.isArray(cats)) return []
   return cats

@@ -1,20 +1,27 @@
-/**
- * 无官方类型声明的第三方库 shim。
- * 仅覆盖本项目实际使用的导入路径，保持最小声明。
- */
+/** Third-party APIs used by the editor wrappers, checked against installed package source. */
 declare module '@kangc/v-md-editor' {
   import type { DefineComponent } from 'vue'
-  const VMdEditor: DefineComponent<Record<string, never>, Record<string, never>, unknown>
-  export default VMdEditor
+  import type MarkdownIt from 'markdown-it'
+  import type { HLJSApi } from 'highlight.js'
+  export interface EditorInstance {
+    $el: HTMLElement
+    $refs: { editorEgine?: { getRange(): { start: number; end: number }; setRange(range: { start: number; end: number }): void } }
+    insert(callback: () => { text: string; selected: string }): void
+    getCurrentSelectedStr(): string
+    replaceSelectionText(text: string): void
+  }
+  export interface ThemeOptions { Hljs: HLJSApi; extend(md: MarkdownIt): void }
+  export interface MarkdownStatic { use(theme: unknown, options: ThemeOptions): void; xss: { extend(options: { whiteList: Record<string, string[]> }): void } }
+  const editor: DefineComponent<{ modelValue?: string; height?: string; placeholder?: string; leftToolbar?: string; rightToolbar?: string; toolbar?: object; mode?: string }, {}, {}, {}, {}, {}, {}, { 'update:modelValue': (value: string) => void; save: (text: string, html: string) => void }> & MarkdownStatic
+  export default editor
 }
-
 declare module '@kangc/v-md-editor/lib/preview' {
   import type { DefineComponent } from 'vue'
-  const VMdPreview: DefineComponent<Record<string, never>, Record<string, never>, unknown>
-  export default VMdPreview
+  import type { MarkdownStatic } from '@kangc/v-md-editor'
+  const preview: DefineComponent<{ text?: string }, {}, {}, {}, {}, {}, {}, { imageClick: (images: string[], index: number) => void }> & MarkdownStatic
+  export default preview
 }
-
 declare module '@kangc/v-md-editor/lib/theme/github.js' {
-  const githubTheme: (md: unknown) => void
-  export default githubTheme
+  const theme: unknown
+  export default theme
 }

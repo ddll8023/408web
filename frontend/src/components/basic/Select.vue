@@ -49,7 +49,7 @@
         <option v-if="!required" value="">请选择</option>
         <option
           v-for="option in normalizedOptions"
-          :key="option.value"
+          :key="String(option.value)"
           :value="option.value"
         >
           {{ option.label }}
@@ -83,7 +83,7 @@
         <ul class="max-h-60 overflow-y-auto py-1">
           <li
             v-for="option in filteredOptions"
-            :key="option.value"
+            :key="String(option.value)"
             class="px-4 py-2.5 text-base text-gray-700 cursor-pointer transition-colors duration-150"
             :class="[
               option.value === modelValue
@@ -118,7 +118,9 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts" generic="V extends OptionValue">
+import type { PropType } from 'vue'
+import type { SelectInput, SelectOption, OptionValue } from './types'
 /**
  * Select 下拉选择组件
  * 功能：封装原生select，提供统一的视觉样式和交互体验
@@ -131,12 +133,12 @@ import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 const props = defineProps({
   // v-model 绑定值
   modelValue: {
-    type: [String, Number, Boolean],
+    type: [String, Number, Boolean, null] as PropType<V | null>,
     default: ''
   },
   // 选项列表
   options: {
-    type: Array,
+    type: Array as PropType<SelectInput<V>[]>,
     default: () => [],
     required: true
   },
@@ -169,7 +171,7 @@ const props = defineProps({
   size: {
     type: String,
     default: 'md',
-    validator: (value) => ['sm', 'md', 'lg'].includes(value)
+    validator: (value: string) => ['sm', 'md', 'lg'].includes(value)
   },
   // 是否显示边框
   bordered: {
@@ -178,20 +180,20 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['update:modelValue', 'change'])
+const emit = defineEmits<{ 'update:modelValue': [value: V | '']; change: [value: V | ''] }>()
 
-const selectRef = ref(null)
+const selectRef = ref<HTMLElement | null>(null)
 const visible = ref(false)
 const filterText = ref('')
 
 // 标准化选项数据结构
-const normalizedOptions = computed(() => {
+const normalizedOptions = computed<SelectOption<V | ''>[]>(() => {
   if (!props.options) return []
   return props.options.map(item => {
     if (typeof item === 'object' && item !== null) {
       return {
         label: item.label ?? item.name ?? String(item.value),
-        value: item.value ?? item.id ?? item
+        value: item.value ?? item.id ?? ''
       }
     }
     return { label: String(item), value: item }
@@ -218,7 +220,7 @@ const selectedLabel = computed(() => {
 
 // 容器样式
 const containerClasses = computed(() => {
-  const sizeClasses = {
+  const sizeClasses: Record<string, string> = {
     sm: 'py-2 h-9 text-base',
     md: 'py-2.5 h-[42px] text-base',
     lg: 'py-3 text-lg'
@@ -242,7 +244,8 @@ watch(() => props.modelValue, () => {
 })
 
 // 点击其他地方关闭下拉
-const handleClickOutside = (event) => {
+const handleClickOutside = (event: MouseEvent) => {
+  if (!(event.target instanceof Element)) return
   const container = selectRef.value?.closest('.relative')
   if (container && !container.contains(event.target)) {
     visible.value = false
@@ -261,7 +264,7 @@ const handleContainerClick = () => {
 }
 
 // 选择选项
-const handleSelect = (option) => {
+const handleSelect = (option: SelectOption<V | ''>) => {
   emit('update:modelValue', option.value)
   emit('change', option.value)
   visible.value = false
@@ -269,8 +272,11 @@ const handleSelect = (option) => {
 }
 
 // 原生 select change 事件
-const handleChange = (event) => {
-  const value = event.target.value
+const handleChange = (event: Event) => {
+  if (!(event.target instanceof HTMLSelectElement)) return
+  const rawValue = event.target.value
+  const selected = normalizedOptions.value.find(option => String(option.value) === rawValue)
+  const value = selected?.value ?? ''
   emit('update:modelValue', value)
   emit('change', value)
 }

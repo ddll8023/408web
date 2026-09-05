@@ -11,7 +11,7 @@
   </transition>
 </template>
 
-<script setup>
+<script setup lang="ts">
 /**
  * 回到顶部组件
  */

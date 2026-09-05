@@ -18,7 +18,7 @@ export function getToken() {
  * 设置Token
  * @param {string} token Token字符串
  */
-export function setToken(token) {
+export function setToken(token: string) {
   localStorage.setItem(TOKEN_KEY, token)
 }
 

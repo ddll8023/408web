@@ -162,17 +162,17 @@
               v-for="category in categoryList"
               :key="category"
               class="flex items-center justify-between p-3 bg-white border border-[#dfe2e5] rounded cursor-pointer transition-all duration-200 hover:border-[#8B6F47] hover:bg-[rgba(139,111,71,0.05)]"
-              :class="{ 'bg-[rgba(103,194,58,0.1)] border-[#67c23a]': isFavorite(activeAddSubject, category) }"
+              :class="{ 'bg-[rgba(103,194,58,0.1)] border-[#67c23a]': isFavorite(activeAddSubject ?? 0, category) }"
               @click="toggleCategoryFavorite(category, activeAddSubject)"
             >
               <span class="text-sm truncate flex-1 mr-2 text-left overflow-hidden text-ellipsis whitespace-nowrap"
-                :class="isFavorite(activeAddSubject, category) ? 'text-[#67c23a]' : 'text-[#666]'">
+                :class="isFavorite(activeAddSubject ?? 0, category) ? 'text-[#67c23a]' : 'text-[#666]'">
                 {{ category }}
               </span>
               <font-awesome-icon
                 class="text-base transition-all duration-200"
-                :class="isFavorite(activeAddSubject, category) ? 'text-[#67c23a]' : 'text-[#666]'"
-                :icon="isFavorite(activeAddSubject, category) ? ['fas', 'check'] : ['fas', 'plus']"
+                :class="isFavorite(activeAddSubject ?? 0, category) ? 'text-[#67c23a]' : 'text-[#666]'"
+                :icon="isFavorite(activeAddSubject ?? 0, category) ? ['fas', 'check'] : ['fas', 'plus']"
               />
             </div>
           </div>
@@ -185,7 +185,8 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
+import type { Subject } from "@/types"
 /**
  * 个人中心页面
  * 功能：展示个人信息和收藏夹（收藏题目分类）
@@ -215,14 +216,14 @@ const { showConfirm } = useConfirm()
 const activeMenu = ref('favorites')
 
 // 科目数据
-const subjects = ref([])
+const subjects = ref<Subject[]>([])
 const loadingSubjects = ref(false)
-const activeSubjectTab = ref(null)
+const activeSubjectTab = ref<number | null>(null)
 
 // 添加弹窗状态
 const addDialogVisible = ref(false)
-const activeAddSubject = ref(null)
-const categoryList = ref([])
+const activeAddSubject = ref<number | null>(null)
+const categoryList = ref<string[]>([])
 const loadingCategories = ref(false)
 
 // 角色标签类型
@@ -264,7 +265,7 @@ const loadSubjects = async () => {
 /**
  * 获取指定科目的收藏列表
  */
-const getFavoritesForSubject = (subjectId) => {
+const getFavoritesForSubject = (subjectId: number | null) => {
   return favorites.value
     .filter(item => item.subjectId === subjectId)
     .sort((a, b) => b.timestamp - a.timestamp)
@@ -273,7 +274,7 @@ const getFavoritesForSubject = (subjectId) => {
 /**
  * 处理菜单选择
  */
-const handleMenuSelect = (index) => {
+const handleMenuSelect = (index: string) => {
   activeMenu.value = index
 }
 
@@ -281,7 +282,7 @@ const handleMenuSelect = (index) => {
  * 为指定科目打开添加收藏弹窗
  * @param {Number} subjectId - 科目ID
  */
-const openAddDialogForSubject = (subjectId) => {
+const openAddDialogForSubject = (subjectId: number | null = null) => {
   addDialogVisible.value = true
   const targetSubjectId = subjectId || activeSubjectTab.value || (subjects.value.length > 0 ? subjects.value[0].id : null)
   if (targetSubjectId) {
@@ -293,7 +294,7 @@ const openAddDialogForSubject = (subjectId) => {
 /**
  * 加载指定科目的题目分类列表
  */
-const loadCategoriesForSubject = async (subjectId) => {
+const loadCategoriesForSubject = async (subjectId: number | null) => {
   if (!subjectId) return
   
   loadingCategories.value = true
@@ -316,7 +317,7 @@ const loadCategoriesForSubject = async (subjectId) => {
  * 处理添加弹窗中的科目切换
  * @param {Number} subjectId - 科目ID
  */
-const handleAddSubjectChange = (subjectId) => {
+const handleAddSubjectChange = (subjectId: number | null) => {
   activeAddSubject.value = subjectId
   loadCategoriesForSubject(subjectId)
 }
@@ -324,7 +325,8 @@ const handleAddSubjectChange = (subjectId) => {
 /**
  * 在弹窗中切换收藏状态
  */
-const toggleCategoryFavorite = (category, subjectId) => {
+const toggleCategoryFavorite = (category: string, subjectId: number | null) => {
+  if (subjectId === null) return
   if (isFavorite(subjectId, category)) {
     // 已收藏则取消收藏
     removeFavorite(subjectId, category)
@@ -349,7 +351,7 @@ const toggleCategoryFavorite = (category, subjectId) => {
 /**
  * 处理分类点击 - 在新标签页打开真题分类页面
  */
-const handleCategoryClick = (item) => {
+const handleCategoryClick = (item: (typeof favorites.value)[number]) => {
   // 构建目标URL
   const url = router.resolve({
     path: '/exam/classify',
@@ -366,7 +368,7 @@ const handleCategoryClick = (item) => {
 /**
  * 移除收藏
  */
-const handleRemoveFavorite = (item) => {
+const handleRemoveFavorite = (item: (typeof favorites.value)[number]) => {
   showConfirm({
     title: '提示',
     message: `确定要取消收藏「${item.category}」吗？`,

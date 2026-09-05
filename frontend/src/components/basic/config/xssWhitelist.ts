@@ -1,3 +1,5 @@
+import type MarkdownIt from 'markdown-it'
+
 /**
  * Markdown 编辑器/查看器共享的 XSS 白名单配置
  * 遵循 SOLID 原则：单一职责，集中管理安全配置
@@ -131,7 +133,7 @@ export const getEditorWhitelist = () => ({
  * 配置 markdown-it 的 SVG 代码块渲染
  * @param {Object} md - markdown-it 实例
  */
-export const configureSvgFence = (md) => {
+export const configureSvgFence = (md: MarkdownIt) => {
   const defaultFenceRender = md.renderer.rules.fence
   md.renderer.rules.fence = (tokens, idx, options, env, self) => {
     const token = tokens[idx]
@@ -143,6 +145,6 @@ export const configureSvgFence = (md) => {
     }
     
     // 其他代码块使用默认渲染
-    return defaultFenceRender(tokens, idx, options, env, self)
+    return defaultFenceRender ? defaultFenceRender(tokens, idx, options, env, self) : self.renderToken(tokens, idx, options)
   }
 }

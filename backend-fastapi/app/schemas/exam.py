@@ -98,6 +98,7 @@ class ExamDuplicateRequest(BaseModel):
 class ExamCreateRequest(QuestionCreateFields):
     """真题创建请求。"""
 
+    question_number: Optional[int] = Field(default=None, ge=1, le=1000, description="题号")
     year: int = Field(..., ge=1990, le=2100, description="年份", examples=[2023])
 
     model_config = ConfigDict(

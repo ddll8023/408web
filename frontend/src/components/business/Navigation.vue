@@ -80,7 +80,7 @@
   </nav>
 </template>
 
-<script setup>
+<script setup lang="ts">
 /**
  * 顶部导航栏组件
  * 功能：统一的导航菜单、用户信息展示、路由跳转
@@ -105,7 +105,7 @@ const searchTypeOptions = [
 ]
 
 // 搜索相关状态
-const searchType = ref('exam')  // 默认搜索真题
+const searchType = ref<'exam' | 'mock'>('exam')  // 默认搜索真题
 const searchKeyword = ref('')
 
 /**
@@ -113,7 +113,7 @@ const searchKeyword = ref('')
  * @param {string} message - 提示消息
  * @param {string} type - 消息类型 success/warning/error/info
  */
-const showToast = (message, type = 'warning') => {
+const showToast = (message: string, type: 'success' | 'warning' | 'error' | 'info' = 'warning') => {
   const colors = {
     success: 'bg-green-500',
     warning: 'bg-yellow-500',
@@ -183,7 +183,7 @@ const goToUserCenter = () => {
  * 处理管理菜单选择
  * @param {string} command - 命令（subject/chapter/exam）
  */
-const handleManageCommand = (command) => {
+const handleManageCommand = (command: string | number) => {
   if (command === 'subject') {
     router.push('/manage/subject')
   } else if (command === 'category') {

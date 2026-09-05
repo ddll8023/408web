@@ -13,7 +13,7 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 /**
  * DropdownItem 下拉菜单项组件
  * 功能：单个菜单项，支持 disabled、divided
@@ -24,7 +24,7 @@ import { computed } from 'vue'
 const props = defineProps({
   // 命令值（点击时传递）
   command: {
-    type: [String, Number, Object],
+    type: [String, Number],
     default: ''
   },
   // 是否禁用

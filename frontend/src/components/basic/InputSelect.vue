@@ -57,7 +57,9 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
+import type { PropType } from 'vue'
+import type { SelectInput, SelectOption, OptionValue } from './types'
 /**
  * 自定义可输入下拉选择组件
  * 功能：替代Element Plus Select，支持下拉选择和手动输入
@@ -71,7 +73,7 @@ const props = defineProps({
     default: ''
   },
   options: {
-    type: Array,
+    type: Array as PropType<(string | number | SelectOption<string | number>)[]>,
     default: () => []
   },
   placeholder: {
@@ -84,9 +86,9 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['update:modelValue', 'change'])
+const emit = defineEmits<{ 'update:modelValue': [value: string | number]; change: [value: string | number] }>()
 
-const containerRef = ref(null)
+const containerRef = ref<HTMLElement | null>(null)
 const visible = ref(false)
 const inputValue = ref('')
 
@@ -96,7 +98,7 @@ const normalizedOptions = computed(() => {
   return props.options.map(item => {
     if (typeof item === 'object' && item !== null) {
       return {
-        label: item.label || item.value,
+        label: String(item.label || item.value),
         value: item.value || item.label
       }
     }
@@ -117,11 +119,11 @@ const filteredOptions = computed(() => {
 watch(() => props.modelValue, (val) => {
   const option = normalizedOptions.value.find(opt => opt.value === val)
   // 如果找到对应的选项，显示label；否则直接显示值（支持手动输入的情况）
-  inputValue.value = option ? option.label : (val || '')
+  inputValue.value = option ? option.label : String(val || '')
 }, { immediate: true })
 
 // 判断是否被选中
-const isSelected = (item) => {
+const isSelected = (item: SelectOption<string | number>) => {
   return props.modelValue === item.value
 }
 
@@ -144,9 +146,7 @@ const toggleMenu = () => {
     visible.value = false
   } else {
     visible.value = true
-    if (containerRef.value.querySelector('input')) {
-      containerRef.value.querySelector('input').focus()
-    }
+    containerRef.value?.querySelector('input')?.focus()
   }
 }
 
@@ -164,7 +164,7 @@ const handleChange = () => {
 }
 
 // 选择下拉项
-const handleSelect = (item) => {
+const handleSelect = (item: SelectOption<string | number>) => {
   inputValue.value = item.label
   emit('update:modelValue', item.value)
   emit('change', item.value)
@@ -179,7 +179,8 @@ const handleClear = () => {
 }
 
 // 点击外部关闭
-const handleClickOutside = (event) => {
+const handleClickOutside = (event: MouseEvent) => {
+  if (!(event.target instanceof Element)) return
   if (containerRef.value && !containerRef.value.contains(event.target)) {
     visible.value = false
   }

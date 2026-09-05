@@ -18,12 +18,12 @@
   </div>
 </template>
 
-<script setup>
-import { ref, watch } from 'vue'
+<script setup lang="ts">
+import { ref, watch, type PropType } from 'vue'
 
 const props = defineProps({
   modelValue: {
-    type: [Array, String],
+    type: [Array, String] as PropType<string | string[]>,
     default: () => []
   },
   name: {
@@ -36,7 +36,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['update:modelValue'])
+const emit = defineEmits<{ 'update:modelValue': [value: string | string[]] }>()
 
 // 是否展开
 const isOpen = ref(false)

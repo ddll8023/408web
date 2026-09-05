@@ -1,27 +1,31 @@
+import type { Ref } from 'vue'
+import type { CategoryNode, CategoryMoveRequest, CategoryMovePosition } from '@/types'
+interface DropTarget { targetId: number | null; position: CategoryMovePosition; valid: boolean; message: string }
+interface DragOptions { categories: Ref<CategoryNode[]>; enabled: Ref<boolean>; containerRef: Ref<HTMLElement | null>; expandedKeys: Ref<(number | string)[]>; onMove: (id: number, target: CategoryMoveRequest) => void }
 import { computed, onBeforeUnmount, onDeactivated, ref, watch } from 'vue'
 
 /** 管理大纲的原生鼠标拖拽；持久化由页面负责，不直接修改分类数组。 */
-export function useCategoryDrag({ categories, enabled, containerRef, expandedKeys, onMove }) {
-  const draggingId = ref(null)
-  const dropTarget = ref(null)
-  let expandTimer = null
-  let expandTargetId = null
-  let scrollFrame = null
-  let pointer = null
+export function useCategoryDrag({ categories, enabled, containerRef, expandedKeys, onMove }: DragOptions) {
+  const draggingId = ref<number | null>(null)
+  const dropTarget = ref<DropTarget | null>(null)
+  let expandTimer: ReturnType<typeof setTimeout> | null = null
+  let expandTargetId: number | null = null
+  let scrollFrame: number | null = null
+  let pointer: { x: number; y: number } | null = null
 
   const draggingIds = computed(() => {
-    if (draggingId.value === null) return new Set()
-    const children = new Map()
+    if (draggingId.value === null) return new Set<number>()
+    const children = new Map<number | null | undefined, number[]>()
     for (const item of categories.value) {
       const list = children.get(item.parentId) || []
       list.push(item.id)
       children.set(item.parentId, list)
     }
-    const ids = new Set()
+    const ids = new Set<number>()
     const stack = [draggingId.value]
     while (stack.length) {
       const id = stack.pop()
-      if (ids.has(id)) continue
+      if (id === undefined || ids.has(id)) continue
       ids.add(id)
       stack.push(...(children.get(id) || []))
     }
@@ -35,7 +39,7 @@ export function useCategoryDrag({ categories, enabled, containerRef, expandedKey
   })
 
   const clearExpandTimer = () => {
-    clearTimeout(expandTimer)
+    if (expandTimer !== null) clearTimeout(expandTimer)
     expandTimer = null
     expandTargetId = null
   }
@@ -49,26 +53,26 @@ export function useCategoryDrag({ categories, enabled, containerRef, expandedKey
     draggingId.value = null
     clearTarget()
     pointer = null
-    cancelAnimationFrame(scrollFrame)
+    if (scrollFrame !== null) cancelAnimationFrame(scrollFrame)
     scrollFrame = null
     window.removeEventListener('keydown', handleKeydown)
   }
 
-  const handleKeydown = (event) => {
+  const handleKeydown = (event: KeyboardEvent) => {
     if (event.key === 'Escape') resetDrag()
   }
 
-  const evaluateTarget = (targetId, position, sourceId = draggingId.value) => {
+  const evaluateTarget = (targetId: number | null, position: CategoryMovePosition, sourceId = draggingId.value) => {
     const byId = new Map(categories.value.map(item => [item.id, item]))
-    const source = byId.get(sourceId)
-    const target = byId.get(targetId)
+    const source = sourceId === null ? undefined : byId.get(sourceId)
+    const target = targetId === null ? undefined : byId.get(targetId)
     const result = { targetId, position, valid: false, message: '' }
     // 提交时拖拽状态已经清理，不能依赖 draggingIds 判断目标是否合法。
-    const targetAncestors = new Set()
+    const targetAncestors = new Set<number>()
     let ancestor = target
     while (ancestor && !targetAncestors.has(ancestor.id)) {
       targetAncestors.add(ancestor.id)
-      ancestor = byId.get(ancestor.parentId)
+      ancestor = ancestor.parentId == null ? undefined : byId.get(ancestor.parentId)
     }
     if (!['before', 'inside', 'after'].includes(position)
       || (targetId === null && position !== 'inside')) {
@@ -77,7 +81,7 @@ export function useCategoryDrag({ categories, enabled, containerRef, expandedKey
       result.message = '分类已变化，请刷新后重试'
     } else if (target && source.subjectId !== target.subjectId) {
       result.message = '不能跨科目移动分类'
-    } else if (targetAncestors.has(sourceId)) {
+    } else if (sourceId !== null && targetAncestors.has(sourceId)) {
       result.message = '不能放到自身或自己的子孙分类中'
     } else {
       const parentId = !target ? null : position === 'inside' ? target.id : (target.parentId ?? null)
@@ -104,11 +108,11 @@ export function useCategoryDrag({ categories, enabled, containerRef, expandedKey
     return result
   }
 
-  const canMove = (sourceId, { targetId = null, position }) => (
+  const canMove = (sourceId: number, { targetId = null, position }: CategoryMoveRequest) => (
     evaluateTarget(targetId, position, sourceId).valid
   )
 
-  const setTarget = (targetId, position) => {
+  const setTarget = (targetId: number | null, position: CategoryMovePosition) => {
     const target = evaluateTarget(targetId, position)
     if (dropTarget.value?.targetId !== targetId || dropTarget.value?.position !== position
       || dropTarget.value?.message !== target.message) {
@@ -130,7 +134,7 @@ export function useCategoryDrag({ categories, enabled, containerRef, expandedKey
     return target
   }
 
-  const getPosition = (element, clientY) => {
+  const getPosition = (element: Element, clientY: number) => {
     const rect = element.getBoundingClientRect()
     const ratio = (clientY - rect.top) / rect.height
     return ratio < 0.25 ? 'before' : ratio > 0.75 ? 'after' : 'inside'
@@ -143,7 +147,7 @@ export function useCategoryDrag({ categories, enabled, containerRef, expandedKey
     const element = document.elementFromPoint(pointer.x, pointer.y)
     if (!element || !container.contains(element)) return clearTarget()
     if (element.closest('[data-category-root-drop]')) return setTarget(null, 'inside')
-    const row = element.closest('[data-category-id]')
+    const row = element.closest<HTMLElement>('[data-category-id]')
     if (row) return setTarget(Number(row.dataset.categoryId), getPosition(row, pointer.y))
     clearTarget()
   }
@@ -169,7 +173,7 @@ export function useCategoryDrag({ categories, enabled, containerRef, expandedKey
     scrollFrame = requestAnimationFrame(scrollStep)
   }
 
-  const handleDragStart = (event, node) => {
+  const handleDragStart = (event: DragEvent, node: CategoryNode) => {
     if (!enabled.value || !event.dataTransfer) {
       event.preventDefault()
       return
@@ -178,13 +182,13 @@ export function useCategoryDrag({ categories, enabled, containerRef, expandedKey
     draggingId.value = node.id
     event.dataTransfer.effectAllowed = 'move'
     event.dataTransfer.setData('text/plain', String(node.id))
-    const row = event.currentTarget.closest('[data-category-id]')
+    const row = event.currentTarget instanceof Element ? event.currentTarget.closest('[data-category-id]') : null
     if (row) event.dataTransfer.setDragImage(row, 24, row.clientHeight / 2)
     window.addEventListener('keydown', handleKeydown)
     scrollFrame = requestAnimationFrame(scrollStep)
   }
 
-  const handleContainerDragOver = (event) => {
+  const handleContainerDragOver = (event: DragEvent) => {
     if (draggingId.value === null) return
     event.preventDefault()
     pointer = { x: event.clientX, y: event.clientY }
@@ -192,13 +196,13 @@ export function useCategoryDrag({ categories, enabled, containerRef, expandedKey
     if (event.dataTransfer) event.dataTransfer.dropEffect = dropTarget.value?.valid ? 'move' : 'none'
   }
 
-  const handleContainerDragLeave = (event) => {
-    if (event.relatedTarget && containerRef.value?.contains(event.relatedTarget)) return
+  const handleContainerDragLeave = (event: DragEvent) => {
+    if (event.relatedTarget instanceof Node && containerRef.value?.contains(event.relatedTarget)) return
     pointer = null
     clearTarget()
   }
 
-  const handleDrop = (event) => {
+  const handleDrop = (event: DragEvent) => {
     if (draggingId.value === null) return
     event.preventDefault()
     const preview = dropTarget.value

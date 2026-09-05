@@ -2,7 +2,7 @@
   <div class="inline-flex rounded-lg overflow-hidden border border-[#8B6F47]/20 bg-[rgba(139,111,71,0.08)] p-0.5">
     <button
       v-for="option in normalizedOptions"
-      :key="option.value"
+      :key="String(option.value)"
       type="button"
       class="px-4 py-1.5 text-sm font-medium rounded-md transition-all duration-200"
       :class="[
@@ -17,7 +17,9 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts" generic="V extends OptionValue">
+import type { PropType } from 'vue'
+import type { SelectInput, SelectOption, OptionValue } from './types'
 /**
  * RadioGroup 单选按钮组组件
  * 功能：替代 Element Plus 的 el-radio-group + el-radio-button，提供简洁的按钮式单选
@@ -28,12 +30,12 @@ import { computed } from 'vue'
 const props = defineProps({
   // v-model 绑定值
   modelValue: {
-    type: [String, Number, Boolean],
+    type: [String, Number, Boolean] as PropType<V>,
     default: ''
   },
   // 选项列表
   options: {
-    type: Array,
+    type: Array as PropType<SelectInput<V>[]>,
     required: true,
     default: () => []
   },
@@ -44,15 +46,15 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['update:modelValue', 'change'])
+const emit = defineEmits<{ 'update:modelValue': [value: V | '']; change: [value: V | ''] }>()
 
 // 标准化选项数据
-const normalizedOptions = computed(() => {
+const normalizedOptions = computed<SelectOption<V | ''>[]>(() => {
   return props.options.map(item => {
     if (typeof item === 'object' && item !== null) {
       return {
         label: item.label ?? String(item.value),
-        value: item.value ?? item
+        value: item.value ?? item.id ?? ''
       }
     }
     return { label: String(item), value: item }
@@ -60,7 +62,7 @@ const normalizedOptions = computed(() => {
 })
 
 // 处理点击
-const handleClick = (option) => {
+const handleClick = (option: SelectOption<V | ''>) => {
   if (props.disabled) return
   emit('update:modelValue', option.value)
   emit('change', option.value)

@@ -21,7 +21,7 @@ let resolvePromise = null
  * @returns {Promise} 返回 Promise，用户确认时 resolve，取消时 reject
  */
 export function useConfirm() {
-  const showConfirm = (options = {}) => {
+  const showConfirm = (options: { title?: string; message?: string; confirmText?: string; cancelText?: string; type?: 'success' | 'warning' | 'danger' | 'info' } = {}) => {
     const {
       title = '提示',
       message = '确定要执行此操作吗？',
@@ -36,7 +36,7 @@ export function useConfirm() {
     document.body.appendChild(container)
 
     // 动态创建并挂载组件
-    return new Promise((resolve, reject) => {
+    return new Promise<boolean>((resolve, reject) => {
       import('vue').then(({ createApp, ref: refVue, reactive: reactiveVue, onUnmounted }) => {
         const ConfirmComponent = {
           setup() {

@@ -7,6 +7,14 @@
  */
 import { ref, computed } from 'vue'
 
+export interface FavoriteCategory { id: string; category: string; subjectId: number; subjectName: string; timestamp: number }
+function isFavoriteCategory(value: unknown): value is FavoriteCategory {
+  return typeof value === 'object' && value !== null && 'id' in value && typeof value.id === 'string'
+    && 'category' in value && typeof value.category === 'string'
+    && 'subjectId' in value && typeof value.subjectId === 'number'
+    && 'subjectName' in value && typeof value.subjectName === 'string'
+    && 'timestamp' in value && typeof value.timestamp === 'number'
+}
 // 本地存储的键名
 const STORAGE_KEY = 'user_favorites_categories'
 
@@ -25,7 +33,7 @@ const STORAGE_KEY = 'user_favorites_categories'
  */
 export function useFavorites() {
   // 收藏列表
-  const favorites = ref([])
+  const favorites = ref<FavoriteCategory[]>([])
 
   /**
    * 从localStorage加载收藏列表
@@ -34,7 +42,8 @@ export function useFavorites() {
     try {
       const stored = localStorage.getItem(STORAGE_KEY)
       if (stored) {
-        favorites.value = JSON.parse(stored)
+        const parsed: unknown = JSON.parse(stored)
+        favorites.value = Array.isArray(parsed) ? parsed.filter(isFavoriteCategory) : []
       }
     } catch (error) {
       console.error('加载收藏列表失败:', error)
@@ -59,7 +68,7 @@ export function useFavorites() {
    * @param {String} category - 分类名称
    * @returns {String} 唯一ID
    */
-  const generateId = (subjectId, category) => {
+  const generateId = (subjectId: number, category: string) => {
     return `${subjectId}_${category}`
   }
 
@@ -67,7 +76,7 @@ export function useFavorites() {
    * 添加分类到收藏夹
    * @param {FavoriteCategory} item - 分类信息
    */
-  const addFavorite = (item) => {
+  const addFavorite = (item: Omit<FavoriteCategory, 'id' | 'timestamp'>) => {
     // 检查是否已收藏
     if (isFavorite(item.subjectId, item.category)) {
       return false
@@ -90,7 +99,7 @@ export function useFavorites() {
    * @param {Number} subjectId - 科目ID
    * @param {String} category - 分类名称
    */
-  const removeFavorite = (subjectId, category) => {
+  const removeFavorite = (subjectId: number, category: string) => {
     const id = generateId(subjectId, category)
     const index = favorites.value.findIndex(item => item.id === id)
     if (index > -1) {
@@ -107,7 +116,7 @@ export function useFavorites() {
    * @param {String} category - 分类名称
    * @returns {Boolean}
    */
-  const isFavorite = (subjectId, category) => {
+  const isFavorite = (subjectId: number, category: string) => {
     const id = generateId(subjectId, category)
     return favorites.value.some(item => item.id === id)
   }

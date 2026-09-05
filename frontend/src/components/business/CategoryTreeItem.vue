@@ -107,7 +107,7 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 /**
  * 分类树节点递归组件
  * 支持任意深度的分类树渲染
@@ -125,12 +125,14 @@
  * - select: 分类被选中时触发，参数为分类名称
  * - toggle-expand: 展开/折叠状态变化时触发，参数为分类ID
  */
+import type { PropType } from 'vue'
+import type { CategoryTreeNode } from '@/types'
 import { computed, ref } from 'vue'
 
 const props = defineProps({
   // 分类数据
   category: {
-    type: Object,
+    type: Object as PropType<CategoryTreeNode>,
     required: true
   },
   // 当前层级（0=顶级分类）
@@ -145,7 +147,7 @@ const props = defineProps({
   },
   // 已展开的分类ID数组
   expandedIds: {
-    type: Array,
+    type: Array as PropType<number[]>,
     default: () => []
   },
   // 基础缩进（px）
@@ -160,7 +162,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['select', 'toggle-expand'])
+const emit = defineEmits<{ select: [name: string]; 'toggle-expand': [id: number] }>()
 
 // 悬停状态
 const isHovered = ref(false)
@@ -257,7 +259,7 @@ const countClasses = computed(() => {
 /**
  * 获取分类及其所有子孙分类的去重题目数
  */
-function calculateTotalCount(cat) {
+function calculateTotalCount(cat: CategoryTreeNode) {
   if (!cat || typeof cat !== 'object') return 0
   return cat.subtreeQuestionCount ?? cat.questionCount ?? 0
 }
@@ -281,28 +283,30 @@ const toggleExpand = () => {
 /**
  * 处理子分类选中事件（向上冒泡）
  */
-const handleChildSelect = (categoryName) => {
+const handleChildSelect = (categoryName: string) => {
   emit('select', categoryName)
 }
 
 /**
  * 处理子分类展开/折叠事件（向上冒泡）
  */
-const handleChildToggleExpand = (categoryId) => {
+const handleChildToggleExpand = (categoryId: number) => {
   emit('toggle-expand', categoryId)
 }
 
 /**
  * 动画钩子 - 展开时
  */
-const beforeEnter = (el) => {
+const beforeEnter = (el: Element) => {
+  if (!(el instanceof HTMLElement)) return
   el.style.height = '0'
   el.style.opacity = '0'
   el.style.transform = 'translateY(-8px)'
 }
 
-const enter = (el, done) => {
-  const childCount = el.style.getPropertyValue('--child-count') || 1
+const enter = (el: Element, done: () => void) => {
+  if (!(el instanceof HTMLElement)) return done()
+  const childCount = Number(el.style.getPropertyValue('--child-count')) || 1
   const duration = Math.min(200 + childCount * 30, 400)
 
   el.style.transition = `all ${duration}ms cubic-bezier(0.4, 0, 0.2, 1)`
@@ -313,7 +317,8 @@ const enter = (el, done) => {
   setTimeout(done, duration)
 }
 
-const leave = (el, done) => {
+const leave = (el: Element, done: () => void) => {
+  if (!(el instanceof HTMLElement)) return done()
   const duration = Math.min(150 + el.scrollHeight * 0.3, 300)
 
   el.style.transition = `all ${duration}ms cubic-bezier(0.4, 0, 0.2, 1)`

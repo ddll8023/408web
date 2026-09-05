@@ -62,7 +62,7 @@
             ]"
           >
             <slot :name="column.prop" :row="row" :column="column">
-              {{ row[column.prop] }}
+              {{ cellValue(row, column.prop) }}
             </slot>
           </td>
         </tr>
@@ -81,7 +81,8 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts" generic="T extends object">
+import type { TableColumn, TableSort } from './types'
 import { reactive, computed } from 'vue'
 
 /**
@@ -90,37 +91,16 @@ import { reactive, computed } from 'vue'
  * 支持：排序功能、字体大小控制
  * 遵循 KISS 原则：简洁实现，只包含必需功能
  */
-const props = defineProps({
-  // 表格数据
-  data: {
-    type: Array,
-    default: () => []
-  },
-  // 列配置
-  columns: {
-    type: Array,
-    default: () => [],
-    required: true
-  },
-  // 加载状态
-  loading: {
-    type: Boolean,
-    default: false
-  },
-  // 表格尺寸：sm(小)、md(中)、lg(大)
-  size: {
-    type: String,
-    default: 'md',
-    validator: (value) => ['sm', 'md', 'lg'].includes(value)
-  },
-  // 自定义字体大小（数值，单位 px），优先级高于 size
-  fontSize: {
-    type: Number,
-    default: null
-  }
-})
-
-const emit = defineEmits(['sort-change'])
+const props = withDefaults(defineProps<{
+  data?: T[]
+  columns: TableColumn[]
+  loading?: boolean
+  size?: 'sm' | 'md' | 'lg'
+  fontSize?: number | null
+}>(), { data: () => [], loading: false, size: 'md', fontSize: null })
+const emit = defineEmits<{ 'sort-change': [sort: TableSort] }>()
+defineSlots<{ loading?: () => unknown; empty?: () => unknown } & { [name: string]: (props: { row: T; column: TableColumn }) => unknown }>()
+const cellValue = (row: T, key: string): unknown => Reflect.get(row, key)
 
 // 计算字体样式
 const fontStyle = computed(() => {
@@ -130,7 +110,7 @@ const fontStyle = computed(() => {
       lineHeight: `${props.fontSize * 1.5}px`
     }
   }
-  return null
+  return undefined
 })
 
 // 根据 size 计算字体大小类名（当没有自定义 fontSize 时使用）
@@ -157,14 +137,14 @@ const sizeClasses = computed(() => {
 })
 
 // 排序配置
-const sortConfig = reactive({
+const sortConfig = reactive<TableSort>({
   prop: null,
   order: null
 })
 
 // 处理排序
-const handleSort = (column) => {
-  let order = 'ascending'
+const handleSort = (column: TableColumn) => {
+  let order: TableSort['order'] = 'ascending'
   if (sortConfig.prop === column.prop) {
     // 切换排序顺序
     if (sortConfig.order === 'ascending') {

@@ -7,7 +7,8 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
+import type { PropType } from 'vue'
 /**
  * 空状态组件
  * 用于展示列表为空、暂无数据等状态
@@ -18,7 +19,7 @@ defineProps({
     default: '暂无数据'
   },
   icon: {
-    type: Array,
+    type: Array as PropType<string[]>,
     default: () => ['fas', 'folder-open']
   }
 })

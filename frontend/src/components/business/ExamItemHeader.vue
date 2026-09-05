@@ -27,7 +27,9 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
+import type { PropType } from 'vue'
+import type { ExamQuestion, MockQuestion } from '@/types'
 /**
  * 题目头部组件
  * 功能描述：显示题目年份、题号、类型标签和操作按钮
@@ -42,7 +44,7 @@ import Tag from '@/components/basic/Tag.vue'
 // 2. Props 定义
 defineProps({
   exam: {
-    type: Object,
+    type: Object as PropType<ExamQuestion>,
     required: true
   },
   isAdmin: {
@@ -52,7 +54,7 @@ defineProps({
 })
 
 // 3. Emits 定义
-defineEmits(['copy', 'edit', 'delete'])
+defineEmits<{ copy: [command: string]; edit: [question: ExamQuestion]; delete: [id: number] }>()
 </script>
 
 <style scoped>

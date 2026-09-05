@@ -3,6 +3,8 @@
  * 提取 ExamManage 和 MockManage 的公共逻辑
  * 遵循 DRY 原则，避免代码重复
  */
+import type { TableSort } from '@/components/basic/types'
+import type { ApiResponse, SortOrder } from '@/types'
 import { ref, reactive } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { getDifficultyLabel, getDifficultyType } from '@/constants/exam'
@@ -11,9 +13,9 @@ import { useSubjects } from './useSubjects'
 
 /**
  * 排序字段名映射：前端驼峰 -> 后端下划线
- * 遵循前端页面规范 6.5 节 API 数据格式约定
+ * 遵循 `规范文档/前端规范文档.md` 的 API 数据格式约定
  */
-const SORT_FIELD_MAPPING = {
+const SORT_FIELD_MAPPING: Record<string, string> = {
   questionNumber: 'question_number',
   updateTime: 'update_time',
   createTime: 'create_time'
@@ -33,10 +35,10 @@ export function useAdminTable() {
   const { subjectOptions, subjectMap, loadSubjectOptions } = useSubjects()
 
   // 分类选项
-  const categoryOptions = ref([])
+  const categoryOptions = ref<{ label: string; value: string }[]>([])
 
   // 排序条件
-  const sorting = reactive({
+  const sorting = reactive<{ sortField: string | null; sortOrder: SortOrder | null }>({
     sortField: null,
     sortOrder: null
   })
@@ -53,7 +55,7 @@ export function useAdminTable() {
    * @param {Number} subjectId 科目ID
    * @param {Function} loadCategoryFn 加载分类的API函数
    */
-  const loadSubjectCategoryOptions = async (subjectId, loadCategoryFn) => {
+  const loadSubjectCategoryOptions = async (subjectId: number | null, loadCategoryFn: (id: number) => Promise<ApiResponse<string[]>>) => {
     if (!subjectId) {
       categoryOptions.value = []
       return
@@ -77,8 +79,8 @@ export function useAdminTable() {
    * 处理排序变化
    * @param {Function} loadListFn 加载列表的回调函数
    */
-  const handleSortChange = ({ prop, order }, loadListFn) => {
-    if (order) {
+  const handleSortChange = ({ prop, order }: TableSort, loadListFn?: () => void) => {
+    if (order && prop) {
       // 转换字段名：前端驼峰 -> 后端下划线
       sorting.sortField = SORT_FIELD_MAPPING[prop] || prop
       sorting.sortOrder = order === 'ascending' ? 'asc' : 'desc'
@@ -101,7 +103,8 @@ export function useAdminTable() {
    * 从URL获取keyword参数
    */
   const getUrlKeyword = () => {
-    return route.query.keyword || ''
+    const keyword = route.query.keyword
+    return typeof keyword === 'string' ? keyword : ''
   }
 
   return {

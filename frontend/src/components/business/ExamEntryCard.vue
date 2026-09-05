@@ -22,7 +22,9 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
+import type { PropType } from 'vue'
+import type { ExamQuestion, MockQuestion } from '@/types'
 /**
  * 题目条目卡片组件
  * 功能描述：整合 ExamItemHeader 与 ExamQuestionCard 的容器组件
@@ -38,7 +40,7 @@ import ExamQuestionCard from '@/components/business/ExamQuestionCard.vue'
 defineProps({
   /** 题目对象 */
   exam: {
-    type: Object,
+    type: Object as PropType<ExamQuestion>,
     required: true
   },
   /** 是否显示管理员操作按钮（编辑、删除） */
@@ -66,7 +68,7 @@ defineProps({
  * @property {Function} toggle-answer - 切换答案显示
  * @property {Function} answered - 用户作答事件
  */
-defineEmits(['copy', 'edit', 'delete', 'toggle-answer', 'answered'])
+defineEmits<{ copy: [command: string]; edit: [question: ExamQuestion]; delete: [id: number]; 'toggle-answer': []; answered: [payload: { optionKey: string; correct: boolean }] }>()
 </script>
 
 <style scoped>

@@ -7,6 +7,8 @@
  */
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
+import type { UserInfo } from '@/types'
+import { parseUserInfo } from '@/utils/storage'
 import { getToken, setToken as saveToken, removeToken } from '@/utils/token'
 
 export const useAuthStore = defineStore('auth', () => {
@@ -15,13 +17,13 @@ export const useAuthStore = defineStore('auth', () => {
   
   // 从localStorage恢复用户信息
   const savedUserInfo = localStorage.getItem('userInfo')
-  const userInfo = ref(savedUserInfo ? JSON.parse(savedUserInfo) : null)
+  const userInfo = ref<UserInfo | null>(parseUserInfo(savedUserInfo))
 
   /**
    * 设置Token
    * @param {string} newToken Token字符串
    */
-  function setToken(newToken) {
+  function setToken(newToken: string) {
     token.value = newToken
     saveToken(newToken)
   }
@@ -30,7 +32,7 @@ export const useAuthStore = defineStore('auth', () => {
    * 设置用户信息
    * @param {Object} info 用户信息对象
    */
-  function setUserInfo(info) {
+  function setUserInfo(info: UserInfo | null) {
     userInfo.value = info
     // 持久化到localStorage
     if (info) {
@@ -63,7 +65,7 @@ export const useAuthStore = defineStore('auth', () => {
    * @returns {boolean} true-是管理员，false-不是管理员
    */
   function isAdmin() {
-    return userInfo.value && userInfo.value.role === 'ADMIN'
+    return userInfo.value?.role === 'ADMIN'
   }
 
   return {

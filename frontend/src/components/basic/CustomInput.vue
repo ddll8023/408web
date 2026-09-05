@@ -48,7 +48,7 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 /**
  * CustomInput 自定义输入框组件
  * 功能：替代 Element Plus 的 el-input，支持密码显示切换、清空按钮、错误提示
@@ -67,7 +67,7 @@ const props = defineProps({
   type: {
     type: String,
     default: 'text',
-    validator: (value) => ['text', 'password', 'email', 'number', 'tel', 'url'].includes(value)
+    validator: (value: string) => ['text', 'password', 'email', 'number', 'tel', 'url'].includes(value)
   },
   // 占位符
   placeholder: {
@@ -108,13 +108,13 @@ const props = defineProps({
   size: {
     type: String,
     default: 'md',
-    validator: (value) => ['sm', 'md', 'lg'].includes(value)
+    validator: (value: string) => ['sm', 'md', 'lg'].includes(value)
   }
 })
 
-const emit = defineEmits(['update:modelValue', 'blur', 'focus', 'enter', 'clear'])
+const emit = defineEmits<{ 'update:modelValue': [value: string]; blur: [event: FocusEvent]; focus: [event: FocusEvent]; enter: [event: KeyboardEvent]; clear: [] }>()
 
-const inputRef = ref(null)
+const inputRef = ref<HTMLElement | null>(null)
 const showPassword = ref(false)
 
 // 生成唯一 ID
@@ -133,7 +133,7 @@ const inputClasses = computed(() => {
   const baseClasses = 'w-full border rounded-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-0'
 
   // 尺寸样式
-  const sizeClasses = {
+  const sizeClasses: Record<string, string> = {
     sm: 'px-3 py-1.5 text-sm h-9',
     md: 'px-4 py-2.5 text-base h-[42px]',
     lg: 'px-4 py-3 text-lg h-12'
@@ -152,23 +152,24 @@ const inputClasses = computed(() => {
 })
 
 // 处理输入事件
-const handleInput = (event) => {
+const handleInput = (event: Event) => {
+  if (!(event.target instanceof HTMLInputElement)) return
   const value = event.target.value
   emit('update:modelValue', value)
 }
 
 // 处理失焦事件
-const handleBlur = (event) => {
+const handleBlur = (event: FocusEvent) => {
   emit('blur', event)
 }
 
 // 处理聚焦事件
-const handleFocus = (event) => {
+const handleFocus = (event: FocusEvent) => {
   emit('focus', event)
 }
 
 // 处理回车事件
-const handleEnter = (event) => {
+const handleEnter = (event: KeyboardEvent) => {
   emit('enter', event)
 }
 

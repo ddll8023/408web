@@ -3,11 +3,12 @@
  * 预加载并缓存科目数据，避免重复请求
  */
 import { ref } from 'vue'
+import type { Subject } from '@/types'
 import { getEnabledSubjects } from '@/api/subject'
 
 // 全局状态
-const subjectOptions = ref([])
-const subjectMap = ref({})
+const subjectOptions = ref<Subject[]>([])
+const subjectMap = ref<Record<number, string>>({})
 const loaded = ref(false)
 const loading = ref(false)
 
@@ -18,7 +19,7 @@ export function useSubjectsStore() {
   /**
    * 加载科目选项（带缓存）
    */
-  const loadSubjectOptions = async () => {
+  const loadSubjectOptions = async (): Promise<void> => {
     // 如果已经加载过，直接返回缓存数据
     if (loaded.value && subjectOptions.value.length > 0) {
       return
@@ -37,7 +38,7 @@ export function useSubjectsStore() {
       if (res.code === 200) {
         subjectOptions.value = res.data || []
         // 构建ID到名称的映射
-        const map = {}
+        const map: Record<number, string> = {}
         subjectOptions.value.forEach(subject => {
           map[subject.id] = subject.name
         })
@@ -56,8 +57,8 @@ export function useSubjectsStore() {
    * @param {Number} subjectId 科目ID
    * @returns {String} 科目名称
    */
-  const getSubjectName = (subjectId) => {
-    return subjectMap.value[subjectId] || ''
+  const getSubjectName = (subjectId: number | null | undefined) => {
+    return subjectId == null ? '' : subjectMap.value[subjectId] || ''
   }
 
   /**

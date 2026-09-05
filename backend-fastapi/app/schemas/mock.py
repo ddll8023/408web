@@ -79,6 +79,7 @@ class MockDuplicateRequest(BaseModel):
 class MockCreateRequest(QuestionCreateFields):
     """模拟题创建请求。"""
 
+    question_number: Optional[int] = Field(default=None, ge=1, le=1000, description="题号")
     source: str = Field(..., min_length=1, max_length=100, description="来源机构名称")
 
 

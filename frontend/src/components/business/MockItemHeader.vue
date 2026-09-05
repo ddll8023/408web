@@ -35,7 +35,9 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
+import type { PropType } from 'vue'
+import type { ExamQuestion, MockQuestion } from '@/types'
 /**
  * 模拟题头部组件
  * 与 ExamItemHeader 保持样式一致，但标题格式适配模拟题
@@ -47,11 +49,11 @@ import Tag from '@/components/basic/Tag.vue'
 import { getDifficultyLabel, getDifficultyType } from '@/constants/exam'
 
 defineProps({
-  mock: { type: Object, required: true },
+  mock: { type: Object as PropType<MockQuestion>, required: true },
   isAdmin: { type: Boolean, default: false }
 })
 
-defineEmits(['copy', 'edit', 'delete'])
+defineEmits<{ copy: [command: string]; edit: [question: MockQuestion]; delete: [id: number] }>()
 </script>
 
 <style scoped>

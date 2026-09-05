@@ -67,8 +67,8 @@
   </div>
 </template>
 
-<script setup>
-import { ref, computed, watch } from 'vue'
+<script setup lang="ts">
+import { ref, computed, watch, type PropType } from 'vue'
 
 const props = defineProps({
   // 当前页码
@@ -83,7 +83,7 @@ const props = defineProps({
   },
   // 可选每页条数
   pageSizes: {
-    type: Array,
+    type: Array as PropType<number[]>,
     default: () => [10, 20, 50, 100]
   },
   // 总数
@@ -108,7 +108,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['update:currentPage', 'update:pageSize', 'current-change', 'size-change'])
+const emit = defineEmits<{ 'update:currentPage': [value: number]; 'update:pageSize': [value: number]; 'current-change': [value: number]; 'size-change': [value: number] }>()
 
 const jumpPage = ref(props.currentPage)
 
@@ -119,7 +119,7 @@ const totalPages = computed(() => {
 
 // 计算显示的页码
 const visiblePages = computed(() => {
-  const pages = []
+  const pages: (number | '...')[] = []
   const total = totalPages.value
   const current = props.currentPage
 
@@ -162,7 +162,7 @@ const handleNext = () => {
 }
 
 // 点击页码
-const handlePageClick = (page) => {
+const handlePageClick = (page: number | '...') => {
   if (page !== '...' && page !== props.currentPage) {
     emit('update:currentPage', page)
     emit('current-change', page)
@@ -170,7 +170,8 @@ const handlePageClick = (page) => {
 }
 
 // 每页条数变化
-const handleSizeChange = (event) => {
+const handleSizeChange = (event: Event) => {
+  if (!(event.target instanceof HTMLSelectElement)) return
   const newSize = parseInt(event.target.value, 10)
   emit('update:pageSize', newSize)
   emit('size-change', newSize)
@@ -178,7 +179,7 @@ const handleSizeChange = (event) => {
 
 // 跳转
 const handleJump = () => {
-  let page = parseInt(jumpPage.value, 10)
+  let page = parseInt(String(jumpPage.value), 10)
   if (isNaN(page) || page < 1) {
     page = 1
   } else if (page > totalPages.value) {

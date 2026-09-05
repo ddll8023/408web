@@ -33,15 +33,15 @@
   </button>
 </template>
 
-<script setup>
+<script setup lang="ts">
 /**
  * 自定义按钮组件
  * 功能：替代Element Plus的el-button，使用自定义样式
  * 遵循KISS原则：简洁实现，只包含必需功能
  * 遵循YAGNI原则：只实现项目实际使用的props
- * 遵循前端组件规范：使用baseClasses、sizeClasses、variantClasses三常量分离模式
+ * 遵循 `规范文档/前端规范文档.md`：使用 baseClasses、sizeClasses、variantClasses 三常量分离模式
  */
-import { computed } from 'vue'
+import { computed, type Component, type PropType } from 'vue'
 
 /**
  * 判断是否为 Element Plus 图标组件
@@ -57,13 +57,13 @@ const props = defineProps({
   type: {
     type: String,
     default: 'default',
-    validator: (value) => ['default', 'primary', 'success', 'danger', 'warning', 'text', 'text-primary', 'text-danger', 'text-warning'].includes(value)
+    validator: (value: string) => ['default', 'primary', 'success', 'danger', 'warning', 'text', 'text-primary', 'text-danger', 'text-warning'].includes(value)
   },
   // 按钮尺寸：sm, md, lg
   size: {
     type: String,
     default: 'md',
-    validator: (value) => ['sm', 'md', 'lg'].includes(value)
+    validator: (value: string) => ['sm', 'md', 'lg'].includes(value)
   },
   // 是否加载中
   loading: {
@@ -72,7 +72,7 @@ const props = defineProps({
   },
   // 图标：支持 Element Plus 图标组件 或 Font Awesome 图标数组 ['fas', 'icon-name']
   icon: {
-    type: [Object, Array],
+    type: [Object, Array] as PropType<Component | string[]>,
     default: null
   },
   // 是否禁用
@@ -87,20 +87,20 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['click'])
+const emit = defineEmits<{ click: [event: MouseEvent] }>()
 
 // 基础样式 - 简洁字符串，包含默认尺寸和focus ring
 const baseClasses = 'inline-flex items-center justify-center gap-2 font-medium rounded-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#8B6F47] focus:ring-offset-2 px-4 py-2.5 text-sm'
 
 // 尺寸样式 - 覆盖基础样式中的尺寸
-const sizeClasses = {
+const sizeClasses: Record<string, string> = {
   sm: '!px-3.5 !py-2 !text-base h-[36px]',
   md: 'px-5 py-3 text-base h-[42px]',
   lg: '!px-6 !py-3.5 !text-lg h-[48px]'
 }
 
 // 变体样式 - 使用项目中一致的颜色
-const variantClasses = {
+const variantClasses: Record<string, string> = {
   default: 'border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 hover:border-gray-400 hover:cursor-pointer',
   primary: 'border border-transparent bg-[#8B6F47] text-white hover:bg-[#a88559] hover:cursor-pointer',
   success: 'border border-transparent bg-green-600 text-white hover:bg-green-500 hover:cursor-pointer',
@@ -140,7 +140,7 @@ const buttonClasses = computed(() => {
  * 处理点击事件
  * 避免在loading或disabled状态下触发
  */
-const handleClick = (event) => {
+const handleClick = (event: MouseEvent) => {
   if (!props.loading && !props.disabled) {
     emit('click', event)
   }

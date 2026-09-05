@@ -56,7 +56,8 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
+import { errorMessage } from "@/utils/errors"
 /**
  * 用户登录页面
  * 功能：处理用户登录认证，包含表单验证、错误处理、Token存储
@@ -94,7 +95,7 @@ const errors = reactive({
  * 验证单个字段
  * @param {string} field - 字段名
  */
-const validateField = (field) => {
+const validateField = (field: keyof typeof errors) => {
   if (field === 'username') {
     errors.username = loginForm.username.trim() ? '' : '请输入用户名'
   } else if (field === 'password') {
@@ -149,7 +150,7 @@ const handleLogin = async () => {
   } catch (error) {
     console.error('登录失败：', error)
     // 展示后端返回的错误信息，便于定位问题
-    showToast(error?.response?.data?.message || error?.message || '登录失败', 'error')
+    showToast(errorMessage(error, '登录失败'), 'error')
   } finally {
     loading.value = false
   }

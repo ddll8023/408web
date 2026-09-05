@@ -35,7 +35,7 @@
   </label>
 </template>
 
-<script setup>
+<script setup lang="ts">
 /**
  * FormLabel 表单标签组件
  * 功能：统一表单标签样式，支持必填标记、提示文字、工具提示
@@ -74,19 +74,19 @@ const props = defineProps({
   color: {
     type: String,
     default: 'default',
-    validator: (value) => ['default', 'primary', 'success', 'warning', 'danger'].includes(value)
+    validator: (value: string) => ['default', 'primary', 'success', 'warning', 'danger'].includes(value)
   },
   // 尺寸
   size: {
     type: String,
     default: 'md',
-    validator: (value) => ['sm', 'md', 'lg'].includes(value)
+    validator: (value: string) => ['sm', 'md', 'lg'].includes(value)
   }
 })
 
 // 标签颜色映射
 const labelColor = computed(() => {
-  const colors = {
+  const colors: Record<string, string> = {
     default: 'text-[#333]',
     primary: 'text-[#8B6F47]',
     success: 'text-green-600',
@@ -94,7 +94,7 @@ const labelColor = computed(() => {
     danger: 'text-red-500'
   }
 
-  const sizeClasses = {
+  const sizeClasses: Record<string, string> = {
     sm: 'text-xs',
     md: 'text-sm',
     lg: 'text-base'
