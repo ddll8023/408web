@@ -13,17 +13,26 @@
       <hr class="my-6 border-[#e5e7eb]" />
 
       <!-- 年份卡片列表 -->
-      <div v-if="loading" class="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-6 my-8">
+      <div v-if="loading" class="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-6 my-8" role="status" aria-live="polite">
         <div class="col-span-full flex items-center justify-center py-20">
-          <font-awesome-icon :icon="['fas', 'spinner']" class="fa-spin text-4xl text-[#8B6F47]" />
+          <font-awesome-icon :icon="['fas', 'spinner']" class="fa-spin text-4xl text-[#8B6F47]" aria-hidden="true" />
         </div>
       </div>
       <div v-else class="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-6 my-8">
+        <div v-if="loadError" class="col-span-full rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700" role="alert">
+          {{ loadError }}
+          <CustomButton type="text" size="sm" @click="loadYearData">重试</CustomButton>
+        </div>
         <div
           v-for="yearData in yearList"
           :key="yearData.year"
           class="p-5 bg-white rounded border-2 border-[#dfe2e5] cursor-pointer transition-all duration-300 flex flex-col min-h-[200px] hover:border-[#8B6F47] hover:shadow-[0_4px_12px_rgba(139,111,71,0.15)] hover:-translate-y-1"
+          role="button"
+          tabindex="0"
+          :aria-label="`查看 ${yearData.year} 年真题`"
           @click="goToYear(yearData.year)"
+          @keydown.enter.prevent="goToYear(yearData.year)"
+          @keydown.space.prevent="goToYear(yearData.year)"
         >
           <div class="flex items-baseline justify-center gap-2 mb-3">
             <h2 class="m-0 font-semibold text-5xl text-[#333] leading-tight transition-colors duration-300">{{ yearData.year }}</h2>
@@ -37,7 +46,7 @@
             </div>
           </div>
           <div class="flex justify-center pt-3 mt-auto">
-            <CustomButton type="primary" size="sm">
+            <CustomButton type="primary" size="sm" @click.stop="goToYear(yearData.year)">
               查看真题
               <font-awesome-icon :icon="['fas', 'arrow-right']" class="ml-1 transition-transform duration-300" />
             </CustomButton>
@@ -46,7 +55,7 @@
 
         <!-- 空状态 -->
         <Empty
-          v-if="yearList.length === 0"
+          v-if="!loadError && yearList.length === 0"
           description="暂无真题数据"
           :icon="['fas', 'folder-open']"
         />
@@ -87,6 +96,8 @@ const route = useRoute()
 // 年份列表数据
 const yearList = ref<{year: number; count: number}[]>([])
 const loading = ref(false)
+const loadError = ref('')
+let loadVersion = 0
 
 // 当前分类（来自路由查询参数）
 const activeCategory = ref(queryString(route.query.category))
@@ -95,13 +106,16 @@ const activeCategory = ref(queryString(route.query.category))
  * 加载真题年份统计数据（可按分类过滤）
  */
 const loadYearData = async () => {
+  const requestVersion = ++loadVersion
   loading.value = true
   try {
     const response = await getExamYearStats({
       category: activeCategory.value || undefined
     })
 
+    if (requestVersion !== loadVersion) return
     if (response.code === 200) {
+      loadError.value = ''
       yearList.value = (response.data || [])
         .map(item => ({
           year: item.year,
@@ -109,13 +123,16 @@ const loadYearData = async () => {
         }))
         .sort((a, b) => b.year - a.year)
     } else {
-      toast.error(response.message || '加载失败')
+      loadError.value = response.message || '加载失败，请重试。'
+      toast.error(loadError.value)
     }
   } catch (error) {
-    toast.error('加载真题数据失败')
+    if (requestVersion !== loadVersion) return
+    loadError.value = '加载真题数据失败，请重试。'
+    toast.error(loadError.value)
     console.error('加载真题数据失败:', error)
   } finally {
-    loading.value = false
+    if (requestVersion === loadVersion) loading.value = false
   }
 }
 

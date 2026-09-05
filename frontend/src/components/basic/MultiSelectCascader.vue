@@ -2,6 +2,7 @@
   <div class="w-full relative" ref="containerRef">
     <!-- 触发区域 -->
     <div
+      :id="triggerId"
       class="h-[40px] leading-normal flex items-center flex-wrap gap-1.5 p-2 bg-white border rounded-lg cursor-pointer transition-all duration-300 ease-out"
       :class="[
         disabled
@@ -10,7 +11,15 @@
             ? 'border-[#8B6F47] shadow-[0_0_0_2px_rgba(139,111,71,0.15)]'
             : 'border-gray-300 hover:border-gray-400 hover:shadow-sm'
       ]"
+      role="combobox"
+      :tabindex="disabled ? -1 : 0"
+      :aria-expanded="dropdownVisible"
+      aria-haspopup="listbox"
+      :aria-controls="listId"
+      :aria-disabled="disabled"
+      :aria-label="ariaLabel || undefined"
       @click="toggleDropdown"
+      @keydown="handleTriggerKeydown"
     >
       <!-- 已选中标签 -->
       <transition-group name="tag" tag="div" class="flex flex-wrap gap-1">
@@ -23,7 +32,9 @@
           <span class="max-w-[100px] truncate">{{ item.label }}</span>
           <button
             v-if="!disabled"
+            type="button"
             class="ml-0.5 w-4 h-4 flex items-center justify-center rounded-full hover:bg-[#8B6F47]/20 text-[#8B6F47]/70 hover:text-[#8B6F47] transition-colors"
+            aria-label="移除分类"
             @click.stop="removeTag(item.value)"
           >
             <font-awesome-icon :icon="['fas', 'times']" class="text-[10px]" />
@@ -42,7 +53,7 @@
       <!-- 下拉箭头 -->
       <div class="ml-auto flex-shrink-0 flex items-center gap-2">
         <span v-if="!disabled && selectedItems.length > 0" class="text-xs text-gray-400 hover:text-[#8B6F47] transition-colors">
-          <button class="hover:bg-gray-100 px-1.5 py-0.5 rounded" @click.stop="clearAll">清空</button>
+          <button type="button" class="hover:bg-gray-100 px-1.5 py-0.5 rounded" @click.stop="clearAll">清空</button>
         </span>
         <font-awesome-icon
           class="text-gray-400 transition-transform duration-300"
@@ -55,7 +66,10 @@
     <!-- 下拉菜单 -->
     <transition name="dropdown">
       <div
+        :id="listId"
         v-show="dropdownVisible && !disabled"
+        role="listbox"
+        aria-multiselectable="true"
         class="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-[0_8px_30px_rgba(0,0,0,0.12)] border border-gray-100 overflow-hidden z-50"
       >
         <!-- 搜索框 -->
@@ -65,6 +79,7 @@
             <input
               v-model="searchKeyword"
               type="text"
+              aria-label="搜索分类"
               class="w-full pl-9 pr-3 py-2.5 bg-white border border-gray-200 rounded-lg text-base focus:outline-none focus:border-[#8B6F47] focus:ring-2 focus:ring-[#8B6F47]/10 transition-all duration-200"
               placeholder="搜索分类..."
               @click.stop
@@ -93,7 +108,9 @@
                 <!-- 展开/收起子项按钮 -->
                 <button
                   v-if="item.children && item.children.length > 0"
+                  type="button"
                   class="w-6 h-6 flex items-center justify-center rounded-md text-gray-400 hover:text-[#8B6F47] hover:bg-[#8B6F47]/10 transition-all duration-150"
+                  :aria-label="`${expandedKeys.includes(item.value) ? '收起' : '展开'} ${item.label}`"
                   @click.stop="toggleExpand(item.value)"
                 >
                   <font-awesome-icon
@@ -112,6 +129,7 @@
                     type="checkbox"
                     :checked="isSelected(item.value)"
                     :disabled="disabled"
+                    :aria-label="item.label"
                     class="sr-only"
                   />
                   <div
@@ -183,6 +201,7 @@
                           type="checkbox"
                           :checked="isSelected(child.value)"
                           :disabled="disabled"
+                          :aria-label="child.label"
                           class="sr-only"
                         />
                         <div
@@ -235,6 +254,7 @@
             已选择 {{ selectedItems.length }} 个分类
           </span>
           <button
+            type="button"
             class="text-xs text-[#8B6F47] hover:text-[#6B5537] font-medium transition-colors"
             @click.stop="dropdownVisible = false"
           >
@@ -276,6 +296,16 @@ const props = defineProps({
   enableSearch: {
     type: Boolean,
     default: true
+  },
+  // 用于关联外部标签和下拉列表的 ID
+  id: {
+    type: String,
+    default: ''
+  },
+  // 无法通过原生 label 关联时使用的可访问名称
+  ariaLabel: {
+    type: String,
+    default: ''
   }
 })
 
@@ -285,6 +315,10 @@ const containerRef = ref<HTMLElement | null>(null)
 const dropdownVisible = ref(false)
 const searchKeyword = ref('')
 const expandedKeys = ref<string[]>([])
+
+let nextCascaderId = 0
+const triggerId = computed(() => props.id || `cascader-${++nextCascaderId}`)
+const listId = computed(() => `${triggerId.value}-list`)
 
 // 标准化选项数据
 const normalizedOptions = computed(() => {
@@ -414,6 +448,17 @@ const toggleDropdown = () => {
         expandedKeys.value = [firstWithChildren.value]
       }
     }
+  }
+}
+
+const handleTriggerKeydown = (event: KeyboardEvent) => {
+  if (props.disabled) return
+  if (event.key === 'Enter' || event.key === ' ') {
+    event.preventDefault()
+    toggleDropdown()
+  } else if (event.key === 'Escape' && dropdownVisible.value) {
+    event.preventDefault()
+    dropdownVisible.value = false
   }
 }
 

@@ -6,10 +6,20 @@
       :class="[
         containerClasses,
         {
-          'opacity-50 cursor-not-allowed pointer-events-none': disabled
+          'opacity-50 cursor-not-allowed pointer-events-none': disabled,
+          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8B6F47]/20': !disabled
         }
       ]"
+      role="combobox"
+      :tabindex="disabled ? -1 : 0"
+      :aria-expanded="visible"
+      aria-haspopup="listbox"
+      :aria-controls="listId"
+      :aria-disabled="disabled"
+      :aria-activedescendant="activeOptionId"
+      :aria-label="ariaLabel || undefined"
       @click="handleContainerClick"
+      @keydown="handleContainerKeydown"
     >
       <!-- 选中值显示 -->
       <div class="flex-1 min-w-0 px-4">
@@ -28,20 +38,33 @@
       </div>
 
       <!-- 下拉箭头图标 -->
-      <div class="flex-shrink-0 px-3 flex items-center justify-center h-full">
+      <div class="flex-shrink-0 px-3 flex items-center justify-center h-full gap-2">
+        <button
+          v-if="clearable && hasValue && !disabled"
+          type="button"
+          class="text-gray-400 hover:text-gray-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8B6F47]/30 rounded"
+          aria-label="清除选择"
+          @click.stop="handleClear"
+          @keydown.stop
+        >
+          <font-awesome-icon :icon="['fas', 'times-circle']" class="text-xs" aria-hidden="true" />
+        </button>
         <span
           class="transition-transform duration-200 text-gray-400"
           :class="{ 'rotate-180': visible }"
         >
-          <font-awesome-icon :icon="['fas', 'chevron-down']" class="text-xs" />
+          <font-awesome-icon :icon="['fas', 'chevron-down']" class="text-xs" aria-hidden="true" />
         </span>
       </div>
 
       <!-- 原生 select（用于表单提交和无障碍） -->
       <select
         ref="selectRef"
+        :id="inputId"
         :value="modelValue"
         :disabled="disabled"
+        :required="required"
+        tabindex="-1"
         class="absolute inset-0 w-full h-full appearance-none cursor-pointer pointer-events-none bg-transparent border-none outline-none"
         style="color: transparent; font-size: 0; line-height: 0;"
         @change="handleChange"
@@ -60,7 +83,10 @@
     <!-- 下拉选项列表 -->
     <transition name="select-dropdown">
       <div
+        :id="listId"
         v-show="visible"
+        role="listbox"
+        :aria-label="placeholder"
         class="absolute top-full left-0 right-0 mt-1.5 bg-white border border-gray-100 rounded-lg shadow-lg z-50 overflow-hidden"
         :class="dropdownClasses"
       >
@@ -72,6 +98,7 @@
           <input
             v-model="filterText"
             type="text"
+            aria-label="筛选选项"
             class="w-full px-3 py-2 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-[#8B6F47]/20 focus:border-[#8B6F47] transition-all duration-200"
             placeholder="搜索..."
             @click.stop
@@ -82,8 +109,11 @@
         <!-- 选项列表 -->
         <ul class="max-h-60 overflow-y-auto py-1">
           <li
-            v-for="option in filteredOptions"
+            v-for="(option, index) in filteredOptions"
             :key="String(option.value)"
+            :id="`${listId}-option-${index}`"
+            role="option"
+            :aria-selected="option.value === modelValue"
             class="px-4 py-2.5 text-base text-gray-700 cursor-pointer transition-colors duration-150"
             :class="[
               option.value === modelValue
@@ -91,6 +121,7 @@
                 : 'hover:bg-gray-50'
             ]"
             @click="handleSelect(option)"
+            @mouseenter="activeIndex = index"
           >
             <div class="flex items-center justify-between">
               <span class="truncate">{{ option.label }}</span>
@@ -177,14 +208,31 @@ const props = defineProps({
   bordered: {
     type: Boolean,
     default: true
+  },
+  // 用于关联外部 FormLabel 的控件 ID
+  id: {
+    type: String,
+    default: ''
+  },
+  // 无法通过原生 label 关联时使用的可访问名称
+  ariaLabel: {
+    type: String,
+    default: ''
   }
 })
 
 const emit = defineEmits<{ 'update:modelValue': [value: V | '']; change: [value: V | ''] }>()
 
-const selectRef = ref<HTMLElement | null>(null)
+let nextSelectId = 0
+
+const selectRef = ref<HTMLSelectElement | null>(null)
 const visible = ref(false)
 const filterText = ref('')
+const activeIndex = ref(-1)
+
+const inputId = computed(() => props.id || `select-${++nextSelectId}`)
+const listId = computed(() => `${inputId.value}-list`)
+const hasValue = computed(() => props.modelValue !== '' && props.modelValue !== null && props.modelValue !== undefined)
 
 // 标准化选项数据结构
 const normalizedOptions = computed<SelectOption<V | ''>[]>(() => {
@@ -207,6 +255,19 @@ const filteredOptions = computed(() => {
   return normalizedOptions.value.filter(item =>
     String(item.label).toLowerCase().includes(keyword)
   )
+})
+
+watch(filteredOptions, (options) => {
+  if (options.length === 0) {
+    activeIndex.value = -1
+    return
+  }
+  if (activeIndex.value >= options.length) activeIndex.value = options.length - 1
+})
+
+const activeOptionId = computed(() => {
+  if (activeIndex.value < 0 || activeIndex.value >= filteredOptions.value.length) return undefined
+  return `${listId.value}-option-${activeIndex.value}`
 })
 
 // 选中项的显示文本
@@ -238,11 +299,6 @@ const dropdownClasses = computed(() => {
   return 'border border-gray-100 shadow-[0_4px_12px_rgba(0,0,0,0.08)]'
 })
 
-// 监听外部值变化
-watch(() => props.modelValue, () => {
-  // 值变化时同步（如果需要）
-})
-
 // 点击其他地方关闭下拉
 const handleClickOutside = (event: MouseEvent) => {
   if (!(event.target instanceof Element)) return
@@ -257,9 +313,52 @@ const handleClickOutside = (event: MouseEvent) => {
 const handleContainerClick = () => {
   if (!props.disabled) {
     visible.value = !visible.value
+    if (visible.value) {
+      activeIndex.value = Math.max(0, filteredOptions.value.findIndex(option => option.value === props.modelValue))
+    }
     if (!visible.value) {
       filterText.value = ''
+      activeIndex.value = -1
     }
+  }
+}
+
+// 键盘操作：支持展开、选择、上下移动和 Escape 关闭
+const handleContainerKeydown = (event: KeyboardEvent) => {
+  if (props.disabled) return
+
+  if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+    event.preventDefault()
+    if (!visible.value) {
+      visible.value = true
+      activeIndex.value = Math.max(0, filteredOptions.value.findIndex(option => option.value === props.modelValue))
+      return
+    }
+
+    const direction = event.key === 'ArrowDown' ? 1 : -1
+    const nextIndex = activeIndex.value < 0
+      ? (direction > 0 ? 0 : filteredOptions.value.length - 1)
+      : activeIndex.value + direction
+    activeIndex.value = Math.max(0, Math.min(nextIndex, filteredOptions.value.length - 1))
+    return
+  }
+
+  if (event.key === 'Enter' || event.key === ' ') {
+    event.preventDefault()
+    if (!visible.value) {
+      handleContainerClick()
+      return
+    }
+    const option = filteredOptions.value[activeIndex.value]
+    if (option) handleSelect(option)
+    return
+  }
+
+  if (event.key === 'Escape' && visible.value) {
+    event.preventDefault()
+    visible.value = false
+    filterText.value = ''
+    activeIndex.value = -1
   }
 }
 
@@ -269,6 +368,17 @@ const handleSelect = (option: SelectOption<V | ''>) => {
   emit('change', option.value)
   visible.value = false
   filterText.value = ''
+  activeIndex.value = -1
+}
+
+// 清除选择
+const handleClear = () => {
+  const emptyValue = '' as V | ''
+  emit('update:modelValue', emptyValue)
+  emit('change', emptyValue)
+  visible.value = false
+  filterText.value = ''
+  activeIndex.value = -1
 }
 
 // 原生 select change 事件
@@ -290,6 +400,7 @@ watch(visible, (val) => {
   } else {
     document.removeEventListener('click', handleClickOutside)
     filterText.value = ''
+    activeIndex.value = -1
   }
 })
 

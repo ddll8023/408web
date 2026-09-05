@@ -1,8 +1,9 @@
 <template>
   <span
     :class="[
-      'inline-flex items-center px-2 py-0.5 rounded text-xs font-medium transition-colors',
-      typeClasses[type]
+      'inline-flex items-center rounded font-medium transition-colors',
+      sizeClasses[props.size] || sizeClasses.md,
+      typeClasses[props.variant || props.type] || typeClasses.default
     ]"
   >
     <slot />
@@ -16,13 +17,31 @@
  * 依赖：无
  */
 
-defineProps({
+const props = defineProps({
   type: {
     type: String,
     default: 'default',
     validator: (value: string) => ['default', 'success', 'primary', 'info', 'warning', 'danger'].includes(value)
+  },
+  // variant 是历史调用方使用的别名，统一映射到 type，避免旧页面退回默认样式
+  variant: {
+    type: String,
+    default: '',
+    validator: (value: string) => !value || ['default', 'success', 'primary', 'info', 'warning', 'danger'].includes(value)
+  },
+  size: {
+    type: String,
+    default: 'md',
+    validator: (value: string) => ['sm', 'md', 'lg', 'small'].includes(value)
   }
 })
+
+const sizeClasses: Record<string, string> = {
+  sm: 'px-1.5 py-0.5 text-xs',
+  small: 'px-1.5 py-0.5 text-xs',
+  md: 'px-2 py-0.5 text-xs',
+  lg: 'px-2.5 py-1 text-sm'
+}
 
 const typeClasses: Record<string, string> = {
   default: 'bg-gray-100 text-gray-800',

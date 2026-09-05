@@ -4,7 +4,13 @@
     <div
       class="dropdown-trigger"
       :class="{ 'cursor-pointer': !disabled }"
+      role="button"
+      :tabindex="disabled ? -1 : 0"
+      :aria-expanded="visible"
+      aria-haspopup="menu"
+      :aria-disabled="disabled"
       @click="handleTriggerClick"
+      @keydown="handleTriggerKeydown"
       @mouseenter="handleMouseEnter"
       @mouseleave="handleMouseLeave"
     >
@@ -18,7 +24,11 @@
           v-if="visible"
           ref="menuRef"
           class="dropdown-menu"
+          :class="menuClasses"
+          role="menu"
+          tabindex="-1"
           @click.stop="handleMenuClick"
+          @keydown="handleMenuKeydown"
           @mouseenter="handleMenuMouseEnter"
           @mouseleave="handleMenuMouseLeave"
         >
@@ -63,6 +73,7 @@ const menuRef = ref<HTMLElement | null>(null)
 const visible = ref(false)
 let showTimer: ReturnType<typeof setTimeout> | undefined
 let hideTimer: ReturnType<typeof setTimeout> | undefined
+let resizeObserver: ResizeObserver | null = null
 
 // 菜单位置样式
 const menuClasses = computed(() => {
@@ -96,6 +107,29 @@ const toggleVisible = () => {
 const handleTriggerClick = () => {
   if (props.trigger !== 'click' || props.disabled) return
   toggleVisible()
+}
+
+const handleTriggerKeydown = (event: KeyboardEvent) => {
+  if (props.disabled) return
+  if (event.key === 'Enter' || event.key === ' ') {
+    event.preventDefault()
+    if (props.trigger === 'click') {
+      toggleVisible()
+      if (visible.value) nextTick(() => menuItems()[0]?.focus())
+    }
+    else if (!visible.value) {
+      visible.value = true
+      emit('visible-change', true)
+      nextTick(() => {
+        updatePosition()
+        menuItems()[0]?.focus()
+      })
+    }
+  } else if (event.key === 'Escape' && visible.value) {
+    event.preventDefault()
+    visible.value = false
+    emit('visible-change', false)
+  }
 }
 
 // 鼠标进入触发器
@@ -217,11 +251,55 @@ const handleMenuClick = (event: MouseEvent) => {
   }
 }
 
+const menuItems = () => Array.from(
+  menuRef.value?.querySelectorAll<HTMLElement>('.dropdown-item:not(.is-disabled)') || []
+)
+
+const handleMenuKeydown = (event: KeyboardEvent) => {
+  const items = menuItems()
+  if (event.key === 'Escape') {
+    event.preventDefault()
+    visible.value = false
+    emit('visible-change', false)
+    dropdownRef.value?.querySelector<HTMLElement>('.dropdown-trigger')?.focus()
+    return
+  }
+
+  if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+    event.preventDefault()
+    if (items.length === 0) return
+    const currentIndex = items.indexOf(document.activeElement as HTMLElement)
+    const direction = event.key === 'ArrowDown' ? 1 : -1
+    const nextIndex = currentIndex < 0
+      ? (direction > 0 ? 0 : items.length - 1)
+      : (currentIndex + direction + items.length) % items.length
+    items[nextIndex]?.focus()
+    return
+  }
+
+  if ((event.key === 'Enter' || event.key === ' ') && event.target instanceof HTMLElement) {
+    event.preventDefault()
+    event.target.click()
+  }
+}
+
 // 执行命令
 const handleCommand = (command: string) => {
   emit('command', command)
   visible.value = false
   emit('visible-change', false)
+  dropdownRef.value?.querySelector<HTMLElement>('.dropdown-trigger')?.focus()
+}
+
+const observeMenu = () => {
+  resizeObserver?.disconnect()
+  resizeObserver = null
+  if (menuRef.value && typeof ResizeObserver !== 'undefined') {
+    resizeObserver = new ResizeObserver(() => {
+      if (visible.value) updatePosition()
+    })
+    resizeObserver.observe(menuRef.value)
+  }
 }
 
 // 点击外部关闭
@@ -243,8 +321,11 @@ watch(visible, (val) => {
     setTimeout(() => {
       document.addEventListener('click', handleClickOutside)
     }, 0)
+    nextTick(observeMenu)
   } else {
     document.removeEventListener('click', handleClickOutside)
+    resizeObserver?.disconnect()
+    resizeObserver = null
   }
 })
 
@@ -254,20 +335,12 @@ onUnmounted(() => {
   clearTimeout(hideTimer)
   document.removeEventListener('click', handleClickOutside)
   window.removeEventListener('resize', updatePosition)
+  resizeObserver?.disconnect()
+  resizeObserver = null
 })
 
 onMounted(() => {
   window.addEventListener('resize', updatePosition)
-
-  // 使用 ResizeObserver 监听菜单尺寸变化
-  if (menuRef.value && typeof ResizeObserver !== 'undefined') {
-    const observer = new ResizeObserver(() => {
-      if (visible.value) {
-        updatePosition()
-      }
-    })
-    // 需要在菜单渲染后观察
-  }
 })
 
 // 暴露方法供外部调用

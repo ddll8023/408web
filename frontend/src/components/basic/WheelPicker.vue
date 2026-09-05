@@ -2,13 +2,22 @@
   <div class="wheel-picker-container relative" ref="containerRef">
     <!-- 触发器（显示选中值或占位符） -->
     <div
+      :id="pickerId"
       class="wheel-picker-trigger relative flex items-center px-4 bg-white border border-gray-200 rounded-lg cursor-pointer transition-all duration-200"
       :class="[
         { 'opacity-50 cursor-not-allowed pointer-events-none': disabled },
         { 'border-[#8B6F47] ring-2 ring-[#8B6F47]/20': isOpen },
         sizeClasses
       ]"
+      role="combobox"
+      :aria-expanded="isOpen"
+      aria-haspopup="listbox"
+      :aria-controls="listId"
+      :aria-activedescendant="activeOptionId"
+      :aria-label="ariaLabel || undefined"
+      :tabindex="disabled ? -1 : 0"
       @click="toggleDropdown"
+      @keydown="handleTriggerKeydown"
     >
       <!-- 选中值显示 -->
       <div class="flex-1 min-w-0 truncate">
@@ -32,23 +41,29 @@
           :icon="['fas', 'chevron-down']"
           class="text-gray-400 text-xs transition-transform duration-200"
           :class="{ 'rotate-180': isOpen }"
+          aria-hidden="true"
         />
       </div>
 
       <!-- 清除按钮 -->
-      <div
+      <button
         v-if="clearable && modelValue !== null && modelValue !== '' && !isOpen"
-        class="ml-2 cursor-pointer text-gray-400 hover:text-gray-600 transition-colors"
+        type="button"
+        class="ml-2 cursor-pointer text-gray-400 hover:text-gray-600 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8B6F47]/30 rounded"
+        aria-label="清除选择"
         @click.stop="handleClear"
       >
-        <font-awesome-icon :icon="['fas', 'times-circle']" class="text-sm" />
-      </div>
+        <font-awesome-icon :icon="['fas', 'times-circle']" class="text-sm" aria-hidden="true" />
+      </button>
     </div>
 
     <!-- 下拉滚动选择器 -->
     <transition name="wheel-dropdown">
       <div
+        :id="listId"
         v-show="isOpen"
+        role="listbox"
+        :aria-label="placeholder"
         class="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 overflow-hidden"
         :style="{ height: `${containerHeight}px` }"
       >
@@ -82,6 +97,9 @@
             <div
               v-for="(option, index) in options"
               :key="option.value"
+              :id="`${listId}-option-${index}`"
+              role="option"
+              :aria-selected="option.value === modelValue"
               class="wheel-option flex items-center justify-center cursor-pointer transition-all duration-150"
               :class="[
                 option.value === modelValue ? 'text-[#8B6F47] font-semibold' : 'text-gray-500',
@@ -163,11 +181,20 @@ const props = defineProps({
     type: String,
     default: 'md',
     validator: (value: string) => ['sm', 'md', 'lg'].includes(value)
+  },
+  ariaLabel: {
+    type: String,
+    default: ''
+  },
+  id: {
+    type: String,
+    default: ''
   }
 })
 
 const emit = defineEmits<{ 'update:modelValue': [value: string | number | null]; change: [value: string | number | null] }>()
 
+let nextWheelPickerId = 0
 const containerRef = ref<HTMLElement | null>(null)
 const pickerRef = ref<HTMLElement | null>(null)
 const isOpen = ref(false)
@@ -176,6 +203,8 @@ const isAnimating = ref(false)
 const isDragging = ref(false)
 const startY = ref(0)
 const startOffset = ref(0)
+const pickerId = computed(() => props.id || `wheel-picker-${++nextWheelPickerId}`)
+const listId = computed(() => `${pickerId.value}-list`)
 
 // 计算属性：容器高度
 const containerHeight = computed(() => props.itemHeight * props.visibleCount)
@@ -194,6 +223,8 @@ const currentIndex = computed(() => {
   const index = props.options.findIndex(opt => opt.value === props.modelValue)
   return index >= 0 ? index : 0
 })
+
+const activeOptionId = computed(() => `${listId.value}-option-${currentIndex.value}`)
 
 // 计算属性：选中项的显示文本
 const selectedLabel = computed(() => {
@@ -229,6 +260,28 @@ const toggleDropdown = () => {
     nextTick(() => {
       scrollToIndex(currentIndex.value, false)
     })
+  }
+}
+
+const handleTriggerKeydown = (event: KeyboardEvent) => {
+  if (props.disabled) return
+  if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+    event.preventDefault()
+    if (!isOpen.value) toggleDropdown()
+    const direction = event.key === 'ArrowDown' ? 1 : -1
+    const nextIndex = Math.max(0, Math.min(currentIndex.value + direction, props.options.length - 1))
+    const option = props.options[nextIndex]
+    if (option && option.value !== props.modelValue) {
+      emit('update:modelValue', option.value)
+      emit('change', option.value)
+    }
+    scrollToIndex(nextIndex)
+  } else if (event.key === 'Enter' || event.key === ' ') {
+    event.preventDefault()
+    toggleDropdown()
+  } else if (event.key === 'Escape' && isOpen.value) {
+    event.preventDefault()
+    closeDropdown()
   }
 }
 

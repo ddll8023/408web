@@ -7,27 +7,32 @@
   -->
   <aside
     class="sidebar-container flex flex-col flex-shrink-0 h-full border-r border-black/5 transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] bg-[#FBF7F2]"
+    aria-label="科目导航"
     :class="{ 'w-16': isCollapsed, 'w-[260px]': !isCollapsed }"
   >
     <div class="sidebar-header flex items-center justify-between px-4 py-0 border-b border-black/3 flex-shrink-0 gap-2 h-14">
       <transition name="fade" mode="out-in">
-        <h3 v-if="!isCollapsed" class="text-base font-semibold text-gray-900 whitespace-nowrap overflow-hidden flex-1 m-0">科目导航</h3>
+        <span v-if="!isCollapsed" class="text-base font-semibold text-gray-900 whitespace-nowrap overflow-hidden flex-1 m-0">科目导航</span>
       </transition>
       <div class="header-actions flex items-center gap-2 flex-shrink-0">
-        <div
-          class="collapse-all-btn flex items-center gap-1 px-2 py-1 rounded cursor-pointer text-gray-400 text-xs transition-all whitespace-nowrap"
+        <button
+          class="collapse-all-btn flex items-center gap-1 rounded border-0 bg-transparent px-2 py-1 cursor-pointer text-gray-400 text-xs transition-all whitespace-nowrap"
+          type="button"
+          aria-label="全部折叠科目分类"
           @click="collapseAll"
           v-if="!isCollapsed"
         >
-          <font-awesome-icon :icon="['fas', 'chevron-down']" class="text-sm" />
+          <font-awesome-icon :icon="['fas', 'chevron-down']" class="text-sm" aria-hidden="true" />
           <span>全部折叠</span>
-        </div>
-        <div
-          class="toggle-btn w-7 h-7 flex items-center justify-center rounded cursor-pointer text-gray-400 transition-all flex-shrink-0"
+        </button>
+        <button
+          class="toggle-btn w-7 h-7 flex items-center justify-center rounded border-0 bg-transparent cursor-pointer text-gray-400 transition-all flex-shrink-0"
+          type="button"
+          :aria-label="isCollapsed ? '展开科目导航' : '折叠科目导航'"
           @click="toggleCollapse"
         >
-          <font-awesome-icon :icon="['fas', isCollapsed ? 'angle-right' : 'angle-left']" />
-        </div>
+          <font-awesome-icon :icon="['fas', isCollapsed ? 'angle-right' : 'angle-left']" aria-hidden="true" />
+        </button>
       </div>
     </div>
 
@@ -38,21 +43,27 @@
           :key="sub.id"
           class="subject-group mb-1"
         >
-          <div
-            class="subject-item mx-0 mb-0.5 rounded-lg cursor-pointer transition-all duration-200 px-2 py-0"
+          <button
+            class="subject-item w-full mx-0 mb-0.5 rounded-lg border-0 bg-transparent text-left cursor-pointer transition-all duration-200 px-2 py-0"
+            type="button"
+            :aria-label="sub.name"
+            :aria-expanded="!isCollapsed && expandedSubjectId === sub.id"
+            :aria-controls="`subject-categories-${sub.id}`"
             :class="{
               'active bg-[rgba(139,111,71,0.08)]': activeSubjectId === sub.id,
               'hover:bg-black/3': activeSubjectId !== sub.id
             }"
+            @click="onSubjectSelect(sub)"
           >
-            <div class="item-content flex items-center h-11 px-2 w-full" @click="onToggleExpand(sub)">
-              <div class="icon-area flex items-center justify-center w-6 h-6 mr-1 rounded transition-colors duration-200">
-                <font-awesome-icon
-                  :icon="['fas', expandedSubjectId === sub.id ? 'chevron-down' : 'chevron-right']"
-                  class="expand-icon text-sm text-gray-400 transition-transform duration-300 ease"
-                  :class="{ 'rotate-90': expandedSubjectId === sub.id }"
+            <span class="item-content flex items-center h-11 px-2 w-full">
+              <span class="icon-area flex items-center justify-center w-6 h-6 mr-1 rounded transition-colors duration-200">
+                  <font-awesome-icon
+                    :icon="['fas', expandedSubjectId === sub.id ? 'chevron-down' : 'chevron-right']"
+                    class="expand-icon text-sm text-gray-400 transition-transform duration-300 ease"
+                    :class="{ 'rotate-90': expandedSubjectId === sub.id }"
+                    aria-hidden="true"
                 />
-              </div>
+              </span>
               <transition name="fade" mode="out-in">
                 <span v-if="!isCollapsed" class="item-label flex-1 text-base font-medium text-gray-900 whitespace-nowrap overflow-hidden text-ellipsis">{{ sub.name }}</span>
               </transition>
@@ -61,14 +72,17 @@
                   {{ sub.questionCount }}
                 </span>
               </transition>
-            </div>
-          </div>
+            </span>
+          </button>
 
           <!-- 多级分类树 -->
           <Transition name="collapse">
             <div
               v-if="getCategoryTree(sub.id).length > 0 && !isCollapsed && expandedSubjectId === sub.id"
+              :id="`subject-categories-${sub.id}`"
               class="category-list py-0.5 px-0 mt-0.5"
+              role="tree"
+              :aria-label="`${sub.name}分类`"
             >
               <CategoryTreeItem
                 v-for="cat in getCategoryTree(sub.id)"

@@ -1,7 +1,7 @@
 <template>
-  <div class="min-h-[calc(100vh-60px)] pt-[60px] bg-[#FBF7F2] flex gap-4 px-4 pb-4">
+  <div class="min-h-[calc(100vh-60px)] pt-[60px] bg-[#FBF7F2] flex flex-col md:flex-row gap-4 px-4 pb-4">
     <!-- 左侧边栏 -->
-    <aside class="w-[280px] flex-shrink-0">
+    <aside class="w-full md:w-[280px] flex-shrink-0">
       <!-- 个人信息卡片 -->
       <div class="mb-4 text-center bg-white rounded-lg border border-gray-200 p-6">
         <div class="flex justify-center items-center w-20 h-20 mx-auto mb-4 rounded-full bg-[rgba(139,111,71,0.1)]">
@@ -17,8 +17,9 @@
       </div>
 
       <!-- 菜单导航 -->
-      <nav class="space-y-2">
+      <nav class="space-y-2" aria-label="个人中心菜单">
         <button
+          type="button"
           class="w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200"
           :class="activeMenu === 'favorites'
             ? 'bg-[rgba(139,111,71,0.1)] text-[#8B6F47]'
@@ -35,7 +36,7 @@
     </aside>
 
     <!-- 右侧内容区域 -->
-    <main class="flex-1">
+    <main class="flex-1 w-full min-w-0">
       <div v-if="activeMenu === 'favorites'" class="min-h-[600px] bg-white rounded-lg border border-gray-200">
         <!-- 收藏夹标题 -->
         <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200">
@@ -65,16 +66,19 @@
         <!-- 按科目分类展示 -->
         <div class="pt-4">
           <!-- 加载状态 -->
-          <div v-if="loadingSubjects" class="flex items-center justify-center py-12">
-            <font-awesome-icon :icon="['fas', 'spinner']" class="fa-spin text-2xl text-primary-600" />
+          <div v-if="loadingSubjects" class="flex items-center justify-center py-12" role="status" aria-live="polite">
+            <font-awesome-icon :icon="['fas', 'spinner']" class="fa-spin text-2xl text-accent" aria-hidden="true" />
             <span class="ml-3 text-gray-500">加载中...</span>
           </div>
 
           <!-- Tabs 标题栏 -->
-          <div v-else class="flex border-b border-gray-200 px-4">
+          <div v-else class="flex border-b border-gray-200 px-4" role="tablist" aria-label="收藏科目">
             <button
               v-for="subject in subjects"
               :key="subject.id"
+              type="button"
+              role="tab"
+              :aria-selected="activeSubjectTab === subject.id"
               class="px-6 py-3 text-base font-medium transition-colors relative"
               :class="activeSubjectTab === subject.id
                 ? 'text-[#8B6F47] font-semibold'
@@ -91,31 +95,40 @@
 
           <!-- Tab 内容区 -->
           <div class="p-4">
-            <div v-show="activeSubjectTab === subject.id" v-for="subject in subjects" :key="subject.id">
-              <template v-if="getFavoritesForSubject(subject.id).length > 0">
-                <div class="grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-4">
-                  <div
-                    v-for="item in getFavoritesForSubject(subject.id)"
-                    :key="item.id"
-                    class="flex items-center justify-between p-4 bg-white border border-[rgba(139,111,71,0.2)] rounded transition-all duration-300 hover:border-[#8B6F47] hover:shadow-[0_2px_4px_rgba(0,0,0,0.08)] group"
-                  >
-                    <div class="flex items-center gap-2 flex-1 cursor-pointer" @click="handleCategoryClick(item)">
-                      <font-awesome-icon :icon="['fas', 'folder']" class="text-[#8B6F47] flex-shrink-0" />
-                      <span class="text-[#333] text-sm truncate">{{ item.category }}</span>
-                    </div>
-                    <button
-                      class="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity duration-150 text-gray-400 hover:text-red-500 p-1"
-                      @click="handleRemoveFavorite(item)"
+            <template v-for="subject in subjects" :key="subject.id">
+              <div v-show="activeSubjectTab === subject.id" role="tabpanel">
+                <template v-if="getFavoritesForSubject(subject.id).length > 0">
+                  <div class="grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-4">
+                    <div
+                      v-for="item in getFavoritesForSubject(subject.id)"
+                      :key="item.id"
+                      class="flex items-center justify-between p-4 bg-white border border-[rgba(139,111,71,0.2)] rounded transition-all duration-300 hover:border-[#8B6F47] hover:shadow-[0_2px_4px_rgba(0,0,0,0.08)] group"
                     >
-                      <font-awesome-icon :icon="['fas', 'trash']" />
-                    </button>
+                      <button
+                        type="button"
+                        class="flex items-center gap-2 flex-1 min-w-0 cursor-pointer bg-transparent border-0 p-0 text-left"
+                        :aria-label="`打开收藏分类 ${item.category}`"
+                        @click="handleCategoryClick(item)"
+                      >
+                        <font-awesome-icon :icon="['fas', 'folder']" class="text-[#8B6F47] flex-shrink-0" />
+                        <span class="text-[#333] text-sm truncate">{{ item.category }}</span>
+                      </button>
+                      <button
+                        type="button"
+                        class="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity duration-150 text-gray-400 hover:text-red-500 p-1"
+                        :aria-label="`取消收藏 ${item.category}`"
+                        @click="handleRemoveFavorite(item)"
+                      >
+                        <font-awesome-icon :icon="['fas', 'trash']" aria-hidden="true" />
+                      </button>
+                    </div>
                   </div>
+                </template>
+                <div v-else class="py-12">
+                  <Empty description="该科目下暂无收藏" />
                 </div>
-              </template>
-              <div v-else class="py-12">
-                <Empty description="该科目下暂无收藏" />
               </div>
-            </div>
+            </template>
           </div>
         </div>
       </div>
@@ -130,10 +143,13 @@
     >
       <!-- 弹窗内 Tabs -->
       <!-- Tabs 标题栏 -->
-      <div class="flex border-b border-gray-200">
+      <div class="flex border-b border-gray-200" role="tablist" aria-label="添加收藏科目">
         <button
           v-for="subject in subjects"
           :key="subject.id"
+          type="button"
+          role="tab"
+          :aria-selected="activeAddSubject === subject.id"
           class="px-6 py-3 text-base font-medium transition-colors relative"
           :class="activeAddSubject === subject.id
             ? 'text-[#8B6F47] font-semibold'
@@ -151,18 +167,20 @@
       <!-- Tab 内容区 -->
       <div class="h-[400px] overflow-y-auto p-4">
         <!-- 加载状态 -->
-        <div v-if="loadingCategories" class="flex items-center justify-center py-12">
-          <font-awesome-icon :icon="['fas', 'spinner']" class="fa-spin text-2xl text-primary-600" />
+        <div v-if="loadingCategories" class="flex items-center justify-center py-12" role="status" aria-live="polite">
+          <font-awesome-icon :icon="['fas', 'spinner']" class="fa-spin text-2xl text-accent" aria-hidden="true" />
           <span class="ml-3 text-gray-500">加载中...</span>
         </div>
 
         <template v-else-if="categoryList && categoryList.length > 0">
           <div class="grid grid-cols-2 gap-3">
-            <div
+            <button
               v-for="category in categoryList"
               :key="category"
+              type="button"
               class="flex items-center justify-between p-3 bg-white border border-[#dfe2e5] rounded cursor-pointer transition-all duration-200 hover:border-[#8B6F47] hover:bg-[rgba(139,111,71,0.05)]"
               :class="{ 'bg-[rgba(103,194,58,0.1)] border-[#67c23a]': isFavorite(activeAddSubject ?? 0, category) }"
+              :aria-pressed="isFavorite(activeAddSubject ?? 0, category)"
               @click="toggleCategoryFavorite(category, activeAddSubject)"
             >
               <span class="text-sm truncate flex-1 mr-2 text-left overflow-hidden text-ellipsis whitespace-nowrap"
@@ -174,7 +192,7 @@
                 :class="isFavorite(activeAddSubject ?? 0, category) ? 'text-[#67c23a]' : 'text-[#666]'"
                 :icon="isFavorite(activeAddSubject ?? 0, category) ? ['fas', 'check'] : ['fas', 'plus']"
               />
-            </div>
+            </button>
           </div>
         </template>
         <div v-else class="py-12">
@@ -401,29 +419,3 @@ const handleClearAll = () => {
   })
 }
 </script>
-
-
-<style scoped>
-/**
- * 个人中心样式
- * 采用经典左右布局
- * 使用 Tailwind CSS
- */
-
-/* 分类卡片悬停效果（已通过 group 类实现） */
-
-/* 响应式布局 */
-@media (max-width: 768px) {
-  .sidebar {
-    width: 100%;
-  }
-
-  .categories-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .category-items {
-    grid-template-columns: 1fr;
-  }
-}
-</style>

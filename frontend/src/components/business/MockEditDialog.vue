@@ -1,7 +1,18 @@
 <template>
   <teleport to="body">
     <transition name="dialog-fade">
-      <div v-show="dialogVisible" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div
+        v-show="dialogVisible"
+        ref="dialogRef"
+        class="fixed inset-0 z-50 flex items-center justify-center p-4"
+        role="dialog"
+        aria-modal="true"
+        :aria-labelledby="dialogTitleId"
+        :aria-busy="loading || saving"
+        :aria-hidden="!dialogVisible || undefined"
+        tabindex="-1"
+        @keydown="handleKeydown"
+      >
         <!-- 遮罩层 -->
         <div
           class="fixed inset-0 bg-black/50 transition-opacity"
@@ -19,11 +30,12 @@
               <span class="w-8 h-8 rounded-lg bg-[#8B6F47] flex items-center justify-center text-white shadow-sm">
                 <font-awesome-icon :icon="['fas', 'pencil-alt']" />
               </span>
-              <h3 class="text-lg font-bold text-[#333] tracking-wide">
+              <h3 :id="dialogTitleId" class="text-lg font-bold text-[#333] tracking-wide">
                 {{ isEditMode ? '编辑模拟题' : '新增模拟题' }}
               </h3>
             </div>
             <button
+              type="button"
               class="p-2 text-gray-400 hover:text-[#8B6F47] hover:bg-[#8B6F47]/5 rounded-lg transition-all duration-200"
               @click="handleCancel"
               aria-label="关闭"
@@ -37,24 +49,27 @@
             <!-- JSON快速导入区域 -->
             <section class="mb-6">
               <!-- 折叠面板头部 -->
-              <div
+              <button
                 class="group flex items-center justify-between px-5 py-3.5 bg-gradient-to-r from-[#FBF7F2]/80 to-transparent border-l-4 border-[#8B6F47] rounded-r-lg cursor-pointer hover:from-[#FBF7F2] hover:shadow-sm transition-all duration-200"
+                type="button"
+                :aria-expanded="jsonImportVisible"
+                :aria-controls="jsonImportPanelId"
                 @click="toggleJsonImport"
               >
-                <div class="flex items-center gap-3">
+                <span class="flex items-center gap-3">
                   <font-awesome-icon :icon="['fas', 'code']" class="text-[#8B6F47]" />
                   <span class="font-semibold text-[#333]">从 JSON 格式导入</span>
                   <span class="text-xs text-[#8B6F47]/60 bg-[#8B6F47]/10 px-2 py-0.5 rounded-full">批量录入</span>
-                </div>
+                </span>
                 <font-awesome-icon
                   class="text-[#8B6F47]/60 group-hover:text-[#8B6F47] transition-transform duration-300"
                   :icon="jsonImportVisible ? ['fas', 'chevron-up'] : ['fas', 'chevron-down']"
                 />
-              </div>
+              </button>
 
               <!-- 折叠面板内容 -->
               <transition name="slide-fade">
-                <div v-show="jsonImportVisible" class="mt-3 p-5 bg-white border border-gray-100 rounded-xl shadow-sm">
+                <div v-show="jsonImportVisible" :id="jsonImportPanelId" class="mt-3 p-5 bg-white border border-gray-100 rounded-xl shadow-sm">
                   <!-- 提示信息卡片 -->
                   <div class="flex items-start gap-3 p-4 mb-4 bg-[#FBF7F2] rounded-lg border border-[#8B6F47]/10">
                     <font-awesome-icon :icon="['fas', 'info-circle']" class="text-[#8B6F47] mt-0.5" />
@@ -118,6 +133,7 @@
                   <div>
                     <FormLabel label="来源" required for-id="mock-source" />
                     <InputSelect
+                      id="mock-source"
                       v-model="form.source"
                       :options="sourceOptions"
                       placeholder="请选择或输入来源"
@@ -152,6 +168,7 @@
               <div class="mb-6">
                 <FormLabel label="标题" for-id="mock-title" />
                 <InputSelect
+                  id="mock-title"
                   v-model="form.title"
                   :options="titleOptions"
                   placeholder="请选择或输入题目标题（可选）"
@@ -164,9 +181,11 @@
                   <FormLabel label="分类" for-id="mock-category" />
                   <!-- 多选级联选择器 -->
                   <MultiSelectCascader
+                    id="mock-category"
                     v-model="form.category"
                     :options="categoryTreeOptions"
                     placeholder="请选择分类（支持多个）"
+                    aria-label="分类"
                     :disabled="!form.subjectId"
                   />
                 </div>
@@ -191,27 +210,27 @@
                 </div>
                 <div class="mb-4">
                   <FormLabel label="题干" required for-id="mock-choice-content" />
-                  <MarkdownEditor id="mock-choice-content" v-model="form.content" height="260px" placeholder="请输入选择题题干（支持Markdown、代码、图片等）..." />
+                  <MarkdownEditor id="mock-choice-content" aria-label="题干" v-model="form.content" height="260px" placeholder="请输入选择题题干（支持Markdown、代码、图片等）..." />
                 </div>
                 <div class="mb-4">
                   <FormLabel label="选项A" required for-id="mock-option-a" />
-                  <MarkdownEditor id="mock-option-a" v-model="form.optionA" height="140px" placeholder="请输入选项A的内容..." />
+                  <MarkdownEditor id="mock-option-a" aria-label="选项A" v-model="form.optionA" height="140px" placeholder="请输入选项A的内容..." />
                 </div>
                 <div class="mb-4">
                   <FormLabel label="选项B" required for-id="mock-option-b" />
-                  <MarkdownEditor id="mock-option-b" v-model="form.optionB" height="140px" placeholder="请输入选项B的内容..." />
+                  <MarkdownEditor id="mock-option-b" aria-label="选项B" v-model="form.optionB" height="140px" placeholder="请输入选项B的内容..." />
                 </div>
                 <div class="mb-4">
                   <FormLabel label="选项C" required for-id="mock-option-c" />
-                  <MarkdownEditor id="mock-option-c" v-model="form.optionC" height="140px" placeholder="请输入选项C的内容..." />
+                  <MarkdownEditor id="mock-option-c" aria-label="选项C" v-model="form.optionC" height="140px" placeholder="请输入选项C的内容..." />
                 </div>
                 <div class="mb-4">
                   <FormLabel label="选项D" required for-id="mock-option-d" />
-                  <MarkdownEditor id="mock-option-d" v-model="form.optionD" height="140px" placeholder="请输入选项D的内容..." />
+                  <MarkdownEditor id="mock-option-d" aria-label="选项D" v-model="form.optionD" height="140px" placeholder="请输入选项D的内容..." />
                 </div>
                 <div class="mb-4">
                   <FormLabel label="答案解析" for-id="mock-choice-answer" />
-                  <MarkdownEditor id="mock-choice-answer" v-model="form.answer" height="260px" placeholder="请输入Markdown格式的答案与解析..." />
+                  <MarkdownEditor id="mock-choice-answer" aria-label="答案解析" v-model="form.answer" height="260px" placeholder="请输入Markdown格式的答案与解析..." />
                 </div>
               </template>
 
@@ -225,11 +244,11 @@
                 </div>
                 <div class="mb-4">
                   <FormLabel label="题目内容" required for-id="mock-essay-content" />
-                  <MarkdownEditor id="mock-essay-content" v-model="form.content" height="320px" placeholder="请输入Markdown格式题目内容..." />
+                  <MarkdownEditor id="mock-essay-content" aria-label="题目内容" v-model="form.content" height="320px" placeholder="请输入Markdown格式题目内容..." />
                 </div>
                 <div class="mb-4">
                   <FormLabel label="答案解析" for-id="mock-essay-answer" />
-                  <MarkdownEditor id="mock-essay-answer" v-model="form.answer" height="260px" placeholder="请输入Markdown格式答案解析（可选）..." />
+                  <MarkdownEditor id="mock-essay-answer" aria-label="答案解析" v-model="form.answer" height="260px" placeholder="请输入Markdown格式答案解析（可选）..." />
                 </div>
               </template>
             </div>
@@ -268,7 +287,7 @@ import type { PropType } from 'vue'
  * 依赖：MarkdownEditor、CustomButton、InputSelect、Select、FormLabel、MultiSelectCascader 基础组件
  * 依赖：useQuestionForm、useJsonImport、useToast composables
  */
-import { ref, reactive, computed, watch } from 'vue'
+import { ref, computed, watch, nextTick, onBeforeUnmount } from 'vue'
 import { getMockQuestionById, updateMockQuestion, createMockQuestion, getAllMockSources, getMockTitlesBySource } from '@/api/mock'
 import { useQuestionForm } from '@/composables/useQuestionForm'
 import { useJsonImport } from '@/composables/useJsonImport'
@@ -288,19 +307,27 @@ const props = defineProps({
 
 const emit = defineEmits<{ 'update:visible': [visible: boolean]; success: [question: MockQuestion | null] }>()
 
+let nextEditDialogId = 0
+const dialogTitleId = `mock-edit-dialog-title-${++nextEditDialogId}`
+const jsonImportPanelId = `mock-json-import-${nextEditDialogId}`
+const dialogRef = ref<HTMLElement | null>(null)
+let previouslyFocused: HTMLElement | null = null
+let previousBodyOverflow = ''
+
 const dialogVisible = computed({
   get: () => props.visible,
   set: (val) => emit('update:visible', val)
 })
 
-// 是否为编辑模式（有数据或有ID为编辑，无数据无ID为新建）
-const isEditMode = computed(() => !!props.mockData || !!props.mockId)
+// 是否为编辑模式：优先使用显式 ID，也兼容只传入完整题目数据的调用方
+const editId = computed(() => props.mockId ?? props.mockData?.id ?? null)
+const isEditMode = computed(() => editId.value !== null)
 
 // 使用公共 composable
 const {
   form, loading, saving,
-  subjectOptions, categoryTreeOptions, baseFormRules,
-  resetForm, loadSubjectOptions,
+  subjectOptions, categoryTreeOptions,
+  loadSubjectOptions,
   handleSubjectChange, handleQuestionTypeChange,
   fillFormFromData, buildSubmitData
 } = useQuestionForm({
@@ -341,6 +368,7 @@ const sourceOptions = ref<string[]>([])
 
 // 标题选项（根据来源动态加载）
 const titleOptions = ref<string[]>([])
+let sourceRequestVersion = 0
 
 // 表单验证规则（简化版：手动验证）
 const validateForm = () => {
@@ -404,11 +432,56 @@ const handleBackdropClick = () => {
   // 不自动关闭，需要点击取消按钮
 }
 
+const getFocusableElements = () => Array.from(
+  dialogRef.value?.querySelectorAll<HTMLElement>(
+    'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+  ) || []
+)
+
+const focusInitialElement = () => {
+  const first = getFocusableElements()[0]
+  ;(first || dialogRef.value)?.focus()
+}
+
+const restoreFocus = () => {
+  const target = previouslyFocused
+  previouslyFocused = null
+  if (target?.isConnected) target.focus()
+}
+
+const handleKeydown = (event: KeyboardEvent) => {
+  if (!dialogVisible.value) return
+
+  if (event.key === 'Escape') {
+    event.preventDefault()
+    handleCancel()
+    return
+  }
+
+  if (event.key !== 'Tab') return
+  const elements = getFocusableElements()
+  if (elements.length === 0) {
+    event.preventDefault()
+    dialogRef.value?.focus()
+    return
+  }
+
+  const first = elements[0]
+  const last = elements[elements.length - 1]
+  if (event.shiftKey && document.activeElement === first) {
+    event.preventDefault()
+    last.focus()
+  } else if (!event.shiftKey && document.activeElement === last) {
+    event.preventDefault()
+    first.focus()
+  }
+}
+
 // 初始化弹窗
 const initDialog = async () => {
   // 优先使用传入的数据对象（来自列表页），避免重复请求API
   const hasData = !!props.mockData
-  const hasId = !!props.mockId
+  const hasId = editId.value !== null
 
   if (hasData || hasId) {
     // 编辑模式：先显示 loading 状态
@@ -434,23 +507,39 @@ const initDialog = async () => {
     form.questionNumber = props.mockData.questionNumber ?? null
     loading.value = false  // 关闭 loading 状态
   } else if (hasId) {
-    await loadMockData(props.mockId)
+    await loadMockData(editId.value)
   }
 }
 
 watch(() => props.visible, async (visible) => {
-  if (visible) await initDialog()
+  if (typeof document === 'undefined') return
+
+  if (visible) {
+    previouslyFocused = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    previousBodyOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    await initDialog()
+    await nextTick()
+    focusInitialElement()
+  } else {
+    document.body.style.overflow = previousBodyOverflow
+    previousBodyOverflow = ''
+    restoreFocus()
+  }
 })
 
 // 监听来源变化，动态加载该来源下的标题选项
 watch(() => form.source, async (newSource) => {
+  const requestVersion = ++sourceRequestVersion
   if (newSource) {
     try {
       const response = await getMockTitlesBySource(newSource)
+      if (requestVersion !== sourceRequestVersion) return
       if (response.code === 200) {
         titleOptions.value = response.data || []
       }
     } catch (error) {
+      if (requestVersion !== sourceRequestVersion) return
       console.error('加载标题列表失败:', error)
       titleOptions.value = []
     }
@@ -502,7 +591,7 @@ const handleSubmit = async () => {
     let response
     if (isEditMode.value) {
       // 编辑模式：调用更新API
-      const id = Number(props.mockId)
+      const id = Number(editId.value)
       response = await updateMockQuestion(id, data)
     } else {
       // 新建模式：调用创建API
@@ -527,6 +616,13 @@ const handleSubmit = async () => {
 const handleCancel = () => {
   dialogVisible.value = false
 }
+
+onBeforeUnmount(() => {
+  if (typeof document !== 'undefined') {
+    document.body.style.overflow = previousBodyOverflow
+  }
+  restoreFocus()
+})
 </script>
 
 <style scoped>

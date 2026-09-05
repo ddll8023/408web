@@ -1,5 +1,8 @@
 <template>
   <div
+    role="menuitem"
+    :tabindex="disabled ? -1 : 0"
+    :aria-disabled="disabled"
     class="dropdown-item"
     :class="[
       itemClasses,

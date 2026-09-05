@@ -20,19 +20,25 @@
       <!-- 切换开关 -->
       <div class="mb-4 flex justify-end items-center gap-2">
         <span class="text-sm text-gray-600">仅显示未引用</span>
-        <Switch v-model="onlyUnreferenced" @change="loadImages" />
+        <Switch v-model="onlyUnreferenced" aria-label="仅显示未引用图片" @change="loadImages" />
       </div>
 
       <!-- 表格 -->
       <Table :data="images" :columns="tableColumns" :loading="loading">
         <!-- 预览列 -->
         <template #preview="{ row }">
-          <img
+          <button
             v-if="row.url"
-            :src="getFullUrl(row.url)"
-            class="w-[100px] h-[100px] object-cover rounded cursor-pointer hover:opacity-80 transition-opacity"
+            type="button"
+            class="rounded border-0 bg-transparent p-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8B6F47]"
             @click="openPreview(row.url)"
-          />
+          >
+            <img
+              :src="getFullUrl(row.url)"
+              :alt="`预览图片 ${row.filename || ''}`"
+              class="w-[100px] h-[100px] object-cover rounded cursor-pointer hover:opacity-80 transition-opacity"
+            />
+          </button>
         </template>
 
         <!-- 大小列 -->
@@ -77,10 +83,16 @@
     <Teleport to="body">
       <div
         v-if="previewVisible"
+        ref="previewRef"
         class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80"
-        @click="closePreview"
+        role="dialog"
+        aria-modal="true"
+        aria-label="图片预览"
+        tabindex="-1"
+        @click.self="closePreview"
+        @keydown.esc="closePreview"
       >
-        <img :src="previewUrl" class="max-w-[90%] max-h-[90%] object-contain" />
+        <img :src="previewUrl" alt="图片预览" class="max-w-[90%] max-h-[90%] object-contain" />
       </div>
     </Teleport>
 
@@ -96,7 +108,7 @@ type ImageRow = ImageResource & { deleteLoading: boolean }
  * 依赖组件：CustomButton, CustomCard, Switch, Table, Tag, Confirm
  */
 
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, nextTick } from 'vue'
 import { getImageList, deleteImage, deleteUnreferencedImages, getImageUrl } from '@/api/upload'
 import CustomButton from '@/components/basic/CustomButton.vue'
 import CustomCard from '@/components/basic/CustomCard.vue'
@@ -117,6 +129,8 @@ const { showConfirm } = useConfirm()
 // 图片预览状态
 const previewVisible = ref(false)
 const previewUrl = ref('')
+const previewRef = ref<HTMLElement | null>(null)
+let imageLoadVersion = 0
 
 // 表格列配置
 const tableColumns = [
@@ -132,6 +146,7 @@ const tableColumns = [
 const openPreview = (url: string) => {
   previewUrl.value = getFullUrl(url)
   previewVisible.value = true
+  void nextTick(() => previewRef.value?.focus())
 }
 
 // 关闭预览
@@ -141,19 +156,22 @@ const closePreview = () => {
 }
 
 const loadImages = async () => {
+  const requestVersion = ++imageLoadVersion
   loading.value = true
   try {
     const res = await getImageList({ onlyUnreferenced: onlyUnreferenced.value })
+    if (requestVersion !== imageLoadVersion) return
     if (res.code === 200) {
       images.value = (res.data || []).map(item => ({ ...item, deleteLoading: false }))
     } else {
       showToast(res.message || '加载失败', 'error')
     }
   } catch (error) {
+    if (requestVersion !== imageLoadVersion) return
     showToast('加载图片列表失败', 'error')
     console.error(error)
   } finally {
-    loading.value = false
+    if (requestVersion === imageLoadVersion) loading.value = false
   }
 }
 

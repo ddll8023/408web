@@ -10,6 +10,7 @@
             :options="searchTypeOptions"
             size="sm"
             placeholder="类型"
+            aria-label="搜索类型"
             bordered
             style="width: 90px;"
           />
@@ -22,11 +23,9 @@
               placeholder="搜索题目..."
               @keyup.enter="handleSearch"
             />
-            <font-awesome-icon
-              :icon="['fas', 'magnifying-glass']"
-              class="search-btn"
-              @click="handleSearch"
-            />
+            <button type="button" class="search-btn" aria-label="搜索" @click="handleSearch">
+              <font-awesome-icon :icon="['fas', 'magnifying-glass']" aria-hidden="true" />
+            </button>
           </div>
         </div>
       </div>
@@ -34,13 +33,13 @@
       <!-- 导航菜单 -->
       <div class="nav-menu flex items-center justify-center gap-8">
         <!-- 真题首页 - 独立导航 -->
-        <span class="nav-link text-gray-800 no-underline text-base px-6 py-2.5 rounded transition-all duration-300 cursor-pointer select-none" @click="router.push('/exam')">真题首页</span>
+        <RouterLink to="/exam" class="nav-link text-gray-800 no-underline text-base px-6 py-2.5 rounded transition-all duration-300 cursor-pointer select-none">真题首页</RouterLink>
 
         <!-- 真题分类 - 独立导航 -->
-        <span class="nav-link text-gray-800 no-underline text-base px-6 py-2.5 rounded transition-all duration-300 cursor-pointer select-none" @click="router.push('/exam/classify')">真题分类</span>
+        <RouterLink to="/exam/classify" class="nav-link text-gray-800 no-underline text-base px-6 py-2.5 rounded transition-all duration-300 cursor-pointer select-none">真题分类</RouterLink>
 
         <!-- 模拟题 - 独立导航 -->
-        <span class="nav-link text-gray-800 no-underline text-base px-6 py-2.5 rounded transition-all duration-300 cursor-pointer select-none" @click="router.push('/mock')">模拟题</span>
+        <RouterLink to="/mock" class="nav-link text-gray-800 no-underline text-base px-6 py-2.5 rounded transition-all duration-300 cursor-pointer select-none">模拟题</RouterLink>
 
         <!-- 预留未来功能入口 -->
         <span class="nav-link disabled text-gray-400 cursor-not-allowed">资源</span>
@@ -55,12 +54,12 @@
           </template>
 
           <template #dropdown>
-            <div class="dropdown-item" :data-command="'subject'">科目管理</div>
-            <div class="dropdown-item" :data-command="'category'">分类标签管理</div>
-            <div class="dropdown-item" :data-command="'exam'">真题管理</div>
-            <div class="dropdown-item" :data-command="'mock'">模拟题管理</div>
-            <div class="dropdown-item" :data-command="'image'">图片管理</div>
-            <div class="dropdown-item" :data-command="'exam-category'">分类统计</div>
+            <DropdownItem command="subject">科目管理</DropdownItem>
+            <DropdownItem command="category">分类标签管理</DropdownItem>
+            <DropdownItem command="exam">真题管理</DropdownItem>
+            <DropdownItem command="mock">模拟题管理</DropdownItem>
+            <DropdownItem command="image">图片管理</DropdownItem>
+            <DropdownItem command="exam-category">分类统计</DropdownItem>
           </template>
         </Dropdown>
       </div>
@@ -68,7 +67,7 @@
       <!-- 用户信息区域 -->
       <div class="nav-user flex items-center justify-end gap-4">
         <template v-if="authStore.isLoggedIn()">
-          <span class="username text-gray-800 text-sm cursor-pointer px-4 py-2 mr-2 rounded transition-all duration-300 select-none hover:bg-black/[0.05] hover:text-[#8B6F47]" @click="goToUserCenter">{{ authStore.userInfo?.username }}</span>
+          <RouterLink to="/user/center" class="username text-gray-800 text-sm cursor-pointer px-4 py-2 mr-2 rounded transition-all duration-300 select-none hover:bg-black/[0.05] hover:text-[#8B6F47]">{{ authStore.userInfo?.username }}</RouterLink>
           <CustomButton size="sm" @click="handleLogout">退出</CustomButton>
         </template>
         <template v-else>
@@ -92,6 +91,7 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import CustomButton from '@/components/basic/CustomButton.vue'
 import Dropdown from '@/components/basic/Dropdown.vue'
+import DropdownItem from '@/components/basic/DropdownItem.vue'
 import Select from '@/components/basic/Select.vue'
 import { useToast } from '@/composables/useToast'
 
@@ -143,13 +143,6 @@ const goToLogin = () => {
  */
 const goToRegister = () => {
   router.push('/register')
-}
-
-/**
- * 跳转到个人中心
- */
-const goToUserCenter = () => {
-  router.push('/user/center')
 }
 
 /**
@@ -280,10 +273,17 @@ const handleLogout = () => {
   flex-shrink: 0;
   font-size: 16px;
   color: #9CA3AF;
+  border: none;
+  background: transparent;
   padding: 6px;
   border-radius: 50%;
   cursor: pointer;
   transition: all 0.2s ease;
+}
+
+.search-btn:focus-visible {
+  outline: 2px solid #8B6F47;
+  outline-offset: 2px;
 }
 
 .search-btn:hover {
@@ -324,16 +324,6 @@ const handleLogout = () => {
 }
 
 /* 下拉菜单触发器样式 */
-.nav-link.dropdown-trigger .el-icon {
-  margin-left: 6px;
-  font-size: 12px;
-  transition: transform 0.15s;
-}
-
-.nav-link.dropdown-trigger:hover .el-icon {
-  transform: translateY(2px);
-}
-
 /* 用户名样式 - 使用Tailwind类名在template中已实现 */
 
 /* 响应式布局 */

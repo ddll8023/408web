@@ -24,6 +24,7 @@
               v-model="filters.source"
               :options="sourceOptions || []"
               placeholder="请选择来源"
+              aria-label="来源机构"
               clearable
               filterable
               class="w-[180px]"
@@ -37,6 +38,7 @@
               v-model="filters.subjectId"
               :options="(subjectOptions || []).map(s => ({ label: s.name, value: s.id }))"
               placeholder="请选择科目"
+              aria-label="科目"
               clearable
               class="w-[150px]"
               @change="handleSubjectChange"
@@ -50,6 +52,7 @@
               v-model="filters.category"
               :options="categoryOptions"
               placeholder="请选择或输入分类"
+              aria-label="分类"
               class="w-[180px]"
               :disabled="!filters.subjectId"
             />
@@ -61,6 +64,7 @@
             <CustomInput
               v-model="filters.keyword"
               placeholder="搜索题目内容"
+              aria-label="关键词"
               clearable
               class="w-[180px]"
               @keyup.enter="handleSearch"
@@ -93,6 +97,11 @@
         </div>
       </section>
 
+      <div v-if="listError" class="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700" role="alert">
+        {{ listError }}
+        <CustomButton size="sm" type="text" :disabled="loading" @click="loadMockList">重试</CustomButton>
+      </div>
+
       <!-- 模拟题列表表格 -->
       <section class="mt-6">
         <Table
@@ -104,20 +113,21 @@
         >
           <!-- 题型列 -->
           <template #questionType="{ row }">
-            <Tag :type="row.questionType === 'CHOICE' ? 'success' : 'primary'" size="small">
+            <Tag :type="row.questionType === 'CHOICE' ? 'success' : 'primary'" size="sm">
               {{ row.questionType === 'CHOICE' ? '选择题' : '主观题' }}
             </Tag>
           </template>
 
           <!-- 标题列 -->
           <template #title="{ row }">
-            <span
-              class="cursor-pointer hover:text-[#8B6F47] transition-colors line-clamp-2"
+            <button
+              type="button"
+              class="cursor-pointer border-0 bg-transparent p-0 text-left hover:text-[#8B6F47] transition-colors line-clamp-2"
               @click="handleView(row)"
               :title="row.title ?? ''"
             >
               {{ row.title }}
-            </span>
+            </button>
           </template>
 
           <!-- 分类列 -->
@@ -127,7 +137,7 @@
                 v-for="cat in (Array.isArray(row.category) ? row.category : [])"
                 :key="cat"
                 type="info"
-                size="small"
+                size="sm"
               >
                 {{ cat }}
               </Tag>
@@ -136,7 +146,7 @@
 
           <!-- 难度列 -->
           <template #difficulty="{ row }">
-            <Tag v-if="row.difficulty" :type="getDifficultyType(row.difficulty)" size="small">
+            <Tag v-if="row.difficulty" :type="getDifficultyType(row.difficulty)" size="sm">
               {{ getDifficultyLabel(row.difficulty) }}
             </Tag>
             <span v-else class="text-gray-400">-</span>
@@ -285,6 +295,8 @@ const editingMockData = ref<MockQuestion | null>(null)  // 编辑时传递的完
 
 // 模拟题列表
 const mockQuestions = ref<QuestionRow[]>([])
+const listError = ref('')
+let listRequestVersion = 0
 
 // 来源机构选项（模拟题特有）
 const sourceOptions = ref<string[]>([])
@@ -318,6 +330,8 @@ const loadSourceOptions = async () => {
  * 加载模拟题列表
  */
 const loadMockList = async () => {
+  const requestVersion = ++listRequestVersion
+  listError.value = ''
   loading.value = true
   try {
     const response = await getMockQuestions({
@@ -332,17 +346,24 @@ const loadMockList = async () => {
       sortOrder: sorting.sortOrder || undefined
     })
 
+    if (requestVersion !== listRequestVersion) return
     if (response.code === 200) {
+      listError.value = ''
       mockQuestions.value = response.data?.lists || []
       pagination.total = response.data?.pagination?.total || 0
     } else {
+      mockQuestions.value = []
+      listError.value = response.message || '模拟题列表读取失败，请重试。'
       showToast(response.message || '加载失败', 'error')
     }
   } catch (error) {
+    if (requestVersion !== listRequestVersion) return
+    mockQuestions.value = []
+    listError.value = '模拟题列表读取失败，请重试。'
     console.error('加载模拟题列表失败:', error)
     showToast('加载失败，请检查网络连接', 'error')
   } finally {
-    loading.value = false
+    if (requestVersion === listRequestVersion) loading.value = false
   }
 }
 
@@ -392,6 +413,7 @@ const handleSortChange = (sortInfo: Parameters<typeof baseSortChange>[0]) => {
  */
 const handleAdd = () => {
   editingMockId.value = null
+  editingMockData.value = null
   editDialogVisible.value = true
 }
 
@@ -497,10 +519,4 @@ watch(() => route.query.keyword, (newKeyword) => {
   }
 }
 
-/* 固定操作列样式 */
-:deep(.actions-cell) {
-  position: sticky;
-  right: 0;
-  background: white;
-}
 </style>

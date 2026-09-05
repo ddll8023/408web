@@ -2,14 +2,21 @@
   <div class="tree-item-wrapper">
     <!-- 节点内容 -->
     <div
-      class="tree-item-content flex items-center justify-between px-3 py-2 rounded-lg transition-all duration-200"
+      class="tree-item-content group flex items-center justify-between px-3 py-2 rounded-lg transition-all duration-200"
       :class="[
         contentClasses,
         { 'is-dragging': isDragging },
         { 'is-drop-target': isDropTarget }
       ]"
       :draggable="draggable"
+      role="treeitem"
+      :tabindex="0"
+      :aria-expanded="hasChildren ? isExpanded : undefined"
       @click.stop="handleClick"
+      @keydown.enter.prevent="handleClick"
+      @keydown.space.prevent="handleClick"
+      @keydown.arrow-right.prevent="hasChildren && !isExpanded ? toggleExpand() : undefined"
+      @keydown.arrow-left.prevent="hasChildren && isExpanded ? toggleExpand() : undefined"
       @dragstart="handleDragStart"
       @dragover="handleDragOver"
       @dragleave="handleDragLeave"
@@ -49,6 +56,7 @@
     <div
       v-if="hasChildren && isExpanded"
       class="tree-children pl-4 border-l border-[rgba(139,111,71,0.1)] ml-2.5"
+      role="group"
     >
       <TreeItem
         v-for="child in node[childrenKey]"
@@ -70,6 +78,9 @@
       >
         <template #default="{ node: childNode, level: childLevel }">
           <slot :node="childNode" :level="childLevel" />
+        </template>
+        <template #actions="{ node: childNode }">
+          <slot name="actions" :node="childNode" />
         </template>
       </TreeItem>
     </div>

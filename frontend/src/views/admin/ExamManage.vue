@@ -22,6 +22,7 @@
               v-model="filters.year"
               :options="yearOptions"
               placeholder="选择年份"
+              aria-label="年份"
               clearable
               class="!w-[140px]"
             />
@@ -33,6 +34,7 @@
               v-model="filters.subjectId"
               :options="subjectOptions"
               placeholder="请选择科目"
+              aria-label="科目"
               clearable
               class="!w-[180px]"
               @change="handleSubjectChange"
@@ -45,6 +47,7 @@
               v-model="filters.category"
               :options="categoryOptions"
               placeholder="请选择或输入分类"
+              aria-label="分类"
               class="!w-[180px]"
               :disabled="!filters.subjectId"
             />
@@ -55,6 +58,7 @@
             <CustomInput
               v-model="filters.keyword"
               placeholder="搜索题目内容"
+              aria-label="关键词"
               clearable
               class="!w-[180px]"
               @keyup.enter="handleSearch"
@@ -81,6 +85,11 @@
             <CustomButton @click="handleReset">重置</CustomButton>
           </div>
         </div>
+      </div>
+
+      <div v-if="listError" class="mx-4 mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700" role="alert">
+        {{ listError }}
+        <CustomButton size="sm" type="text" :disabled="loading" @click="loadExamList">重试</CustomButton>
       </div>
 
       <!-- 真题列表表格 -->
@@ -116,7 +125,7 @@
 
           <!-- 标题列 -->
           <template #title="{ row }">
-            <span class="cursor-pointer hover:!text-[#8B6F47]">{{ row.title }}</span>
+            <span class="hover:!text-[#8B6F47]">{{ row.title }}</span>
           </template>
 
           <!-- 分类列 -->
@@ -126,7 +135,7 @@
                 v-for="cat in (Array.isArray(row.category) ? row.category : [])"
                 :key="cat"
                 type="info"
-                size="small"
+                size="sm"
               >
                 {{ cat }}
               </Tag>
@@ -135,7 +144,7 @@
 
           <!-- 难度列 -->
           <template #difficulty="{ row }">
-            <Tag v-if="row.difficulty" :type="getDifficultyType(row.difficulty)" size="small">
+            <Tag v-if="row.difficulty" :type="getDifficultyType(row.difficulty)" size="sm">
               {{ getDifficultyLabel(row.difficulty) }}
             </Tag>
             <span v-else class="text-gray-400">-</span>
@@ -259,6 +268,8 @@ const editingExamId = ref<number | null>(null)
 
 // 真题列表
 const exams = ref<QuestionRow[]>([])
+const listError = ref('')
+let listRequestVersion = 0
 
 // 年份选项（2009 - 当前年份，倒序排列）
 const currentYear = new Date().getFullYear()
@@ -296,6 +307,8 @@ const filters = reactive({
  * 加载真题列表
  */
 const loadExamList = async () => {
+  const requestVersion = ++listRequestVersion
+  listError.value = ''
   loading.value = true
   try {
     const response = await getExamList({
@@ -310,17 +323,24 @@ const loadExamList = async () => {
       sortOrder: sorting.sortOrder || undefined
     })
 
+    if (requestVersion !== listRequestVersion) return
     if (response.code === 200) {
+      listError.value = ''
       exams.value = response.data?.lists || []
       pagination.total = response.data?.pagination?.total || 0
     } else {
+      exams.value = []
+      listError.value = response.message || '真题列表读取失败，请重试。'
       showToast(response.message || '加载失败', 'error')
     }
   } catch (error) {
+    if (requestVersion !== listRequestVersion) return
+    exams.value = []
+    listError.value = '真题列表读取失败，请重试。'
     showToast('加载真题列表失败', 'error')
     console.error('加载真题列表失败:', error)
   } finally {
-    loading.value = false
+    if (requestVersion === listRequestVersion) loading.value = false
   }
 }
 
@@ -472,4 +492,3 @@ watch(() => route.query.keyword, (newKeyword) => {
   }
 }
 </style>
-

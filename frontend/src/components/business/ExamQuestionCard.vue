@@ -15,7 +15,7 @@
         <div
           v-for="(value, key) in parsedOptions"
           :key="key"
-          class="exam-question-card__option-row flex items-center gap-1.5 py-1 px-2 min-h-[44px] border border-gray-200 border-l-[3px] border-l-[rgba(139,111,71,0.1)] rounded bg-white transition-all duration-150"
+          class="exam-question-card__option-row flex items-center gap-1.5 py-1 px-2 min-h-[44px] border border-gray-200 border-l-[3px] border-l-[rgba(139,111,71,0.1)] rounded bg-white transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8B6F47]"
           :class="{
             'exam-question-card__option-row--correct': showAnswer && correctOptionKeys.includes(key),
             'exam-question-card__option-row--selected-correct': showAnswer && selectedOption === key && correctOptionKeys.includes(key),
@@ -23,7 +23,14 @@
             'exam-question-card__option-row--wrong': showAnswer && selectedOption === key && !correctOptionKeys.includes(key),
             'exam-question-card__option-row--clickable': selectable && !showAnswer
           }"
+          :role="selectable && !showAnswer ? 'button' : undefined"
+          :tabindex="selectable && !showAnswer ? 0 : -1"
+          :aria-pressed="selectedOption === key"
+          :aria-disabled="!selectable || showAnswer"
+          :aria-label="`选项 ${key}`"
           @click="handleOptionClick(key)"
+          @keydown.enter.prevent="handleOptionClick(key)"
+          @keydown.space.prevent="handleOptionClick(key)"
         >
           <span class="exam-question-card__option-letter flex-shrink-0 w-[22px] h-[22px] flex items-center justify-center border-[1.5px] border-[#8B6F47] text-[#8B6F47] rounded-full font-semibold text-xs leading-none bg-white transition-all duration-150">{{ key }}</span>
           <div class="exam-question-card__option-body flex-1 min-w-0 leading-[1.4] overflow-hidden flex items-center">
@@ -62,7 +69,7 @@
             />
           </div>
           <div v-else key="placeholder" class="answer-placeholder flex items-center justify-center gap-2 p-6 bg-white/80 rounded border-2 border-dashed border-gray-300 text-gray-400 text-sm">
-            <font-awesome-icon :icon="['fas', 'lock']" />
+            <font-awesome-icon :icon="['fas', 'lock']" aria-hidden="true" />
             <span>答案已隐藏，点击上方按钮显示</span>
           </div>
         </Transition>
@@ -546,10 +553,6 @@ const correctOptionKeys = computed(() => {
 
 .answer-card .answer-content :deep(table) {
   margin: 0 auto;
-}
-
-.answer-card .answer-placeholder .el-icon {
-  font-size: 18px;
 }
 
 /* 密度：comfortable（稍大） */

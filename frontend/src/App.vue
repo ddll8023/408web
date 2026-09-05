@@ -41,25 +41,3 @@ const showNavigation = computed(() => {
   return !noNavRoutes.includes(route.path)
 })
 </script>
-
-<style scoped>
-/* 应用根组件样式 */
-
-/* 主内容区域 */
-.main-content {
-  min-height: 100vh;
-}
-
-/* 有导航栏时，添加顶部padding */
-.main-content.with-nav {
-  position: fixed;
-  top: 60px; /* $nav-height */
-  right: 0;
-  bottom: 0;
-  left: 0;
-  min-height: 0;
-  overflow-x: hidden;
-  overflow-y: auto;
-  scrollbar-gutter: stable;
-}
-</style>

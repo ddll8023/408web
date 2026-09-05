@@ -3,13 +3,15 @@
     <transition name="dialog-fade">
       <dialog
         ref="dialogRef"
-        v-if="visible"
+        v-if="visible || !destroyOnClose"
+        v-show="visible"
         class="fixed inset-0 z-50 flex items-start justify-center w-full h-full m-0 p-0 border-0 bg-transparent"
         :open="visible"
         role="dialog"
         aria-modal="true"
         :aria-labelledby="title || $slots.title ? titleId : undefined"
         :aria-label="!title && !$slots.title ? ariaLabel : undefined"
+        :aria-hidden="!visible || undefined"
         @click.self="handleBackdropClick"
         @keydown="handleKeydown"
       >
@@ -36,14 +38,14 @@
               @click="handleClose"
               aria-label="关闭"
             >
-                            <font-awesome-icon :icon="['fas', 'times']" class="text-lg" />
+                            <font-awesome-icon :icon="['fas', 'times']" class="text-lg" aria-hidden="true" />
             </button>
           </div>
 
           <!-- 内容区 -->
           <div class="overflow-y-auto px-6 py-4" :style="contentStyle" :aria-busy="loading">
             <div v-if="loading" class="flex items-center justify-center p-8" role="status" aria-live="polite">
-              <font-awesome-icon :icon="['fas', 'spinner']" class="fa-spin text-2xl text-primary-600" />
+              <font-awesome-icon :icon="['fas', 'spinner']" class="fa-spin text-2xl text-accent" aria-hidden="true" />
               <span class="ml-3 text-gray-500">加载中...</span>
             </div>
             <slot v-else />

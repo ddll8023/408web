@@ -2,6 +2,8 @@
   <button
     :class="buttonClasses"
     :disabled="loading || disabled"
+    :aria-busy="loading || undefined"
+    :aria-disabled="loading || disabled || undefined"
     type="button"
     @click="handleClick"
   >

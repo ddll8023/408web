@@ -1,26 +1,31 @@
 <template>
-  <div class="year-nav-container w-[280px] h-full bg-[#FBF7F2] border-r border-black/[0.05] flex flex-col transition-all duration-300 flex-shrink-0 z-10" :class="{ collapsed: isCollapsed }">
+  <div class="year-nav-container w-[280px] h-full bg-[#FBF7F2] border-r border-black/[0.05] flex flex-col transition-all duration-300 flex-shrink-0 z-10" :class="{ collapsed: isCollapsed }" role="navigation" aria-label="年份导航">
     <!-- 顶部标题栏 -->
     <div class="year-nav-header h-14 flex items-center justify-between px-4 border-b border-black/[0.05] flex-shrink-0 gap-2">
-      <div class="toggle-btn w-8 h-8 flex items-center justify-center rounded-md cursor-pointer text-[#8B6F47] transition-all duration-200 flex-shrink-0 hover:bg-black/[0.05]" @click="toggleCollapse">
-        <font-awesome-icon :icon="isCollapsed ? 'angle-right' : 'angle-left'" class="text-lg" />
-      </div>
+      <button
+        type="button"
+        class="toggle-btn w-8 h-8 flex items-center justify-center rounded-md border-0 bg-transparent cursor-pointer text-[#8B6F47] transition-all duration-200 flex-shrink-0 hover:bg-black/[0.05]"
+        :aria-label="isCollapsed ? '展开年份导航' : '折叠年份导航'"
+        @click="toggleCollapse"
+      >
+        <font-awesome-icon :icon="isCollapsed ? 'angle-right' : 'angle-left'" class="text-lg" aria-hidden="true" />
+      </button>
       <transition name="fade">
         <span class="header-title font-semibold text-base text-[#8B6F47] whitespace-nowrap overflow-hidden flex-1" v-if="!isCollapsed">年份导航</span>
       </transition>
       <div class="header-actions flex items-center gap-2 flex-shrink-0">
-        <div class="collapse-all-btn flex items-center gap-1 px-2 py-1 rounded cursor-pointer text-gray-400 text-[13px] transition-all duration-200 whitespace-nowrap hover:bg-black/[0.05] hover:text-[#8B6F47]" @click="collapseAll" v-if="!isCollapsed">
-          <font-awesome-icon icon="compress" class="text-sm" />
+        <button type="button" class="collapse-all-btn flex items-center gap-1 px-2 py-1 rounded border-0 bg-transparent cursor-pointer text-gray-400 text-[13px] transition-all duration-200 whitespace-nowrap hover:bg-black/[0.05] hover:text-[#8B6F47]" @click="collapseAll" v-if="!isCollapsed">
+          <font-awesome-icon icon="compress" class="text-sm" aria-hidden="true" />
           <span>全部折叠</span>
-        </div>
+        </button>
       </div>
     </div>
 
     <!-- 年份列表 -->
     <div class="year-list-scroll flex-1 overflow-y-auto px-2 py-3" v-show="!isCollapsed">
       <!-- 加载状态 -->
-      <div v-if="loading" class="flex items-center justify-center h-32">
-        <font-awesome-icon icon="spinner" class="fa-spin text-[#8B6F47] text-xl" />
+      <div v-if="loading" class="flex items-center justify-center h-32" role="status" aria-live="polite">
+        <font-awesome-icon icon="spinner" class="fa-spin text-[#8B6F47] text-xl" aria-hidden="true" />
       </div>
       <!-- 实际内容 -->
       <template v-else>
@@ -34,11 +39,22 @@
             class="year-title-item px-2 mb-0.5 rounded-lg cursor-pointer transition-all duration-200"
             :class="{ active: activeYear === yearData.year }"
           >
-            <div class="title-content flex items-center h-11 px-2 w-full" @click="handleYearClick(yearData.year)">
-              <div class="icon-area flex items-center justify-center w-6 h-6 mr-1 rounded transition-bg duration-200 hover:bg-black/[0.05]" @click.stop="toggleYear(yearData.year)">
-                <font-awesome-icon icon="chevron-right" class="expand-icon text-sm transition-transform duration-300 text-gray-400" :class="{ 'is-expanded': expandedYears.includes(yearData.year) }" />
-              </div>
-              <span class="year-text flex-1 text-[15px] text-gray-800">{{ yearData.year }}年</span>
+            <div class="title-content flex items-center h-11 px-2 w-full">
+              <button
+                type="button"
+                class="icon-area flex items-center justify-center w-6 h-6 mr-1 rounded border-0 bg-transparent p-0 transition-colors duration-200 hover:bg-black/[0.05]"
+                :aria-label="(expandedYears.includes(yearData.year) ? '收起 ' : '展开 ') + yearData.year + '年题目'"
+                :aria-expanded="expandedYears.includes(yearData.year)"
+                @click="toggleYear(yearData.year)"
+              >
+                <font-awesome-icon icon="chevron-right" class="expand-icon text-sm transition-transform duration-300 text-gray-400" :class="{ 'is-expanded': expandedYears.includes(yearData.year) }" aria-hidden="true" />
+              </button>
+              <button
+                type="button"
+                class="year-text flex-1 border-0 bg-transparent text-left text-[15px] text-gray-800"
+                :aria-current="activeYear === yearData.year ? 'page' : undefined"
+                @click="handleYearClick(yearData.year)"
+              >{{ yearData.year }}年</button>
               <span class="count-badge text-xs text-gray-400 bg-black/[0.05] px-1.5 py-0.5 rounded-full">{{ yearData.exams.length }}</span>
             </div>
           </div>
@@ -49,16 +65,18 @@
               v-if="expandedYears.includes(yearData.year)"
               class="exam-sub-list mt-0.5 pb-1"
             >
-              <div
+              <button
+                type="button"
                 v-for="exam in yearData.exams"
                 :key="exam.id"
-                class="exam-sub-item flex items-center h-9 px-3 pl-9 mb-0.5 rounded-md cursor-pointer text-gray-500 text-[13px] transition-all duration-200"
+                class="exam-sub-item flex items-center h-9 w-full px-3 pl-9 mb-0.5 rounded-md border-0 bg-transparent cursor-pointer text-left text-gray-500 text-[13px] transition-all duration-200"
                 :class="{ active: activeExamId === exam.id }"
+                :aria-current="activeExamId === exam.id ? 'page' : undefined"
                 @click="handleExamClick(exam)"
               >
-                <font-awesome-icon icon="file-lines" class="exam-icon mr-2 text-sm opacity-70" />
+                <font-awesome-icon icon="file-lines" class="exam-icon mr-2 text-sm opacity-70" aria-hidden="true" />
                 <span class="exam-title flex-1 whitespace-nowrap overflow-hidden text-ellipsis">{{ getExamDisplayText(exam) }}</span>
-              </div>
+              </button>
             </div>
           </Transition>
         </div>

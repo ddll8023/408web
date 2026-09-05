@@ -4,7 +4,7 @@ import path from 'path'
 
 /**
  * Vite配置文件
- * 配置路径别名、代理和Sass全局变量
+ * 配置路径别名、代理和 Tailwind/PostCSS 样式处理
  */
 export default defineConfig({
   plugins: [vue()],

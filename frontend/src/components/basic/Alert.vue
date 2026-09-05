@@ -1,22 +1,40 @@
 <template>
   <div
+    v-if="visible"
     class="p-4 rounded-lg border"
     :class="alertClass"
+    :role="type === 'error' ? 'alert' : 'status'"
+    aria-live="polite"
   >
     <div class="flex items-start">
-      <i v-if="showIcon" class="mt-0.5 mr-3" :class="iconClass"></i>
+      <font-awesome-icon
+        v-if="showIcon"
+        :icon="icon"
+        class="mt-0.5 mr-3"
+        :class="iconClass"
+        aria-hidden="true"
+      />
       <div class="flex-1">
         <div v-if="title" class="font-medium mb-1" :class="titleClass">{{ title }}</div>
         <div :class="contentClass">
           <slot />
         </div>
       </div>
+      <button
+        v-if="closable"
+        type="button"
+        class="ml-3 text-gray-400 hover:text-gray-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 rounded"
+        aria-label="关闭提示"
+        @click="handleClose"
+      >
+        <font-awesome-icon :icon="['fas', 'times']" aria-hidden="true" />
+      </button>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 
 const props = defineProps({
   type: {
@@ -33,6 +51,9 @@ const props = defineProps({
     default: false
   }
 })
+
+const emit = defineEmits<{ close: [] }>()
+const visible = ref(true)
 
 const alertClass = computed(() => {
   const base = 'border-l-4'
@@ -52,15 +73,25 @@ const alertClass = computed(() => {
 const iconClass = computed(() => {
   switch (props.type) {
     case 'success':
-      return 'fa fa-check-circle text-green-500'
+      return 'text-green-500'
     case 'warning':
-      return 'fa fa-exclamation-triangle text-yellow-500'
+      return 'text-yellow-500'
     case 'error':
-      return 'fa fa-times-circle text-red-500'
+      return 'text-red-500'
     case 'info':
     default:
-      return 'fa fa-info-circle text-blue-500'
+      return 'text-blue-500'
   }
+})
+
+const icon = computed(() => {
+  const icons: Record<string, string[]> = {
+    success: ['fas', 'check-circle'],
+    warning: ['fas', 'exclamation-triangle'],
+    error: ['fas', 'times-circle'],
+    info: ['fas', 'info-circle']
+  }
+  return icons[props.type] || icons.info
 })
 
 const titleClass = computed(() => {
@@ -92,4 +123,9 @@ const contentClass = computed(() => {
 })
 
 const showIcon = computed(() => props.type !== 'info')
+
+const handleClose = () => {
+  visible.value = false
+  emit('close')
+}
 </script>

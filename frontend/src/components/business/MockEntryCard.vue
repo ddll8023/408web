@@ -1,12 +1,11 @@
 <template>
   <!-- 模拟题卡片组件：与 ExamEntryCard 保持样式一致 -->
-  <div class="
+  <div class="mock-entry-card
     bg-white
     border border-gray-200
     rounded-lg
     shadow-sm
     p-4 sm:p-6
-    cursor-pointer
     hover:shadow-md
     transition-all duration-300
     scroll-mt-8
@@ -26,6 +25,7 @@
         :show-answer="showAnswer"
         :density="density"
         @toggle-answer="$emit('toggle-answer')"
+        @answered="(payload) => $emit('answered', payload)"
       />
     </div>
   </div>
@@ -33,7 +33,7 @@
 
 <script setup lang="ts">
 import type { PropType } from 'vue'
-import type { ExamQuestion, MockQuestion } from '@/types'
+import type { MockQuestion } from '@/types'
 /**
  * 模拟题卡片组件
  * 功能描述：整合 MockItemHeader 与 ExamQuestionCard 的容器组件
@@ -76,7 +76,7 @@ defineProps({
  * @property {Function} delete - 删除题目事件
  * @property {Function} toggle-answer - 切换答案显示
  */
-defineEmits<{ copy: [command: string]; edit: [question: MockQuestion]; delete: [id: number]; 'toggle-answer': [] }>()
+defineEmits<{ copy: [command: string]; edit: [question: MockQuestion]; delete: [id: number]; 'toggle-answer': []; answered: [payload: { optionKey: string; correct: boolean }] }>()
 </script>
 
 <style scoped>

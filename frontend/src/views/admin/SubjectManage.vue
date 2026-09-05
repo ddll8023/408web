@@ -12,6 +12,10 @@
       </template>
 
       <!-- 科目列表表格 -->
+      <div v-if="loadError" class="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700" role="alert">
+        {{ loadError }}
+        <CustomButton size="sm" type="text" :disabled="loading" @click="loadSubjects">重试</CustomButton>
+      </div>
       <Table :data="subjects" :columns="tableColumns" :loading="loading" stripe>
         <!-- 状态列自定义 -->
         <template #enabled="{ row }">
@@ -64,8 +68,9 @@
             id="subject-code"
             v-model="form.code"
             placeholder="请输入科目编码（如：data-structure）"
-            maxlength="50"
+            :maxlength="50"
             clearable
+            :error="errors.code"
             :disabled="dialogMode === 'edit'"
             :class="[
               'transition-all duration-200',
@@ -77,10 +82,6 @@
             <font-awesome-icon :icon="['fas', 'info-circle']" class="mr-1" />
             科目编码创建后不可修改，长度不超过50字符
           </p>
-          <p v-if="errors.code" class="text-xs text-red-500 mt-1 flex items-center gap-1">
-            <font-awesome-icon :icon="['fas', 'exclamation-circle']" />
-            {{ errors.code }}
-          </p>
         </div>
 
         <!-- 科目名称 -->
@@ -90,17 +91,14 @@
             id="subject-name"
             v-model="form.name"
             placeholder="请输入科目名称（如：数据结构）"
-            maxlength="100"
+            :maxlength="100"
             clearable
+            :error="errors.name"
             :class="[
               'transition-all duration-200',
               errors.name ? 'border-red-300 focus:border-red-500 focus:ring-red-200' : 'focus:border-[#8B6F47] focus:ring-[#8B6F47]/20'
             ]"
           />
-          <p v-if="errors.name" class="text-xs text-red-500 mt-1 flex items-center gap-1">
-            <font-awesome-icon :icon="['fas', 'exclamation-circle']" />
-            {{ errors.name }}
-          </p>
         </div>
 
         <!-- 科目描述 -->
@@ -130,15 +128,16 @@
 
         <!-- 排序顺序 -->
         <div>
-          <FormLabel label="排序顺序" required class="mb-2" />
+          <FormLabel label="排序顺序" required for-id="subject-order-num" class="mb-2" />
           <InputNumber
+            id="subject-order-num"
             v-model="form.orderNum"
             :min="0"
             :max="9999"
             placeholder="数字越小越靠前"
+            :error="Boolean(errors.orderNum)"
             :class="[
               'transition-all duration-200',
-              errors.orderNum ? 'border-red-300' : ''
             ]"
           />
           <p class="text-xs text-gray-500 mt-1">
@@ -212,6 +211,7 @@ const { showConfirm } = useConfirm()
 
 // 加载状态
 const loading = ref(false)
+const loadError = ref('')
 
 // 科目列表
 const subjects = ref<Subject[]>([])
@@ -295,15 +295,21 @@ const validateForm = () => {
  * 加载科目列表
  */
 const loadSubjects = async () => {
+  loadError.value = ''
   loading.value = true
   try {
     const response = await getAllSubjects()
     if (response.code === 200) {
+      loadError.value = ''
       subjects.value = response.data || []
     } else {
+      subjects.value = []
+      loadError.value = response.message || '加载科目列表失败，请重试。'
       showToast(response.message || '加载科目列表失败', 'error')
     }
   } catch (error) {
+    subjects.value = []
+    loadError.value = '加载科目列表失败，请重试。'
     console.error('加载科目列表失败:', error)
     showToast('加载科目列表失败', 'error')
   } finally {
@@ -504,4 +510,3 @@ onMounted(() => {
   animation: shake 0.5s ease-in-out;
 }
 </style>
-

@@ -8,6 +8,13 @@
 
     <!-- 输入框容器 -->
     <div class="relative">
+      <div
+        v-if="$slots.prefix"
+        class="absolute left-3 top-1/2 z-10 -translate-y-1/2 text-gray-400"
+        aria-hidden="true"
+      >
+        <slot name="prefix" />
+      </div>
       <input
         :id="inputId"
         ref="inputRef"
@@ -15,7 +22,12 @@
         :value="modelValue"
         :placeholder="placeholder"
         :disabled="disabled"
-        :class="inputClasses"
+        :maxlength="maxlength"
+        :required="required"
+        :aria-label="ariaLabel || undefined"
+        :aria-invalid="error ? 'true' : undefined"
+        :aria-describedby="error ? `${inputId}-error` : undefined"
+        :class="[inputClasses, $slots.prefix ? 'pl-10' : '']"
         @input="handleInput"
         @blur="handleBlur"
         @focus="handleFocus"
@@ -24,9 +36,11 @@
 
       <!-- 后缀图标：清空按钮 -->
       <button
-        v-if="clearable && modelValue && !disabled"
+        v-if="clearable && modelValue !== '' && modelValue !== null && modelValue !== undefined && !disabled"
         type="button"
         class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+        :class="{ 'right-10': type === 'password' }"
+        aria-label="清空输入"
         @click="handleClear"
       >
         <font-awesome-icon :icon="['fas', 'times-circle']" class="text-sm" />
@@ -37,6 +51,7 @@
         v-if="type === 'password'"
         type="button"
         class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+        :aria-label="showPassword ? '隐藏密码' : '显示密码'"
         @click="showPassword = !showPassword"
       >
         <font-awesome-icon :icon="showPassword ? ['fas', 'eye-slash'] : ['fas', 'eye']" class="text-sm" />
@@ -44,7 +59,9 @@
     </div>
 
     <!-- 错误信息 -->
-    <span v-if="error" class="text-sm text-red-500">{{ error }}</span>
+    <span v-if="error" :id="`${inputId}-error`" class="text-sm text-red-500" role="alert">{{ error }}</span>
+
+    <slot name="tip" />
   </div>
 </template>
 
@@ -94,6 +111,16 @@ const props = defineProps({
     type: Boolean,
     default: false
   },
+  // 最大输入长度
+  maxlength: {
+    type: Number,
+    default: undefined
+  },
+  // 无法通过原生 label 关联时使用的可访问名称
+  ariaLabel: {
+    type: String,
+    default: ''
+  },
   // 错误信息
   error: {
     type: String,
@@ -114,7 +141,7 @@ const props = defineProps({
 
 const emit = defineEmits<{ 'update:modelValue': [value: string]; blur: [event: FocusEvent]; focus: [event: FocusEvent]; enter: [event: KeyboardEvent]; clear: [] }>()
 
-const inputRef = ref<HTMLElement | null>(null)
+const inputRef = ref<HTMLInputElement | null>(null)
 const showPassword = ref(false)
 
 // 生成唯一 ID

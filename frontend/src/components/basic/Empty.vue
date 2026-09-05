@@ -1,7 +1,7 @@
 <template>
   <div class="flex flex-col items-center justify-center py-16 text-center">
     <div class="mb-4 text-gray-300">
-      <font-awesome-icon :icon="icon" class="text-6xl" />
+      <font-awesome-icon :icon="icon" class="text-6xl" aria-hidden="true" />
     </div>
     <p class="text-gray-500 text-base">{{ description }}</p>
   </div>

@@ -1,23 +1,23 @@
 <template>
-  <div class="flex items-center justify-between mb-6 pb-4 border-b border-black/[0.03]">
+  <div class="exam-item-header flex items-center justify-between mb-6 pb-4 border-b border-black/[0.03]">
     <div class="flex-1">
-      <h3 class="text-lg font-semibold text-gray-800 flex items-center gap-3 m-0">
+      <h3 class="question-title text-lg font-semibold text-gray-800 flex items-center gap-3 m-0">
         <span class="text-[#8B6F47] font-mono">{{ exam.year }}年 第 {{ exam.questionNumber }} 题</span>
       </h3>
       <div class="flex gap-2 flex-wrap mt-2">
-        <Tag :variant="exam.questionType === 'CHOICE' ? 'success' : 'primary'">
+        <Tag :type="exam.questionType === 'CHOICE' ? 'success' : 'primary'">
           {{ exam.questionType === 'CHOICE' ? '选择题' : '主观题' }}
         </Tag>
         <Tag
           v-for="cat in (Array.isArray(exam.category) ? exam.category : [])"
           :key="cat"
-          variant="info"
+          type="info"
         >
           {{ cat }}
         </Tag>
       </div>
     </div>
-    <div class="flex gap-1 opacity-80 transition-opacity duration-200 hover:opacity-100">
+    <div class="question-actions flex gap-1 opacity-80 transition-opacity duration-200 hover:opacity-100">
       <QuestionCopyMenu :question="exam" @copy="(command) => $emit('copy', command)" />
       <template v-if="isAdmin">
         <CustomButton size="sm" type="text" @click="$emit('edit', exam)">编辑</CustomButton>
@@ -29,7 +29,7 @@
 
 <script setup lang="ts">
 import type { PropType } from 'vue'
-import type { ExamQuestion, MockQuestion } from '@/types'
+import type { ExamQuestion } from '@/types'
 /**
  * 题目头部组件
  * 功能描述：显示题目年份、题号、类型标签和操作按钮
@@ -62,13 +62,6 @@ defineEmits<{ copy: [command: string]; edit: [question: ExamQuestion]; delete: [
  * 题目头部组件样式
  * 使用纯CSS样式，兼容Tailwind CSS 4
  */
-
-.question-title .question-subtitle {
-  margin-left: 12px;
-  font-size: 16px;
-  font-weight: 400;
-  color: #999;
-}
 
 /* 响应式布局 */
 @media (max-width: 768px) {

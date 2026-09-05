@@ -22,13 +22,14 @@
             <div class="flex items-center justify-between">
               <div class="flex items-center gap-3 flex-1">
                 <h2 class="m-0 text-[#333] font-semibold text-xl">{{ currentTitle }}</h2>
-                <Tag v-if="displayTotal > 0" variant="info" size="sm">共 {{ displayTotal }} 题</Tag>
+                <Tag v-if="displayTotal > 0" type="info" size="sm">共 {{ displayTotal }} 题</Tag>
               </div>
               <div class="flex gap-2" v-if="activeSubjectId">
                 <Select
                   v-model="filterQuestionType"
                   size="sm"
                   class="w-[100px] mr-2"
+                  aria-label="题型筛选"
                   :options="questionTypeOptions"
                 />
 
@@ -37,34 +38,44 @@
                     <CustomButton
                       type="success"
                       :icon="['fas', 'download']"
-                      size="small"
+                      size="sm"
                     >
                       导出科目
                     </CustomButton>
                   </template>
 
                   <template #dropdown>
-                    <div class="dropdown-item" :data-command="'docx'">
+                    <DropdownItem command="docx">
                       <font-awesome-icon :icon="['fas', 'file-word']" class="mr-2" />
                       导出为 Word 文档 (.docx)
-                    </div>
+                    </DropdownItem>
                   </template>
                 </Dropdown>
               </div>
             </div>
 
             <!-- 加载状态 -->
-            <div v-if="questionsLoading" class="flex justify-center py-8">
-              <font-awesome-icon :icon="['fas', 'spinner']" class="fa-spin text-[#8B6F47] text-2xl" />
+            <div v-if="questionsLoading" class="flex justify-center py-8" role="status" aria-live="polite">
+              <font-awesome-icon :icon="['fas', 'spinner']" class="fa-spin text-[#8B6F47] text-2xl" aria-hidden="true" />
+            </div>
+
+            <div v-if="subjectsLoadError" class="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700" role="alert">
+              {{ subjectsLoadError }}
+              <CustomButton size="sm" type="text" @click="loadSubjects">重新读取科目</CustomButton>
+            </div>
+
+            <div v-if="questionsLoadError" class="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700" role="alert">
+              {{ questionsLoadError }}
+              <CustomButton size="sm" type="text" :disabled="questionsLoading" @click="loadQuestions(true)">重试</CustomButton>
             </div>
 
             <!-- 普通分组列表 -->
-            <div v-if="groupedQuestions.length > 0" class="flex flex-col gap-6 max-w-[80%]">
+            <div v-if="groupedQuestions.length > 0" class="w-full md:max-w-[80%] flex flex-col gap-6">
               <template v-for="group in groupedQuestions" :key="group.category">
                 <!-- 分组头 -->
                 <div class="flex items-center justify-between py-2 mt-4 mb-2 border-b border-[#dfe2e5]">
                   <h3 class="m-0 text-[#333] font-semibold text-lg">{{ group.category }}</h3>
-                  <Tag variant="info" size="sm">{{ group.items.length }} 题</Tag>
+                  <Tag type="info" size="sm">{{ group.items.length }} 题</Tag>
                 </div>
                 <!-- 题目卡片 -->
                 <ExamEntryCard
@@ -83,7 +94,7 @@
               </template>
             </div>
             <Empty
-              v-if="groupedQuestions.length === 0"
+              v-if="!questionsLoadError && !subjectsLoadError && groupedQuestions.length === 0"
               :description="activeSubjectId ? '该科目暂无真题' : '请选择左侧科目'"
             />
 
@@ -114,7 +125,7 @@
 </template>
 
 <script setup lang="ts">
-import type { ExamQuestion, Subject, CategoryTreeNode, ExamNavItem } from "@/types"
+import type { ExamQuestion, Subject, CategoryTreeNode } from "@/types"
 import { queryString } from "@/utils/storage"
 import { parseQuestionOptions } from "@/utils/questionOptions"
 import { errorMessage } from "@/utils/errors"
@@ -123,7 +134,7 @@ import { errorMessage } from "@/utils/errors"
  * 功能：按科目聚合展示真题，支持分类与年份筛选
  * 设计哲学：KISS (专注真题浏览), SOLID (单一职责)
  */
-import { ref, onMounted, computed, nextTick, onActivated } from 'vue'
+import { ref, onMounted, computed, nextTick, onActivated, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { getEnabledSubjects } from '@/api/subject'
 import { getExamList, deleteExam, getExamDetail, exportExamsBySubject } from '@/api/exam'
@@ -133,6 +144,7 @@ import toast from '@/utils/toast'
 import confirm from '@/utils/confirm'
 import CustomButton from '@/components/basic/CustomButton.vue'
 import Dropdown from '@/components/basic/Dropdown.vue'
+import DropdownItem from '@/components/basic/DropdownItem.vue'
 import Tag from '@/components/basic/Tag.vue'
 import Select from '@/components/basic/Select.vue'
 import Empty from '@/components/basic/Empty.vue'
@@ -154,6 +166,9 @@ const RETURN_SCROLL_KEY = 'exam-return-position'
 const isNavCollapsed = ref(false)
 const loadingSubjects = ref(false)
 const questionsLoading = ref(false)
+const subjectsLoadError = ref('')
+const questionsLoadError = ref('')
+let questionsRequestVersion = 0
 
 // 题目编辑弹窗状态
 const editDialogVisible = ref(false)
@@ -371,6 +386,7 @@ const loadSubjects = async () => {
   try {
     const res = await getEnabledSubjects()
     if (res.code === 200) {
+      subjectsLoadError.value = ''
       subjects.value = res.data || []
       
       // 检查URL参数，支持从收藏页面跳转
@@ -400,8 +416,13 @@ const loadSubjects = async () => {
           loadCategoriesForSubject(sub.id)
         }
       })
+    } else {
+      subjectsLoadError.value = res.message || '科目读取失败，请重试。'
+      toast.error(subjectsLoadError.value)
     }
   } catch (e) {
+    subjectsLoadError.value = '科目读取失败，请重试。'
+    toast.error(subjectsLoadError.value)
     console.error('加载科目失败:', e)
   } finally {
     loadingSubjects.value = false
@@ -505,7 +526,10 @@ const loadCategoriesForSubject = async (subjectId: number) => {
 
 // Interaction: Select Subject
 const handleSubjectSelect = async (subject: Subject) => {
-  if (activeSubjectId.value === subject.id) return
+  if (activeSubjectId.value === subject.id) {
+    expandedSubjectId.value = expandedSubjectId.value === subject.id ? null : subject.id
+    return
+  }
 
   activeSubjectId.value = subject.id
   activeSubjectName.value = subject.name
@@ -841,9 +865,12 @@ const handleCopy = async (command: string, exam: ExamQuestion) => {
 
 // Core: Load Questions
 const loadQuestions = async (isReset = false) => {
+  const requestVersion = ++questionsRequestVersion
   if (!activeSubjectId.value) {
     questionList.value = []
     total.value = 0
+    questionsLoadError.value = ''
+    questionsLoading.value = false
     return
   }
 
@@ -851,6 +878,7 @@ const loadQuestions = async (isReset = false) => {
     currentPage.value = 1
     questionList.value = []
     hasMore.value = true
+    questionsLoadError.value = ''
   }
 
   questionsLoading.value = true
@@ -870,7 +898,9 @@ const loadQuestions = async (isReset = false) => {
     }
 
     const res = await getExamList(params)
+    if (requestVersion !== questionsRequestVersion) return
     if (res.code === 200) {
+      questionsLoadError.value = ''
       const pageData = res.data?.lists || []
       const serverTotal = res.data?.pagination?.total || 0
       
@@ -891,17 +921,40 @@ const loadQuestions = async (isReset = false) => {
       }
     } else {
       hasMore.value = false
+      questionsLoadError.value = res.message || '真题读取失败，请重试。'
     }
   } catch (e) {
     console.error('加载真题失败:', e)
-    if (isReset) {
+    if (requestVersion === questionsRequestVersion) {
+      questionsLoadError.value = '真题读取失败，请重试。'
+    }
+    if (requestVersion === questionsRequestVersion && isReset) {
       questionList.value = []
       total.value = 0
     }
   } finally {
-    questionsLoading.value = false
+    if (requestVersion === questionsRequestVersion) questionsLoading.value = false
   }
 }
+
+// keep-alive 页面再次复用时同步外部科目/分类查询参数
+watch(
+  () => [route.query.subject, route.query.category] as const,
+  async ([subjectValue, categoryValue], [oldSubjectValue, oldCategoryValue]) => {
+    if (subjectValue === oldSubjectValue && categoryValue === oldCategoryValue) return
+
+    const subjectName = queryString(subjectValue)
+    const categoryName = queryString(categoryValue)
+    const subject = subjects.value.find(item => item.name === subjectName)
+    if (subject && subject.id !== activeSubjectId.value) {
+      await handleSubjectSelect(subject)
+    }
+    if (subject && categoryName !== filterCategory.value) {
+      filterCategory.value = categoryName
+      await loadQuestions(true)
+    }
+  }
+)
 
 /**
  * 统一导出处理函数
@@ -976,17 +1029,3 @@ const handleDelete = async (id: number) => {
 }
 
 </script>
-
-<style scoped>
-/**
- * 真题分类浏览页面样式
- * 使用 Tailwind CSS
- */
-
-/* 响应式布局 */
-@media (max-width: 768px) {
-  .content-area {
-    width: 100%;
-  }
-}
-</style>

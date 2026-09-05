@@ -4,20 +4,10 @@
       <template #header>
         <div class="flex items-center justify-between">
           <h2 class="m-0 text-xl text-[#333] font-semibold">真题分类统计</h2>
-          <Dropdown trigger="click" @command="handleExportCommand">
-            <template #trigger>
-              <CustomButton type="success">
-                <font-awesome-icon :icon="['fas', 'download']" class="mr-2" />
-                导出统计
-              </CustomButton>
-            </template>
-
-            <template #dropdown>
-              <DropdownItem :command="'markdown-no-answer'">导出为 Markdown（不含答案）</DropdownItem>
-              <DropdownItem :command="'markdown-with-answer'">导出为 Markdown（含答案）</DropdownItem>
-              <DropdownItem :command="'xlsx'">导出为 Excel 文件 (.xlsx)</DropdownItem>
-            </template>
-          </Dropdown>
+          <CustomButton type="default" disabled title="分类统计导出接口尚未提供">
+            <font-awesome-icon :icon="['fas', 'download']" class="mr-2" aria-hidden="true" />
+            导出统计（暂不可用）
+          </CustomButton>
         </div>
       </template>
 
@@ -29,6 +19,7 @@
             v-model="statsSubjectId"
             :options="subjectOptions"
             placeholder="全部科目"
+            aria-label="科目筛选"
             clearable
             @change="loadStats"
             class="w-52"
@@ -41,9 +32,15 @@
         </CustomButton>
       </div>
 
-      <!-- 总计题目 -->
+      <div v-if="statsError" class="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700" role="alert">
+        {{ statsError }}
+        <CustomButton size="sm" type="text" :disabled="statsLoading" @click="loadStats">重试</CustomButton>
+      </div>
+
+      <!-- 分类引用总数：一题多分类时会分别计入各分类 -->
       <div class="mb-4 text-lg text-[#333]">
-        <strong>总计题目：{{ totalQuestions }}</strong>
+        <strong>分类引用总数：{{ totalCategoryReferences }}</strong>
+        <span class="ml-2 text-sm font-normal text-gray-500">一题多分类会分别计入对应分类</span>
       </div>
 
       <!-- 统计表格 -->
@@ -71,8 +68,8 @@
 <script setup lang="ts">
 /**
  * 真题分类统计页面
- * 功能描述：展示真题按分类的统计数据，支持按科目筛选和导出功能
- * 依赖组件：CustomCard, CustomButton, Dropdown, DropdownItem, Select, Table, Toast
+ * 功能描述：展示真题按分类的统计数据，支持按科目筛选；分类统计导出等待后端接口
+ * 依赖组件：CustomCard, CustomButton, Select, Table, Toast
  */
 
 // 1. Vue 官方 API
@@ -85,8 +82,6 @@ import { getEnabledSubjects } from '@/api/subject'
 // 3. 子组件导入
 import CustomCard from '@/components/basic/CustomCard.vue'
 import CustomButton from '@/components/basic/CustomButton.vue'
-import Dropdown from '@/components/basic/Dropdown.vue'
-import DropdownItem from '@/components/basic/DropdownItem.vue'
 import Select from '@/components/basic/Select.vue'
 import Table from '@/components/basic/Table.vue'
 import Toast from '@/utils/toast'
@@ -97,6 +92,8 @@ const statsLoading = ref(false)
 const statsData = ref<{subjectName: string; category: string; choiceCount: number; subjectiveCount: number; count: number}[]>([])
 const statsSubjectId = ref<number | null>(null)
 const subjectOptions = ref<Subject[]>([])
+const statsError = ref('')
+let statsLoadVersion = 0
 
 // 表格列配置
 const tableColumns = [
@@ -118,6 +115,7 @@ const loadSubjectOptions = async () => {
     }
   } catch (error) {
     console.error('加载科目列表失败:', error)
+    Toast.error('加载科目列表失败')
   }
 }
 
@@ -125,10 +123,13 @@ const loadSubjectOptions = async () => {
  * 加载统计数据
  */
 const loadStats = async () => {
+  const requestVersion = ++statsLoadVersion
   statsLoading.value = true
   try {
     const res = await getExamCategoryStats(statsSubjectId.value || undefined)
+    if (requestVersion !== statsLoadVersion) return
     if (res.code === 200 && res.data) {
+      statsError.value = ''
       // 从 response 中提取 stats 数组
       const statsArray = res.data.stats || []
       // 响应键名已被拦截器统一转为驼峰，默认按总题数降序
@@ -142,80 +143,27 @@ const loadStats = async () => {
         }))
         .sort((a, b) => (b.count || 0) - (a.count || 0))
     } else {
+      statsData.value = []
+      statsError.value = res.message || '获取统计数据失败，请重试。'
       Toast.error(res.message || '获取统计数据失败')
     }
   } catch (error) {
+    if (requestVersion !== statsLoadVersion) return
+    statsData.value = []
+    statsError.value = '获取统计数据失败，请重试。'
     console.error('获取统计数据失败:', error)
     Toast.error('获取统计数据失败')
   } finally {
-    statsLoading.value = false
+    if (requestVersion === statsLoadVersion) statsLoading.value = false
   }
 }
 
 /**
- * 计算总题数
+ * 计算分类引用总数（一题多分类分别计入）
  */
-const totalQuestions = computed(() => {
+const totalCategoryReferences = computed(() => {
   return statsData.value.reduce((sum, item) => sum + (item.count || 0), 0)
 })
-
-const handleExportCommand = (command: string | number) => {
-  switch (command) {
-    case 'markdown-no-answer':
-      exportStats('markdown', false)
-      break
-    case 'markdown-with-answer':
-      exportStats('markdown', true)
-      break
-    case 'xlsx':
-      exportStats('xlsx', false)
-      break
-    default:
-      Toast.warning('不支持的导出格式')
-  }
-}
-
-const exportStats = (format: string, includeAnswer = false) => {
-  if (!statsData.value || statsData.value.length === 0) {
-    Toast.warning('暂无数据可导出')
-    return
-  }
-
-  const subjectId = statsSubjectId.value
-
-  let subjectName = '全部科目'
-  if (subjectId !== null && subjectId !== undefined) {
-    const found = subjectOptions.value.find((s) => s.id === subjectId)
-    subjectName = (found && found.name) ? found.name : `科目${subjectId}`
-  }
-
-  let url = `/api/exam/category-stats/export?format=${format}&includeAnswer=${includeAnswer}`
-  if (subjectId !== null && subjectId !== undefined) {
-    url += `&subjectId=${subjectId}`
-  }
-
-  const link = document.createElement('a')
-  link.href = url
-  const today = new Date()
-  const year = today.getFullYear()
-  const month = String(today.getMonth() + 1).padStart(2, '0')
-  const day = String(today.getDate()).padStart(2, '0')
-  const dateStr = `${year}${month}${day}`
-
-  let ext = 'md'
-  if (format === 'docx') {
-    ext = 'docx'
-  } else if (format === 'xlsx') {
-    ext = 'xlsx'
-  }
-
-  link.download = `真题分类统计_${subjectName}_${dateStr}.${ext}`
-  document.body.appendChild(link)
-  link.click()
-  document.body.removeChild(link)
-
-  Toast.success('导出已开始')
-}
 
 onMounted(() => {
   loadSubjectOptions()

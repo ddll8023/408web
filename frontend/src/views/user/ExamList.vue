@@ -22,7 +22,7 @@
             <div class="flex items-center gap-3 flex-1">
               <h2 class="m-0 text-[#333] font-semibold text-xl">{{ currentTitle }}</h2>
               <!-- 使用自定义 Tag 组件替代 el-tag -->
-              <Tag v-if="displayTotal > 0" variant="info">共 {{ displayTotal }} 题</Tag>
+              <Tag v-if="displayTotal > 0" type="info">共 {{ displayTotal }} 题</Tag>
             </div>
             <!-- 年份视图：显示导出按钮和管理员创建按钮 -->
             <div class="flex gap-2" v-if="examList.length > 0">
@@ -69,11 +69,11 @@
           </div>
 
           <!-- 年份视图:显示所有题目 -->
-          <div v-if="examList.length > 0" class="flex flex-col gap-6 max-w-[80%] px-5 py-4">
+          <div v-if="examList.length > 0" class="w-full md:max-w-[80%] flex flex-col gap-6 px-5 py-4">
             <ExamEntryCard
               v-for="exam in examList"
               :key="exam.id"
-              :id="`question-${exam.questionNumber}`"
+              :id="`question-${exam.id}`"
               :exam="exam"
               :is-admin="isAdmin"
               :show-answer="showAnswers[exam.id]"
@@ -130,7 +130,7 @@ import { errorMessage } from "@/utils/errors"
  * - 管理员可编辑、删除真题
  */
 import { ref, computed, watch, onMounted, nextTick, onActivated } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
+import { useRoute } from 'vue-router'
 import { getExamNavIndex, getExamByYear, deleteExam } from '@/api/exam'
 import { getDifficultyLabel } from '@/constants/exam'
 import { useAuthStore } from '@/stores/auth'
@@ -144,7 +144,6 @@ import YearNav from '@/components/business/YearNav.vue'
 import ExamEntryCard from '@/components/business/ExamEntryCard.vue'
 import ExamEditDialog from '@/components/business/ExamEditDialog.vue'
 
-const router = useRouter()
 const route = useRoute()
 const authStore = useAuthStore()
 
@@ -197,6 +196,8 @@ const RETURN_SCROLL_KEY = 'exam-return-position'
 
 // 导航数据缓存（按分类缓存，避免重复请求）
 const navCache = new Map<string, NavYear[]>()
+let navRequestVersion = 0
+let examsRequestVersion = 0
 
 // 复制工具函数
 const copyToClipboard = async (text: string) => {
@@ -237,7 +238,7 @@ const applyReturnScrollIfNeeded = () => {
     if (typeof info !== 'object' || info === null) return
     if ('source' in info && info.source === 'year' && 'year' in info && info.year === activeYear.value
       && 'questionNumber' in info && typeof info.questionNumber === 'number' && info.questionNumber) {
-      scrollToExam(info.questionNumber)
+      scrollToExamByQuestionNumber(info.questionNumber)
       sessionStorage.removeItem(RETURN_SCROLL_KEY)
     }
   } catch (error) {
@@ -554,10 +555,12 @@ const toggleYearAnswer = (examId: number | string) => {
  * 使用轻量级 API + 缓存优化性能
  */
 const loadYearList = async () => {
+  const requestVersion = ++navRequestVersion
   // 检查缓存
   const cacheKey = activeCategory.value || 'all'
   if (navCache.has(cacheKey)) {
     yearList.value = navCache.get(cacheKey) ?? []
+    loadingYearList.value = false
     return
   }
 
@@ -568,6 +571,7 @@ const loadYearList = async () => {
       category: activeCategory.value || undefined
     })
 
+    if (requestVersion !== navRequestVersion) return
     if (response.code === 200) {
       const exams = response.data || []
 
@@ -598,10 +602,11 @@ const loadYearList = async () => {
       toast.error(response.message || '加载年份列表失败')
     }
   } catch (error) {
+    if (requestVersion !== navRequestVersion) return
     toast.error('加载年份列表失败')
     console.error('加载年份列表失败:', error)
   } finally {
-    loadingYearList.value = false
+    if (requestVersion === navRequestVersion) loadingYearList.value = false
   }
 }
 
@@ -609,8 +614,10 @@ const loadYearList = async () => {
  * 加载指定年份的所有题目（可按分类过滤）
  */
 const loadExamsByYear = async (year: number | null) => {
+  const requestVersion = ++examsRequestVersion
   if (!year) {
     examList.value = []
+    loading.value = false
     return
   }
 
@@ -622,6 +629,7 @@ const loadExamsByYear = async (year: number | null) => {
     const response = await getExamByYear(year, {
       category: activeCategory.value || undefined
     })
+    if (requestVersion !== examsRequestVersion) return
     if (response.code === 200) {
       examList.value = response.data || []
     } else {
@@ -629,11 +637,12 @@ const loadExamsByYear = async (year: number | null) => {
       toast.error(response.message || '加载失败')
     }
   } catch (error) {
+    if (requestVersion !== examsRequestVersion) return
     examList.value = []
     toast.error('加载真题失败')
     console.error('加载真题失败:', error)
   } finally {
-    loading.value = false
+    if (requestVersion === examsRequestVersion) loading.value = false
   }
 }
 
@@ -650,9 +659,10 @@ const handleYearSelect = (year: number | null) => {
 /**
  * 滚动到指定题目
  */
-const scrollToExam = (questionNumber: number | null | undefined) => {
+const scrollToExam = (examId: number | string | null | undefined) => {
+  if (examId === null || examId === undefined) return
   nextTick(() => {
-    const targetElement = document.getElementById(`question-${questionNumber}`)
+    const targetElement = document.getElementById(`question-${examId}`)
     if (targetElement) {
       targetElement.scrollIntoView({
         behavior: 'smooth',
@@ -661,6 +671,11 @@ const scrollToExam = (questionNumber: number | null | undefined) => {
       })
     }
   })
+}
+
+const scrollToExamByQuestionNumber = (questionNumber: number) => {
+  const exam = examList.value.find(item => item.questionNumber === questionNumber)
+  if (exam) scrollToExam(exam.id)
 }
 
 // 组件从 keep-alive 中激活时，尝试恢复滚动到上次编辑的题目
@@ -682,11 +697,11 @@ const handleExamSelect = (exam: NavQuestion) => {
     if (activeYear.value !== yearData.year) {
       activeYear.value = yearData.year
       loadExamsByYear(yearData.year).then(() => {
-        scrollToExam(exam.questionNumber)
+        scrollToExam(exam.id)
       })
     } else {
       // 已在当前年份，直接滚动
-      scrollToExam(exam.questionNumber)
+      scrollToExam(exam.id)
     }
     activeExamId.value = exam.id
   }
@@ -700,10 +715,11 @@ const handleNavCollapseChange = (collapsed: boolean) => {
 }
 
 /**
- * 处理创建（跳转创建页面）
+ * 处理创建（打开真题编辑弹窗）
  */
 const handleCreate = () => {
-  router.push('/exam/create')
+  editingExamId.value = null
+  editDialogVisible.value = true
 }
 
 /**
@@ -722,6 +738,7 @@ const handleEditSuccess = async () => {
   if (activeYear.value) {
     await loadExamsByYear(activeYear.value)
   }
+  navCache.clear()
   await loadYearList()
 }
 
@@ -745,6 +762,7 @@ const handleDelete = async (id: number) => {
     if (response.code === 200) {
       toast.success('删除成功')
       // 重新加载年份列表
+      navCache.clear()
       await loadYearList()
       // 清空当前激活的题目
       activeExamId.value = null
@@ -1081,23 +1099,3 @@ onMounted(async () => {
   }
 })
 </script>
-
-<style scoped>
-/**
- * 真题页面样式
- * 使用 Tailwind CSS
- */
-
-/* 响应式布局 */
-@media (max-width: 768px) {
-  .content-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 8px;
-  }
-
-  .content-area {
-    width: 100%;
-  }
-}
-</style>

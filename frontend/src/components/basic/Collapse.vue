@@ -1,17 +1,21 @@
 <template>
   <div class="border border-gray-200 rounded-lg overflow-hidden">
-    <div
-      class="flex items-center justify-between px-4 py-3 bg-gray-50 cursor-pointer hover:bg-gray-100 transition-colors"
+    <button
+      type="button"
+      class="flex w-full items-center justify-between px-4 py-3 bg-gray-50 text-left cursor-pointer hover:bg-gray-100 transition-colors"
+      :aria-expanded="isOpen"
+      :aria-controls="contentId"
       @click="toggle"
     >
       <span class="font-medium text-gray-700">{{ title }}</span>
-      <i
-        class="fa text-gray-400 transition-transform duration-200"
-        :class="isOpen ? 'fa-chevron-up' : 'fa-chevron-down'"
-      ></i>
-    </div>
+      <font-awesome-icon
+        class="text-gray-400 transition-transform duration-200"
+        :icon="isOpen ? ['fas', 'chevron-up'] : ['fas', 'chevron-down']"
+        aria-hidden="true"
+      />
+    </button>
     <transition name="collapse">
-      <div v-show="isOpen" class="p-4 bg-white">
+      <div v-show="isOpen" :id="contentId" class="p-4 bg-white">
         <slot />
       </div>
     </transition>
@@ -35,6 +39,9 @@ const props = defineProps({
     default: ''
   }
 })
+
+let nextCollapseId = 0
+const contentId = `collapse-content-${++nextCollapseId}`
 
 const emit = defineEmits<{ 'update:modelValue': [value: string | string[]] }>()
 

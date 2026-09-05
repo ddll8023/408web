@@ -9,6 +9,7 @@
     <div v-if="showSizes" class="flex items-center gap-1">
       <select
         :value="pageSize"
+        aria-label="每页条数"
         class="px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-[#8B6F47]/50"
         @change="handleSizeChange"
       >
@@ -20,7 +21,9 @@
 
     <!-- 上一页按钮 -->
     <button
+      type="button"
       :disabled="currentPage <= 1"
+      aria-label="上一页"
       class="px-2 py-1 border border-gray-300 rounded text-sm hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
       @click="handlePrev"
     >
@@ -32,7 +35,9 @@
       <span v-if="page === '...'" class="px-1 text-gray-400">...</span>
       <button
         v-else
+        type="button"
         class="px-3 py-1 border rounded text-sm transition-colors"
+        :aria-current="page === currentPage ? 'page' : undefined"
         :class="page === currentPage
           ? 'bg-[#8B6F47] text-white border-[#8B6F47]'
           : 'border-gray-300 hover:bg-gray-50'"
@@ -44,7 +49,9 @@
 
     <!-- 下一页按钮 -->
     <button
+      type="button"
       :disabled="currentPage >= totalPages"
+      aria-label="下一页"
       class="px-2 py-1 border border-gray-300 rounded text-sm hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
       @click="handleNext"
     >
@@ -59,6 +66,7 @@
         type="number"
         min="1"
         :max="totalPages"
+        aria-label="跳转页码"
         class="w-14 px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-[#8B6F47]/50"
         @keyup.enter="handleJump"
       />

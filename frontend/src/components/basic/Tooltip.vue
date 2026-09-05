@@ -1,8 +1,12 @@
 <template>
   <div
+    ref="rootRef"
     class="relative inline-block"
     @mouseenter="handleMouseEnter"
     @mouseleave="handleMouseLeave"
+    @focusin="handleFocusIn"
+    @focusout="handleFocusOut"
+    @click="handleClick"
   >
     <!-- 触发元素 -->
     <slot />
@@ -12,6 +16,7 @@
       <div
         v-if="visible"
         ref="tooltipRef"
+        role="tooltip"
         class="absolute z-50 px-2.5 py-1.5 text-xs text-white bg-gray-800 rounded-md shadow-lg whitespace-nowrap pointer-events-none"
         :class="placementClass"
       >
@@ -64,6 +69,7 @@ const props = defineProps({
 const emit = defineEmits<{ show: []; hide: [] }>()
 
 const visible = ref(false)
+const rootRef = ref<HTMLElement | null>(null)
 const tooltipRef = ref<HTMLElement | null>(null)
 let showTimer: ReturnType<typeof setTimeout> | undefined
 let hideTimer: ReturnType<typeof setTimeout> | undefined
@@ -122,6 +128,19 @@ const handleMouseLeave = () => {
   }
 }
 
+// 键盘焦点与鼠标悬停保持一致，避免提示只对鼠标用户可见
+const handleFocusIn = () => {
+  if (props.trigger === 'hover') show()
+}
+
+const handleFocusOut = (event: FocusEvent) => {
+  if (props.trigger !== 'hover') return
+  const nextTarget = event.relatedTarget
+  if (!(nextTarget instanceof Node) || !rootRef.value?.contains(nextTarget)) {
+    hide()
+  }
+}
+
 // 点击切换（click 触发模式）
 const handleClick = () => {
   if (props.trigger === 'click') {
@@ -137,8 +156,7 @@ const handleClick = () => {
 const handleClickOutside = (event: MouseEvent) => {
   if (!(event.target instanceof Element)) return
   if (props.trigger === 'click' && visible.value) {
-    const tooltip = tooltipRef.value
-    if (tooltip && !tooltip.contains(event.target) && !event.target.closest('.relative')) {
+    if (rootRef.value && !rootRef.value.contains(event.target)) {
       hide()
     }
   }

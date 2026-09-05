@@ -11,7 +11,7 @@
       </div>
       <div class="flex items-center gap-6">
         <!-- 题目类型切换 -->
-        <CustomRadioGroup v-model="questionType" :disabled="moveSaving" :options="[
+        <CustomRadioGroup v-model="questionType" aria-label="题目类型" :disabled="moveSaving" :options="[
           { label: '真题', value: 'exam' },
           { label: '模拟题', value: 'mock' }
         ]" @change="handleQuestionTypeChange" />
@@ -40,13 +40,16 @@
           </h3>
           <div class="flex flex-col gap-1">
             <!-- 各科目选项 -->
-            <div
+            <button
               v-for="stat in subjectStats"
               :key="stat.id"
-              class="flex items-center justify-between px-3 py-2.5 rounded-lg cursor-pointer transition-all duration-200"
+              type="button"
+              class="flex w-full items-center justify-between border-0 bg-transparent px-3 py-2.5 text-left rounded-lg cursor-pointer transition-all duration-200"
               :class="[filterSubjectId === stat.id ? 'bg-gradient-to-r from-[rgba(139,111,71,0.12)] to-[rgba(139,111,71,0.06)]' : 'hover:bg-[rgba(139,111,71,0.06)]', { 'pointer-events-none opacity-60': moveSaving }]"
               :aria-disabled="moveSaving"
               @click="handleStatClick(stat.id)"
+              @keydown.enter.prevent="handleStatClick(stat.id)"
+              @keydown.space.prevent="handleStatClick(stat.id)"
             >
               <div class="flex items-center gap-2.5 min-w-0">
                 <div class="w-7 h-7 flex items-center justify-center rounded-md bg-[rgba(139,111,71,0.08)] text-[#999] text-sm transition-all duration-200 flex-shrink-0" :class="{ '!bg-[rgba(139,111,71,0.15)] !text-[#8B6F47]': filterSubjectId === stat.id }">
@@ -61,7 +64,7 @@
               <span class="min-w-[36px] px-2 py-0.5 text-xs font-semibold text-center rounded-[10px] bg-[rgba(139,111,71,0.1)] text-[#8B6F47]" :class="{ '!bg-[#8B6F47] !text-white': filterSubjectId === stat.id }">
                 {{ stat.questionCount }}
               </span>
-            </div>
+            </button>
           </div>
         </div>
 
@@ -224,7 +227,7 @@
                   <!-- 名称与标签 -->
                   <span class="outline-name" :class="{ 'font-semibold': row.level === 0 }">{{ row.node.name }}</span>
                   <span v-if="questionType === 'exam'" class="outline-code">{{ row.node.code }}</span>
-                  <CustomTag v-if="row.level === 0 && row.node.subjectName" variant="info" class="ml-1">
+                  <CustomTag v-if="row.level === 0 && row.node.subjectName" type="info" class="ml-1">
                     {{ row.node.subjectName }}
                   </CustomTag>
 
@@ -303,11 +306,12 @@
           <!-- 第一行：所属科目 + 父分类 -->
           <div class="grid grid-cols-2 gap-5 mb-5">
             <div>
-              <label class="flex items-center gap-1.5 text-sm font-medium text-gray-700 mb-2">
+              <label for="category-subject" class="flex items-center gap-1.5 text-sm font-medium text-gray-700 mb-2">
                 所属科目
                 <span class="text-red-500">*</span>
               </label>
               <CustomSelect
+                id="category-subject"
                 v-model="form.subjectId"
                 :options="subjectOptions.map(s => ({ label: s.name, value: s.id }))"
                 placeholder="请选择科目"
@@ -424,8 +428,9 @@
           <!-- 排序 + 启用状态 -->
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-4">
-              <label class="text-sm font-medium text-gray-700">排序顺序</label>
+              <label for="category-order-num" class="text-sm font-medium text-gray-700">排序顺序</label>
               <CustomInputNumber
+                id="category-order-num"
                 v-model="form.orderNum"
                 :min="0"
                 :max="9999"
@@ -433,7 +438,7 @@
               <span class="text-xs text-[#999]">数字越小越靠前</span>
             </div>
             <div class="flex items-center gap-3 px-4 py-2.5 bg-[rgba(139,111,71,0.04)] rounded-xl">
-              <CustomSwitch v-model="form.enabled" />
+              <CustomSwitch id="category-enabled" v-model="form.enabled" aria-label="是否启用分类" />
               <span class="text-sm font-medium" :class="form.enabled ? 'text-[#52c41a]' : 'text-[#999]'">
                 {{ form.enabled ? '已启用' : '已禁用' }}
               </span>
@@ -455,7 +460,7 @@
 </template>
 
 <script setup lang="ts">
-import type { CategoryNode, CategoryMoveRequest, Subject, CategoryQuestionType } from '@/types'
+import type { CategoryNode, CategoryMoveRequest, Subject } from '@/types'
 type CategoryView = Omit<CategoryNode, 'id' | 'code'> & { id: number | string; code?: string }
 type CategoryViewTree = CategoryView & { children: CategoryViewTree[] }
 type OutlineRow = { node: CategoryViewTree; level: number; hasChildren: boolean; isLastSibling: boolean; guideLevels: number[] }

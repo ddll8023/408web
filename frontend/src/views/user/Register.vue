@@ -10,13 +10,15 @@
       </template>
 
       <!-- 使用原生 form + 自定义验证 -->
-      <form @submit.prevent="handleRegister" class="space-y-4">
+      <form @submit.prevent="handleRegister" novalidate class="space-y-4">
         <!-- 用户名：使用 FormLabel + CustomInput -->
         <div>
-          <FormLabel label="用户名" required />
+          <FormLabel label="用户名" required for-id="register-username" />
           <CustomInput
+            id="register-username"
             v-model="registerForm.username"
             placeholder="请输入用户名（3-50字符）"
+            required
             :error="errors.username"
             @blur="validateField('username')"
           />
@@ -24,11 +26,13 @@
 
         <!-- 密码：使用 FormLabel + CustomInput -->
         <div>
-          <FormLabel label="密码" required />
+          <FormLabel label="密码" required for-id="register-password" />
           <CustomInput
+            id="register-password"
             v-model="registerForm.password"
             type="password"
             placeholder="请输入密码（6-20字符）"
+            required
             :error="errors.password"
             @blur="validateField('password')"
           />
@@ -36,11 +40,13 @@
 
         <!-- 确认密码：使用 FormLabel + CustomInput -->
         <div>
-          <FormLabel label="确认密码" required />
+          <FormLabel label="确认密码" required for-id="register-confirm-password" />
           <CustomInput
+            id="register-confirm-password"
             v-model="registerForm.confirmPassword"
             type="password"
             placeholder="请再次输入密码"
+            required
             :error="errors.confirmPassword"
             @blur="validateField('confirmPassword')"
           />
@@ -48,8 +54,9 @@
 
         <!-- 邮箱：使用 FormLabel + CustomInput -->
         <div>
-          <FormLabel label="邮箱" />
+          <FormLabel label="邮箱" for-id="register-email" />
           <CustomInput
+            id="register-email"
             v-model="registerForm.email"
             type="email"
             placeholder="请输入邮箱（可选）"

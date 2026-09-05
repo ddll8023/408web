@@ -10,13 +10,15 @@
       </template>
 
       <!-- 使用原生 form + 自定义验证 -->
-      <form @submit.prevent="handleLogin" class="space-y-4">
+      <form @submit.prevent="handleLogin" novalidate class="space-y-4">
         <!-- 用户名：使用 FormLabel + CustomInput -->
         <div>
-          <FormLabel label="用户名" required />
+          <FormLabel label="用户名" required for-id="login-username" />
           <CustomInput
+            id="login-username"
             v-model="loginForm.username"
             placeholder="请输入用户名"
+            required
             :error="errors.username"
             @blur="validateField('username')"
           />
@@ -24,14 +26,15 @@
 
         <!-- 密码：使用 FormLabel + CustomInput -->
         <div>
-          <FormLabel label="密码" required />
+          <FormLabel label="密码" required for-id="login-password" />
           <CustomInput
+            id="login-password"
             v-model="loginForm.password"
             type="password"
             placeholder="请输入密码"
+            required
             :error="errors.password"
             @blur="validateField('password')"
-            @enter="handleLogin"
           />
         </div>
 

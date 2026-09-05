@@ -22,29 +22,40 @@
             <div class="flex items-center justify-between">
               <div class="flex items-center gap-3 flex-1">
                 <h2 class="m-0 text-[#333] font-semibold text-xl">{{ currentTitle }}</h2>
-                <Tag v-if="displayTotal > 0" variant="info">共 {{ displayTotal }} 题</Tag>
+                <Tag v-if="displayTotal > 0" type="info">共 {{ displayTotal }} 题</Tag>
               </div>
               <div class="flex gap-2" v-if="activeSubjectId">
                 <Select
                   v-model="filterQuestionType"
                   size="sm"
                   class="w-[100px] mr-2"
+                  aria-label="题型筛选"
                   :options="questionTypeOptions"
                 />
               </div>
             </div>
 
-          <div v-if="questionsLoading" class="flex items-center justify-center py-12">
-            <font-awesome-icon :icon="['fas', 'spinner']" class="fa-spin text-[#8B6F47] text-2xl" />
+          <div v-if="questionsLoading" class="flex items-center justify-center py-12" role="status" aria-live="polite">
+            <font-awesome-icon :icon="['fas', 'spinner']" class="fa-spin text-[#8B6F47] text-2xl" aria-hidden="true" />
+          </div>
+
+          <div v-if="subjectsLoadError" class="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700" role="alert">
+            {{ subjectsLoadError }}
+            <CustomButton size="sm" type="text" @click="loadSubjects">重新读取科目</CustomButton>
+          </div>
+
+          <div v-if="questionsLoadError" class="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700" role="alert">
+            {{ questionsLoadError }}
+            <CustomButton size="sm" type="text" :disabled="questionsLoading" @click="loadQuestions(true)">重试</CustomButton>
           </div>
 
           <!-- 普通分组列表 -->
-          <div v-if="groupedQuestions.length > 0" class="flex flex-col gap-6 max-w-[80%]">
+          <div v-if="groupedQuestions.length > 0" class="w-full md:max-w-[80%] flex flex-col gap-6">
             <template v-for="group in groupedQuestions" :key="group.category">
               <!-- 分组头 -->
               <div class="flex items-center justify-between py-2 mt-4 mb-2 border-b border-[#dfe2e5]">
                 <h3 class="m-0 text-[#333] font-semibold text-lg">{{ group.category }}</h3>
-                <Tag variant="info">{{ group.items.length }} 题</Tag>
+                <Tag type="info">{{ group.items.length }} 题</Tag>
               </div>
               <!-- 题目卡片 -->
               <MockEntryCard
@@ -64,7 +75,7 @@
           </div>
 
           <Empty
-            v-if="groupedQuestions.length === 0"
+            v-if="!questionsLoadError && !subjectsLoadError && groupedQuestions.length === 0"
             :description="activeSubjectId ? '该科目暂无模拟题' : '请选择左侧科目'"
           />
 
@@ -96,7 +107,7 @@
 </template>
 
 <script setup lang="ts">
-import type { MockQuestion, Subject, CategoryTreeNode, ExamNavItem } from "@/types"
+import type { MockQuestion, Subject, CategoryTreeNode } from "@/types"
 import { queryString } from "@/utils/storage"
 import { parseQuestionOptions } from "@/utils/questionOptions"
 import { errorMessage } from "@/utils/errors"
@@ -105,7 +116,7 @@ import { errorMessage } from "@/utils/errors"
  * 功能：按科目聚合展示模拟题，支持分类筛选
  * 设计哲学：KISS (专注模拟题浏览), SOLID (单一职责)
  */
-import { ref, onMounted, computed, nextTick } from 'vue'
+import { ref, onMounted, computed, nextTick, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { getEnabledSubjects } from '@/api/subject'
 import { getMockQuestions, deleteMockQuestion, getMockSubjectStats } from '@/api/mock'
@@ -140,6 +151,9 @@ const editingMockData = ref<MockQuestion | null>(null)  // 编辑时传递的完
 const isNavCollapsed = ref(false)
 const loadingSubjects = ref(false)
 const questionsLoading = ref(false)
+const subjectsLoadError = ref('')
+const questionsLoadError = ref('')
+let questionsRequestVersion = 0
 
 // Data
 const subjects = ref<Subject[]>([])
@@ -236,6 +250,7 @@ const loadSubjects = async () => {
   try {
     const res = await getEnabledSubjects()
     if (res.code === 200) {
+      subjectsLoadError.value = ''
       subjects.value = res.data || []
       
       // 加载模拟题的科目统计，覆盖默认的真题统计
@@ -286,8 +301,13 @@ const loadSubjects = async () => {
         // 处理URL hash跳转（从管理页面"查看"按钮跳转过来）
         await handleHashScroll()
       }
+    } else {
+      subjectsLoadError.value = res.message || '科目读取失败，请重试。'
+      showToast(subjectsLoadError.value, 'error')
     }
   } catch (e) {
+    subjectsLoadError.value = '科目读取失败，请重试。'
+    showToast(subjectsLoadError.value, 'error')
     console.error('加载科目失败:', e)
   } finally {
     loadingSubjects.value = false
@@ -345,7 +365,10 @@ const loadCategoriesForSubject = async (subjectId: number) => {
 
 // Interaction: Select Subject
 const handleSubjectSelect = async (subject: Subject) => {
-  if (activeSubjectId.value === subject.id) return
+  if (activeSubjectId.value === subject.id) {
+    expandedSubjectId.value = expandedSubjectId.value === subject.id ? null : subject.id
+    return
+  }
 
   activeSubjectId.value = subject.id
   activeSubjectName.value = subject.name
@@ -399,9 +422,12 @@ const toggleAnswer = (id: number) => {
 
 // Core: Load Questions
 const loadQuestions = async (isReset = false) => {
+  const requestVersion = ++questionsRequestVersion
   if (!activeSubjectId.value) {
     questionList.value = []
     total.value = 0
+    questionsLoadError.value = ''
+    questionsLoading.value = false
     return
   }
 
@@ -409,6 +435,7 @@ const loadQuestions = async (isReset = false) => {
     currentPage.value = 1
     questionList.value = []
     hasMore.value = true
+    questionsLoadError.value = ''
   }
 
   questionsLoading.value = true
@@ -425,7 +452,9 @@ const loadQuestions = async (isReset = false) => {
     }
 
     const res = await getMockQuestions(params)
+    if (requestVersion !== questionsRequestVersion) return
     if (res.code === 200) {
+      questionsLoadError.value = ''
       const pageData = res.data?.lists || []
       const serverTotal = res.data?.pagination?.total || 0
       
@@ -443,17 +472,40 @@ const loadQuestions = async (isReset = false) => {
       }
     } else {
       hasMore.value = false
+      questionsLoadError.value = res.message || '模拟题读取失败，请重试。'
     }
   } catch (e) {
     console.error('加载模拟题失败:', e)
-    if (isReset) {
+    if (requestVersion === questionsRequestVersion) {
+      questionsLoadError.value = '模拟题读取失败，请重试。'
+    }
+    if (requestVersion === questionsRequestVersion && isReset) {
       questionList.value = []
       total.value = 0
     }
   } finally {
-    questionsLoading.value = false
+    if (requestVersion === questionsRequestVersion) questionsLoading.value = false
   }
 }
+
+// keep-alive 页面再次复用时同步外部科目/分类查询参数
+watch(
+  () => [route.query.subject, route.query.category] as const,
+  async ([subjectValue, categoryValue], [oldSubjectValue, oldCategoryValue]) => {
+    if (subjectValue === oldSubjectValue && categoryValue === oldCategoryValue) return
+
+    const subjectName = queryString(subjectValue)
+    const categoryName = queryString(categoryValue)
+    const subject = subjects.value.find(item => item.name === subjectName)
+    if (subject && subject.id !== activeSubjectId.value) {
+      await handleSubjectSelect(subject)
+    }
+    if (subject && categoryName !== filterCategory.value) {
+      filterCategory.value = categoryName
+      await loadQuestions(true)
+    }
+  }
+)
 
 // 复制工具函数
 const copyToClipboard = async (text: string) => {
@@ -827,10 +879,4 @@ const handleDelete = async (id: number) => {
   }
 }
 
-/* 响应式布局 */
-@media (max-width: 768px) {
-  .content-area {
-    width: 100%;
-  }
-}
 </style>

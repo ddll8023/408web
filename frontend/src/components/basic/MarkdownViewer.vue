@@ -3,6 +3,7 @@
     ref="rootRef"
     class="markdown-viewer"
     :class="{ 'is-plain': variant === 'plain' }"
+    :style="{ '--max-image-height': maxImageHeight || 'none' }"
   >
     <!-- 使用 key 强制 v-md-preview 在内容变化时重新渲染 -->
     <v-md-preview
@@ -23,7 +24,7 @@
  * Source: @kangc/v-md-editor 官方文档
  * KaTeX 通过组件内预处理完成公式渲染
  */
-import { ref, watch, nextTick } from 'vue'
+import { ref, watch, nextTick, onBeforeUnmount } from 'vue'
 import VMdPreview from '@kangc/v-md-editor/lib/preview'
 import '@kangc/v-md-editor/lib/style/preview.css'
 // GitHub主题
@@ -142,7 +143,7 @@ const renderMathToHtml = (content: string, display: boolean) => {
       displayMode: display,
       throwOnError: false,
       strict: false,
-      trust: true,
+      trust: false,
     })
   } catch (e) {
     return `<span class="katex-error">${escapeHtml(content)}</span>`
@@ -220,34 +221,46 @@ const handleImageClick = (images: string[], index: number) => {
   // 默认打开点击的图片
   const url = images[index] || images[0]
   if (url) {
-    window.open(url, '_blank')
+    try {
+      const parsedUrl = new URL(url, window.location.origin)
+      if (!['http:', 'https:', 'blob:'].includes(parsedUrl.protocol)) return
+      window.open(parsedUrl.href, '_blank', 'noopener,noreferrer')
+    } catch {
+      return
+    }
   }
 }
 
 /**
  * 延迟执行公式恢复，等待 v-md-preview 完成渲染
  */
+let renderTimer: ReturnType<typeof setTimeout> | undefined
+
 const delayedRestore = () => {
   nextTick(() => {
+    if (renderTimer) clearTimeout(renderTimer)
     // 增加延迟确保 v-md-preview 完成渲染
-    setTimeout(restoreAndRenderMath, 100)
+    renderTimer = setTimeout(() => {
+      renderTimer = undefined
+      restoreAndRenderMath()
+    }, 100)
   })
 }
 
 // 监听内容变化，使用 flush: 'post' 确保在 DOM 更新后执行
 watch(
   () => props.content,
-  (newVal) => {
+  () => {
     processContent()
     // 双重 nextTick 确保 v-md-preview 完成渲染
-    nextTick(() => {
-      nextTick(() => {
-        setTimeout(restoreAndRenderMath, 100)
-      })
-    })
+    delayedRestore()
   },
   { immediate: true, flush: 'post' }
 )
+
+onBeforeUnmount(() => {
+  if (renderTimer) clearTimeout(renderTimer)
+})
 </script>
 
 <style scoped>
@@ -274,5 +287,10 @@ watch(
   background-color: transparent;
   padding: 0;
   border-radius: 0;
+}
+
+.markdown-viewer :deep(img) {
+  max-height: var(--max-image-height);
+  object-fit: contain;
 }
 </style>

@@ -13,12 +13,13 @@
       :class="itemClasses"
       :style="{ paddingLeft: `${baseIndent + level * indentStep}px` }"
       :tabindex="0"
-      :role="hasChildren ? 'treeitem' : 'treeitem-leaf'"
+      role="treeitem"
+      :aria-level="level + 1"
       :aria-expanded="hasChildren ? isExpanded : undefined"
       :aria-selected="isActive"
       @click.stop="handleClick"
       @keydown.enter="handleClick"
-      @keydown.space.prevent="toggleExpand"
+      @keydown.space.prevent="handleSpace"
       @keydown.arrow-right.prevent="hasChildren && !isExpanded && toggleExpand()"
       @keydown.arrow-left.prevent="hasChildren && isExpanded && toggleExpand()"
       @mouseenter="isHovered = true"
@@ -33,6 +34,7 @@
       >
         <svg
           class="category-expand-icon w-3.5 h-3.5 transition-transform duration-300 ease-out"
+          aria-hidden="true"
           :class="iconClasses"
           viewBox="0 0 24 24"
           fill="none"
@@ -56,7 +58,7 @@
 
       <!-- 分类图标（顶级分类显示） -->
       <span v-if="level === 0" class="category-icon mr-2 text-xs opacity-60">
-        <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
           <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
         </svg>
       </span>
@@ -269,6 +271,11 @@ function calculateTotalCount(cat: CategoryTreeNode) {
  */
 const handleClick = () => {
   emit('select', props.category.name)
+}
+
+// Space 用于选择节点，展开/收起由方向键或展开图标负责
+const handleSpace = () => {
+  handleClick()
 }
 
 /**

@@ -1,10 +1,10 @@
 <template>
-  <div class="overflow-x-auto">
+  <div class="overflow-x-auto" :aria-busy="loading">
     <!-- 加载状态 -->
     <div v-if="loading" class="py-12">
       <slot name="loading">
-        <div class="flex items-center justify-center">
-          <font-awesome-icon :icon="['fas', 'spinner']" class="fa-spin text-2xl text-[#8B6F47]" />
+        <div class="flex items-center justify-center" role="status" aria-live="polite">
+          <font-awesome-icon :icon="['fas', 'spinner']" class="fa-spin text-2xl text-[#8B6F47]" aria-hidden="true" />
           <span class="ml-3 text-gray-600">加载中...</span>
         </div>
       </slot>
@@ -18,14 +18,19 @@
             v-for="column in columns"
             :key="column.prop"
             class="px-4 py-3 font-semibold text-gray-700"
+            scope="col"
+            :aria-sort="column.sortable ? getAriaSort(column) : undefined"
+            :tabindex="column.sortable ? 0 : undefined"
             :class="[
               sizeClasses.th,
-              column.width ? `w-[${column.width}]` : '',
               column.align === 'center' ? 'text-center' : column.align === 'right' ? 'text-right' : 'text-left',
-              column.sortable ? 'cursor-pointer select-none hover:bg-gray-100' : ''
+              column.sortable ? 'cursor-pointer select-none hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#8B6F47]' : '',
+              column.fixed ? 'sticky right-0 z-10 bg-white' : ''
             ]"
-            :style="column.width ? { width: column.width } : {}"
+            :style="columnStyle(column)"
             @click="column.sortable ? handleSort(column) : null"
+            @keydown.enter.prevent="column.sortable ? handleSort(column) : null"
+            @keydown.space.prevent="column.sortable ? handleSort(column) : null"
           >
             <div class="flex items-center gap-1" :class="column.align === 'center' ? 'justify-center' : column.align === 'right' ? 'justify-end' : 'justify-start'">
               <span>{{ column.label }}</span>
@@ -34,11 +39,13 @@
                   v-if="sortConfig.prop === column.prop"
                   :icon="sortConfig.order === 'ascending' ? ['fas', 'sort-up'] : ['fas', 'sort-down']"
                   class="text-xs text-[#8B6F47]"
+                  aria-hidden="true"
                 />
                 <font-awesome-icon
                   v-else
                   :icon="['fas', 'sort']"
                   class="text-xs text-gray-400"
+                  aria-hidden="true"
                 />
               </template>
             </div>
@@ -48,8 +55,9 @@
       <tbody>
         <tr
           v-for="(row, index) in data"
-          :key="index"
+          :key="getRowKey(row, index)"
           class="border-b border-gray-100 hover:bg-gray-50 transition-colors"
+          :class="{ 'even:bg-gray-50': stripe }"
         >
           <td
             v-for="column in columns"
@@ -58,8 +66,10 @@
             :class="[
               sizeClasses.py,
               sizeClasses.td,
-              column.align === 'center' ? 'text-center' : column.align === 'right' ? 'text-right' : 'text-left'
+              column.align === 'center' ? 'text-center' : column.align === 'right' ? 'text-right' : 'text-left',
+              column.fixed ? 'sticky right-0 z-10 bg-white' : ''
             ]"
+            :style="columnStyle(column)"
           >
             <slot :name="column.prop" :row="row" :column="column">
               {{ cellValue(row, column.prop) }}
@@ -70,7 +80,7 @@
           <td :colspan="columns.length" class="px-4 py-8 text-center text-gray-400">
             <slot name="empty">
               <div class="flex flex-col items-center">
-                <font-awesome-icon :icon="['fas', 'inbox']" class="text-2xl mb-2 opacity-50" />
+                <font-awesome-icon :icon="['fas', 'inbox']" class="text-2xl mb-2 opacity-50" aria-hidden="true" />
                 <span>暂无数据</span>
               </div>
             </slot>
@@ -95,12 +105,33 @@ const props = withDefaults(defineProps<{
   data?: T[]
   columns: TableColumn[]
   loading?: boolean
+  stripe?: boolean
+  rowKey?: string | ((row: T, index: number) => string | number)
   size?: 'sm' | 'md' | 'lg'
   fontSize?: number | null
-}>(), { data: () => [], loading: false, size: 'md', fontSize: null })
+}>(), { data: () => [], loading: false, stripe: false, rowKey: '', size: 'md', fontSize: null })
 const emit = defineEmits<{ 'sort-change': [sort: TableSort] }>()
 defineSlots<{ loading?: () => unknown; empty?: () => unknown } & { [name: string]: (props: { row: T; column: TableColumn }) => unknown }>()
 const cellValue = (row: T, key: string): unknown => Reflect.get(row, key)
+
+const getRowKey = (row: T, index: number) => {
+  if (typeof props.rowKey === 'function') return props.rowKey(row, index)
+  if (props.rowKey) return String(Reflect.get(row, props.rowKey))
+  const id = Reflect.get(row, 'id')
+  return id === undefined || id === null ? index : String(id)
+}
+
+const normalizeSize = (value: string) => /^\d+(?:\.\d+)?$/.test(value.trim()) ? `${value}px` : value
+
+const columnStyle = (column: TableColumn) => ({
+  ...(column.width ? { width: normalizeSize(column.width) } : {}),
+  ...(column.minWidth ? { minWidth: normalizeSize(column.minWidth) } : {})
+})
+
+const getAriaSort = (column: TableColumn): 'ascending' | 'descending' | 'none' => {
+  if (sortConfig.prop !== column.prop || !sortConfig.order) return 'none'
+  return sortConfig.order
+}
 
 // 计算字体样式
 const fontStyle = computed(() => {

@@ -1,7 +1,18 @@
 <template>
   <teleport to="body">
     <transition name="dialog-fade">
-      <div v-show="dialogVisible" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div
+        v-show="dialogVisible"
+        ref="dialogRef"
+        class="fixed inset-0 z-50 flex items-center justify-center p-4"
+        role="dialog"
+        aria-modal="true"
+        :aria-labelledby="dialogTitleId"
+        :aria-busy="loading || saving"
+        :aria-hidden="!dialogVisible || undefined"
+        tabindex="-1"
+        @keydown="handleKeydown"
+      >
         <!-- 遮罩层 -->
         <div
           class="fixed inset-0 bg-black/50 transition-opacity"
@@ -19,11 +30,12 @@
               <span class="w-8 h-8 rounded-lg bg-[#8B6F47] flex items-center justify-center text-white shadow-sm">
                 <font-awesome-icon :icon="['fas', 'graduation-cap']" />
               </span>
-              <h3 class="text-lg font-bold text-[#333] tracking-wide">
+              <h3 :id="dialogTitleId" class="text-lg font-bold text-[#333] tracking-wide">
                 {{ isEditMode ? '编辑真题' : '新增真题' }}
               </h3>
             </div>
             <button
+              type="button"
               class="p-2 text-gray-400 hover:text-[#8B6F47] hover:bg-[#8B6F47]/5 rounded-lg transition-all duration-200"
               @click="handleCancel"
               aria-label="关闭"
@@ -37,24 +49,27 @@
         <!-- JSON快速导入区域 -->
         <section class="mb-6">
           <!-- 折叠面板头部 -->
-          <div
+          <button
             class="group flex items-center justify-between px-5 py-3.5 bg-gradient-to-r from-[#FBF7F2]/80 to-transparent border-l-4 border-[#8B6F47] rounded-r-lg cursor-pointer hover:from-[#FBF7F2] hover:shadow-sm transition-all duration-200"
+            type="button"
+            :aria-expanded="jsonImportVisible"
+            :aria-controls="jsonImportPanelId"
             @click="toggleJsonImport"
           >
-            <div class="flex items-center gap-3">
+            <span class="flex items-center gap-3">
                             <font-awesome-icon :icon="['fas', 'code']" class="text-[#8B6F47]" />
               <span class="font-semibold text-[#333]">从 JSON 格式导入</span>
               <span class="text-xs text-[#8B6F47]/60 bg-[#8B6F47]/10 px-2 py-0.5 rounded-full">批量录入</span>
-            </div>
+            </span>
             <font-awesome-icon
               class="text-[#8B6F47]/60 group-hover:text-[#8B6F47] transition-transform duration-300"
               :icon="jsonImportVisible ? ['fas', 'chevron-up'] : ['fas', 'chevron-down']"
             />
-          </div>
+          </button>
 
           <!-- 折叠面板内容 -->
           <transition name="slide-fade">
-            <div v-show="jsonImportVisible" class="mt-3 p-5 bg-white border border-gray-100 rounded-xl shadow-sm">
+            <div v-show="jsonImportVisible" :id="jsonImportPanelId" class="mt-3 p-5 bg-white border border-gray-100 rounded-xl shadow-sm">
               <!-- 提示信息卡片 -->
               <div class="flex items-start gap-3 p-4 mb-4 bg-[#FBF7F2] rounded-lg border border-[#8B6F47]/10">
                                 <font-awesome-icon :icon="['fas', 'info-circle']" class="text-[#8B6F47] mt-0.5" />
@@ -169,9 +184,11 @@
               <FormLabel label="分类" for-id="exam-category" />
               <!-- 多选级联选择器 -->
               <MultiSelectCascader
+                id="exam-category"
                 v-model="form.category"
                 :options="categoryTreeOptions"
                 placeholder="请选择分类（支持多个）"
+                aria-label="分类"
                 :disabled="!form.subjectId"
               />
             </div>
@@ -196,27 +213,27 @@
             </div>
             <div class="mb-4">
               <FormLabel label="题干" required for-id="exam-choice-content" />
-              <MarkdownEditor id="exam-choice-content" v-model="form.content" height="400px" placeholder="请输入选择题题干（支持Markdown、代码、图片等）..." />
+              <MarkdownEditor id="exam-choice-content" aria-label="题干" v-model="form.content" height="400px" placeholder="请输入选择题题干（支持Markdown、代码、图片等）..." />
             </div>
             <div class="mb-4">
               <FormLabel label="选项A" required for-id="exam-option-a" />
-              <MarkdownEditor id="exam-option-a" v-model="form.optionA" height="140px" placeholder="请输入选项A的内容..." />
+              <MarkdownEditor id="exam-option-a" aria-label="选项A" v-model="form.optionA" height="140px" placeholder="请输入选项A的内容..." />
             </div>
             <div class="mb-4">
               <FormLabel label="选项B" required for-id="exam-option-b" />
-              <MarkdownEditor id="exam-option-b" v-model="form.optionB" height="140px" placeholder="请输入选项B的内容..." />
+              <MarkdownEditor id="exam-option-b" aria-label="选项B" v-model="form.optionB" height="140px" placeholder="请输入选项B的内容..." />
             </div>
             <div class="mb-4">
               <FormLabel label="选项C" required for-id="exam-option-c" />
-              <MarkdownEditor id="exam-option-c" v-model="form.optionC" height="140px" placeholder="请输入选项C的内容..." />
+              <MarkdownEditor id="exam-option-c" aria-label="选项C" v-model="form.optionC" height="140px" placeholder="请输入选项C的内容..." />
             </div>
             <div class="mb-4">
               <FormLabel label="选项D" required for-id="exam-option-d" />
-              <MarkdownEditor id="exam-option-d" v-model="form.optionD" height="140px" placeholder="请输入选项D的内容..." />
+              <MarkdownEditor id="exam-option-d" aria-label="选项D" v-model="form.optionD" height="140px" placeholder="请输入选项D的内容..." />
             </div>
             <div class="mb-4">
               <FormLabel label="答案解析" for-id="exam-choice-answer" />
-              <MarkdownEditor id="exam-choice-answer" v-model="form.answer" height="400px" placeholder="请输入Markdown格式的答案与解析..." />
+              <MarkdownEditor id="exam-choice-answer" aria-label="答案解析" v-model="form.answer" height="400px" placeholder="请输入Markdown格式的答案与解析..." />
             </div>
           </template>
 
@@ -230,11 +247,11 @@
             </div>
             <div class="mb-4">
               <FormLabel label="题目内容" required for-id="exam-essay-content" />
-              <MarkdownEditor id="exam-essay-content" v-model="form.content" height="400px" placeholder="请输入Markdown格式题目内容..." />
+              <MarkdownEditor id="exam-essay-content" aria-label="题目内容" v-model="form.content" height="400px" placeholder="请输入Markdown格式题目内容..." />
             </div>
             <div class="mb-4">
               <FormLabel label="答案解析" for-id="exam-essay-answer" />
-              <MarkdownEditor id="exam-essay-answer" v-model="form.answer" height="400px" placeholder="请输入Markdown格式答案解析（可选）..." />
+              <MarkdownEditor id="exam-essay-answer" aria-label="答案解析" v-model="form.answer" height="400px" placeholder="请输入Markdown格式答案解析（可选）..." />
             </div>
           </template>
         </div>
@@ -273,7 +290,7 @@ import type { PropType } from 'vue'
  * 依赖：MarkdownEditor、CustomButton、MultiSelectCascader 基础组件
  * 依赖：useQuestionForm、useJsonImport、useToast composables
  */
-import { reactive, computed, watch, ref } from 'vue'
+import { computed, watch, ref, nextTick, onBeforeUnmount } from 'vue'
 import { getExamDetail, updateExam, createExam } from '@/api/exam'
 import { useQuestionForm } from '@/composables/useQuestionForm'
 import { useJsonImport } from '@/composables/useJsonImport'
@@ -291,6 +308,13 @@ const props = defineProps({
 
 const emit = defineEmits<{ 'update:visible': [visible: boolean]; success: [question: ExamQuestion | null] }>()
 
+let nextEditDialogId = 0
+const dialogTitleId = `exam-edit-dialog-title-${++nextEditDialogId}`
+const jsonImportPanelId = `exam-json-import-${nextEditDialogId}`
+const dialogRef = ref<HTMLElement | null>(null)
+let previouslyFocused: HTMLElement | null = null
+let previousBodyOverflow = ''
+
 const dialogVisible = computed({
   get: () => props.visible,
   set: (val) => emit('update:visible', val)
@@ -302,10 +326,10 @@ const isEditMode = computed(() => !!props.examId)
 // 使用公共 composable
 const {
   form, loading, saving,
-  subjectOptions, categoryTreeOptions, baseFormRules,
-  resetForm, loadSubjectOptions,
+  subjectOptions, categoryTreeOptions,
+  loadSubjectOptions,
   handleSubjectChange, handleQuestionTypeChange,
-  fillFormFromData, buildSubmitData
+  fillFormFromData
 } = useQuestionForm({
   extraFields: { year: new Date().getFullYear(), questionNumber: null }
 })
@@ -326,8 +350,17 @@ const toggleJsonImport = () => {
   jsonImportVisible.value = !jsonImportVisible.value
 }
 
-// 年份选项
-const yearOptions = Array.from({ length: 2025 - 2009 + 1 }, (_, i) => 2009 + i)
+// 年份选项：从 2009 年生成到当前年份，避免年份列表过期
+const firstExamYear = 2009
+const yearOptions = ref<number[]>([])
+const refreshYearOptions = () => {
+  const lastExamYear = Math.max(new Date().getFullYear(), firstExamYear)
+  yearOptions.value = Array.from(
+    { length: lastExamYear - firstExamYear + 1 },
+    (_, i) => firstExamYear + i
+  )
+}
+refreshYearOptions()
 
 // 题型选项
 const questionTypeOptions = [
@@ -392,8 +425,56 @@ const handleBackdropClick = () => {
   // 不自动关闭，需要点击取消按钮
 }
 
+const getFocusableElements = () => Array.from(
+  dialogRef.value?.querySelectorAll<HTMLElement>(
+    'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+  ) || []
+)
+
+const focusInitialElement = () => {
+  const first = getFocusableElements()[0]
+  ;(first || dialogRef.value)?.focus()
+}
+
+const restoreFocus = () => {
+  const target = previouslyFocused
+  previouslyFocused = null
+  if (target?.isConnected) target.focus()
+}
+
+const handleKeydown = (event: KeyboardEvent) => {
+  if (!dialogVisible.value) return
+
+  if (event.key === 'Escape') {
+    event.preventDefault()
+    handleCancel()
+    return
+  }
+
+  if (event.key !== 'Tab') return
+  const elements = getFocusableElements()
+  if (elements.length === 0) {
+    event.preventDefault()
+    dialogRef.value?.focus()
+    return
+  }
+
+  const first = elements[0]
+  const last = elements[elements.length - 1]
+  if (event.shiftKey && document.activeElement === first) {
+    event.preventDefault()
+    last.focus()
+  } else if (!event.shiftKey && document.activeElement === last) {
+    event.preventDefault()
+    first.focus()
+  }
+}
+
 // 初始化弹窗
 const initDialog = async () => {
+  // 每次打开弹窗重新读取当前年份，避免页面长时间运行后年份列表过期
+  refreshYearOptions()
+
   // 新建模式：直接显示空表单，不需要重置（表单初始状态就是空的）
   // 编辑模式：先加载数据，显示 loading 遮罩，加载完成后再显示内容
   if (props.examId) {
@@ -418,7 +499,20 @@ const initDialog = async () => {
 }
 
 watch(() => props.visible, async (visible) => {
-  if (visible) await initDialog()
+  if (typeof document === 'undefined') return
+
+  if (visible) {
+    previouslyFocused = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    previousBodyOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    await initDialog()
+    await nextTick()
+    focusInitialElement()
+  } else {
+    document.body.style.overflow = previousBodyOverflow
+    previousBodyOverflow = ''
+    restoreFocus()
+  }
 })
 
 // 解析JSON并填充表单
@@ -512,6 +606,13 @@ const handleSubmit = async () => {
 const handleCancel = () => {
   dialogVisible.value = false
 }
+
+onBeforeUnmount(() => {
+  if (typeof document !== 'undefined') {
+    document.body.style.overflow = previousBodyOverflow
+  }
+  restoreFocus()
+})
 </script>
 
 <style scoped>

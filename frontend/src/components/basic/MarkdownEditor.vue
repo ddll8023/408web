@@ -7,6 +7,7 @@
         :model-value="modelValue"
         :height="height"
         :placeholder="placeholder"
+        :aria-label="ariaLabel || undefined"
         :left-toolbar="leftToolbar"
         :toolbar="customToolbar"
         mode="edit"
@@ -92,6 +93,11 @@ const props = defineProps({
   placeholder: {
     type: String,
     default: '请输入内容...'
+  },
+  // 编辑器的可访问名称
+  ariaLabel: {
+    type: String,
+    default: ''
   }
 })
 

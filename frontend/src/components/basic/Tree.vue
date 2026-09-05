@@ -1,5 +1,5 @@
 <template>
-  <div class="tree-container">
+  <div class="tree-container" role="tree">
     <!-- 树形节点列表 -->
     <div
       v-for="node in normalizedData"
@@ -25,6 +25,9 @@
           <slot :node="item" :level="level">
             <span>{{ item[label] }}</span>
           </slot>
+        </template>
+        <template #actions="{ node: item }">
+          <slot name="actions" :node="item" />
         </template>
       </TreeItem>
     </div>

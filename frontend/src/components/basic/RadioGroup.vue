@@ -1,9 +1,16 @@
 <template>
-  <div class="inline-flex rounded-lg overflow-hidden border border-[#8B6F47]/20 bg-[rgba(139,111,71,0.08)] p-0.5">
+  <div
+    class="inline-flex rounded-lg overflow-hidden border border-[#8B6F47]/20 bg-[rgba(139,111,71,0.08)] p-0.5"
+    role="radiogroup"
+    :aria-label="ariaLabel || undefined"
+  >
     <button
       v-for="option in normalizedOptions"
       :key="String(option.value)"
       type="button"
+      role="radio"
+      :aria-checked="modelValue === option.value"
+      :disabled="disabled"
       class="px-4 py-1.5 text-sm font-medium rounded-md transition-all duration-200"
       :class="[
         modelValue === option.value
@@ -43,6 +50,10 @@ const props = defineProps({
   disabled: {
     type: Boolean,
     default: false
+  },
+  ariaLabel: {
+    type: String,
+    default: ''
   }
 })
 

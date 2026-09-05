@@ -5,21 +5,26 @@
       type="button"
       class="w-8 h-[42px] flex items-center justify-center rounded-md border border-gray-200 bg-white text-gray-500 hover:border-[#8B6F47] hover:text-[#8B6F47] transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:border-gray-200 disabled:hover:text-gray-500"
       :disabled="disabled || modelValue <= min"
+      aria-label="减少数值"
       @click="decrement"
     >
-      <font-awesome-icon :icon="['fas', 'minus-circle']" class="text-xs" />
+      <font-awesome-icon :icon="['fas', 'minus-circle']" class="text-xs" aria-hidden="true" />
     </button>
 
     <!-- 输入框 -->
     <input
       ref="inputRef"
       type="number"
+      :id="id || undefined"
+      :step="step"
+      :aria-label="id ? undefined : '数值'"
       class="w-16 h-[42px] text-center text-sm border border-gray-200 rounded-md bg-white focus:outline-none focus:border-[#8B6F47] focus:ring-2 focus:ring-[#8B6F47]/20 transition-all duration-200 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
       :value="modelValue"
       :min="min"
       :max="max"
       :disabled="disabled"
       :placeholder="placeholder"
+      :class="error ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : ''"
       @input="handleInput"
       @blur="handleBlur"
       @focus="handleFocus"
@@ -30,9 +35,10 @@
       type="button"
       class="w-8 h-[42px] flex items-center justify-center rounded-md border border-gray-200 bg-white text-gray-500 hover:border-[#8B6F47] hover:text-[#8B6F47] transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:border-gray-200 disabled:hover:text-gray-500"
       :disabled="disabled || modelValue >= max"
+      aria-label="增加数值"
       @click="increment"
     >
-      <font-awesome-icon :icon="['fas', 'plus']" class="text-xs" />
+      <font-awesome-icon :icon="['fas', 'plus']" class="text-xs" aria-hidden="true" />
     </button>
   </div>
 </template>
@@ -75,12 +81,22 @@ const props = defineProps({
   placeholder: {
     type: String,
     default: ''
+  },
+  // 用于关联外部 FormLabel 的输入框 ID
+  id: {
+    type: String,
+    default: ''
+  },
+  // 错误状态
+  error: {
+    type: Boolean,
+    default: false
   }
 })
 
 const emit = defineEmits<{ 'update:modelValue': [value: number]; change: [value: number]; blur: [event: FocusEvent]; focus: [event: FocusEvent] }>()
 
-const inputRef = ref<HTMLElement | null>(null)
+const inputRef = ref<HTMLInputElement | null>(null)
 
 // 减少数值
 const decrement = () => {

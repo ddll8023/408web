@@ -169,7 +169,7 @@ npm test
 npm run build
 ```
 
-应用源码使用 TypeScript，Vue 脚本使用 `lang="ts"`；`strict: true`、`allowJs: false`。PostCSS/Tailwind 配置及 Node 测试脚本保留工具原有格式。自动化测试使用模拟网络和自定义组件 renderer，不等同于真实浏览器全流程验证。
+应用源码使用 TypeScript，Vue 脚本使用 `lang="ts"`；`strict: true`、`allowJs: false`。PostCSS/Tailwind 使用独立的 JavaScript 工具配置，Node 测试脚本使用 `.mjs`；自动化测试使用模拟网络和自定义组件 renderer，不等同于真实浏览器全流程验证。
 
 前端规范、项目结构和模块边界分别见 [`规范文档/前端规范文档.md`](./规范文档/前端规范文档.md)、[`doc/项目结构文档.md`](./doc/项目结构文档.md) 与 [`doc/模块/`](./doc/模块/)。
 

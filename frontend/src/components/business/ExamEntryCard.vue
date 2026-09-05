@@ -1,5 +1,5 @@
 <template>
-  <div class="bg-white rounded-lg border border-gray-300 p-4 md:p-6 scroll-mt-8 transition-all hover:shadow-md hover:border-[rgba(139,111,71,0.3)]">
+  <div class="exam-entry-card bg-white rounded-lg border border-gray-300 p-4 md:p-6 scroll-mt-8 transition-all hover:shadow-md hover:border-[rgba(139,111,71,0.3)]">
     <!-- 题目头部：包含题号、元数据、操作按钮 -->
     <ExamItemHeader
       :exam="exam"
@@ -24,7 +24,7 @@
 
 <script setup lang="ts">
 import type { PropType } from 'vue'
-import type { ExamQuestion, MockQuestion } from '@/types'
+import type { ExamQuestion } from '@/types'
 /**
  * 题目条目卡片组件
  * 功能描述：整合 ExamItemHeader 与 ExamQuestionCard 的容器组件
