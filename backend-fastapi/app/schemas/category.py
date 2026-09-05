@@ -142,6 +142,21 @@ class ExamCategoryUpdateRequest(BaseModel):
     }
 
 
+class ExamCategoryMoveRequest(BaseModel):
+    """相对目标移动分类；空目标仅用于移至顶级末尾。"""
+
+    target_id: Optional[int] = Field(default=None, ge=1, description="目标分类 ID")
+    position: Literal["before", "inside", "after"] = Field(
+        ..., description="置于目标之前、移入目标或置于目标之后"
+    )
+
+    @model_validator(mode="after")
+    def validate_target(self) -> "ExamCategoryMoveRequest":
+        if self.target_id is None and self.position != "inside":
+            raise ValueError("移至顶级时 position 必须为 inside")
+        return self
+
+
 class ExamCategoryResponse(BaseModel):
     """分类响应（单个节点）"""
     id: int = Field(..., description="分类ID", examples=[1])

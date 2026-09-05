@@ -73,6 +73,14 @@ export const updateCategory = (id, data) => {
   })
 }
 
+export const moveCategory = (id, { targetId = null, position }) => {
+  return request({
+    url: `/api/exam-category/${id}/move`,
+    method: 'post',
+    data: convertKeysToSnake({ targetId, position })
+  })
+}
+
 export const deleteCategory = (id) => {
   return request({
     url: `/api/exam-category/${id}/delete`,

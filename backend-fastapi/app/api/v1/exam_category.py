@@ -1,7 +1,10 @@
 """分类管理路由。"""
-from fastapi import APIRouter, Depends, Path, status
+from typing import Annotated
 
-from app.database.connection import SessionDep
+from fastapi import APIRouter, Depends, Path, status
+from sqlmodel.ext.asyncio.session import AsyncSession
+
+from app.database.connection import SessionDep, get_async_session
 from app.middleware.auth import AuthUser, get_current_admin
 from app.schemas.category import (
     AvailableParentCategoriesRequest,
@@ -9,6 +12,7 @@ from app.schemas.category import (
     CategoryQueryRequest,
     CategoryStatsRequest,
     ExamCategoryCreateRequest,
+    ExamCategoryMoveRequest,
     ExamCategoryResponse,
     ExamCategoryStatResponse,
     ExamCategoryTreeResponse,
@@ -19,6 +23,11 @@ from app.services.category_service import ExamCategoryService
 
 
 router = APIRouter()
+
+# 分类写入必须在发送成功响应前完成提交，不能等 request-scope 的响应后清理。
+CategoryWriteSession = Annotated[
+    AsyncSession, Depends(get_async_session, scope="function")
+]
 
 
 @router.post(
@@ -193,7 +202,7 @@ async def get_category_by_id(
 )
 async def create_category(
     request: ExamCategoryCreateRequest,
-    session: SessionDep,
+    session: CategoryWriteSession,
     _admin: AuthUser = Depends(get_current_admin),
 ) -> ApiResponse[ExamCategoryResponse]:
     """创建分类。"""
@@ -210,13 +219,30 @@ async def create_category(
 )
 async def update_category(
     request: ExamCategoryUpdateRequest,
-    session: SessionDep,
+    session: CategoryWriteSession,
     category_id: int = Path(..., ge=1, description="分类 ID"),
     _admin: AuthUser = Depends(get_current_admin),
 ) -> ApiResponse[ExamCategoryResponse]:
     """更新分类。"""
     category = await ExamCategoryService(session).update(category_id, request)
     return ApiResponse(data=category, message="更新成功")
+
+
+@router.post(
+    "/{category_id}/move",
+    response_model=ApiResponse[list[ExamCategoryResponse]],
+    summary="移动分类并排序",
+    description="移动整棵分类子树，返回该科目的最新分类及统计，仅管理员可访问",
+)
+async def move_category(
+    request: ExamCategoryMoveRequest,
+    session: CategoryWriteSession,
+    category_id: int = Path(..., ge=1, description="分类 ID"),
+    _admin: AuthUser = Depends(get_current_admin),
+) -> ApiResponse[list[ExamCategoryResponse]]:
+    """原子保存父级与受影响的同级顺序。"""
+    categories = await ExamCategoryService(session).move(category_id, request)
+    return ApiResponse(data=categories, message="分类移动成功")
 
 
 @router.post(
@@ -227,7 +253,7 @@ async def update_category(
     description="删除指定分类，仅管理员可访问",
 )
 async def delete_category(
-    session: SessionDep,
+    session: CategoryWriteSession,
     category_id: int = Path(..., ge=1, description="分类 ID"),
     _admin: AuthUser = Depends(get_current_admin),
 ) -> ApiResponse[None]:

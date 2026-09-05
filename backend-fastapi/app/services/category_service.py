@@ -5,6 +5,7 @@
 from typing import List, Optional
 from collections import defaultdict
 from sqlmodel import select, func, and_, text
+from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import selectinload
 from sqlmodel.ext.asyncio.session import AsyncSession
 from app.models.entities import ExamCategory, ExamQuestion, MockQuestion, Subject
@@ -12,6 +13,7 @@ from app.exception import ConflictException, NotFoundException, ValidationExcept
 from app.schemas.category import (
     ExamCategoryCreateRequest,
     ExamCategoryUpdateRequest,
+    ExamCategoryMoveRequest,
     ExamCategoryResponse,
     ExamCategoryTreeResponse,
     ExamCategoryStatResponse,
@@ -32,6 +34,22 @@ class ExamCategoryService:
     def __init__(self, session: AsyncSession):
         self.session = session
 
+    async def _lock_structure(self) -> None:
+        """在读取层级前取得 SQLite 写锁，防止并发移动通过旧树校验。
+
+        空 UPDATE 不修改记录，也不提交事务；锁由请求会话提交/回滚时释放。
+        所有分类写入口共用此边界，避免移动与表单编辑交错产生循环。
+        """
+        try:
+            await self.session.exec(
+                text("UPDATE exam_category SET order_num = order_num WHERE 0")
+            )
+        except OperationalError as exc:
+            code = getattr(exc.orig, "sqlite_errorcode", 0) or 0
+            if (code & 0xFF) in (5, 6):
+                raise ConflictException("分类正在被修改，请刷新后重试") from exc
+            raise
+
     async def get_all_categories(
         self,
         question_type: str = "exam"
@@ -46,7 +64,7 @@ class ExamCategoryService:
             所有分类列表
         """
         logger.info("ExamCategoryService.get_all_categories started, question_type: %s", question_type)
-        stmt = select(ExamCategory).options(selectinload(ExamCategory.subject)).order_by(ExamCategory.subject_id, ExamCategory.order_num)
+        stmt = select(ExamCategory).options(selectinload(ExamCategory.subject)).order_by(ExamCategory.subject_id, ExamCategory.order_num, ExamCategory.id)
         result = await self.session.exec(stmt)
         categories = result.all()
 
@@ -79,7 +97,7 @@ class ExamCategoryService:
                     ExamCategory.enabled == True
                 )
             )
-            .order_by(ExamCategory.order_num)
+            .order_by(ExamCategory.order_num, ExamCategory.id)
         )
         result = await self.session.exec(stmt)
         categories = result.all()
@@ -110,7 +128,7 @@ class ExamCategoryService:
         if enabled_only:
             conditions.append(ExamCategory.enabled == True)
 
-        stmt = select(ExamCategory).options(selectinload(ExamCategory.subject)).where(*conditions).order_by(ExamCategory.order_num)
+        stmt = select(ExamCategory).options(selectinload(ExamCategory.subject)).where(*conditions).order_by(ExamCategory.order_num, ExamCategory.id)
         result = await self.session.exec(stmt)
         categories = result.all()
 
@@ -471,7 +489,7 @@ class ExamCategoryService:
         exclude_id: Optional[int] = None
     ) -> List[ExamCategoryResponse]:
         """
-        查询可作为父分类的列表（顶级分类，排除自身及其子孙）
+        查询同科目所有层级的父分类选项，排除自身及其子孙。
 
         Args:
             subject_id: 科目ID
@@ -480,18 +498,12 @@ class ExamCategoryService:
         Returns:
             可作为父分类的列表
         """
-        # 获取所有启用的分类
+        # 管理端允许整理禁用节点，与拖拽和普通编辑使用相同层级规则。
         stmt = (
             select(ExamCategory)
             .options(selectinload(ExamCategory.subject))
-            .where(
-                and_(
-                    ExamCategory.subject_id == subject_id,
-                    ExamCategory.enabled == True,
-                    ExamCategory.parent_id.is_(None)  # 顶级分类
-                )
-            )
-            .order_by(ExamCategory.order_num)
+            .where(ExamCategory.subject_id == subject_id)
+            .order_by(ExamCategory.order_num, ExamCategory.id)
         )
         result = await self.session.exec(stmt)
         categories = result.all()
@@ -709,6 +721,7 @@ class ExamCategoryService:
         logger.info("ExamCategoryService.create started, subject_id: %d, name: %s",
                     request.subject_id, request.name)
 
+        await self._lock_structure()
         subject_result = await self.session.exec(
             select(Subject.id).where(Subject.id == request.subject_id)
         )
@@ -768,7 +781,8 @@ class ExamCategoryService:
             enabled=request.enabled
         )
         self.session.add(category)
-        await self.session.refresh(category)
+        await self.session.flush()
+        await self.session.refresh(category, attribute_names=["subject"])
 
         logger.info("ExamCategoryService.create completed, category_id: %d", category.id)
         return self._to_response(category)
@@ -793,6 +807,7 @@ class ExamCategoryService:
             ConflictException: 名称或编码已存在
         """
         logger.info("ExamCategoryService.update started, category_id: %d", category_id)
+        await self._lock_structure()
 
         # 检查分类是否存在
         result = await self.session.exec(
@@ -814,6 +829,8 @@ class ExamCategoryService:
         )
         if subject_id is None:
             raise ValidationException("分类必须属于一个科目")
+        if subject_id != category.subject_id:
+            raise ConflictException("分类所属科目创建后不可修改")
 
         subject_result = await self.session.exec(
             select(Subject.id).where(Subject.id == subject_id)
@@ -886,6 +903,71 @@ class ExamCategoryService:
         logger.info("ExamCategoryService.update completed, category_id: %d", category_id)
         return response
 
+    async def move(
+        self,
+        category_id: int,
+        request: ExamCategoryMoveRequest,
+    ) -> List[ExamCategoryResponse]:
+        """原子移动整棵子树并重排受影响的同级节点，不改写题目标签。"""
+        await self._lock_structure()
+        category = await self.session.get(ExamCategory, category_id)
+        if category is None:
+            raise NotFoundException("分类")
+
+        target = None
+        if request.target_id is not None:
+            target = await self.session.get(ExamCategory, request.target_id)
+            if target is None:
+                raise NotFoundException("目标分类")
+            if target.subject_id != category.subject_id:
+                raise ConflictException("不能跨科目移动分类")
+            if target.id == category_id:
+                raise ConflictException("不能将分类移动到自身")
+            if target.id in await self._get_descendant_ids(category_id):
+                raise ConflictException("不能将分类移动到自己的子孙分类中")
+
+        old_parent_id = category.parent_id
+        new_parent_id = (
+            None if target is None
+            else target.id if request.position == "inside"
+            else target.parent_id
+        )
+        result = await self.session.exec(
+            select(ExamCategory)
+            .where(ExamCategory.subject_id == category.subject_id)
+            .order_by(ExamCategory.order_num, ExamCategory.id)
+        )
+        categories = result.all()
+        siblings = [
+            item for item in categories
+            if item.parent_id == new_parent_id and item.id != category_id
+        ]
+        index = len(siblings)
+        if target is not None and request.position != "inside":
+            index = next(i for i, item in enumerate(siblings) if item.id == target.id)
+            if request.position == "after":
+                index += 1
+        siblings.insert(index, category)
+        category.parent_id = new_parent_id
+        for order_num, item in enumerate(siblings):
+            item.order_num = order_num
+
+        if old_parent_id != new_parent_id:
+            old_siblings = [
+                item for item in categories
+                if item.parent_id == old_parent_id and item.id != category_id
+            ]
+            for order_num, item in enumerate(old_siblings):
+                item.order_num = order_num
+
+        # 统计必须读取已经 flush 的新层级；提交仍由请求会话统一负责。
+        await self.session.flush()
+        logger.info(
+            "分类移动: id=%d, old_parent=%s, new_parent=%s, target=%s, position=%s",
+            category_id, old_parent_id, new_parent_id, request.target_id, request.position,
+        )
+        return await self.get_categories_by_subject(category.subject_id)
+
     async def delete(self, category_id: int) -> None:
         """
         删除分类
@@ -898,6 +980,7 @@ class ExamCategoryService:
             ConflictException: 分类被引用或存在子分类
         """
         logger.info("ExamCategoryService.delete started, category_id: %d", category_id)
+        await self._lock_structure()
 
         # 检查分类是否存在
         result = await self.session.exec(

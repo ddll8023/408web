@@ -11,11 +11,11 @@
       </div>
       <div class="flex items-center gap-6">
         <!-- 题目类型切换 -->
-        <CustomRadioGroup v-model="questionType" :options="[
+        <CustomRadioGroup v-model="questionType" :disabled="moveSaving" :options="[
           { label: '真题', value: 'exam' },
           { label: '模拟题', value: 'mock' }
         ]" @change="handleQuestionTypeChange" />
-        <CustomButton v-if="questionType === 'exam'" type="primary" @click="handleAdd">
+        <CustomButton v-if="questionType === 'exam'" type="primary" :disabled="moveSaving || draggingId !== null" @click="handleAdd">
           <font-awesome-icon :icon="['fas', 'plus']" class="mr-1.5" />
           新增分类
         </CustomButton>
@@ -44,7 +44,8 @@
               v-for="stat in subjectStats"
               :key="stat.id"
               class="flex items-center justify-between px-3 py-2.5 rounded-lg cursor-pointer transition-all duration-200"
-              :class="filterSubjectId === stat.id ? 'bg-gradient-to-r from-[rgba(139,111,71,0.12)] to-[rgba(139,111,71,0.06)]' : 'hover:bg-[rgba(139,111,71,0.06)]'"
+              :class="[filterSubjectId === stat.id ? 'bg-gradient-to-r from-[rgba(139,111,71,0.12)] to-[rgba(139,111,71,0.06)]' : 'hover:bg-[rgba(139,111,71,0.06)]', { 'pointer-events-none opacity-60': moveSaving }]"
+              :aria-disabled="moveSaving"
               @click="handleStatClick(stat.id)"
             >
               <div class="flex items-center gap-2.5 min-w-0">
@@ -67,7 +68,14 @@
       </aside>
 
       <!-- 右侧主内容区 -->
-      <main class="flex-1 min-w-0 relative h-[calc(100vh-60px-128px)] overflow-y-auto content-scroll">
+      <main
+        ref="contentRef"
+        class="flex-1 min-w-0 relative h-[calc(100vh-60px-128px)] overflow-y-auto content-scroll"
+        :aria-busy="loading || moveSaving"
+        @dragover="handleContainerDragOver"
+        @dragleave="handleContainerDragLeave"
+        @drop="handleDrop"
+      >
         <!-- 背景层次增强 -->
         <div class="absolute inset-0 -z-10 overflow-hidden pointer-events-none">
           <!-- 右上角暖色光晕 -->
@@ -76,6 +84,11 @@
           <div class="absolute bottom-0 left-0 w-[400px] h-[400px] bg-gradient-to-tr from-[rgba(64,158,255,0.05)] to-transparent rounded-full blur-3xl transform -translate-x-1/3 translate-y-1/3"></div>
           <!-- 几何网格纹理 -->
           <div class="absolute inset-0 opacity-[0.03]" style="background-image: radial-gradient(#8B6F47 1px, transparent 1px); background-size: 24px 24px;"></div>
+        </div>
+
+        <div v-if="categoryLoadError" class="mb-3 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700" role="alert">
+          {{ categoryLoadError }}
+          <CustomButton size="sm" type="text" :disabled="loading || moveSaving" @click="loadCategories()">重新读取分类</CustomButton>
         </div>
 
         <!-- 骨架屏 - 树形轮廓 -->
@@ -115,6 +128,17 @@
                 </CustomButton>
               </div>
 
+              <div v-if="questionType === 'exam'" class="drag-toolbar">
+                <div class="drag-status" role="status" aria-live="polite">
+                  {{ moveSaving ? '正在保存分类层级…' : dragMessage || moveMessage || '拖动左侧手柄：上下边缘排序，中部设为子分类；也可编辑父分类与排序。' }}
+                </div>
+                <div
+                  data-category-root-drop
+                  class="root-drop-zone"
+                  :class="{ 'is-root-target': draggingId !== null && dropTarget?.targetId === null && dropTarget?.valid }"
+                >移至顶级末尾</div>
+              </div>
+
               <!-- 大纲列表 -->
               <div class="outline-list" role="tree" aria-label="分类层级大纲">
                 <div
@@ -123,16 +147,58 @@
                   class="outline-row group/row"
                   role="treeitem"
                   :aria-level="row.level + 1"
-                  :class="{ 'opacity-60': !row.node.enabled }"
-                  :style="{ paddingLeft: `${OUTLINER_BASE + row.level * OUTLINER_INDENT}px` }"
+                  :aria-expanded="row.hasChildren ? isNodeExpanded(row.node.id) : undefined"
+                  :data-category-id="row.node.id"
+                  :class="{
+                    'opacity-60': !row.node.enabled,
+                    'is-drag-source': draggingIds.has(row.node.id),
+                    'is-drop-before': dropTarget?.valid && dropTarget.targetId === row.node.id && dropTarget.position === 'before',
+                    'is-drop-after': dropAfterRowId === row.node.id,
+                    'is-drop-inside': dropTarget?.valid && dropTarget.targetId === row.node.id && dropTarget.position === 'inside',
+                    'is-drop-invalid': dropTarget && !dropTarget.valid && dropTarget.targetId === row.node.id
+                  }"
+                  :style="{ paddingLeft: `${OUTLINER_CONTENT_BASE + row.level * OUTLINER_INDENT}px`, '--drop-indent': `${OUTLINER_CONTENT_BASE + (dropAfterRowId === row.node.id ? dropTargetLevel : row.level) * OUTLINER_INDENT}px` }"
                 >
-                  <!-- 祖先层级引导线 -->
+                  <!-- 仅延续仍有后续兄弟的祖先支线，末节点以圆角弯线收尾。 -->
                   <span
-                    v-for="g in row.level"
+                    v-for="g in row.guideLevels"
                     :key="g"
                     class="outline-guide"
-                    :style="{ left: `${OUTLINER_BASE + 10 + g * OUTLINER_INDENT}px` }"
+                    aria-hidden="true"
+                    :style="{ left: `${OUTLINER_CONTENT_BASE + (g - 1) * OUTLINER_INDENT + OUTLINER_TOGGLE_SIZE / 2}px` }"
                   ></span>
+                  <span
+                    v-if="row.level > 0"
+                    class="outline-branch"
+                    :class="{ 'is-last': row.isLastSibling }"
+                    aria-hidden="true"
+                    :style="{
+                      left: `${OUTLINER_CONTENT_BASE + (row.level - 1) * OUTLINER_INDENT + OUTLINER_TOGGLE_SIZE / 2}px`,
+                      width: `${OUTLINER_INDENT - (row.hasChildren ? OUTLINER_TOGGLE_SIZE / 2 : 3)}px`
+                    }"
+                  ></span>
+                  <span
+                    v-if="row.hasChildren && isNodeExpanded(row.node.id)"
+                    class="outline-child-stem"
+                    aria-hidden="true"
+                    :style="{ left: `${OUTLINER_CONTENT_BASE + row.level * OUTLINER_INDENT + OUTLINER_TOGGLE_SIZE / 2}px` }"
+                  ></span>
+
+                  <button
+                    v-if="questionType === 'exam'"
+                    type="button"
+                    class="outline-drag-handle"
+                    :style="{ left: `${OUTLINER_BASE}px` }"
+                    :draggable="canDrag"
+                    :disabled="!canDrag"
+                    :aria-label="`拖动 ${row.node.name}；点击或按回车编辑层级`"
+                    title="拖动调整层级；点击编辑"
+                    @dragstart.stop="handleDragStart($event, row.node)"
+                    @dragend="resetDrag"
+                    @click.stop="handleEdit(row.node)"
+                  >
+                    <font-awesome-icon :icon="['fas', 'grip']" aria-hidden="true" />
+                  </button>
 
                   <!-- 展开/收起 -->
                   <button
@@ -146,7 +212,9 @@
                   >
                     <font-awesome-icon :icon="['fas', 'chevron-right']" />
                   </button>
-                  <span v-else class="outline-toggle-placeholder"></span>
+                  <span v-else class="outline-toggle-placeholder" aria-hidden="true">
+                    <span v-if="row.level > 0" class="outline-leaf-dot"></span>
+                  </span>
 
                   <!-- 类型图标 -->
                   <div class="outline-icon">
@@ -166,13 +234,13 @@
 
                   <!-- 操作按钮：仅真题模式显示，悬停行时浮现 -->
                   <div v-if="questionType === 'exam'" class="outline-actions">
-                    <CustomTooltip v-if="row.level < 2" content="添加子分类" placement="top">
-                      <button type="button" class="outline-action-btn" aria-label="添加子分类" @click.stop="handleAddChild(row.node)">
+                    <CustomTooltip content="添加子分类" placement="top">
+                      <button type="button" class="outline-action-btn" :disabled="moveSaving || draggingId !== null" aria-label="添加子分类" @click.stop="handleAddChild(row.node)">
                         <font-awesome-icon :icon="['fas', 'plus']" />
                       </button>
                     </CustomTooltip>
                     <CustomTooltip content="编辑" placement="top">
-                      <button type="button" class="outline-action-btn" aria-label="编辑分类" @click.stop="handleEdit(row.node)">
+                      <button type="button" class="outline-action-btn" :disabled="moveSaving || draggingId !== null" aria-label="编辑分类" @click.stop="handleEdit(row.node)">
                         <font-awesome-icon :icon="['fas', 'edit']" />
                       </button>
                     </CustomTooltip>
@@ -181,6 +249,7 @@
                         type="button"
                         class="outline-action-btn hover:text-[#c45656]! hover:bg-[rgba(196,86,86,0.08)]!"
                         aria-label="删除分类"
+                        :disabled="moveSaving || draggingId !== null"
                         @click.stop="handleDelete(row.node)"
                       >
                         <font-awesome-icon :icon="['fas', 'trash']" />
@@ -194,7 +263,7 @@
         </template>
 
         <!-- 空状态 -->
-        <div v-if="!loading && treeCategories.length === 0" class="
+        <div v-if="!loading && !categoryLoadError && treeCategories.length === 0" class="
           relative flex flex-col items-center justify-center py-20
           bg-white/40 backdrop-blur-sm empty-in
           rounded-2xl border border-dashed border-[rgba(139,111,71,0.15)]
@@ -248,20 +317,19 @@
               <p class="text-xs text-[#999] mt-1.5" v-if="dialogMode === 'edit'">所属科目创建后不可修改</p>
             </div>
             <div>
-              <label class="flex items-center gap-1.5 text-sm font-medium text-gray-700 mb-2">
+              <label for="category-parent" class="flex items-center gap-1.5 text-sm font-medium text-gray-700 mb-2">
                 父分类
               </label>
-              <CustomSelect
+              <select
+                id="category-parent"
                 v-model="form.parentId"
-                :options="parentOptions"
-                placeholder="无（顶级分类）"
-                clearable
-                :disabled="!form.subjectId || (dialogMode === 'edit' && hasChildren)"
-              />
-              <p class="text-xs text-[#999] mt-1.5">
-                <span v-if="hasChildren">该分类已有子分类</span>
-                <span v-else>留空表示顶级分类</span>
-              </p>
+                class="w-full h-[42px] px-3 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#8B6F47]/20 disabled:opacity-50"
+                :disabled="!form.subjectId || parentLoading"
+              >
+                <option :value="null">无（顶级分类）</option>
+                <option v-for="parent in parentOptions" :key="parent.value" :value="parent.value">{{ parent.label }}</option>
+              </select>
+              <p class="text-xs text-[#999] mt-1.5">{{ parentLoading ? '正在加载父分类…' : '支持多级分类；移动父分类时，其子分类一起移动。' }}</p>
             </div>
           </div>
 
@@ -377,7 +445,7 @@
       <template #footer>
         <div class="flex justify-end gap-3">
           <CustomButton @click="dialogVisible = false">取消</CustomButton>
-          <CustomButton type="primary" :loading="submitLoading" @click="handleSubmit">
+          <CustomButton type="primary" :loading="submitLoading" :disabled="parentLoading || parentLoadFailed" @click="handleSubmit">
             确定
           </CustomButton>
         </div>
@@ -390,13 +458,14 @@
 /**
  * 分类标签管理页面
  * 功能：按科目管理分类标签的CRUD操作（仅ADMIN可访问）
- * 遵循KISS原则：简单的表格+对话框实现
+ * 大纲支持整棵子树拖拽和原子保存；模拟题分类仅展示。
  */
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, nextTick, onBeforeUnmount, onMounted } from 'vue'
 
 // 工具函数 / 常量
 import { useToast } from '@/composables/useToast'
 import { useConfirm } from '@/composables/useConfirm'
+import { useCategoryDrag } from '@/composables/useCategoryDrag'
 
 // API 接口定义
 import {
@@ -404,13 +473,14 @@ import {
   getCategoriesBySubject,
   createCategory,
   updateCategory,
+  moveCategory,
   deleteCategory,
   checkCategoryUsage,
   getAvailableParentCategories,
   getCategoryStats
 } from '@/api/category'
 import { getAllSubjects } from '@/api/subject'
-import { getMockCategoryStatsBySubject, getMockCategoriesBySubject, getMockSubjectStats } from '@/api/mock'
+import { getMockCategoryStatsBySubject, getMockSubjectStats } from '@/api/mock'
 
 // 自定义组件导入
 import CustomButton from '@/components/basic/CustomButton.vue'
@@ -503,8 +573,16 @@ const categoryStats = ref({
   totalQuestionCount: 0  // 全局题目总数
 })
 
-// 加载状态
+// 读取、移动保存分别管理，失败后的旧目录不可继续拖动。
 const loading = ref(false)
+const categoryLoadError = ref('')
+const moveSaving = ref(false)
+const moveMessage = ref('')
+const contentRef = ref(null)
+let categoryLoadVersion = 0
+let statsLoadVersion = 0
+let viewChangeVersion = 0
+let disposed = false
 
 // 对话框显示状态
 const dialogVisible = ref(false)
@@ -514,12 +592,25 @@ const dialogMode = ref('add')
 
 // 提交加载状态
 const submitLoading = ref(false)
+const deleteLoading = ref(false)
 
 // 父分类选项
 const parentOptions = ref([])
 
-// 编辑时检查是否有子分类
-const hasChildren = ref(false)
+const parentLoading = ref(false)
+const parentLoadFailed = ref(false)
+let parentLoadVersion = 0
+
+const canDrag = computed(() => questionType.value === 'exam' && !!filterSubjectId.value
+  && !loading.value && !moveSaving.value && !submitLoading.value && !deleteLoading.value
+  && !dialogVisible.value && !categoryLoadError.value)
+const {
+  draggingId, draggingIds, dropTarget, dragMessage, canMove,
+  handleDragStart, handleContainerDragOver, handleContainerDragLeave, handleDrop, resetDrag
+} = useCategoryDrag({
+  categories, enabled: canDrag, containerRef: contentRef, expandedKeys: treeExpandedKeys,
+  onMove: (id, target) => handleMove(id, target)
+})
 
 /**
  * 将分类数据转换为树形结构或分组结构
@@ -558,7 +649,7 @@ const treeCategories = computed(() => {
 
   // 对每层按orderNum排序
   const sortChildren = (nodes) => {
-    nodes.sort((a, b) => (a.orderNum || 0) - (b.orderNum || 0))
+    nodes.sort((a, b) => (a.orderNum || 0) - (b.orderNum || 0) || a.id - b.id)
     nodes.forEach(node => {
       if (node.children && node.children.length > 0) {
         sortChildren(node.children)
@@ -608,7 +699,7 @@ const form = reactive({
 const loadSubjectOptions = async () => {
   try {
     const response = await getAllSubjects()
-    if (response.code === 200) {
+    if (!disposed && response.code === 200) {
       subjectOptions.value = response.data || []
     }
   } catch (error) {
@@ -644,10 +735,13 @@ const replaceSubjectCategories = (subjectId, subjectCategories) => {
  * 根据题目类型使用不同的 API
  */
 const loadCategoryStats = async () => {
+  const type = questionType.value
+  const version = ++statsLoadVersion
   try {
-    if (questionType.value === 'mock') {
+    if (type === 'mock') {
       // 模拟题：使用 /api/mock/subject-stats 获取每个科目的正确题目数量（去重后）
       const response = await getMockSubjectStats()
+      if (disposed || version !== statsLoadVersion || type !== questionType.value) return
       if (response.code === 200) {
         const stats = response.data || []
         categoryStats.value = {
@@ -661,7 +755,8 @@ const loadCategoryStats = async () => {
       }
     } else {
       // 真题：使用真题 API
-      const response = await getCategoryStats(questionType.value)
+      const response = await getCategoryStats(type)
+      if (disposed || version !== statsLoadVersion || type !== questionType.value) return
       if (response.code === 200) {
         categoryStats.value = {
           subjectStats: response.data?.subjectStats?.map(s => ({
@@ -682,93 +777,54 @@ const loadCategoryStats = async () => {
  * 加载分类列表（筛选后显示）
  * 根据题目类型使用不同的 API
  */
-const loadCategories = async () => {
-  loading.value = true
+const loadCategories = async ({ background = false } = {}) => {
+  const subjectId = filterSubjectId.value
+  const type = questionType.value
+  const version = ++categoryLoadVersion
+  const isCurrent = () => !disposed && version === categoryLoadVersion
+    && subjectId === filterSubjectId.value && type === questionType.value
+  loading.value = !background
+  categoryLoadError.value = ''
   try {
-    let response
-
-    if (questionType.value === 'mock') {
-      // 模拟题：使用模拟题 API（动态分类）
-      if (filterSubjectId.value) {
-        // 直接使用外层 response 变量，不再声明新变量
-        response = await getMockCategoryStatsBySubject(filterSubjectId.value)
-        if (response.code === 200) {
-          const stats = response.data?.stats || []
-          // 转换格式：扁平结构，适配前端显示
-          // 统一ID生成逻辑：使用 科目ID-分类名 格式
-          const subjectCategories = stats.map(item => ({
-            id: `${filterSubjectId.value}-${item.category}`,
-            subjectId: filterSubjectId.value,
-            subjectName: response.data?.subjectName,
-            parentId: null,
-            parentName: null,
-            name: item.category,
-            code: item.category.toLowerCase().replace(/\s+/g, '-'),
-            description: null,
-            orderNum: 0,
-            enabled: true,
-            questionCount: item.count,
-            subtreeQuestionCount: item.count,
-            question_type: 'mock'
-          }))
-          categories.value = subjectCategories
-          replaceSubjectCategories(filterSubjectId.value, subjectCategories)
-        }
-      } else {
-        // 没有选择科目，加载所有科目的模拟题分类
-        const allStats = []
-        for (const subject of subjectOptions.value) {
-          // 直接使用外层 response 变量
-          response = await getMockCategoryStatsBySubject(subject.id)
-          if (response.code === 200) {
-            const stats = response.data?.stats || []
-            stats.forEach(item => {
-              // 统一ID生成逻辑：使用 科目ID-分类名 格式
-              allStats.push({
-                id: `${subject.id}-${item.category}`,
-                subjectId: subject.id,
-                subjectName: subject.name,
-                parentId: null,
-                parentName: null,
-                name: item.category,
-                code: item.category.toLowerCase().replace(/\s+/g, '-'),
-                description: null,
-                orderNum: 0,
-                enabled: true,
-                questionCount: item.count,
-                question_type: 'mock'
-              })
-            })
-          }
-        }
-        categories.value = allStats
-        allCategories.value = allStats
+    let list
+    if (type === 'mock') {
+      const subjects = subjectId
+        ? subjectOptions.value.filter(subject => subject.id === subjectId)
+        : [...subjectOptions.value]
+      list = []
+      for (const subject of subjects) {
+        const response = await getMockCategoryStatsBySubject(subject.id)
+        if (!isCurrent()) return false
+        list.push(...(response.data?.stats || []).map(item => ({
+          id: `${subject.id}-${item.category}`,
+          subjectId: subject.id,
+          subjectName: subject.name,
+          parentId: null,
+          name: item.category,
+          orderNum: 0,
+          enabled: true,
+          questionCount: item.count,
+          subtreeQuestionCount: item.count
+        })))
       }
     } else {
-      // 真题：使用真题 API（预定义分类，有层级）
-      if (filterSubjectId.value) {
-        response = await getCategoriesBySubject(filterSubjectId.value, questionType.value)
-      } else {
-        response = await getAllCategories(questionType.value)
-      }
-
-      if (response.code === 200) {
-        const mappedCategories = (response.data || []).map(normalizeCategory)
-        categories.value = mappedCategories
-        if (filterSubjectId.value) {
-          replaceSubjectCategories(filterSubjectId.value, mappedCategories)
-        } else {
-          allCategories.value = mappedCategories
-        }
-      } else {
-        showToast(response.message || '加载分类列表失败', 'error')
-      }
+      const response = subjectId
+        ? await getCategoriesBySubject(subjectId, type)
+        : await getAllCategories(type)
+      list = (response.data || []).map(normalizeCategory)
     }
+    if (!isCurrent()) return false
+    categories.value = list
+    if (subjectId) replaceSubjectCategories(subjectId, list)
+    else allCategories.value = list
+    return true
   } catch (error) {
-    console.error('加载分类列表失败:', error)
-    showToast('加载分类列表失败', 'error')
+    if (isCurrent()) {
+      categoryLoadError.value = '分类读取失败，当前列表可能已过期，请重新读取后再操作。'
+    }
+    return false
   } finally {
-    loading.value = false
+    if (isCurrent()) loading.value = false
   }
 }
 
@@ -777,35 +833,44 @@ const loadCategories = async () => {
  * 切换时需要更新当前显示的分类
  */
 const handleQuestionTypeChange = async () => {
-  // 加载科目统计数据（用于科目筛选列表显示题目数）
-  await loadCategoryStats()
-  // 先清除筛选，确保按新题目类型加载全部科目的分类数据
+  if (moveSaving.value) return
+  const version = ++viewChangeVersion
+  resetDrag()
+  moveMessage.value = ''
+  categories.value = []
+  allCategories.value = []
+  categoryStats.value = { subjectStats: [], totalQuestionCount: 0 }
   filterSubjectId.value = null
-  await loadCategories()
-  // 默认选中第一个科目
+  initTreeExpandedKeys()
+  await Promise.all([loadCategoryStats(), loadCategories()])
+  if (disposed || version !== viewChangeVersion) return
   if (subjectOptions.value.length > 0) {
     filterSubjectId.value = subjectOptions.value[0].id
-    // 重新加载选中科目的分类数据
+    categories.value = []
     await loadCategories()
   }
-  // 重新初始化树形视图展开状态
-  initTreeExpandedKeys()
 }
 
 /**
  * 点击统计卡片筛选
  */
 const handleStatClick = async (subjectId) => {
+  if (moveSaving.value) return
+  ++viewChangeVersion
+  resetDrag()
+  moveMessage.value = ''
   filterSubjectId.value = subjectId
-  await loadCategories()
-  // 重新初始化树形视图展开状态
+  categories.value = []
   initTreeExpandedKeys()
+  await loadCategories()
 }
 
 /**
  * 重置表单
  */
 const resetForm = () => {
+  ++parentLoadVersion
+  parentLoading.value = false
   form.id = null
   form.subjectId = filterSubjectId.value || null
   form.parentId = null
@@ -815,7 +880,7 @@ const resetForm = () => {
   form.orderNum = 0
   form.enabled = true
   parentOptions.value = []
-  hasChildren.value = false
+  parentLoadFailed.value = false
 }
 
 /**
@@ -826,6 +891,8 @@ const handleSubjectChange = async () => {
   if (form.subjectId) {
     await loadParentOptions(form.subjectId, form.id)
   } else {
+    ++parentLoadVersion
+    parentLoading.value = false
     parentOptions.value = []
   }
 }
@@ -834,17 +901,35 @@ const handleSubjectChange = async () => {
  * 加载可选父分类
  */
 const loadParentOptions = async (subjectId, excludeId = null) => {
+  const version = ++parentLoadVersion
+  parentLoading.value = true
+  parentLoadFailed.value = false
   try {
     const response = await getAvailableParentCategories(subjectId, excludeId)
-    if (response.code === 200) {
-      // 转换为 CustomSelect 需要的格式，并添加层级缩进
-      parentOptions.value = (response.data || []).map(parent => ({
+    if (disposed || version !== parentLoadVersion) return
+    const parents = response.data || []
+    const byId = new Map(parents.map(parent => [parent.id, parent]))
+    parentOptions.value = parents.map(parent => {
+      const names = []
+      const visited = new Set()
+      let node = parent
+      while (node && !visited.has(node.id)) {
+        visited.add(node.id)
+        names.unshift(node.name)
+        node = byId.get(node.parentId)
+      }
+      return {
         value: parent.id,
-        label: parent.parentId ? `└ ${parent.name}` : parent.name
-      }))
-    }
+        label: names.join(' / ') + (parent.enabled ? '' : '（已禁用）')
+      }
+    })
   } catch (error) {
-    console.error('加载父分类失败:', error)
+    if (!disposed && version === parentLoadVersion) {
+      parentLoadFailed.value = true
+      showToast('父分类加载失败，请关闭弹窗后重试', 'error')
+    }
+  } finally {
+    if (!disposed && version === parentLoadVersion) parentLoading.value = false
   }
 }
 
@@ -852,15 +937,18 @@ const loadParentOptions = async (subjectId, excludeId = null) => {
  * 新增分类
  */
 const handleAdd = () => {
+  if (moveSaving.value || draggingId.value !== null) return
   resetForm()
   dialogMode.value = 'add'
   dialogVisible.value = true
+  if (form.subjectId) loadParentOptions(form.subjectId)
 }
 
 /**
  * 编辑分类
  */
 const handleEdit = async (row) => {
+  if (moveSaving.value || draggingId.value !== null) return
   resetForm()
   form.id = row.id
   form.subjectId = row.subjectId
@@ -871,19 +959,9 @@ const handleEdit = async (row) => {
   form.orderNum = row.orderNum
   form.enabled = row.enabled
   
-  // 加载可选父分类（排除自身）
-  await loadParentOptions(row.subjectId, row.id)
-  
-  // 检查是否有子分类（有子分类的顶级分类不能变为子分类）
-  if (row.parentId === null) {
-    // 顶级分类，检查是否有子分类
-    hasChildren.value = categories.value.some(c => c.parentId === row.id)
-  } else {
-    hasChildren.value = false
-  }
-  
   dialogMode.value = 'edit'
   dialogVisible.value = true
+  await loadParentOptions(row.subjectId, row.id)
 }
 
 /**
@@ -891,6 +969,7 @@ const handleEdit = async (row) => {
  * 优化：编辑时使用局部更新，新增时保持展开状态
  */
 const handleSubmit = async () => {
+  if (submitLoading.value || moveSaving.value || parentLoading.value || parentLoadFailed.value) return
   // 手动表单验证
   if (!form.subjectId) {
     showToast('请选择所属科目', 'warning')
@@ -961,6 +1040,8 @@ const handleSubmit = async () => {
  * 删除分类
  */
 const handleDelete = async (row) => {
+  if (moveSaving.value || deleteLoading.value || submitLoading.value || draggingId.value !== null) return
+  deleteLoading.value = true
   try {
     // 先检查引用数量
     const usageRes = await checkCategoryUsage(row.id)
@@ -997,6 +1078,8 @@ const handleDelete = async (row) => {
       console.error('删除失败:', error)
       showToast('删除失败', 'error')
     }
+  } finally {
+    deleteLoading.value = false
   }
 }
 
@@ -1008,31 +1091,16 @@ const getChildrenQuestionCount = (category) => {
 }
 
 /**
- * 计算分类下所有子孙分类的总数量（支持三级分类）
- */
-const getTotalChildrenCount = (category) => {
-  let count = 0
-  if (category.children && category.children.length > 0) {
-    count = category.children.length
-    for (const child of category.children) {
-      if (child.children && child.children.length > 0) {
-        count += child.children.length
-      }
-    }
-  }
-  return count
-}
-
-/**
  * 添加子分类（预填父分类和科目）
  */
 const handleAddChild = async (parent) => {
+  if (moveSaving.value || draggingId.value !== null) return
   resetForm()
   form.subjectId = parent.subjectId
   form.parentId = parent.id
-  await loadParentOptions(parent.subjectId, null)
   dialogMode.value = 'add'
   dialogVisible.value = true
+  await loadParentOptions(parent.subjectId)
 }
 
 /**
@@ -1045,27 +1113,43 @@ const initTreeExpandedKeys = () => {
 
 // ============ 大纲视图 ============
 
-// 大纲布局常量：BASE 为行左内边距基线，INDENT 为每级缩进
+// 手柄独占固定左列，树线从展开控件向下连接，不穿过手柄。
 const OUTLINER_BASE = 12
 const OUTLINER_INDENT = 24
+const OUTLINER_TOGGLE_SIZE = 20
+const OUTLINER_CONTENT_BASE = computed(() => OUTLINER_BASE + (questionType.value === 'exam' ? 30 : 0))
 
 /**
  * 扁平化大纲行：按展开状态把树铺平成行列表
  */
 const outlineRows = computed(() => {
   const rows = []
-  const walk = (nodes, level) => {
-    nodes.forEach(node => {
+  const walk = (nodes, level, guideLevels = []) => {
+    nodes.forEach((node, index) => {
       const children = node.children || []
       const hasChildren = children.length > 0
-      rows.push({ node, level, hasChildren })
+      const isLastSibling = index === nodes.length - 1
+      rows.push({ node, level, hasChildren, isLastSibling, guideLevels })
       if (hasChildren && treeExpandedKeys.value.includes(node.id)) {
-        walk(children, level + 1)
+        const childGuides = level > 0 && !isLastSibling ? [...guideLevels, level] : guideLevels
+        walk(children, level + 1, childGuides)
       }
     })
   }
   walk(treeCategories.value, 0)
   return rows
+})
+
+// 放在展开节点之后时，插入线画在整棵可见子树下方。
+const dropTargetLevel = computed(() => outlineRows.value.find(row => row.node.id === dropTarget.value?.targetId)?.level ?? 0)
+const dropAfterRowId = computed(() => {
+  if (!dropTarget.value?.valid || dropTarget.value.position !== 'after') return null
+  const rows = outlineRows.value
+  const index = rows.findIndex(row => row.node.id === dropTarget.value.targetId)
+  if (index < 0) return null
+  let last = index
+  while (last + 1 < rows.length && rows[last + 1].level > rows[index].level) last++
+  return rows[last].node.id
 })
 
 const isNodeExpanded = (id) => treeExpandedKeys.value.includes(id)
@@ -1079,55 +1163,61 @@ const toggleExpand = (id) => {
   }
 }
 
-/**
- * 树形视图拖拽节点处理
- * 功能已移除：拖拽分级体验不达预期，排序通过编辑对话框中的 orderNum 字段实现
- */
+/** 松手提交一次移动命令；等待期间保持原树，服务端成功后才更新布局。 */
+const handleMove = async (id, target) => {
+  // 请求入口再次按最新数据检查；无实际变化时不进入保存态，也不发送或刷新请求。
+  if (!canDrag.value || !canMove(id, target)) return
+  const subjectId = filterSubjectId.value
+  const savedKeys = getTreeExpandedKeys()
+  const scrollTop = contentRef.value?.scrollTop ?? 0
+  moveSaving.value = true
+  moveMessage.value = ''
+  ++categoryLoadVersion
+  try {
+    const response = await moveCategory(id, target)
+    if (disposed) return
+    const list = (response.data || []).map(normalizeCategory)
+    categories.value = list
+    replaceSubjectCategories(subjectId, list)
+    categoryLoadError.value = ''
+    moveMessage.value = '分类层级与顺序已保存'
+  } catch (error) {
+    if (disposed) return
+    // 网络中断不等于未提交；只重新读取，不重放写请求。
+    const synced = await loadCategories({ background: true })
+    if (disposed) return
+    moveMessage.value = synced
+      ? '移动请求未确认成功，已重新读取服务端布局，请核对结果。'
+      : '无法确认移动结果，请重新读取分类后再操作。'
+  } finally {
+    if (!disposed) {
+      const byId = new Map(categories.value.map(item => [item.id, item]))
+      const keys = new Set(savedKeys.filter(key => byId.has(key)))
+      const visited = new Set([id])
+      let parentId = byId.get(id)?.parentId
+      while (parentId && !visited.has(parentId) && byId.has(parentId)) {
+        visited.add(parentId)
+        keys.add(parentId)
+        parentId = byId.get(parentId).parentId
+      }
+      restoreTreeExpandedKeys([...keys])
+      await nextTick()
+      if (contentRef.value) contentRef.value.scrollTop = scrollTop
+      moveSaving.value = false
+    }
+  }
+}
 
-// 组件挂载时加载数据
 onMounted(async () => {
   await loadSubjectOptions()
-  // 第一步：加载全部分类数据（用于科目筛选列表统计和分类数量统计）
-  if (questionType.value === 'mock') {
-    // 模拟题：收集所有科目的分类数据
-    const allStats = []
-    for (const subject of subjectOptions.value) {
-      const response = await getMockCategoryStatsBySubject(subject.id)
-      if (response.code === 200) {
-        const stats = response.data?.stats || []
-        stats.forEach(item => {
-          allStats.push({
-            id: `${subject.id}-${item.category}`,
-            subjectId: subject.id,
-            subjectName: subject.name,
-            parentId: null,
-            name: item.category,
-            code: item.category.toLowerCase().replace(/\s+/g, '-'),
-            questionCount: item.count,
-            orderNum: 0,
-            enabled: true
-          })
-        })
-      }
-    }
-    allCategories.value = allStats
-  } else {
-    // 真题：使用真题 API
-    const allResponse = await getAllCategories(questionType.value)
-    if (allResponse.code === 200) {
-      allCategories.value = (allResponse.data || []).map(normalizeCategory)
-    }
-  }
-  // 第二步：加载科目统计数据（用于科目筛选列表显示题目数）
-  await loadCategoryStats()
-  // 第三步：默认选中第一个科目（只影响显示）
-  if (subjectOptions.value.length > 0) {
-    filterSubjectId.value = subjectOptions.value[0].id
-    // 第四步：加载选中科目的分类数据（用于显示）
-    await loadCategories()
-  }
-  // 初始化树形视图展开状态
-  initTreeExpandedKeys()
+  if (!disposed && viewChangeVersion === 0) await handleQuestionTypeChange()
+})
+
+onBeforeUnmount(() => {
+  disposed = true
+  ++categoryLoadVersion
+  ++statsLoadVersion
+  ++parentLoadVersion
 })
 </script>
 
@@ -1172,20 +1262,9 @@ onMounted(async () => {
   background: linear-gradient(to bottom right, rgba(255, 255, 255, 0.4), transparent);
 }
 
-/* 树节点进场：挂载即播，展开子级时按同级顺序级联浮现 */
-@keyframes row-in {
-  from {
-    opacity: 0;
-    transform: translateY(6px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
 /* ============ 大纲列表 ============ */
 .outline-list {
+  --outline-line-color: #d7c9b6;
   position: relative;
 }
 
@@ -1198,34 +1277,146 @@ onMounted(async () => {
   padding-bottom: 7px;
   padding-right: 12px;
   border-radius: 10px;
-  animation: row-in 0.35s ease-out backwards;
+  /* 不逐行位移或延迟进场，否则相邻行的树线会暂时断开。 */
   transition: background-color 0.2s ease, opacity 0.2s ease;
 }
-
-.outline-row:nth-child(2) { animation-delay: 0.04s; }
-.outline-row:nth-child(3) { animation-delay: 0.08s; }
-.outline-row:nth-child(4) { animation-delay: 0.12s; }
-.outline-row:nth-child(5) { animation-delay: 0.16s; }
-.outline-row:nth-child(6) { animation-delay: 0.2s; }
-.outline-row:nth-child(7) { animation-delay: 0.24s; }
-.outline-row:nth-child(8) { animation-delay: 0.28s; }
-.outline-row:nth-child(9) { animation-delay: 0.32s; }
-.outline-row:nth-child(10) { animation-delay: 0.36s; }
-.outline-row:nth-child(11) { animation-delay: 0.4s; }
-.outline-row:nth-child(12) { animation-delay: 0.44s; }
 
 .outline-row:hover {
   background-color: rgba(255, 255, 255, 0.6);
 }
 
-/* 祖先层级引导线 */
-.outline-guide {
+/* 拖拽只改变反馈，不在每次 dragover 时重排 DOM，避免落点跳动。 */
+.drag-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  padding: 8px 0;
+  background: #fffdf9;
+  border-radius: 8px;
+}
+
+.drag-status {
+  min-height: 36px;
+  padding: 0 8px 6px;
+  font-size: 12px;
+  color: #725937;
+}
+
+.root-drop-zone {
+  padding: 8px 12px;
+  border: 1px dashed rgba(139, 111, 71, 0.35);
+  border-radius: 8px;
+  text-align: center;
+  color: #8b6f47;
+  font-size: 12px;
+}
+
+.root-drop-zone.is-root-target,
+.outline-row.is-drop-inside {
+  background: #f3eadb;
+  outline: 2px solid #8b6f47;
+  outline-offset: -2px;
+}
+
+.outline-drag-handle {
   position: absolute;
-  top: 4px;
-  bottom: 4px;
-  width: 1px;
-  background: rgba(139, 111, 71, 0.14);
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 24px;
+  height: 28px;
+  border: 0;
+  border-radius: 5px;
+  color: #a89880;
+  background: transparent;
+  cursor: grab;
+}
+
+.outline-drag-handle:active { cursor: grabbing; }
+
+.outline-drag-handle:focus-visible,
+.outline-action-btn:focus-visible {
+  outline: 2px solid #8b6f47;
+  outline-offset: 2px;
+}
+
+.outline-drag-handle:disabled,
+.outline-action-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.outline-row.is-drag-source { opacity: 0.4; }
+
+.outline-row.is-drop-invalid {
+  background: #fff0ed;
+  outline: 1px dashed #c45656;
+  outline-offset: -1px;
+}
+
+.outline-row.is-drop-before::before,
+.outline-row.is-drop-after::after {
+  content: '';
+  position: absolute;
+  left: var(--drop-indent);
+  right: 12px;
+  height: 3px;
+  background: #8b6f47;
+  border-radius: 2px;
   pointer-events: none;
+  z-index: 2;
+}
+
+.outline-row.is-drop-before::before { top: -1px; }
+.outline-row.is-drop-after::after { bottom: -1px; }
+
+/* 相邻行无间隙接续；分支仅连接到展开按钮或叶节点圆点。 */
+.outline-guide,
+.outline-child-stem,
+.outline-branch {
+  position: absolute;
+  pointer-events: none;
+}
+
+.outline-guide,
+.outline-child-stem {
+  bottom: 0;
+  width: 1px;
+  background: var(--outline-line-color);
+}
+
+.outline-guide { top: 0; }
+.outline-child-stem { top: calc(50% + 10px); }
+
+.outline-branch {
+  top: 0;
+  bottom: 0;
+}
+
+.outline-branch::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 50%;
+  border-left: 1px solid var(--outline-line-color);
+  border-bottom: 1px solid var(--outline-line-color);
+}
+
+.outline-branch.is-last::before { border-bottom-left-radius: 7px; }
+
+.outline-branch:not(.is-last)::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  bottom: 0;
+  left: 0;
+  width: 1px;
+  background: var(--outline-line-color);
 }
 
 /* 展开/收起 */
@@ -1254,8 +1445,19 @@ onMounted(async () => {
 }
 
 .outline-toggle-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 20px;
+  height: 20px;
   flex-shrink: 0;
+}
+
+.outline-leaf-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--outline-line-color);
 }
 
 /* 类型图标 */
