@@ -1,14 +1,17 @@
-"""认证与管理员权限依赖。"""
-from typing import Optional
+"""全局 HTTP 依赖。"""
+from typing import Annotated, Optional
 
 from fastapi import Depends, Request
-from sqlmodel import select
+from sqlmodel.ext.asyncio.session import AsyncSession
 
-from app.database.connection import SessionDep
-from app.exception import ForbiddenException, UnauthorizedException
-from app.models.entities import User
+from app.database.connection import get_async_session
+from app.core.exceptions import ForbiddenException, UnauthorizedException
+from app.core.security import extract_token_from_header, get_token_payload
 from app.models.enums import UserRoleEnum
-from app.utils.security import extract_token_from_header, get_token_payload
+from app.repositories.user_repository import UserRepository
+
+
+SessionDep = Annotated[AsyncSession, Depends(get_async_session)]
 
 
 class AuthUser:
@@ -35,8 +38,7 @@ async def get_current_user(
     if not isinstance(subject, str) or not subject.isdigit():
         raise UnauthorizedException("认证令牌缺少有效用户信息")
 
-    result = await session.exec(select(User).where(User.id == int(subject)))
-    user = result.first()
+    user = await UserRepository(session).get_by_id(int(subject))
     if user is None:
         raise UnauthorizedException("用户不存在")
     if not user.enabled:

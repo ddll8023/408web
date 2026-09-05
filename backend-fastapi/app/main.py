@@ -1,26 +1,32 @@
 """408Web FastAPI 应用入口。"""
+import logging
 import os
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
-from app.api.v1.router import router as api_v1_router
-from app.config.settings import settings
+from app.api.router import router as api_router
+from app.core.config import settings
+from app.core.logging import configure_logging
 from app.database.connection import engine, init_db
-from app.exception import register_exception_handlers
+from app.core.exceptions import register_exception_handlers
 from app.middleware.cors import GlobalCorsMiddleware
 from app.schemas.common import ApiResponse
-from app.utils.logger import setup_logger
 
 
-logger = setup_logger(level=settings.logging.log_level, console=True)
+configure_logging(
+    log_dir=settings.logging.log_dir,
+    log_file=settings.logging.log_file,
+    level=settings.logging.log_level,
+    backup_count=settings.logging.backup_count,
+)
+logger = logging.getLogger(__name__)
 
 
 def ensure_directories() -> None:
     """确保运行时目录存在。"""
     os.makedirs(settings.upload.upload_dir, exist_ok=True)
     os.makedirs("data", exist_ok=True)
-    os.makedirs(settings.logging.log_dir, exist_ok=True)
 
 
 # StaticFiles 在应用创建时挂载，因此目录需要先准备好。
@@ -56,7 +62,7 @@ app.mount(
     name="uploads",
 )
 
-app.include_router(api_v1_router, prefix=settings.server.api_prefix)
+app.include_router(api_router, prefix=settings.server.api_prefix)
 
 
 @app.post("/", response_model=ApiResponse[dict[str, str]])

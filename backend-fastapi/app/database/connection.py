@@ -1,14 +1,13 @@
-"""异步 SQLite 连接、事务和 FastAPI 会话依赖。"""
+"""异步 SQLite 引擎、建表入口和会话生命周期。"""
 from contextlib import asynccontextmanager
-from typing import Annotated, AsyncGenerator, Protocol
+from typing import AsyncGenerator, Protocol
 
-from fastapi import Depends
 from sqlalchemy import event
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlmodel import SQLModel
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from app.config.settings import settings
+from app.core.config import settings
 
 
 DATABASE_URL = settings.database.database_url
@@ -59,31 +58,32 @@ async def init_db() -> None:
 
 
 async def get_async_session() -> AsyncGenerator[AsyncSession, None]:
-    """提供每请求独立的异步数据库会话。"""
+    """提供每请求独立的异步数据库会话，不隐式提交业务写入。"""
     async with AsyncSession(engine, expire_on_commit=False) as session:
         try:
             yield session
-            await session.commit()
         except Exception:
             await session.rollback()
             raise
+        finally:
+            if session.in_transaction():
+                await session.rollback()
 
 
 @asynccontextmanager
 async def get_session_context() -> AsyncGenerator[AsyncSession, None]:
-    """提供非 FastAPI 场景使用的异步会话上下文。"""
+    """提供非 FastAPI 场景使用的异步会话上下文，不隐式提交。"""
     async with AsyncSession(engine, expire_on_commit=False) as session:
         try:
             yield session
-            await session.commit()
         except Exception:
             await session.rollback()
             raise
+        finally:
+            if session.in_transaction():
+                await session.rollback()
 
 
 def get_db_url() -> str:
     """获取数据库连接 URL。"""
     return DATABASE_URL
-
-
-SessionDep = Annotated[AsyncSession, Depends(get_async_session)]

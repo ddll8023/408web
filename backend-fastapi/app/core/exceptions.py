@@ -1,14 +1,15 @@
-"""业务异常及统一异常处理。"""
+"""业务异常及应用级异常映射。"""
+import logging
+
 from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
 from app.schemas.common import error_response
-from app.utils.logger import setup_logger
 
 
-logger = setup_logger(__name__)
+logger = logging.getLogger(__name__)
 
 
 class BusinessException(Exception):

@@ -1,16 +1,16 @@
 # 408考研真题知识点阅读网站
 
-一个专为408计算机考研设计的真题与模拟题在线学习平台，支持知识点分类、Markdown文档渲染、随机出题练习等功能。
+一个专为408计算机考研设计的真题与模拟题在线学习平台，支持按科目和分类浏览、Markdown 文档渲染、即时作答反馈和资料导出。
 
 ## 项目简介
 
 本项目是一个全栈Web应用，旨在帮助408计算机考研学子高效学习和复习。平台提供：
 
-- **真题资源**：收录历年考研真题，支持按年份、科目、章节分类浏览
-- **模拟题练习**：提供模拟题目练习，包含来源机构标注
+- **真题资源**：收录历年考研真题，支持按年份、科目和分类浏览
+- **模拟题练习**：提供按来源、科目和分类浏览的模拟题及即时作答反馈
 - **知识点管理**：支持树形章节结构，方便知识点梳理
 - **Markdown支持**：题目和答案支持完整的Markdown渲染，包含LaTeX数学公式
-- **用户系统**：注册登录功能，记录学习进度
+- **用户系统**：提供注册登录、个人中心和浏览器本地分类收藏
 
 ## 技术栈
 
@@ -60,21 +60,21 @@
 │
 ├── backend-fastapi/          # FastAPI后端项目
 │   ├── app/
-│   │   ├── config/          # 配置文件
+│   │   ├── api/             # HTTP 路由与请求依赖
+│   │   ├── core/            # 配置、异常、日志与安全
 │   │   ├── database/        # 数据库连接
+│   │   ├── repositories/    # 复杂查询与持久化边界
 │   │   ├── models/          # 数据模型
 │   │   ├── schemas/         # Pydantic模式定义
-│   │   ├── api/v1/          # API路由
 │   │   ├── services/        # 业务逻辑层
-│   │   ├── middleware/      # 中间件
-│   │   └── utils/           # 工具函数
-│   └── requirements.txt
+│   │   └── middleware/      # 中间件
+│   ├── pyproject.toml       # 依赖与项目元数据
+│   └── uv.lock              # 依赖锁定结果
 │
-├── doc/                      # 项目结构、模块设计与迁移验证文档
+├── doc/                      # 项目结构与模块设计文档
 │   ├── 项目结构文档.md
 │   ├── 模块说明文档.md
-│   ├── 模块/                  # 各业务模块开发设计
-│   └── 前端TypeScript迁移验证.md
+│   └── 模块/                  # 各业务模块开发设计
 │
 ├── backend-fastapi/data/     # SQLite数据库目录（运行时）
 ├── backend-fastapi/uploads/  # 上传文件目录（运行时）
@@ -91,14 +91,14 @@
 
 ### 真题模块
 - 历年真题浏览（按年份）
-- 按科目/章节筛选
+- 按科目/分类筛选
 - Markdown格式题目和答案展示
 - 数学公式支持（LaTeX）
 
 ### 模拟题模块
 - 模拟题列表
 - 按机构分类
-- 出题练习
+- 选择题作答反馈
 
 ### 管理功能（管理员）
 - 科目管理
@@ -128,24 +128,14 @@ cd 408web
 ```bash
 cd backend-fastapi
 
-# 创建虚拟环境（可选）
-python -m venv venv
-# Windows
-.\venv\Scripts\activate
-# Linux/Mac
-source venv/bin/activate
-
-# 安装依赖
-pip install -r requirements.txt
+# 按锁文件创建环境并同步依赖
+uv sync
 
 # 创建本地环境配置（必须设置 JWT_SECRET）
 cp .env.example .env
 
-# 首次启动或升级现有数据库时执行一次迁移
-python scripts/migrate_high_priority.py
-
 # 启动服务
-python -m uvicorn app.main:app --host 0.0.0.0 --port 7785 --reload
+uv run python -m uvicorn app.main:app --host 0.0.0.0 --port 7785 --reload
 ```
 
 后端服务将在 `http://localhost:7785` 启动
@@ -181,13 +171,13 @@ npm run build
 
 应用源码使用 TypeScript，Vue 脚本使用 `lang="ts"`；`strict: true`、`allowJs: false`。PostCSS/Tailwind 配置及 Node 测试脚本保留工具原有格式。自动化测试使用模拟网络和自定义组件 renderer，不等同于真实浏览器全流程验证。
 
-迁移范围、自动验证结果和浏览器回归边界见 [`doc/前端TypeScript迁移验证.md`](./doc/前端TypeScript迁移验证.md)。
+前端规范、项目结构和模块边界分别见 [`规范文档/前端规范文档.md`](./规范文档/前端规范文档.md)、[`doc/项目结构文档.md`](./doc/项目结构文档.md) 与 [`doc/模块/`](./doc/模块/)。
 
 ### 4. 访问应用
 
 打开浏览器访问 `http://localhost:7784`
 
-## API文档
+## 主要 API 示例
 
 ### 认证模块
 | 接口 | 方法 | 说明 |
@@ -223,7 +213,7 @@ npm run build
 | `/api/mock` | POST | 创建模拟题 |
 | `/api/mock/{id}/detail` | POST | 获取模拟题详情 |
 
-各模块的 API 目标契约和当前实现边界见 [`doc/模块/`](./doc/模块/)；实际路由与响应模型以 `backend-fastapi/app/api/v1/` 和 `backend-fastapi/app/schemas/` 为准。
+以上为常用接口示例，不是完整路由清单。各模块的 API 目标契约和当前实现边界见 [`doc/模块/`](./doc/模块/)；完整路由与响应模型以 `backend-fastapi/app/api/` 和 `backend-fastapi/app/schemas/` 为准，运行中的接口还可通过后端 `/docs` 查看。
 
 ## 配置说明
 

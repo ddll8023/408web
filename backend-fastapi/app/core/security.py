@@ -1,4 +1,4 @@
-"""密码和 JWT 安全工具。"""
+"""应用级密码和 JWT 安全工具。"""
 from datetime import datetime, timedelta, timezone
 from typing import Mapping, Optional
 
@@ -6,8 +6,8 @@ from jose import JWTError, jwt
 from pwdlib import PasswordHash
 from pwdlib.exceptions import UnknownHashError
 
-from app.config.settings import settings
-from app.exception import UnauthorizedException
+from app.core.config import settings
+from app.core.exceptions import UnauthorizedException
 
 
 pwd_context = PasswordHash.recommended()

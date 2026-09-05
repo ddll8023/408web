@@ -9,7 +9,7 @@ cd /d "%~dp0backend-fastapi"
 
 echo [INFO] 检查虚拟环境...
 if not exist ".venv\Scripts\python.exe" (
-    echo [ERROR] 虚拟环境未找到，请先运行 pip install -r requirements.txt
+    echo [ERROR] 虚拟环境未找到，请先在 backend-fastapi 中运行 uv sync
     pause
     exit /b 1
 )

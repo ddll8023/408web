@@ -1,11 +1,7 @@
-"""分类管理路由。"""
-from typing import Annotated
-
+"""分类管理 HTTP 路由。"""
 from fastapi import APIRouter, Depends, Path, status
-from sqlmodel.ext.asyncio.session import AsyncSession
 
-from app.database.connection import SessionDep, get_async_session
-from app.middleware.auth import AuthUser, get_current_admin
+from app.api.dependencies import AuthUser, SessionDep, get_current_admin
 from app.schemas.category import (
     AvailableParentCategoriesRequest,
     CategoryBySubjectQueryRequest,
@@ -23,12 +19,6 @@ from app.services.category_service import ExamCategoryService
 
 
 router = APIRouter()
-
-# 分类写入必须在发送成功响应前完成提交，不能等 request-scope 的响应后清理。
-CategoryWriteSession = Annotated[
-    AsyncSession, Depends(get_async_session, scope="function")
-]
-
 
 @router.post(
     "/query",
@@ -202,7 +192,7 @@ async def get_category_by_id(
 )
 async def create_category(
     request: ExamCategoryCreateRequest,
-    session: CategoryWriteSession,
+    session: SessionDep,
     _admin: AuthUser = Depends(get_current_admin),
 ) -> ApiResponse[ExamCategoryResponse]:
     """创建分类。"""
@@ -219,7 +209,7 @@ async def create_category(
 )
 async def update_category(
     request: ExamCategoryUpdateRequest,
-    session: CategoryWriteSession,
+    session: SessionDep,
     category_id: int = Path(..., ge=1, description="分类 ID"),
     _admin: AuthUser = Depends(get_current_admin),
 ) -> ApiResponse[ExamCategoryResponse]:
@@ -236,7 +226,7 @@ async def update_category(
 )
 async def move_category(
     request: ExamCategoryMoveRequest,
-    session: CategoryWriteSession,
+    session: SessionDep,
     category_id: int = Path(..., ge=1, description="分类 ID"),
     _admin: AuthUser = Depends(get_current_admin),
 ) -> ApiResponse[list[ExamCategoryResponse]]:
@@ -253,7 +243,7 @@ async def move_category(
     description="删除指定分类，仅管理员可访问",
 )
 async def delete_category(
-    session: CategoryWriteSession,
+    session: SessionDep,
     category_id: int = Path(..., ge=1, description="分类 ID"),
     _admin: AuthUser = Depends(get_current_admin),
 ) -> ApiResponse[None]:

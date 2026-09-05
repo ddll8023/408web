@@ -1,7 +1,7 @@
-"""认证模块路由。"""
+"""认证 HTTP 路由。"""
 from fastapi import APIRouter, status
 
-from app.database.connection import SessionDep
+from app.api.dependencies import SessionDep
 from app.schemas.auth import AuthResponse, LoginRequest, RegisterRequest
 from app.schemas.common import ApiResponse
 from app.services.auth_service import AuthService

@@ -1,4 +1,4 @@
-"""项目配置模块。"""
+"""应用级运行配置。"""
 from functools import lru_cache
 from pathlib import Path
 from typing import Literal

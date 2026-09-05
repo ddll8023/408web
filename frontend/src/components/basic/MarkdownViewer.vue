@@ -21,7 +21,7 @@
  * 遵循KISS原则：功能简单清晰
  * 
  * Source: @kangc/v-md-editor 官方文档
- * KaTeX配置：markdown-it-katex 插件
+ * KaTeX 通过组件内预处理完成公式渲染
  */
 import { ref, watch, nextTick } from 'vue'
 import VMdPreview from '@kangc/v-md-editor/lib/preview'
@@ -276,4 +276,3 @@ watch(
   border-radius: 0;
 }
 </style>
-

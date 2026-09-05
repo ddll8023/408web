@@ -1,8 +1,7 @@
-"""真题查询、维护和导出路由。"""
+"""真题查询、维护和导出 HTTP 路由。"""
 from fastapi import APIRouter, Depends, Path, Response as FastAPIResponse
 
-from app.database.connection import SessionDep
-from app.middleware.auth import AuthUser, get_current_admin
+from app.api.dependencies import AuthUser, SessionDep, get_current_admin
 from app.schemas.common import ApiResponse
 from app.schemas.exam import (
     ExamByCategoryRequest,

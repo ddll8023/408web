@@ -52,14 +52,6 @@ export function deleteMockQuestion(id: number) {
   })
 }
 
-export function getMockQuestionsBySource(source: string, params: MockQueryParams = {}) {
-  return request<MockQuestion[]>({
-    url: `/api/mock/source/${encodeURIComponent(source)}`,
-    method: 'post',
-    data: normalizeQuery(params)
-  })
-}
-
 export function getAllMockSources() {
   return request<MockSources>({
     url: '/api/mock/sources',

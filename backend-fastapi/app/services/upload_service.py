@@ -1,26 +1,24 @@
 """图片上传、引用扫描和清理服务。"""
 import asyncio
+import logging
 import uuid
 from pathlib import Path
-from typing import Optional
 
 import aiofiles
 from fastapi import UploadFile
-from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from app.exception import (
+from app.core.exceptions import (
     ConflictException,
     InfrastructureException,
     NotFoundException,
     ValidationException,
 )
-from app.models.entities import ExamQuestion, MockQuestion
+from app.repositories.image_reference_repository import ImageReferenceRepository
 from app.schemas.image import ImageResourceResponse, ImageUsageResponse
-from app.utils.logger import setup_logger
 
 
-logger = setup_logger(__name__)
+logger = logging.getLogger(__name__)
 
 
 class UploadService:
@@ -42,6 +40,7 @@ class UploadService:
         max_file_size: int = 10 * 1024 * 1024,
     ) -> None:
         self.session = session
+        self.repository = ImageReferenceRepository(session)
         self.upload_dir = Path(upload_dir).expanduser().resolve()
         self.max_file_size = max_file_size
 
@@ -226,30 +225,10 @@ class UploadService:
         filename_set = {image.filename for image in images}
         image_map = {image.filename: image for image in images}
 
-        exam_result = await self.session.exec(
-            select(
-                ExamQuestion.id,
-                ExamQuestion.year,
-                ExamQuestion.question_number,
-                ExamQuestion.title,
-                ExamQuestion.content,
-                ExamQuestion.answer,
-                ExamQuestion.options,
-            )
-        )
-        mock_result = await self.session.exec(
-            select(
-                MockQuestion.id,
-                MockQuestion.question_number,
-                MockQuestion.title,
-                MockQuestion.source,
-                MockQuestion.content,
-                MockQuestion.answer,
-                MockQuestion.options,
-            )
-        )
+        exam_rows = await self.repository.list_exam_texts()
+        mock_rows = await self.repository.list_mock_texts()
 
-        for exam in exam_result.all():
+        for exam in exam_rows:
             text = " ".join(
                 part for part in (exam.content, exam.answer, exam.options) if part
             )
@@ -267,7 +246,7 @@ class UploadService:
                         )
                     )
 
-        for mock in mock_result.all():
+        for mock in mock_rows:
             text = " ".join(
                 part for part in (mock.content, mock.answer, mock.options) if part
             )

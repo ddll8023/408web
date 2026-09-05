@@ -2,18 +2,17 @@
 认证服务模块
 实现用户注册和登录业务逻辑
 """
-from sqlmodel import select
+import logging
+
 from sqlmodel.ext.asyncio.session import AsyncSession
-from app.models.entities import User
 from app.models.enums import UserRoleEnum
-from app.utils.security import create_access_token, get_password_hash, verify_password
-from app.exception import ConflictException, UnauthorizedException
+from app.core.exceptions import ConflictException, UnauthorizedException
+from app.core.security import create_access_token, get_password_hash, verify_password
+from app.repositories.user_repository import UserRepository
 from app.schemas.auth import RegisterRequest, LoginRequest, AuthResponse
-from app.utils.logger import setup_logger
 
 
-# 获取服务日志记录器
-logger = setup_logger(__name__)
+logger = logging.getLogger(__name__)
 
 
 class AuthService:
@@ -21,6 +20,7 @@ class AuthService:
 
     def __init__(self, session: AsyncSession):
         self.session = session
+        self.repository = UserRepository(session)
 
     async def register(self, request: RegisterRequest) -> None:
         """
@@ -35,10 +35,7 @@ class AuthService:
         logger.info("AuthService.register started with username: %s", request.username)
 
         # 检查用户名是否已存在
-        result = await self.session.exec(
-            select(User).where(User.username == request.username)
-        )
-        existing_user = result.first()
+        existing_user = await self.repository.get_by_username(request.username)
 
         if existing_user is not None:
             logger.warning("AuthService.register failed: username already exists: %s", request.username)
@@ -53,6 +50,7 @@ class AuthService:
             enabled=True
         )
         self.session.add(user)
+        await self.session.commit()
 
         logger.info("AuthService.register completed for username: %s", request.username)
 
@@ -73,10 +71,7 @@ class AuthService:
         logger.info("AuthService.login started with username: %s", request.username)
 
         # 查询用户
-        result = await self.session.exec(
-            select(User).where(User.username == request.username)
-        )
-        user = result.first()
+        user = await self.repository.get_by_username(request.username)
 
         if user is None:
             logger.warning("AuthService.login failed: user not found: %s", request.username)

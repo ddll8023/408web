@@ -1,0 +1,158 @@
+"""真题写入用例。
+
+该模块拥有真题写入事务边界，查询和响应转换委托给查询 Service。
+"""
+from sqlmodel.ext.asyncio.session import AsyncSession
+
+from app.core.exceptions import ConflictException, NotFoundException, ValidationException
+from app.models.entities import ExamQuestion
+from app.repositories.exam_repository import ExamRepository
+from app.schemas.exam import ExamCreateRequest, ExamResponse, ExamUpdateRequest
+from app.services.exam_query_service import ExamQueryService
+from app.services.question_mapping import (
+    parse_categories,
+    parse_options,
+    serialize_categories,
+    serialize_options,
+)
+from app.services.question_validation import (
+    validate_question_scope,
+    validate_question_values,
+)
+
+class ExamCommandService:
+    """编排真题新增、更新和删除。"""
+
+    def __init__(self, session: AsyncSession, query_service: ExamQueryService) -> None:
+        self.session = session
+        self.repository = ExamRepository(session)
+        self.query_service = query_service
+
+    async def create(self, request: ExamCreateRequest, author_id: int) -> ExamResponse:
+        """创建真题并提交事务。"""
+        validate_question_values(request.question_type, request.content, request.options)
+        await validate_question_scope(self.session, request.subject_id, request.category)
+
+        if request.question_number is not None:
+            duplicate = await self.query_service.check_duplicate(
+                request.year,
+                request.question_number,
+            )
+            if duplicate.is_duplicate:
+                raise ConflictException(
+                    f"年份 {request.year} 的题号 {request.question_number} 已存在"
+                )
+
+        question = ExamQuestion(
+            year=request.year,
+            question_number=request.question_number,
+            question_type=request.question_type.value,
+            title=request.title,
+            content=request.content,
+            options=serialize_options(request.options),
+            answer=request.answer,
+            category=serialize_categories(request.category),
+            subject_id=request.subject_id,
+            difficulty=request.difficulty.value if request.difficulty else None,
+            author_id=author_id,
+        )
+        self.session.add(question)
+        await self.session.flush()
+        await self.session.refresh(question)
+        response = await self.query_service.to_response(question)
+        await self.session.commit()
+        return response
+
+    async def update(
+        self,
+        question_id: int,
+        request: ExamUpdateRequest,
+    ) -> ExamResponse:
+        """更新真题并提交事务。"""
+        question = await self.repository.get_by_id(question_id)
+        if question is None:
+            raise NotFoundException(f"真题不存在：ID={question_id}")
+
+        update_data = request.model_dump(exclude_unset=True)
+        existing_categories = parse_categories(question.category)
+        existing_options = parse_options(question.options)
+        new_type = (
+            request.question_type.value
+            if request.question_type is not None
+            else question.question_type
+        )
+        new_content = request.content if request.content is not None else question.content
+        new_options = request.options if "options" in update_data else existing_options
+        if new_type == "ESSAY":
+            new_options = None
+        validate_question_values(new_type, new_content, new_options)
+
+        new_subject_id = (
+            request.subject_id if "subject_id" in update_data else question.subject_id
+        )
+        new_categories = (
+            request.category if "category" in update_data else existing_categories
+        )
+        await validate_question_scope(
+            self.session,
+            new_subject_id,
+            new_categories,
+            existing_subject_id=question.subject_id,
+            existing_categories=existing_categories,
+        )
+
+        new_year = request.year if "year" in update_data else question.year
+        new_number = (
+            request.question_number
+            if "question_number" in update_data
+            else question.question_number
+        )
+        if new_year is None:
+            raise ValidationException("年份不能为空")
+        if new_number is not None and (
+            new_year != question.year or new_number != question.question_number
+        ):
+            duplicate = await self.query_service.check_duplicate(
+                new_year,
+                new_number,
+                question_id,
+            )
+            if duplicate.is_duplicate:
+                raise ConflictException(
+                    f"年份 {new_year} 的题号 {new_number} 已存在"
+                )
+
+        if "year" in update_data:
+            question.year = new_year
+        if "question_number" in update_data:
+            question.question_number = new_number
+        if "question_type" in update_data:
+            question.question_type = new_type
+        if "title" in update_data:
+            question.title = request.title
+        if "content" in update_data:
+            question.content = new_content
+        if "options" in update_data or "question_type" in update_data:
+            question.options = serialize_options(new_options)
+        if "answer" in update_data:
+            question.answer = request.answer
+        if "category" in update_data or "subject_id" in update_data:
+            question.category = serialize_categories(new_categories)
+        if "subject_id" in update_data:
+            question.subject_id = new_subject_id
+        if "difficulty" in update_data:
+            question.difficulty = request.difficulty.value if request.difficulty else None
+
+        await self.session.flush()
+        await self.session.refresh(question)
+        response = await self.query_service.to_response(question)
+        await self.session.commit()
+        return response
+
+    async def delete(self, question_id: int) -> None:
+        """删除真题并提交事务。"""
+        question = await self.repository.get_by_id(question_id)
+        if question is None:
+            raise NotFoundException(f"真题不存在：ID={question_id}")
+        await self.session.delete(question)
+        await self.session.commit()

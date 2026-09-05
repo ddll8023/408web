@@ -10,7 +10,6 @@ __pycache__/
 .vscode
 
 # Backend build and runtime files
-backend/target
 backend-fastapi/.venv
 backend-fastapi/.env
 backend-fastapi/data/*.pre_*.db.backup

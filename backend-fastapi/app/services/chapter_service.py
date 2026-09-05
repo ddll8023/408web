@@ -2,23 +2,23 @@
 章节管理服务模块
 实现章节CRUD和树形结构业务逻辑
 """
+import logging
+
 from typing import List, Optional
 from collections import defaultdict
-from sqlmodel import select, func, and_
 from sqlmodel.ext.asyncio.session import AsyncSession
-from app.models.entities import Chapter, Subject
-from app.exception import ConflictException, NotFoundException, ValidationException
+from app.models.entities import Chapter
+from app.core.exceptions import ConflictException, NotFoundException, ValidationException
 from app.schemas.chapter import (
     ChapterCreateRequest,
     ChapterUpdateRequest,
     ChapterResponse,
     ChapterTreeResponse
 )
-from app.utils.logger import setup_logger
+from app.repositories.chapter_repository import ChapterRepository
 
 
-# 获取服务日志记录器
-logger = setup_logger(__name__)
+logger = logging.getLogger(__name__)
 
 
 class ChapterService:
@@ -26,6 +26,7 @@ class ChapterService:
 
     def __init__(self, session: AsyncSession):
         self.session = session
+        self.repository = ChapterRepository(session)
 
     async def get_chapters_by_subject(
         self,
@@ -44,13 +45,10 @@ class ChapterService:
         """
         logger.info("ChapterService.get_chapters_by_subject started, subject_id: %d, enabled_only: %s",
                     subject_id, enabled_only)
-        conditions = [Chapter.subject_id == subject_id]
-        if enabled_only:
-            conditions.append(Chapter.enabled == True)
-
-        stmt = select(Chapter).where(*conditions).order_by(Chapter.order_num)
-        result = await self.session.exec(stmt)
-        chapters = result.all()
+        chapters = await self.repository.list_by_subject(
+            subject_id,
+            enabled_only=enabled_only,
+        )
 
         logger.info("ChapterService.get_chapters_by_subject completed, subject_id: %d, count: %d",
                     subject_id, len(chapters))
@@ -152,10 +150,7 @@ class ChapterService:
             NotFoundException: 章节不存在
         """
         logger.info("ChapterService.get_by_id started, chapter_id: %d", chapter_id)
-        result = await self.session.exec(
-            select(Chapter).where(Chapter.id == chapter_id)
-        )
-        chapter = result.first()
+        chapter = await self.repository.get_by_id(chapter_id)
 
         if chapter is None:
             logger.warning("ChapterService.get_by_id: chapter not found, id: %d", chapter_id)
@@ -182,18 +177,12 @@ class ChapterService:
         logger.info("ChapterService.create started, subject_id: %d, name: %s",
                     request.subject_id, request.name)
 
-        subject_result = await self.session.exec(
-            select(Subject.id).where(Subject.id == request.subject_id)
-        )
-        if subject_result.first() is None:
+        if await self.repository.get_subject(request.subject_id) is None:
             raise NotFoundException("科目")
 
         # 检查父章节是否存在（如果指定了parent_id）
         if request.parent_id is not None:
-            parent_result = await self.session.exec(
-                select(Chapter).where(Chapter.id == request.parent_id)
-            )
-            parent = parent_result.first()
+            parent = await self.repository.get_by_id(request.parent_id)
             if parent is None:
                 logger.warning("ChapterService.create: parent chapter not found, parent_id: %d",
                                request.parent_id)
@@ -205,16 +194,11 @@ class ChapterService:
                 raise ConflictException("父章节不属于指定的科目")
 
         # 检查名称在同一父节点下是否唯一
-        name_count = await self.session.exec(
-            select(func.count()).select_from(Chapter).where(
-                and_(
-                    Chapter.subject_id == request.subject_id,
-                    Chapter.parent_id == request.parent_id,
-                    Chapter.name == request.name
-                )
-            )
-        )
-        if name_count.first() > 0:
+        if await self.repository.count_name_conflicts(
+            request.subject_id,
+            request.parent_id,
+            request.name,
+        ) > 0:
             logger.warning("ChapterService.create failed: chapter name already exists: %s", request.name)
             raise ConflictException(f"章节名称已存在：{request.name}")
 
@@ -227,10 +211,13 @@ class ChapterService:
             enabled=request.enabled
         )
         self.session.add(chapter)
+        await self.session.flush()
         await self.session.refresh(chapter)
+        response = self._to_response(chapter)
+        await self.session.commit()
 
         logger.info("ChapterService.create completed, chapter_id: %d", chapter.id)
-        return self._to_response(chapter)
+        return response
 
     async def update(
         self,
@@ -254,10 +241,7 @@ class ChapterService:
         logger.info("ChapterService.update started, chapter_id: %d", chapter_id)
 
         # 检查章节是否存在
-        result = await self.session.exec(
-            select(Chapter).where(Chapter.id == chapter_id)
-        )
-        chapter = result.first()
+        chapter = await self.repository.get_by_id(chapter_id)
 
         if chapter is None:
             logger.warning("ChapterService.update: chapter not found, id: %d", chapter_id)
@@ -272,10 +256,7 @@ class ChapterService:
         if subject_id is None:
             raise ValidationException("章节必须属于一个科目")
 
-        subject_result = await self.session.exec(
-            select(Subject.id).where(Subject.id == subject_id)
-        )
-        if subject_result.first() is None:
+        if await self.repository.get_subject(subject_id) is None:
             raise NotFoundException("科目")
 
         parent_id = (
@@ -291,10 +272,7 @@ class ChapterService:
             if parent_id in descendants:
                 raise ConflictException("不能将章节移动到自己的子孙章节下")
 
-            parent_result = await self.session.exec(
-                select(Chapter).where(Chapter.id == parent_id)
-            )
-            parent = parent_result.first()
+            parent = await self.repository.get_by_id(parent_id)
             if parent is None:
                 raise NotFoundException(f"父章节不存在：ID={parent_id}")
             if parent.subject_id != subject_id:
@@ -303,17 +281,12 @@ class ChapterService:
         # 检查名称唯一性（排除自身，同一父节点下）
 
         if request.name is not None and request.name != chapter.name:
-            name_count = await self.session.exec(
-                select(func.count()).select_from(Chapter).where(
-                    and_(
-                        Chapter.subject_id == subject_id,
-                        Chapter.parent_id == parent_id,
-                        Chapter.name == request.name,
-                        Chapter.id != chapter_id
-                    )
-                )
-            )
-            if name_count.first() > 0:
+            if await self.repository.count_name_conflicts(
+                subject_id,
+                parent_id,
+                request.name,
+                exclude_id=chapter_id,
+            ) > 0:
                 logger.warning("ChapterService.update failed: chapter name conflict: %s", request.name)
                 raise ConflictException(f"章节名称已被同级其他章节使用：{request.name}")
 
@@ -322,23 +295,17 @@ class ChapterService:
         for field, value in update_data.items():
             setattr(chapter, field, value)
 
+        await self.session.flush()
         await self.session.refresh(chapter)
+        response = self._to_response(chapter)
+        await self.session.commit()
 
         logger.info("ChapterService.update completed, chapter_id: %d", chapter_id)
-        return self._to_response(chapter)
+        return response
 
     async def _get_descendant_ids(self, chapter_id: int) -> set[int]:
         """迭代获取章节的全部子孙节点，避免递归循环。"""
-        descendants: set[int] = set()
-        frontier = {chapter_id}
-        while frontier:
-            result = await self.session.exec(
-                select(Chapter.id).where(Chapter.parent_id.in_(frontier))
-            )
-            children = set(result.all()) - descendants
-            descendants.update(children)
-            frontier = children
-        return descendants
+        return await self.repository.list_descendants(chapter_id)
 
     async def delete(self, chapter_id: int) -> None:
         """
@@ -353,10 +320,7 @@ class ChapterService:
         logger.info("ChapterService.delete started, chapter_id: %d", chapter_id)
 
         # 检查章节是否存在
-        result = await self.session.exec(
-            select(Chapter).where(Chapter.id == chapter_id)
-        )
-        chapter = result.first()
+        chapter = await self.repository.get_by_id(chapter_id)
 
         if chapter is None:
             logger.warning("ChapterService.delete: chapter not found, id: %d", chapter_id)
@@ -364,6 +328,7 @@ class ChapterService:
 
         # 删除章节（级联删除子章节，由数据库外键约束处理）
         await self.session.delete(chapter)
+        await self.session.commit()
 
         logger.info("ChapterService.delete completed, chapter_id: %d", chapter_id)
 

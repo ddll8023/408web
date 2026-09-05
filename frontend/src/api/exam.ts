@@ -30,14 +30,6 @@ export function getExamYearStats(params: ExamQueryParams = {}) {
   })
 }
 
-export function getExamIndex(params: ExamQueryParams = {}) {
-  return request<ExamQuestion[]>({
-    url: '/api/exam/index',
-    method: 'post',
-    data: normalizeQuery(params)
-  })
-}
-
 export function getExamNavIndex(params: ExamQueryParams = {}) {
   return request<ExamNavItem[]>({
     url: '/api/exam/nav-index',

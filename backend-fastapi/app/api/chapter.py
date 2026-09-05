@@ -1,8 +1,7 @@
-"""章节管理路由。"""
+"""章节管理 HTTP 路由。"""
 from fastapi import APIRouter, Depends, Path, status
 
-from app.database.connection import SessionDep
-from app.middleware.auth import AuthUser, get_current_admin
+from app.api.dependencies import AuthUser, SessionDep, get_current_admin
 from app.schemas.chapter import (
     ChapterCreateRequest,
     ChapterResponse,

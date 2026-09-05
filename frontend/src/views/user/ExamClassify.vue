@@ -677,7 +677,6 @@ const formatQuestionText = (exam: ExamQuestion) => {
 const formatOptionsText = (exam: ExamQuestion) => {
   const optionsObj = parseOptions(exam)
   if (!optionsObj) return ''
-  if (!optionsObj) return ''
   const optionKeys = Object.keys(optionsObj).sort()
   const parts = []
   parts.push('【选项】')
@@ -716,8 +715,7 @@ const formatFullText = (exam: ExamQuestion) => {
   if (exam?.questionType === 'CHOICE') {
     const optionsObj = parseOptions(exam)
     if (optionsObj) {
-      if (!optionsObj) return ''
-  const optionKeys = Object.keys(optionsObj).sort()
+      const optionKeys = Object.keys(optionsObj).sort()
       parts.push('【选项】')
       optionKeys.forEach(key => {
         parts.push(`${key}. ${normalizeLineBreaks(optionsObj[key])}`)
@@ -774,23 +772,6 @@ const handleCopy = async (command: string, exam: ExamQuestion) => {
       case 'text-all':
         text = formatFullText(exam)
         message = '完整内容已复制 (纯文本)'
-        break
-      // 兼容旧命令
-      case 'question':
-        text = formatQuestionMarkdown(exam)
-        message = '题目已复制到剪贴板'
-        break
-      case 'options':
-        text = formatOptionsMarkdown(exam)
-        message = '选项已复制到剪贴板'
-        break
-      case 'answer':
-        text = formatAnswerMarkdown(exam)
-        message = '答案已复制到剪贴板'
-        break
-      case 'all':
-        text = formatFullMarkdown(exam)
-        message = '完整内容已复制到剪贴板'
         break
       default:
         return

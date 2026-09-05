@@ -1,9 +1,8 @@
-"""图片上传、资源列表和清理路由。"""
+"""图片上传、资源列表和清理 HTTP 路由。"""
 from fastapi import APIRouter, Depends, File, UploadFile
 
-from app.config.settings import settings
-from app.database.connection import SessionDep
-from app.middleware.auth import AuthUser, get_current_admin
+from app.core.config import settings
+from app.api.dependencies import AuthUser, SessionDep, get_current_admin
 from app.schemas.common import ApiResponse
 from app.schemas.image import (
     ImageCleanupRequest,

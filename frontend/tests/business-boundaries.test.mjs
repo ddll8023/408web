@@ -111,33 +111,23 @@ test('分类拖拽拒绝自身、子孙、跨科目及无变化，接受有效�
 })
 
 test('确认框取消明确返回 false，确认返回 true', async t => {
-  let controls
   const runtimeKey = '__businessConfirmTestRuntime'
   globalThis[runtimeKey] = {
-    ref,
-    onUnmounted() {},
-    createApp(component) {
-      controls = component.setup()
-      return { component() {}, mount() {} }
-    }
+    result: 'confirm'
   }
   t.after(() => { delete globalThis[runtimeKey] })
   const source = await readFile(resolve(src, 'composables/useConfirm.ts'), 'utf8')
   let output = ts.transpileModule(source, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext } }).outputText
   const stubs = {
-    vue: `const runtime = globalThis.${runtimeKey}; export const { ref, onUnmounted, createApp } = runtime; export const reactive = value => value`,
-    '@fortawesome/fontawesome-svg-core': 'export const library = { add() {} }',
-    '@fortawesome/free-solid-svg-icons': 'export const faCheck = {}, faExclamationTriangle = {}, faTrash = {}, faInfo = {}',
-    '@fortawesome/vue-fontawesome': 'export const FontAwesomeIcon = {}'
+    '@/utils/confirm': `export default () => globalThis.${runtimeKey}.result === 'cancel' ? Promise.reject('cancel') : Promise.resolve('confirm')`
   }
   for (const [specifier, stub] of Object.entries(stubs)) output = output.replaceAll(`'${specifier}'`, JSON.stringify('data:text/javascript,' + encodeURIComponent(stub)))
-  globalThis.document = { createElement: () => ({ setAttribute() {}, remove() {} }), body: { appendChild() {} } }
-  t.after(() => { delete globalThis.document })
   const { useConfirm } = await import('data:text/javascript;base64,' + Buffer.from(output).toString('base64'))
-  for (const [action, expected] of [['handleCancel', false], ['handleConfirm', true]]) {
-    const result = useConfirm().showConfirm({ title: '测试确认', message: '仅内存测试' })
-    await new Promise(resolve => setImmediate(resolve))
-    controls[action]()
-    assert.equal(await result, expected)
+  for (const [result, expected] of [['cancel', false], ['confirm', true]]) {
+    globalThis[runtimeKey].result = result
+    assert.equal(
+      await useConfirm().showConfirm({ title: '测试确认', message: '仅内存测试' }),
+      expected
+    )
   }
 })

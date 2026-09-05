@@ -13,7 +13,7 @@ if [[ ! -d "$BACKEND_DIR" ]]; then
 fi
 
 if [[ ! -x "$PYTHON" ]]; then
-  echo "[ERROR] 未找到后端虚拟环境，请先创建 $BACKEND_DIR/.venv 并安装依赖。"
+  echo "[ERROR] 未找到后端虚拟环境，请先在 $BACKEND_DIR 中运行 uv sync。"
   exit 1
 fi
 

@@ -19,13 +19,6 @@ export const getAllSubjects = () => {
   })
 }
 
-export const getSubjectById = (id: number) => {
-  return request<Subject>({
-    url: `/api/subject/${id}/detail`,
-    method: 'post'
-  })
-}
-
 export const createSubject = (data: SubjectCreateRequest) => {
   return request<Subject>({
     url: '/api/subject',

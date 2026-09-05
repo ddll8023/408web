@@ -37,7 +37,7 @@
  * 遵循KISS原则：功能简单清晰
  * 
  * Source: @kangc/v-md-editor 官方文档
- * KaTeX配置：markdown-it-katex 插件
+ * KaTeX 由右侧 MarkdownViewer 统一预处理
  */
 import { ref, watch, onMounted, onUnmounted } from 'vue'
 import { uploadImage, getImageUrl } from '@/api/upload'
@@ -263,7 +263,7 @@ const uploadImageFile = async (file: File, editor: EditorInstance) => {
     
     return true
   } catch (error) {
-    // 错误已由 request.js 的拦截器统一处理（显示 ElMessage）
+    // 错误已由 request.ts 的拦截器统一处理（显示 ElMessage）
     console.error('图片上传失败:', error)
     return false
   }
@@ -530,4 +530,3 @@ onUnmounted(() => {
   border-radius: 4px;
 }
 </style>
-

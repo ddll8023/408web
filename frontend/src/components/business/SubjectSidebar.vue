@@ -202,9 +202,7 @@ const toggleCategoryExpand = (categoryId: number) => {
   }
 }
 
-/**
- * 获取分类树（兼容旧版字符串数组和新版对象数组）
- */
+/** 获取当前科目的分类树。 */
 const getCategoryTree = (subjectId: number) => {
   const cats = props.subjectCategories[subjectId]
   if (!cats || !Array.isArray(cats)) return []

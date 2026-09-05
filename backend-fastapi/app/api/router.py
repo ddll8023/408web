@@ -1,9 +1,9 @@
 """
-API 路由模块 v1
+API 路由聚合模块
 所有 API 路由在此注册
 """
 from fastapi import APIRouter
-from app.api.v1 import auth, subject, chapter, exam_category, exam, mock, upload
+from app.api import auth, subject, chapter, exam_category, exam, mock, upload
 
 router = APIRouter()
 
