@@ -225,6 +225,11 @@ watch(() => props.activeYear, (newYear) => {
 /* 年份列表滚动容器 - 使用Tailwind类名在template中已实现 */
 
 /* 自定义滚动条 */
+.year-list-scroll {
+  /* 预留滚动条槽位，展开年份时不改变内容可用宽度 */
+  scrollbar-gutter: stable;
+}
+
 .year-list-scroll::-webkit-scrollbar {
   width: 4px;
   height: 4px;
@@ -338,4 +343,3 @@ watch(() => props.activeYear, (newYear) => {
   }
 }
 </style>
-

@@ -19,7 +19,7 @@
 - **Vite 7** - 现代化构建工具
 - **Pinia** - 状态管理
 - **Vue Router 4** - 路由管理
-- **Element Plus** - Vue 3 UI组件库
+- **项目自定义基础组件** - 按钮、表单、弹窗、提示和数据展示组件
 - **Axios** - HTTP客户端
 - **@kangc/v-md-editor** - Markdown编辑器
 - **KaTeX** - 数学公式渲染

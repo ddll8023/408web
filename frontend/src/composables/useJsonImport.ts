@@ -4,7 +4,8 @@
  */
 import { validateImportedQuestion } from './questionFormTypes'
 import { ref } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { alert as showAlert } from '@/utils/confirm'
+import { toast } from '@/utils/toast'
 
 /**
  * 创建JSON导入功能
@@ -153,21 +154,21 @@ export function useJsonImport() {
   const handlePasteJson = async () => {
     try {
       if (!(navigator && navigator.clipboard && window.isSecureContext)) {
-        ElMessage.warning('当前环境不支持从剪贴板读取，请手动粘贴')
+        toast.warning('当前环境不支持从剪贴板读取，请手动粘贴')
         return
       }
 
       const text = await navigator.clipboard.readText()
       if (!text) {
-        ElMessage.warning('剪贴板中没有文本内容')
+        toast.warning('剪贴板中没有文本内容')
         return
       }
 
       jsonInput.value = text
-      ElMessage.success('已从剪贴板粘贴到JSON输入框')
+      toast.success('已从剪贴板粘贴到JSON输入框')
     } catch (error) {
       console.error('粘贴失败:', error)
-      ElMessage.error('粘贴失败，请手动粘贴')
+      toast.error('粘贴失败，请手动粘贴')
     }
   }
 
@@ -181,7 +182,7 @@ export function useJsonImport() {
   /**
    * 显示JSON格式示例
    */
-  const showJsonExample = (type: 'exam' | 'mock' | 'exercise' = 'exam') => {
+  const showJsonExample = async (type: 'exam' | 'mock' | 'exercise' = 'exam') => {
     const examples: Record<'exam' | 'mock' | 'exercise', { choice: string; essay?: string }> = {
       exam: {
         choice: `{
@@ -242,17 +243,14 @@ export function useJsonImport() {
     }
 
     const example = examples[type] || examples.exam
-    const content = example.choice + (example.essay ? `\n\n<strong>主观题示例：</strong>\n${example.essay}` : '')
+    const content = example.choice + (example.essay ? `\n\n主观题示例：\n${example.essay}` : '')
 
-    ElMessageBox.alert(
-      `<div style="font-family: monospace; white-space: pre-wrap; font-size: 12px; max-height: 400px; overflow: auto;"><strong>选择题示例：</strong>\n${content}</div>`,
-      'JSON格式示例',
-      {
-        dangerouslyUseHTMLString: true,
-        confirmButtonText: '知道了',
-        customClass: 'json-example-dialog'
-      }
-    )
+    await showAlert({
+      title: 'JSON格式示例',
+      message: `选择题示例：\n${content}`,
+      confirmText: '知道了',
+      type: 'info'
+    })
   }
 
   return {

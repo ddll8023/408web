@@ -52,19 +52,21 @@
         </CustomButton>
       </div>
 
-      <Transition name="answer-expand" mode="out-in">
-        <div v-if="showAnswer" key="content" class="answer-content p-4 bg-white rounded shadow-sm overflow-hidden">
-          <MarkdownViewer
-            :content="exam?.answer || ''"
-            variant="plain"
-            :max-image-height="maxImageHeight"
-          />
-        </div>
-        <div v-else key="placeholder" class="answer-placeholder flex items-center justify-center gap-2 p-6 bg-white/80 rounded border-2 border-dashed border-gray-300 text-gray-400 text-sm">
-          <font-awesome-icon :icon="['fas', 'lock']" />
-          <span>答案已隐藏，点击上方按钮显示</span>
-        </div>
-      </Transition>
+      <div ref="answerTransitionContainer" class="answer-transition-container">
+        <Transition name="answer-expand">
+          <div v-if="showAnswer" key="content" class="answer-content p-4 bg-white rounded shadow-sm overflow-hidden">
+            <MarkdownViewer
+              :content="exam?.answer || ''"
+              variant="plain"
+              :max-image-height="maxImageHeight"
+            />
+          </div>
+          <div v-else key="placeholder" class="answer-placeholder flex items-center justify-center gap-2 p-6 bg-white/80 rounded border-2 border-dashed border-gray-300 text-gray-400 text-sm">
+            <font-awesome-icon :icon="['fas', 'lock']" />
+            <span>答案已隐藏，点击上方按钮显示</span>
+          </div>
+        </Transition>
+      </div>
     </div>
   </div>
 
@@ -77,12 +79,13 @@ import type { ExamQuestion, MockQuestion } from '@/types'
  * 通用题目卡片组件（紧凑样式）
  * 用途：统一渲染题干、选项与答案区域，替换各页面重复模板
  * 设计：遵循 KISS/YAGNI/SOLID（单一职责：渲染题目与答案）
- * Source: Element Plus 官方文档；@kangc/v-md-editor 官方文档
+ * Source: @kangc/v-md-editor 官方文档
  */
 import { parseOptions } from '@/composables/questionFormTypes'
-import { computed, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import MarkdownViewer from '@/components/basic/MarkdownViewer.vue'
 import CustomButton from '@/components/basic/CustomButton.vue'
+import { useToast } from '@/composables/useToast'
 
 /**
  * Props
@@ -101,32 +104,7 @@ const props = defineProps({
 })
 
 const emit = defineEmits<{ 'toggle-answer': []; answered: [payload: { optionKey: string; correct: boolean }] }>()
-
-/**
- * 显示提示消息
- */
-const showToast = (message: string, type: 'success' | 'error' = 'success') => {
-  const colors = {
-    success: 'bg-green-500',
-    error: 'bg-red-500'
-  }
-  const toast = document.createElement('div')
-  toast.className = `fixed top-4 right-4 ${colors[type]} text-white px-4 py-2 rounded-lg shadow-lg z-50 transition-opacity duration-300`
-  toast.textContent = message
-  document.body.appendChild(toast)
-
-  // 动画淡入
-  requestAnimationFrame(() => {
-    toast.classList.add('opacity-100')
-  })
-
-  // 1.5秒后移除
-  setTimeout(() => {
-    toast.classList.remove('opacity-100')
-    toast.classList.add('opacity-0')
-    setTimeout(() => toast.remove(), 300)
-  }, 1500)
-}
+const { showToast } = useToast()
 
 /**
  * 计算图片最大高度
@@ -142,12 +120,102 @@ const maxImageHeight = computed(() => {
 const selectedOption = ref<string | null>(null)
 
 /**
+ * 外层容器统一承接答案区域的高度变化，避免旧内容和新占位各自从 0 过渡，
+ * 导致收缩时先塌陷再补回一小段高度。
+ */
+const answerTransitionContainer = ref<HTMLElement | null>(null)
+const answerTransitionDuration = 280
+let answerTransitionSequence = 0
+let answerTransitionFrame: number | null = null
+let answerTransitionTimer: number | null = null
+let answerTransitionEndHandler: ((event: TransitionEvent) => void) | null = null
+
+const stopAnswerTransition = () => {
+  const container = answerTransitionContainer.value
+
+  if (answerTransitionFrame !== null) {
+    cancelAnimationFrame(answerTransitionFrame)
+    answerTransitionFrame = null
+  }
+
+  if (answerTransitionTimer !== null) {
+    window.clearTimeout(answerTransitionTimer)
+    answerTransitionTimer = null
+  }
+
+  if (container && answerTransitionEndHandler) {
+    container.removeEventListener('transitionend', answerTransitionEndHandler)
+  }
+  answerTransitionEndHandler = null
+}
+
+const measureNaturalHeight = (container: HTMLElement): number => {
+  const previousHeight = container.style.height
+  container.style.height = 'auto'
+  const naturalHeight = container.getBoundingClientRect().height
+  container.style.height = previousHeight
+  return naturalHeight
+}
+
+const animateAnswerContainer = async () => {
+  const container = answerTransitionContainer.value
+  if (!container) return
+
+  const startHeight = container.getBoundingClientRect().height
+  const sequence = ++answerTransitionSequence
+
+  stopAnswerTransition()
+  container.style.height = `${startHeight}px`
+
+  await nextTick()
+
+  if (sequence !== answerTransitionSequence || answerTransitionContainer.value !== container) {
+    return
+  }
+
+  const targetHeight = measureNaturalHeight(container)
+  // 确保浏览器先提交起始高度，再开始向目标高度过渡。
+  void container.offsetHeight
+
+  const finish = () => {
+    if (sequence !== answerTransitionSequence) return
+
+    stopAnswerTransition()
+    container.style.removeProperty('height')
+  }
+
+  answerTransitionEndHandler = (event: TransitionEvent) => {
+    if (event.target === container && event.propertyName === 'height') {
+      finish()
+    }
+  }
+  container.addEventListener('transitionend', answerTransitionEndHandler)
+
+  answerTransitionFrame = requestAnimationFrame(() => {
+    answerTransitionFrame = null
+    if (sequence === answerTransitionSequence) {
+      container.style.height = `${targetHeight}px`
+    }
+  })
+
+  // 没有 transitionend 时也能恢复 auto，避免容器长期保持固定高度。
+  answerTransitionTimer = window.setTimeout(finish, answerTransitionDuration + 80)
+}
+
+onBeforeUnmount(() => {
+  answerTransitionSequence += 1
+  stopAnswerTransition()
+})
+
+/**
  * 监听 showAnswer 变化，当答案隐藏时重置选中状态
  */
 watch(() => props.showAnswer, (newVal) => {
   if (!newVal) {
     selectedOption.value = null
   }
+
+  void animateAnswerContainer()
 })
 
 /**
@@ -258,32 +326,43 @@ const correctOptionKeys = computed(() => {
 /* ==================== 答案展开/收起过渡动画 ==================== */
 .answer-expand-enter-active,
 .answer-expand-leave-active {
-  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  transition:
+    opacity 0.18s ease-out,
+    transform 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: opacity, transform;
+}
+
+.answer-transition-container {
+  position: relative;
   overflow: hidden;
+  transition: height 0.28s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-.answer-expand-enter-from {
-  opacity: 0;
-  transform: translateY(-12px);
-  max-height: 0;
+.answer-expand-leave-active {
+  position: absolute;
+  inset: 0 0 auto;
+  width: 100%;
+  pointer-events: none;
 }
 
-.answer-expand-enter-to {
-  opacity: 1;
-  transform: translateY(0);
-  max-height: 1000px;
-}
-
-.answer-expand-leave-from {
-  opacity: 1;
-  transform: translateY(0);
-  max-height: 1000px;
-}
-
+.answer-expand-enter-from,
 .answer-expand-leave-to {
   opacity: 0;
   transform: translateY(-8px);
-  max-height: 0;
+}
+
+.answer-expand-enter-to,
+.answer-expand-leave-from {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .answer-transition-container,
+  .answer-expand-enter-active,
+  .answer-expand-leave-active {
+    transition-duration: 0.01s;
+  }
 }
 
 /* 题目卡片（白色） - 使用Tailwind类名在template中已实现 */
@@ -539,5 +618,3 @@ const correctOptionKeys = computed(() => {
   }
 }
 </style>
-
-

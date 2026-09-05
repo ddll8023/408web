@@ -1,6 +1,7 @@
 import { createApp } from 'vue'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import Confirm from '@/components/basic/Confirm.vue'
+import type { ConfirmOptions } from '@/components/basic/Confirm.vue'
 
 let confirmInstance: InstanceType<typeof Confirm> | null = null
 
@@ -15,27 +16,60 @@ const getConfirmInstance = () => {
   return confirmInstance
 }
 
-export const confirm = (message: string, title = '提示', options: { confirmButtonText?: string; cancelButtonText?: string; type?: string } = {}) => {
-  return new Promise<string>((resolve, reject) => {
+type LegacyConfirmOptions = {
+  confirmButtonText?: string
+  cancelButtonText?: string
+  type?: ConfirmOptions['type']
+}
+type ConfirmInput = ConfirmOptions | string
+
+const normalizeOptions = (
+  input: ConfirmInput,
+  title?: string,
+  options: LegacyConfirmOptions = {}
+): ConfirmOptions => {
+  if (typeof input !== 'string') return input
+
+  return {
+    message: input,
+    title: title ?? '提示',
+    confirmText: options.confirmButtonText ?? '确定',
+    cancelText: options.cancelButtonText ?? '取消',
+    type: options.type ?? 'warning'
+  }
+}
+
+export function confirm(options: ConfirmOptions): Promise<boolean>
+export function confirm(message: string, title?: string, options?: LegacyConfirmOptions): Promise<boolean>
+export function confirm(
+  input: ConfirmInput,
+  title?: string,
+  options: LegacyConfirmOptions = {}
+): Promise<boolean> {
+  return new Promise(resolve => {
     const instance = getConfirmInstance()
 
-    // 调用 show 方法传递选项和回调
     instance.show(
-      {
-        message,
-        title,
-        confirmText: options.confirmButtonText || '确定',
-        cancelText: options.cancelButtonText || '取消',
-        type: options.type || 'warning'
-      },
-      // onConfirm
-      () => {
-        resolve('confirm')
-      },
-      // onCancel
-      () => {
-        reject('cancel')
-      }
+      normalizeOptions(input, title, options),
+      () => resolve(true),
+      () => resolve(false)
+    )
+  })
+}
+
+export function alert(options: ConfirmOptions): Promise<void>
+export function alert(message: string, title?: string, options?: LegacyConfirmOptions): Promise<void>
+export function alert(
+  input: ConfirmInput,
+  title?: string,
+  options: LegacyConfirmOptions = {}
+): Promise<void> {
+  return new Promise(resolve => {
+    const instance = getConfirmInstance()
+    instance.show(
+      { ...normalizeOptions(input, title, options), mode: 'alert' },
+      resolve,
+      resolve
     )
   })
 }

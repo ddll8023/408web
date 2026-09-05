@@ -51,7 +51,7 @@
 <script setup lang="ts">
 /**
  * CustomInput 自定义输入框组件
- * 功能：替代 Element Plus 的 el-input，支持密码显示切换、清空按钮、错误提示
+ * 功能：提供项目自有输入框，支持密码显示切换、清空按钮和错误提示
  * 遵循 KISS 原则：简洁实现，只包含必需功能
  * 遵循 YAGNI 原则：只实现项目实际使用的 props
  */

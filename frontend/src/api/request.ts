@@ -8,7 +8,7 @@
 import axios, { type AxiosRequestConfig, type AxiosResponse } from 'axios'
 import type { ApiResponse } from '@/types'
 import { getToken, removeToken } from '@/utils/token'
-import { ElMessage } from 'element-plus'
+import { toast } from '@/utils/toast'
 import { convertKeysToCamel } from '@/utils/convertKeys'
 
 // 创建axios实例
@@ -52,11 +52,11 @@ client.interceptors.response.use(
 
     const res: unknown = response.data
     if (!isApiResponse(res)) {
-      ElMessage.error('响应格式错误')
+      toast.error('响应格式错误')
       return Promise.reject(new Error('响应格式错误'))
     }
     if (res.code !== 200) {
-      ElMessage.error(res.message || '请求失败')
+      toast.error(res.message || '请求失败')
       return Promise.reject(new Error(res.message || '请求失败'))
     }
     response.data = { ...res, data: convertKeysToCamel(res.data) }
@@ -76,30 +76,30 @@ client.interceptors.response.use(
         case 401:
           // 登录接口凭证错误：展示后端消息，不清除 Token、不跳转
           if (reqUrl.includes('/api/auth/login') && reqMethod === 'post') {
-            ElMessage.error(message || '用户名或密码错误')
+            toast.error(message || '用户名或密码错误')
           } else {
             // 其他接口 401：按过期处理
-            ElMessage.error('登录已过期，请重新登录')
+            toast.error('登录已过期，请重新登录')
             removeToken()
             // 跳转到登录页
             window.location.href = '/login'
           }
           break
         case 403:
-          ElMessage.error('没有权限访问')
+          toast.error('没有权限访问')
           break
         case 404:
-          ElMessage.error('请求的资源不存在')
+          toast.error('请求的资源不存在')
           break
         case 500:
           // 展示后端返回的业务错误消息（如重复校验失败等），而非笼统的"服务器错误"
-          ElMessage.error(message || '服务器错误')
+          toast.error(message || '服务器错误')
           break
         default:
-          ElMessage.error(message)
+          toast.error(message)
       }
     } else {
-      ElMessage.error('网络错误，请检查网络连接')
+      toast.error('网络错误，请检查网络连接')
     }
 
     return Promise.reject(error)
@@ -124,4 +124,3 @@ export default async function request<T>(config: JsonRequestConfig): Promise<Api
 export function requestBlob(config: AxiosRequestConfig): Promise<AxiosResponse<Blob>> {
   return client.request<Blob>({ ...config, responseType: 'blob' })
 }
-

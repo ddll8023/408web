@@ -434,7 +434,7 @@ const handleEditSuccess = () => {
  */
 const handleDelete = async (row: QuestionRow) => {
   try {
-    // 使用自定义Confirm替代ElMessageBox
+    // 使用项目自定义 Confirm
     const confirmed = await showConfirm({
       title: '确认删除',
       message: `确定要删除模拟题"${row.title || row.source + ' 第' + row.questionNumber + '题'}"吗？`,

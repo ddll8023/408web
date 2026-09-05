@@ -21,8 +21,8 @@ async function moduleUrl(path) {
   const imports = [...output.matchAll(/from ['"]([^'"]+)['"]/g)]
   for (const [, specifier] of imports) {
     let url
-    if (specifier === 'element-plus') {
-      url = 'data:text/javascript,' + encodeURIComponent('export const ElMessage = { error: message => globalThis.__apiTestMessages.push(message) }')
+    if (specifier === '@/utils/toast') {
+      url = 'data:text/javascript,' + encodeURIComponent('export const toast = { error: message => globalThis.__apiTestMessages.push(message) }')
     } else if (specifier.startsWith('@/') || specifier.startsWith('.')) {
       url = await moduleUrl((specifier.startsWith('@/') ? resolve(src, specifier.slice(2)) : resolve(dirname(path), specifier)) + '.ts')
     } else {

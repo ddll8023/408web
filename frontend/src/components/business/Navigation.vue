@@ -85,8 +85,7 @@
  * 顶部导航栏组件
  * 功能：统一的导航菜单、用户信息展示、路由跳转
  * 遵循KISS原则：简洁的导航栏设计
- * 使用自定义Button组件替代Element Plus
- * 使用自定义Dropdown组件替代Element Plus
+ * 使用项目自定义 Button 和 Dropdown 组件
  */
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
@@ -94,9 +93,11 @@ import { useAuthStore } from '@/stores/auth'
 import CustomButton from '@/components/basic/CustomButton.vue'
 import Dropdown from '@/components/basic/Dropdown.vue'
 import Select from '@/components/basic/Select.vue'
+import { useToast } from '@/composables/useToast'
 
 const router = useRouter()
 const authStore = useAuthStore()
+const { showToast } = useToast()
 
 // 搜索类型选项
 const searchTypeOptions = [
@@ -107,34 +108,6 @@ const searchTypeOptions = [
 // 搜索相关状态
 const searchType = ref<'exam' | 'mock'>('exam')  // 默认搜索真题
 const searchKeyword = ref('')
-
-/**
- * 显示消息提示
- * @param {string} message - 提示消息
- * @param {string} type - 消息类型 success/warning/error/info
- */
-const showToast = (message: string, type: 'success' | 'warning' | 'error' | 'info' = 'warning') => {
-  const colors = {
-    success: 'bg-green-500',
-    warning: 'bg-yellow-500',
-    error: 'bg-red-500',
-    info: 'bg-blue-500'
-  }
-
-  const toast = document.createElement('div')
-  toast.className = `fixed top-20 right-4 ${colors[type]} text-white px-4 py-2 rounded-lg shadow-lg z-[9999] transition-opacity duration-300`
-  toast.textContent = message
-  document.body.appendChild(toast)
-
-  requestAnimationFrame(() => {
-    toast.classList.remove('opacity-0')
-  })
-
-  setTimeout(() => {
-    toast.classList.add('opacity-0')
-    setTimeout(() => toast.remove(), 300)
-  }, 3000)
-}
 
 /**
  * 处理搜索
@@ -416,4 +389,3 @@ const handleLogout = () => {
   }
 }
 </style>
-

@@ -266,13 +266,13 @@ import type { PropType } from 'vue'
  * 功能：创建和编辑模拟题题目，支持选择题和主观题两种题型
  * 遵循原则：KISS（保持简洁）、YAGNI（不会需要）
  * 依赖：MarkdownEditor、CustomButton、InputSelect、Select、FormLabel、MultiSelectCascader 基础组件
- * 依赖：useQuestionForm、useJsonImport composables
+ * 依赖：useQuestionForm、useJsonImport、useToast composables
  */
 import { ref, reactive, computed, watch } from 'vue'
-import { ElMessage } from 'element-plus'
 import { getMockQuestionById, updateMockQuestion, createMockQuestion, getAllMockSources, getMockTitlesBySource } from '@/api/mock'
 import { useQuestionForm } from '@/composables/useQuestionForm'
 import { useJsonImport } from '@/composables/useJsonImport'
+import { useToast } from '@/composables/useToast'
 import MarkdownEditor from '@/components/basic/MarkdownEditor.vue'
 import CustomButton from '@/components/basic/CustomButton.vue'
 import InputSelect from '@/components/basic/InputSelect.vue'
@@ -298,7 +298,7 @@ const isEditMode = computed(() => !!props.mockData || !!props.mockId)
 
 // 使用公共 composable
 const {
-  formRef, form, loading, saving,
+  form, loading, saving,
   subjectOptions, categoryTreeOptions, baseFormRules,
   resetForm, loadSubjectOptions,
   handleSubjectChange, handleQuestionTypeChange,
@@ -306,6 +306,8 @@ const {
 } = useQuestionForm({
   extraFields: { source: '', questionNumber: null }
 })
+
+const { showToast } = useToast()
 
 const {
   jsonInput,
@@ -343,20 +345,20 @@ const titleOptions = ref<string[]>([])
 // 表单验证规则（简化版：手动验证）
 const validateForm = () => {
   if (!form.questionType) {
-    ElMessage.warning('请选择题型')
+    showToast('请选择题型', 'warning')
     return false
   }
   if (!form.source) {
-    ElMessage.warning('请选择或输入来源')
+    showToast('请选择或输入来源', 'warning')
     return false
   }
   if (!form.content) {
-    ElMessage.warning('请输入题目内容')
+    showToast('请输入题目内容', 'warning')
     return false
   }
   if (form.questionType === 'CHOICE') {
     if (!form.optionA || !form.optionB || !form.optionC || !form.optionD) {
-      ElMessage.warning('请完善选择题选项')
+      showToast('请完善选择题选项', 'warning')
       return false
     }
   }
@@ -387,10 +389,10 @@ const loadMockData = async (id: number | string | null) => {
       form.source = data.source || ''
       form.questionNumber = data.questionNumber ?? null
     } else {
-      ElMessage.error(response.message || '加载失败')
+      showToast(response.message || '加载失败', 'error')
     }
   } catch (error) {
-    ElMessage.error('加载模拟题数据失败')
+    showToast('加载模拟题数据失败', 'error')
     console.error('加载模拟题数据失败:', error)
   } finally {
     loading.value = false
@@ -460,7 +462,7 @@ watch(() => form.source, async (newSource) => {
 // 解析JSON并填充表单
 const handleParseJson = async () => {
   if (!jsonInput.value.trim()) {
-    ElMessage.warning('请先粘贴JSON数据')
+    showToast('请先粘贴JSON数据', 'warning')
     return
   }
 
@@ -469,7 +471,7 @@ const handleParseJson = async () => {
 
     // 宽松验证：仅验证questionType格式（如果提供）
     if (data.questionType && !['CHOICE', 'ESSAY'].includes(data.questionType)) {
-      ElMessage.error('questionType必须是CHOICE或ESSAY')
+      showToast('questionType必须是CHOICE或ESSAY', 'error')
       return
     }
 
@@ -478,10 +480,10 @@ const handleParseJson = async () => {
     form.questionNumber = data.questionNumber || null
 
 
-    ElMessage.success('JSON解析成功，已填充到表单')
+    showToast('JSON解析成功，已填充到表单', 'success')
     jsonImportVisible.value = false
   } catch (e) {
-    ElMessage.error('JSON格式错误：' + (e instanceof Error ? e.message : String(e)))
+    showToast('JSON格式错误：' + (e instanceof Error ? e.message : String(e)), 'error')
   }
 }
 
@@ -508,14 +510,14 @@ const handleSubmit = async () => {
     }
 
     if (response.code === 200) {
-      ElMessage.success(isEditMode.value ? '更新成功' : '创建成功')
+      showToast(isEditMode.value ? '更新成功' : '创建成功', 'success')
       emit('success', response.data || null)
       dialogVisible.value = false
     } else {
-      ElMessage.error(response.message || (isEditMode.value ? '更新失败' : '创建失败'))
+      showToast(response.message || (isEditMode.value ? '更新失败' : '创建失败'), 'error')
     }
   } catch (error) {
-    ElMessage.error(isEditMode.value ? '更新失败' : '创建失败')
+    showToast(isEditMode.value ? '更新失败' : '创建失败', 'error')
     console.error('提交失败:', error)
   } finally {
     saving.value = false

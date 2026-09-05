@@ -62,7 +62,7 @@ import type { PropType } from 'vue'
 import type { SelectInput, SelectOption, OptionValue } from './types'
 /**
  * 自定义可输入下拉选择组件
- * 功能：替代Element Plus Select，支持下拉选择和手动输入
+ * 功能：提供支持下拉选择和手动输入的选择控件
  * 遵循KISS原则：原生实现，无重依赖
  */
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'

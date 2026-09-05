@@ -257,6 +257,11 @@ const collapseAll = () => {
 }
 
 /* 自定义滚动条 */
+.sidebar-scroll {
+  /* 预留滚动条槽位，展开分类时不改变内容可用宽度 */
+  scrollbar-gutter: stable;
+}
+
 .custom-scrollbar::-webkit-scrollbar {
   width: 6px;
 }

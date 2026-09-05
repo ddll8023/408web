@@ -18,8 +18,10 @@ async function moduleUrl(path) {
   let output = ts.transpileModule(source, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext } }).outputText
   for (const [, specifier] of [...output.matchAll(/from ['"]([^'"]+)['"]/g)]) {
     let url
-    if (specifier === 'element-plus') {
-      url = 'data:text/javascript,' + encodeURIComponent('export const ElMessage = { warning() {}, error() {}, success() {} }; export const ElMessageBox = { alert() {} }')
+    if (specifier === '@/utils/toast') {
+      url = 'data:text/javascript,' + encodeURIComponent('export const toast = { warning() {}, error() {}, success() {}, info() {} }')
+    } else if (specifier === '@/utils/confirm') {
+      url = 'data:text/javascript,' + encodeURIComponent('export const alert = async () => {}; export default async () => true')
     } else if (specifier === './useSubjects') {
       url = 'data:text/javascript,' + encodeURIComponent('export function useSubjects() { return { subjectOptions: [], loadSubjectOptions: async () => {} } }')
     } else if (specifier === '@/api/category') {
@@ -119,7 +121,7 @@ test('确认框取消明确返回 false，确认返回 true', async t => {
   const source = await readFile(resolve(src, 'composables/useConfirm.ts'), 'utf8')
   let output = ts.transpileModule(source, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext } }).outputText
   const stubs = {
-    '@/utils/confirm': `export default () => globalThis.${runtimeKey}.result === 'cancel' ? Promise.reject('cancel') : Promise.resolve('confirm')`
+    '@/utils/confirm': `export default () => Promise.resolve(globalThis.${runtimeKey}.result === 'confirm')`
   }
   for (const [specifier, stub] of Object.entries(stubs)) output = output.replaceAll(`'${specifier}'`, JSON.stringify('data:text/javascript,' + encodeURIComponent(stub)))
   const { useConfirm } = await import('data:text/javascript;base64,' + Buffer.from(output).toString('base64'))

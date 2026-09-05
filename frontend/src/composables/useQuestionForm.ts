@@ -2,7 +2,6 @@
  * 题目表单公共逻辑 composable
  * 抽取真题/模拟题编辑弹窗的公共逻辑
  */
-import type { FormInstance } from 'element-plus'
 import type { CategoryTreeNode, QuestionCreateFields } from '@/types'
 import type { QuestionForm, QuestionFormData } from './questionFormTypes'
 import { parseOptions } from './questionFormTypes'
@@ -20,7 +19,6 @@ export function useQuestionForm(options: { extraFields?: Partial<QuestionForm> }
   const { extraFields = {} } = options
 
   // 基础状态
-  const formRef = ref<FormInstance | null>(null)
   const loading = ref(false)
   const saving = ref(false)
 
@@ -305,18 +303,8 @@ export function useQuestionForm(options: { extraFields?: Partial<QuestionForm> }
     return data
   }
 
-  /**
-   * 验证表单
-   * @returns {Promise<boolean>} 验证结果
-   */
-  const validateForm = async () => {
-    if (!formRef.value) return false
-    return formRef.value.validate().catch(() => false)
-  }
-
   return {
     // 状态
-    formRef,
     form,
     loading,
     saving,
@@ -333,7 +321,6 @@ export function useQuestionForm(options: { extraFields?: Partial<QuestionForm> }
     handleSubjectChange,
     handleQuestionTypeChange,
     fillFormFromData,
-    buildSubmitData,
-    validateForm
+    buildSubmitData
   }
 }

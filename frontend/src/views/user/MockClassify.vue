@@ -107,12 +107,12 @@ import { errorMessage } from "@/utils/errors"
  */
 import { ref, onMounted, computed, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
-import { ElMessageBox } from 'element-plus'
 import { getEnabledSubjects } from '@/api/subject'
 import { getMockQuestions, deleteMockQuestion, getMockSubjectStats } from '@/api/mock'
 import { getEnabledCategoryTreeBySubjectWithStats } from '@/api/category'
 import { useAuthStore } from '@/stores/auth'
 import { useToast } from '@/composables/useToast'
+import { useConfirm } from '@/composables/useConfirm'
 import CustomButton from '@/components/basic/CustomButton.vue'
 import Tag from '@/components/basic/Tag.vue'
 import Select from '@/components/basic/Select.vue'
@@ -126,6 +126,7 @@ import { getDifficultyLabel, getDifficultyType } from '@/constants/exam'
 const route = useRoute()
 const authStore = useAuthStore()
 const { showToast } = useToast()
+const { showConfirm } = useConfirm()
 
 // 计算是否为管理员
 const isAdmin = computed(() => authStore.isAdmin())
@@ -774,17 +775,16 @@ const handleEditSuccess = async () => {
 }
 
 const handleDelete = async (id: number) => {
-  try {
-    await ElMessageBox.confirm(
-      '此操作将永久删除该模拟题，是否继续？',
-      '警告',
-      {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'warning'
-      }
-    )
+  const confirmed = await showConfirm({
+    message: '此操作将永久删除该模拟题，是否继续？',
+    title: '警告',
+    confirmText: '确定',
+    cancelText: '取消',
+    type: 'warning'
+  })
+  if (!confirmed) return
 
+  try {
     const response = await deleteMockQuestion(id)
     if (response.code === 200) {
       showToast('删除成功', 'success')
@@ -793,10 +793,8 @@ const handleDelete = async (id: number) => {
       showToast(response.message || '删除失败', 'error')
     }
   } catch (error) {
-    if (error !== 'cancel') {
-      // 错误消息已由axios拦截器统一处理
-      console.error('删除失败:', error)
-    }
+    // 错误消息已由axios拦截器统一处理
+    console.error('删除失败:', error)
   }
 }
 </script>

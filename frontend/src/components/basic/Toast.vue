@@ -5,9 +5,12 @@
         v-if="visible"
         class="fixed top-4 left-1/2 transform -translate-x-1/2 z-[9999] px-4 py-3 rounded-lg shadow-lg text-white text-sm font-medium"
         :class="typeClass"
+        :role="type === 'error' ? 'alert' : 'status'"
+        :aria-live="type === 'error' ? 'assertive' : 'polite'"
+        aria-atomic="true"
       >
         <div class="flex items-center gap-2">
-          <font-awesome-icon :icon="icon" />
+          <font-awesome-icon :icon="icon" aria-hidden="true" />
           <span>{{ message }}</span>
         </div>
       </div>
@@ -20,14 +23,16 @@
  * Toast 消息提示组件
  * 使用单例模式，确保同时只有一个 Toast 显示
  */
-import { ref, computed } from 'vue'
+import { computed, onBeforeUnmount, ref } from 'vue'
+
+type ToastType = 'success' | 'error' | 'warning' | 'info'
 
 const visible = ref(false)
 const message = ref('')
-const type = ref('success')
+const type = ref<ToastType>('success')
 
 const typeClass = computed(() => {
-  const classes: Record<string, string> = {
+  const classes: Record<ToastType, string> = {
     success: 'bg-green-600',
     error: 'bg-red-600',
     warning: 'bg-yellow-600',
@@ -37,7 +42,7 @@ const typeClass = computed(() => {
 })
 
 const icon = computed(() => {
-  const icons: Record<string, string[]> = {
+  const icons: Record<ToastType, string[]> = {
     success: ['fas', 'check-circle'],
     error: ['fas', 'times-circle'],
     warning: ['fas', 'exclamation-circle'],
@@ -48,7 +53,7 @@ const icon = computed(() => {
 
 let timer: ReturnType<typeof setTimeout> | undefined
 
-const show = (msg: string, msgType = 'success', duration = 3000) => {
+const show = (msg: string, msgType: ToastType = 'success', duration = 3000) => {
   message.value = msg
   type.value = msgType
   visible.value = true
@@ -58,6 +63,10 @@ const show = (msg: string, msgType = 'success', duration = 3000) => {
     visible.value = false
   }, duration)
 }
+
+onBeforeUnmount(() => {
+  if (timer) clearTimeout(timer)
+})
 
 defineExpose({ show })
 </script>

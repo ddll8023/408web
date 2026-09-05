@@ -2,10 +2,16 @@
   <teleport to="body">
     <transition name="dialog-fade">
       <dialog
+        ref="dialogRef"
         v-if="visible"
-        class="fixed inset-0 z-50 flex items-start justify-center w-full h-full m-0 p-0 bg-transparent"
+        class="fixed inset-0 z-50 flex items-start justify-center w-full h-full m-0 p-0 border-0 bg-transparent"
         :open="visible"
+        role="dialog"
+        aria-modal="true"
+        :aria-labelledby="title || $slots.title ? titleId : undefined"
+        :aria-label="!title && !$slots.title ? ariaLabel : undefined"
         @click.self="handleBackdropClick"
+        @keydown="handleKeydown"
       >
         <!-- 遮罩层 -->
         <div
@@ -20,11 +26,12 @@
           :style="containerStyle"
         >
           <!-- 头部 -->
-          <div v-if="title || $slots.title" class="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+          <div v-if="title || $slots.title" :id="titleId" class="flex items-center justify-between px-6 py-4 border-b border-gray-200">
             <slot name="title">
-              <h3 class="text-lg font-semibold text-gray-900">{{ title }}</h3>
+              <h2 class="text-lg font-semibold text-gray-900">{{ title }}</h2>
             </slot>
             <button
+              type="button"
               class="p-1 text-gray-400 hover:text-gray-600 transition-colors rounded hover:bg-gray-100"
               @click="handleClose"
               aria-label="关闭"
@@ -34,9 +41,9 @@
           </div>
 
           <!-- 内容区 -->
-          <div class="overflow-y-auto px-6 py-4" :style="contentStyle">
-            <div v-if="loading" class="flex items-center justify-center p-8">
-                            <font-awesome-icon :icon="['fas', 'spinner']" class="fa-spin text-2xl text-primary-600" />
+          <div class="overflow-y-auto px-6 py-4" :style="contentStyle" :aria-busy="loading">
+            <div v-if="loading" class="flex items-center justify-center p-8" role="status" aria-live="polite">
+              <font-awesome-icon :icon="['fas', 'spinner']" class="fa-spin text-2xl text-primary-600" />
               <span class="ml-3 text-gray-500">加载中...</span>
             </div>
             <slot v-else />
@@ -53,7 +60,23 @@
 </template>
 
 <script setup lang="ts">
-import { computed, watch, onMounted, onUnmounted } from 'vue'
+import { computed, nextTick, onUnmounted, ref, watch } from 'vue'
+
+let nextDialogId = 0
+
+const focusableSelector = [
+  'a[href]',
+  'area[href]',
+  'button:not([disabled])',
+  'input:not([disabled])',
+  'select:not([disabled])',
+  'textarea:not([disabled])',
+  'iframe',
+  'object',
+  'embed',
+  '[contenteditable]',
+  '[tabindex]:not([tabindex="-1"])'
+].join(', ')
 
 const props = defineProps({
   visible: {
@@ -63,6 +86,10 @@ const props = defineProps({
   title: {
     type: String,
     default: ''
+  },
+  ariaLabel: {
+    type: String,
+    default: '对话框'
   },
   width: {
     type: String,
@@ -96,6 +123,11 @@ const props = defineProps({
 
 const emit = defineEmits<{ 'update:visible': [value: boolean]; close: [] }>()
 
+const dialogRef = ref<HTMLDialogElement | null>(null)
+const titleId = `dialog-title-${++nextDialogId}`
+let previouslyFocused: HTMLElement | null = null
+let previousBodyOverflow = ''
+
 // 容器样式
 const containerClass = computed(() => {
   return {
@@ -126,29 +158,91 @@ const handleBackdropClick = () => {
   }
 }
 
-// 键盘事件
+const focusableElements = () => {
+  const dialog = dialogRef.value
+  if (!dialog || typeof dialog.querySelectorAll !== 'function') return []
+
+  return Array.from(dialog.querySelectorAll<HTMLElement>(focusableSelector))
+    .filter(element => element.offsetParent !== null || element === document.activeElement)
+}
+
+const focusInitialElement = () => {
+  const dialog = dialogRef.value
+  if (!dialog) return
+
+  const target = focusableElements()[0] || dialog
+  if (target === dialog) dialog.setAttribute('tabindex', '-1')
+  target.focus()
+}
+
+const restoreFocus = () => {
+  const target = previouslyFocused
+  previouslyFocused = null
+  if (target?.isConnected) target.focus()
+}
+
+// 键盘事件：支持 Escape 关闭，并将 Tab 焦点限制在当前弹窗内
 const handleKeydown = (e: KeyboardEvent) => {
-  if (e.key === 'Escape' && props.visible && props.closeOnPressEscape) {
+  if (!props.visible) return
+
+  if (e.key === 'Escape' && props.closeOnPressEscape) {
+    e.preventDefault()
     handleClose()
+    return
+  }
+
+  if (e.key !== 'Tab') return
+
+  const elements = focusableElements()
+  if (elements.length === 0) {
+    e.preventDefault()
+    dialogRef.value?.focus()
+    return
+  }
+
+  const first = elements[0]
+  const last = elements[elements.length - 1]
+  if (e.shiftKey && document.activeElement === first) {
+    e.preventDefault()
+    last.focus()
+  } else if (!e.shiftKey && document.activeElement === last) {
+    e.preventDefault()
+    first.focus()
   }
 }
 
-// 监听 visible 变化，处理 body 滚动锁
-watch(() => props.visible, (val) => {
-  if (val) {
-    document.body.style.overflow = 'hidden'
-  } else {
-    document.body.style.overflow = ''
-  }
-})
+// 监听 visible 变化，处理 body 滚动锁、初始焦点和关闭后的焦点恢复
+const syncVisibility = async (val: boolean) => {
+  if (typeof document === 'undefined') return
+  const body = document.body
 
-onMounted(() => {
-  document.addEventListener('keydown', handleKeydown)
-})
+  if (!body?.style) {
+    if (!val) restoreFocus()
+    return
+  }
+
+  if (val) {
+    previouslyFocused = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    previousBodyOverflow = body.style.overflow
+    body.style.overflow = 'hidden'
+    await nextTick()
+    focusInitialElement()
+  } else {
+    body.style.overflow = previousBodyOverflow
+    previousBodyOverflow = ''
+    restoreFocus()
+  }
+}
+
+watch(() => props.visible, (val) => {
+  void syncVisibility(val)
+}, { immediate: true })
 
 onUnmounted(() => {
-  document.removeEventListener('keydown', handleKeydown)
-  document.body.style.overflow = ''
+  if (typeof document !== 'undefined' && document.body?.style) {
+    document.body.style.overflow = previousBodyOverflow
+  }
+  restoreFocus()
 })
 </script>
 

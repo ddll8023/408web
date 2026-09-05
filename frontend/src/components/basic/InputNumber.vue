@@ -40,7 +40,7 @@
 <script setup lang="ts">
 /**
  * InputNumber 数字输入组件
- * 功能：替代 Element Plus 的 el-input-number，支持数值增减和直接输入
+ * 功能：提供带数值增减和直接输入的数字控件
  * 遵循 KISS 原则：简洁实现，只包含必需功能
  */
 import { ref, watch } from 'vue'

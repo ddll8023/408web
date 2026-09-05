@@ -11,20 +11,12 @@
     </span>
 
     <!-- 图标 -->
-    <template v-if="icon && !loading">
-      <!-- Element Plus 图标组件 -->
-      <component
-        v-if="isElementPlusIcon"
-        :is="icon"
-        class="inline-flex items-center justify-center text-inherit w-[1em] h-[1em]"
-      />
-      <!-- Font Awesome 图标 -->
-      <font-awesome-icon
-        v-else
-        :icon="icon"
-        class="inline-flex items-center justify-center text-inherit w-4 h-4"
-      />
-    </template>
+    <font-awesome-icon
+      v-if="icon && !loading"
+      :icon="icon"
+      class="inline-flex items-center justify-center text-inherit w-4 h-4"
+      aria-hidden="true"
+    />
 
     <!-- 按钮文本 -->
     <span v-if="$slots.default" class="inline-flex items-center">
@@ -36,21 +28,12 @@
 <script setup lang="ts">
 /**
  * 自定义按钮组件
- * 功能：替代Element Plus的el-button，使用自定义样式
+ * 功能：提供统一的自定义按钮样式
  * 遵循KISS原则：简洁实现，只包含必需功能
  * 遵循YAGNI原则：只实现项目实际使用的props
  * 遵循 `规范文档/前端规范文档.md`：使用 baseClasses、sizeClasses、variantClasses 三常量分离模式
  */
-import { computed, type Component, type PropType } from 'vue'
-
-/**
- * 判断是否为 Element Plus 图标组件
- * Font Awesome 图标格式为数组: ['fas', 'icon-name']
- * Element Plus 图标格式为对象（组件）
- */
-const isElementPlusIcon = computed(() => {
-  return props.icon && typeof props.icon === 'object' && !Array.isArray(props.icon)
-})
+import { computed, type PropType } from 'vue'
 
 const props = defineProps({
   // 按钮类型
@@ -70,9 +53,9 @@ const props = defineProps({
     type: Boolean,
     default: false
   },
-  // 图标：支持 Element Plus 图标组件 或 Font Awesome 图标数组 ['fas', 'icon-name']
+  // 图标：Font Awesome 图标数组 ['fas', 'icon-name']
   icon: {
-    type: [Object, Array] as PropType<Component | string[]>,
+    type: Array as PropType<string[]>,
     default: null
   },
   // 是否禁用

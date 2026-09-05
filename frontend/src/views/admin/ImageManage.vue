@@ -84,8 +84,6 @@
       </div>
     </Teleport>
 
-    <!-- Confirm 组件 -->
-    <Confirm ref="confirmRef" />
   </div>
 </template>
 
@@ -105,15 +103,16 @@ import CustomCard from '@/components/basic/CustomCard.vue'
 import Switch from '@/components/basic/Switch.vue'
 import Table from '@/components/basic/Table.vue'
 import Tag from '@/components/basic/Tag.vue'
-import Confirm from '@/components/basic/Confirm.vue'
+import { useToast } from '@/composables/useToast'
+import { useConfirm } from '@/composables/useConfirm'
 
 const images = ref<ImageRow[]>([])
 const loading = ref(false)
 const onlyUnreferenced = ref(false)
 const cleanupLoading = ref(false)
 
-// Confirm 组件引用
-const confirmRef = ref<InstanceType<typeof Confirm> | null>(null)
+const { showToast } = useToast()
+const { showConfirm } = useConfirm()
 
 // 图片预览状态
 const previewVisible = ref(false)
@@ -128,19 +127,6 @@ const tableColumns = [
   { prop: 'exams', label: '引用题目', minWidth: '240px' },
   { prop: 'action', label: '操作', width: '120px', align: 'center' }
 ]
-
-// Toast 提示函数（替代 ElMessage）
-const showToast = (message: string, type = 'success') => {
-  const bgColor = type === 'success' ? 'bg-green-500' : 'bg-red-500'
-  const toast = document.createElement('div')
-  toast.className = `fixed top-4 right-4 ${bgColor} text-white px-4 py-2 rounded-lg shadow-lg z-50 transition-opacity duration-300`
-  toast.textContent = message
-  document.body.appendChild(toast)
-  setTimeout(() => {
-    toast.classList.add('opacity-0')
-    setTimeout(() => toast.remove(), 300)
-  }, 3000)
-}
 
 // 打开预览
 const openPreview = (url: string) => {
@@ -208,60 +194,54 @@ const formatExamLabel = (exam: ImageUsageExam) => {
 }
 
 const handleDelete = async (row: ImageRow) => {
-  confirmRef.value?.show(
-    {
-      title: '提示',
-      message: `确定要删除图片「${row.filename}」吗？`,
-      type: 'warning'
-    },
-    async () => {
-      // 确认回调
-      row.deleteLoading = true
-      try {
-        const res = await deleteImage(row.filename)
-        if (res.code === 200) {
-          showToast('删除成功', 'success')
-          loadImages()
-        } else {
-          showToast(res.message || '删除失败', 'error')
-        }
-      } catch (error) {
-        showToast('删除失败', 'error')
-        console.error(error)
-      } finally {
-        row.deleteLoading = false
-      }
+  const confirmed = await showConfirm({
+    title: '提示',
+    message: `确定要删除图片「${row.filename}」吗？`,
+    type: 'warning'
+  })
+  if (!confirmed) return
+
+  row.deleteLoading = true
+  try {
+    const res = await deleteImage(row.filename)
+    if (res.code === 200) {
+      showToast('删除成功', 'success')
+      await loadImages()
+    } else {
+      showToast(res.message || '删除失败', 'error')
     }
-  )
+  } catch (error) {
+    showToast('删除失败', 'error')
+    console.error(error)
+  } finally {
+    row.deleteLoading = false
+  }
 }
 
 const handleDeleteUnreferenced = async () => {
-  confirmRef.value?.show(
-    {
-      title: '警告',
-      message: '将删除所有当前未被任何题目（真题、模拟题）引用的图片，此操作不可恢复，是否继续？',
-      type: 'danger'
-    },
-    async () => {
-      // 确认回调
-      cleanupLoading.value = true
-      try {
-        const res = await deleteUnreferencedImages()
-        if (res.code === 200) {
-          const count = typeof res.data === 'number' ? res.data : 0
-          showToast(`已删除 ${count} 张未引用图片`, 'success')
-          loadImages()
-        } else {
-          showToast(res.message || '删除未引用图片失败', 'error')
-        }
-      } catch (error) {
-        showToast('删除未引用图片失败', 'error')
-        console.error(error)
-      } finally {
-        cleanupLoading.value = false
-      }
+  const confirmed = await showConfirm({
+    title: '警告',
+    message: '将删除所有当前未被任何题目（真题、模拟题）引用的图片，此操作不可恢复，是否继续？',
+    type: 'danger'
+  })
+  if (!confirmed) return
+
+  cleanupLoading.value = true
+  try {
+    const res = await deleteUnreferencedImages()
+    if (res.code === 200) {
+      const count = typeof res.data === 'number' ? res.data : 0
+      showToast(`已删除 ${count} 张未引用图片`, 'success')
+      await loadImages()
+    } else {
+      showToast(res.message || '删除未引用图片失败', 'error')
     }
-  )
+  } catch (error) {
+    showToast('删除未引用图片失败', 'error')
+    console.error(error)
+  } finally {
+    cleanupLoading.value = false
+  }
 }
 
 onMounted(() => {

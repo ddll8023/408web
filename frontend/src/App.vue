@@ -52,6 +52,14 @@ const showNavigation = computed(() => {
 
 /* 有导航栏时，添加顶部padding */
 .main-content.with-nav {
-  padding-top: 60px; /* $nav-height */
+  position: fixed;
+  top: 60px; /* $nav-height */
+  right: 0;
+  bottom: 0;
+  left: 0;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
 }
 </style>

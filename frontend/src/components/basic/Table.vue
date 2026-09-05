@@ -87,7 +87,7 @@ import { reactive, computed } from 'vue'
 
 /**
  * Table 表格组件
- * 功能：替代 Element Plus 的 el-table，提供基本的表格展示功能
+ * 功能：提供基本的表格展示功能
  * 支持：排序功能、字体大小控制
  * 遵循 KISS 原则：简洁实现，只包含必需功能
  */

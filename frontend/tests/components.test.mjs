@@ -16,7 +16,15 @@ async function loadComponent(name) {
   const { descriptor } = parse(source.replaceAll('<transition ', '<test-transition ').replaceAll('</transition>', '</test-transition>'))
   const compiled = compileScript(descriptor, { id: name, inlineTemplate: true })
   const { code } = await transform(compiled.content, { loader: 'ts', format: 'esm' })
-  const module = await import(`data:text/javascript;base64,${Buffer.from(code.replaceAll('from "vue"', `from ${JSON.stringify(vueUrl)}`).replaceAll("from 'vue'", `from ${JSON.stringify(vueUrl)}`)).toString('base64')}`)
+  let moduleCode = code.replaceAll('from "vue"', `from ${JSON.stringify(vueUrl)}`).replaceAll("from 'vue'", `from ${JSON.stringify(vueUrl)}`)
+  for (const [, childName] of moduleCode.matchAll(/from ["']\.\/([A-Z][A-Za-z0-9]*)\.vue["']/g)) {
+    const child = await loadComponent(childName)
+    const key = `__componentTest_${name}_${childName}_${Date.now()}_${Math.random().toString(36).slice(2)}`
+    globalThis[key] = child
+    const childUrl = `data:text/javascript,${encodeURIComponent(`export default globalThis.${key}`)}`
+    moduleCode = moduleCode.replaceAll(JSON.stringify(`./${childName}.vue`), JSON.stringify(childUrl))
+  }
+  const module = await import(`data:text/javascript;base64,${Buffer.from(moduleCode).toString('base64')}`)
   return module.default
 }
 

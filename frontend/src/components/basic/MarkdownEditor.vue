@@ -263,7 +263,7 @@ const uploadImageFile = async (file: File, editor: EditorInstance) => {
     
     return true
   } catch (error) {
-    // 错误已由 request.ts 的拦截器统一处理（显示 ElMessage）
+    // 错误已由 request.ts 的拦截器统一处理（显示自定义 Toast）
     console.error('图片上传失败:', error)
     return false
   }

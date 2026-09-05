@@ -729,17 +729,18 @@ const handleEditSuccess = async () => {
  * 处理删除
  */
 const handleDelete = async (id: number) => {
+  const confirmed = await confirm(
+    '此操作将永久删除该真题，是否继续？',
+    '警告',
+    {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning'
+    }
+  )
+  if (!confirmed) return
+
   try {
-    await confirm(
-      '此操作将永久删除该真题，是否继续？',
-      '警告',
-      {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'warning'
-      }
-    )
-    
     const response = await deleteExam(id)
     if (response.code === 200) {
       toast.success('删除成功')
@@ -755,10 +756,8 @@ const handleDelete = async (id: number) => {
       toast.error(response.message || '删除失败')
     }
   } catch (error) {
-    if (error !== 'cancel') {
-      toast.error('删除失败')
-      console.error('删除失败:', error)
-    }
+    toast.error('删除失败')
+    console.error('删除失败:', error)
   }
 }
 

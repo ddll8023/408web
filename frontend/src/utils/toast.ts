@@ -2,6 +2,8 @@ import { createApp } from 'vue'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import Toast from '@/components/basic/Toast.vue'
 
+export type ToastType = 'success' | 'error' | 'warning' | 'info'
+
 // 创建 Toast 实例
 let toastInstance: InstanceType<typeof Toast> | null = null
 

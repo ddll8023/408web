@@ -22,7 +22,7 @@ import type { PropType } from 'vue'
 import type { SelectInput, SelectOption, OptionValue } from './types'
 /**
  * RadioGroup 单选按钮组组件
- * 功能：替代 Element Plus 的 el-radio-group + el-radio-button，提供简洁的按钮式单选
+ * 功能：提供简洁的按钮式单选组
  * 遵循 KISS 原则：简洁实现
  */
 import { computed } from 'vue'

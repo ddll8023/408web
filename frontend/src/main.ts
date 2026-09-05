@@ -96,8 +96,6 @@ import {
   faSortDown,
   faChevronLeft
 } from '@fortawesome/free-solid-svg-icons'
-import ElementPlus from 'element-plus'
-import 'element-plus/dist/index.css'
 import 'katex/dist/katex.min.css'
 import App from './App.vue'
 import router from './router'
@@ -205,7 +203,6 @@ const pinia = createPinia()
 // 注册插件
 app.use(pinia)
 app.use(router)
-app.use(ElementPlus)
 
 // 全局注册 FontAwesomeIcon 组件
 app.component('font-awesome-icon', FontAwesomeIcon)

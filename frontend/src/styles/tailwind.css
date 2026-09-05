@@ -32,7 +32,15 @@ body {
 }
 
 .main-content.with-nav {
-  padding-top: 60px;
+  position: fixed;
+  top: 60px;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
 }
 
 /* 文本颜色工具类 */
@@ -80,11 +88,6 @@ body {
 
 .katex-display > .katex {
   white-space: normal;
-}
-
-/* Element Plus Dialog 覆盖 */
-.el-dialog__footer .el-button + .el-button {
-  margin-left: 12px;
 }
 
 /* ==================== 滚动条样式 ==================== */

@@ -23,17 +23,13 @@ export function useConfirm() {
       cancelText = '取消',
       type = 'warning'
     } = options
-    try {
-      await confirm(message, title, {
-        confirmButtonText: confirmText,
-        cancelButtonText: cancelText,
-        type
-      })
-      return true
-    } catch (error) {
-      if (error === 'cancel') return false
-      throw error
-    }
+    return confirm({
+      message,
+      title,
+      confirmText,
+      cancelText,
+      type
+    })
   }
 
   return {

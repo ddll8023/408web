@@ -21,7 +21,7 @@
 <script setup lang="ts">
 /**
  * Switch 开关组件
- * 功能：替代 Element Plus 的 el-switch，提供开/关切换功能
+ * 功能：提供开关切换功能
  * 遵循 KISS 原则：简洁实现
  */
 import { computed } from 'vue'

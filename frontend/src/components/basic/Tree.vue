@@ -42,7 +42,7 @@
 import type { TreeShape, TreeDropType, TreeDrop, AllowDrop } from './types'
 /**
  * Tree 树形组件
- * 功能：替代 Element Plus 的 el-tree，支持拖拽排序和自定义节点内容
+ * 功能：提供支持拖拽排序和自定义节点内容的树
  * 遵循 KISS 原则：简洁实现
  * 遵循 YAGNI 原则：只实现实际使用的功能
  */

@@ -1,6 +1,4 @@
-import { toast } from '@/utils/toast'
-
-type ToastType = 'success' | 'error' | 'warning' | 'info'
+import { toast, type ToastType } from '@/utils/toast'
 
 /**
  * useToast 组合式函数

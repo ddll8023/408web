@@ -26,7 +26,7 @@
 <script setup lang="ts">
 /**
  * Tooltip 工具提示组件
- * 功能：替代 Element Plus 的 el-tooltip，提供鼠标悬停显示提示信息
+ * 功能：提供鼠标悬停显示提示信息
  * 遵循 KISS 原则：简洁实现
  */
 import { ref, computed, onMounted, onUnmounted } from 'vue'
