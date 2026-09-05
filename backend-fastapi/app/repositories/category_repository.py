@@ -149,6 +149,40 @@ class CategoryRepository:
             frontier = children
         return descendants
 
+    async def list_category_scope_names(
+        self,
+        subject_id: int,
+        category_name: str,
+    ) -> list[str]:
+        """返回启用分类节点及其全部启用子孙分类名称。"""
+        categories = await self.list_by_subject(
+            subject_id,
+            enabled_only=True,
+            include_subject=False,
+        )
+        selected = next(
+            (category for category in categories if category.name == category_name),
+            None,
+        )
+        if selected is None:
+            # 兼容题目中仍存在、但目录中已不存在的历史分类标签。
+            return [category_name]
+
+        children_by_parent: dict[Optional[int], list[ExamCategory]] = {}
+        for category in categories:
+            children_by_parent.setdefault(category.parent_id, []).append(category)
+
+        scope_names: list[str] = []
+        pending = [selected]
+        index = 0
+        while index < len(pending):
+            category = pending[index]
+            index += 1
+            scope_names.append(category.name)
+            pending.extend(children_by_parent.get(category.id, []))
+
+        return scope_names
+
     async def list_parents_for_subject(self, subject_id: int) -> list[ExamCategory]:
         """按顺序返回科目下所有候选父分类。"""
         result = await self.session.exec(

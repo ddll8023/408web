@@ -10,6 +10,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.core.exceptions import NotFoundException
 from app.models.entities import ExamQuestion
+from app.repositories.category_repository import CategoryRepository
 from app.repositories.exam_repository import ExamQuery, ExamRepository
 from app.schemas.common import PageInfo
 from app.schemas.exam import (
@@ -36,6 +37,7 @@ class ExamQueryService:
     def __init__(self, session: AsyncSession) -> None:
         self.session = session
         self.repository = ExamRepository(session)
+        self.category_repository = CategoryRepository(session)
 
     async def get_paginated(self, params: ExamQueryParams) -> PaginatedExamResponse:
         """分页查询真题。"""
@@ -46,6 +48,15 @@ class ExamQueryService:
             params.year,
             params.subject_id,
         )
+        category_names: Optional[tuple[str, ...]] = None
+        if params.category and params.subject_id is not None:
+            category_names = tuple(
+                await self.category_repository.list_category_scope_names(
+                    params.subject_id,
+                    params.category,
+                )
+            )
+
         total, questions = await self.repository.list_paginated(
             ExamQuery(
                 page=params.page,
@@ -57,6 +68,7 @@ class ExamQueryService:
                 keyword=params.keyword,
                 sort_field=params.sort_field,
                 sort_order=params.sort_order,
+                category_names=category_names,
             )
         )
         data_list = [await self.to_response(question) for question in questions]

@@ -25,6 +25,7 @@ class ExamQuery:
     keyword: Optional[str]
     sort_field: str
     sort_order: str
+    category_names: Optional[tuple[str, ...]] = None
 
 
 class ExamRepository:
@@ -238,13 +239,31 @@ class ExamRepository:
         """构造 JSON 分类名称的兼容过滤条件。"""
         if not category or not category.strip():
             return []
-        pattern = f'%"{category}"%'
-        return [
+        return ExamRepository._category_conditions_for_names((category,))
+
+    @staticmethod
+    def _category_conditions_for_names(
+        category_names: tuple[str, ...],
+    ) -> list[Any]:
+        """构造匹配多个分类名称的 JSON 过滤条件。"""
+        normalized_names = tuple(
+            dict.fromkeys(
+                name for name in category_names if name and name.strip()
+            )
+        )
+        if not normalized_names:
+            return []
+
+        category_conditions = [
             and_(
                 ExamQuestion.category.isnot(None),
-                ExamQuestion.category.like(pattern),
+                ExamQuestion.category.like(f'%"{name}"%'),
             )
+            for name in normalized_names
         ]
+        if len(category_conditions) == 1:
+            return category_conditions
+        return [or_(*category_conditions)]
 
     @staticmethod
     def _build_query_conditions(params: ExamQuery) -> list[Any]:
@@ -263,7 +282,14 @@ class ExamRepository:
                 )
             )
         else:
-            conditions.extend(ExamRepository._category_conditions(params.category))
+            if params.category_names is not None:
+                conditions.extend(
+                    ExamRepository._category_conditions_for_names(
+                        params.category_names
+                    )
+                )
+            else:
+                conditions.extend(ExamRepository._category_conditions(params.category))
 
         if params.keyword and params.keyword.strip():
             keyword_pattern = f"%{params.keyword}%"

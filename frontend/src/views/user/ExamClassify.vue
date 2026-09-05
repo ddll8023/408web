@@ -198,6 +198,60 @@ const currentTitle = computed(() => {
   return activeSubjectName.value ? `${activeSubjectName.value} · 真题` : '真题分类浏览'
 })
 
+const compareQuestions = (a: ExamQuestion, b: ExamQuestion) => {
+  const yearDifference = a.year - b.year
+  if (yearDifference !== 0) return yearDifference
+
+  const questionNumberA = a.questionNumber ?? Number.POSITIVE_INFINITY
+  const questionNumberB = b.questionNumber ?? Number.POSITIVE_INFINITY
+  const questionNumberDifference = questionNumberA - questionNumberB
+  if (questionNumberDifference !== 0) return questionNumberDifference
+
+  return a.id - b.id
+}
+
+const uniqueQuestions = (questions: readonly ExamQuestion[]) => {
+  const seenIds = new Set<number>()
+  return questions
+    .filter((exam) => {
+      if (seenIds.has(exam.id)) return false
+      seenIds.add(exam.id)
+      return true
+    })
+    .sort(compareQuestions)
+}
+
+const findCategoryNode = (
+  categories: readonly CategoryTreeNode[],
+  categoryName: string,
+): CategoryTreeNode | undefined => {
+  for (const category of categories) {
+    if (category.name === categoryName) return category
+    const child = findCategoryNode(category.children, categoryName)
+    if (child) return child
+  }
+  return undefined
+}
+
+const getCategoryScopeNames = (categoryName: string) => {
+  const currentCategories = activeSubjectId.value === null
+    ? undefined
+    : subjectCategories.value[activeSubjectId.value]
+  const selectedCategory = currentCategories
+    ? findCategoryNode(currentCategories, categoryName)
+    : undefined
+
+  if (!selectedCategory) return new Set([categoryName])
+
+  const scopeNames = new Set<string>()
+  const collectNames = (category: CategoryTreeNode) => {
+    scopeNames.add(category.name)
+    category.children.forEach(collectNames)
+  }
+  collectNames(selectedCategory)
+  return scopeNames
+}
+
 const groupedQuestions = computed(() => {
   let list = questionList.value || []
   if (!list.length) return []
@@ -209,44 +263,40 @@ const groupedQuestions = computed(() => {
     list = list.filter(exam => exam.questionType !== 'CHOICE')
   }
 
+  // 同一题可能被多个分类引用，分类视图中只展示一次，并统一按年份升序排列。
+  list = uniqueQuestions(list)
+
+  // 选中分类后，内容区只保留当前分类分组，标题与左侧副标题保持一致。
+  if (filterCategory.value) {
+    const categoryScopeNames = getCategoryScopeNames(filterCategory.value)
+    const categoryItems = list.filter((exam) => (
+      Array.isArray(exam.category) && exam.category.some((category) => (
+        categoryScopeNames.has(category)
+      ))
+    ))
+
+    return categoryItems.length > 0
+      ? [{ category: filterCategory.value, items: categoryItems }]
+      : []
+  }
+
   const groupsMap = new Map<string, ExamQuestion[]>()
+  const displayedIds = new Set<number>()
 
   list.forEach((exam: ExamQuestion) => {
     const categories = Array.isArray(exam.category) && exam.category.length
       ? exam.category
       : ['未分类']
 
-    categories.forEach((cat) => {
-      // 如果选中了分类，进行匹配判断
-      if (filterCategory.value) {
-        // 优先精确匹配
-        if (cat === filterCategory.value) {
-          // 精确匹配，使用 filterCategory 作为分组名
-          if (!groupsMap.has(filterCategory.value)) {
-            groupsMap.set(filterCategory.value, [])
-          }
-          groupsMap.get(filterCategory.value)?.push(exam)
-          return
-        }
-        // 如果精确匹配失败，检查其他分类是否包含 filterCategory（部分匹配）
-        // 只对非精确匹配的分类进行部分匹配检查
-        if (cat.includes(filterCategory.value)) {
-          if (!groupsMap.has(cat)) {
-            groupsMap.set(cat, [])
-          }
-          groupsMap.get(cat)?.push(exam)
-          return
-        }
-        // 不匹配，跳过该分类
-        return
-      }
+    // 未选择分类时也只归入一个分组，避免多分类题在不同分组中重复渲染。
+    const category = categories[0]
+    if (!category || displayedIds.has(exam.id)) return
+    displayedIds.add(exam.id)
 
-      // 没有 filterCategory 时，正常按原分类分组
-      if (!groupsMap.has(cat)) {
-        groupsMap.set(cat, [])
-      }
-      groupsMap.get(cat)?.push(exam)
-    })
+    if (!groupsMap.has(category)) {
+      groupsMap.set(category, [])
+    }
+    groupsMap.get(category)?.push(exam)
   })
 
   // 构建分类名称到 orderNum 的映射表（直接在 computed 内访问响应式数据）
@@ -825,10 +875,10 @@ const loadQuestions = async (isReset = false) => {
       const serverTotal = res.data?.pagination?.total || 0
       
       if (isReset) {
-        questionList.value = pageData
+        questionList.value = uniqueQuestions(pageData)
       } else {
-        // Append new data
-        questionList.value.push(...pageData)
+        // 分页追加时按题目 ID 合并，避免重复记录进入展示状态。
+        questionList.value = uniqueQuestions([...questionList.value, ...pageData])
       }
 
       total.value = serverTotal
