@@ -101,6 +101,7 @@ import 'element-plus/dist/index.css'
 import 'katex/dist/katex.min.css'
 import App from './App.vue'
 import router from './router'
+import { useSubjectsStore } from './stores/subjects'
 
 // 导入全局样式（包含全局重置和通用样式）
 import '@/styles/tailwind.css'
@@ -210,7 +211,6 @@ app.use(ElementPlus)
 app.component('font-awesome-icon', FontAwesomeIcon)
 
 // 预加载全局数据（在应用挂载后立即开始加载，不阻塞渲染）
-import { useSubjectsStore } from './stores/subjects'
 app.mount('#app')
 
 // 异步预加载科目数据（不影响首屏渲染）
