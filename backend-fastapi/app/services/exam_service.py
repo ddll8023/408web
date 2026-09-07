@@ -118,3 +118,10 @@ class ExamService:
         format: str = "markdown",
     ) -> ExportResultResponse:
         return await self.export_service.export_by_subject(subject_id, format)
+
+    async def export_category_stats(
+        self,
+        subject_id: Optional[int],
+        format: str,
+    ) -> ExportResultResponse:
+        return await self.export_service.export_category_stats(subject_id, format)

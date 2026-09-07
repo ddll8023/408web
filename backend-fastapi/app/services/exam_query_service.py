@@ -2,7 +2,6 @@
 
 查询持久化由 :class:`ExamRepository` 负责，Service 只处理查询参数到业务响应的转换。
 """
-import json
 import logging
 from typing import List, Optional
 
@@ -132,16 +131,26 @@ class ExamQueryService:
         """展开题目分类 JSON 并统计题型数量。"""
         questions = await self.repository.list_for_category_stats(subject_id)
         category_counts: dict[str, dict[str, int]] = {}
+        categorized_question_ids: set[int] = set()
         for question in questions:
-            if not question.category:
+            categories = parse_categories(question.category)
+            if categories is None:
+                if question.category:
+                    logger.warning(
+                        "跳过无效真题分类数据: question_id=%s",
+                        question.id,
+                    )
                 continue
-            try:
-                categories = json.loads(question.category)
-            except json.JSONDecodeError:
+
+            unique_categories = dict.fromkeys(
+                category.strip()
+                for category in categories
+                if category.strip()
+            )
+            if not unique_categories:
                 continue
-            if not isinstance(categories, list):
-                continue
-            for category in categories:
+            categorized_question_ids.add(question.id)
+            for category in unique_categories:
                 data = category_counts.setdefault(
                     category,
                     {"count": 0, "choice": 0, "subjective": 0},
@@ -159,12 +168,14 @@ class ExamQueryService:
             for category, data in sorted(category_counts.items())
         ]
         subject_name = None
-        if subject_id:
+        if subject_id is not None:
             subject = await self.repository.get_subject(subject_id)
             subject_name = subject.name if subject else None
         return ExamCategoryStatsResponse(
             subject_id=subject_id,
             subject_name=subject_name,
+            total_count=len(categorized_question_ids),
+            category_reference_count=sum(item.count for item in stats),
             stats=stats,
         )
 

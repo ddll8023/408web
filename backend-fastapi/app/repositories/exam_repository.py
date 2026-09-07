@@ -121,10 +121,16 @@ class ExamRepository:
             ExamQuestion.category.isnot(None),
             ExamQuestion.category != "",
         ]
-        if subject_id:
+        if subject_id is not None:
             conditions.append(ExamQuestion.subject_id == subject_id)
         result = await self.session.exec(
-            select(ExamQuestion).where(*conditions)
+            select(ExamQuestion)
+            .where(*conditions)
+            .order_by(
+                ExamQuestion.year.desc(),
+                ExamQuestion.question_number.asc(),
+                ExamQuestion.id.asc(),
+            )
         )
         return result.all()
 

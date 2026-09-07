@@ -72,6 +72,10 @@ export interface ExamCategoryStatItem {
 export interface ExamCategoryStats {
   subjectId?: number | null
   subjectName?: string | null
+  /** 按题目 ID 去重后的题目总数 */
+  totalCount: number
+  /** 分类引用总数，一题多分类时分别计入 */
+  categoryReferenceCount: number
   stats: ExamCategoryStatItem[]
 }
 

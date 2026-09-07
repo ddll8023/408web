@@ -87,6 +87,16 @@ class ExamExportRequest(BaseModel):
     format: Literal["markdown"] = Field(default="markdown", description="导出格式")
 
 
+class ExamCategoryStatsExportRequest(BaseModel):
+    """真题分类统计导出请求。"""
+
+    subject_id: Optional[int] = Field(default=None, ge=1, description="科目 ID")
+    format: Literal["markdown", "xlsx"] = Field(
+        default="markdown",
+        description="导出格式",
+    )
+
+
 class ExamDuplicateRequest(BaseModel):
     """真题查重请求。"""
 
@@ -177,6 +187,11 @@ class ExamCategoryStatsResponse(BaseModel):
 
     subject_id: Optional[int] = None
     subject_name: Optional[str] = None
+    total_count: int = Field(default=0, description="按题目 ID 去重后的题目总数")
+    category_reference_count: int = Field(
+        default=0,
+        description="分类引用总数，一题多分类时分别计入",
+    )
     stats: list[ExamCategoryStatItem] = Field(default_factory=list)
 
     model_config = ConfigDict(from_attributes=True)

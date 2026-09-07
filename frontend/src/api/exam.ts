@@ -99,3 +99,15 @@ export function exportExamsBySubject(subjectId: number, format: 'markdown' = 'ma
     data: convertKeysToSnake({ subjectId, format })
   })
 }
+
+export function exportExamCategoryStats(
+  subjectId: number | null | undefined,
+  format: 'markdown' | 'xlsx'
+) {
+  return requestBlob({
+    url: '/api/exam/export-category-stats',
+    method: 'post',
+    responseType: 'blob',
+    data: convertKeysToSnake({ subjectId, format })
+  })
+}

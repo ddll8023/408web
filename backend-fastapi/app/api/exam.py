@@ -1,10 +1,13 @@
 """真题查询、维护和导出 HTTP 路由。"""
+from urllib.parse import quote
+
 from fastapi import APIRouter, Depends, Path, Response as FastAPIResponse
 
 from app.api.dependencies import AuthUser, SessionDep, get_current_admin
 from app.schemas.common import ApiResponse
 from app.schemas.exam import (
     ExamByCategoryRequest,
+    ExamCategoryStatsExportRequest,
     ExamCategoryStatsRequest,
     ExamCategoryStatsResponse,
     ExamCreateRequest,
@@ -134,6 +137,36 @@ async def get_category_stats(
     """查询真题分类统计。"""
     stats = await ExamService(session).get_category_stats(request.subject_id)
     return ApiResponse(data=stats)
+
+
+@router.post(
+    "/export-category-stats",
+    summary="导出真题分类统计",
+    description="管理员按科目导出真题分类统计 Markdown 或 Excel 文件",
+)
+async def export_category_stats(
+    request: ExamCategoryStatsExportRequest,
+    session: SessionDep,
+    _admin: AuthUser = Depends(get_current_admin),
+) -> FastAPIResponse:
+    """导出真题分类统计。"""
+    export_result = await ExamService(session).export_category_stats(
+        request.subject_id,
+        request.format,
+    )
+    encoded_filename = quote(export_result.filename)
+    extension = export_result.filename.rsplit(".", 1)[-1]
+    return FastAPIResponse(
+        content=export_result.file_bytes,
+        media_type=export_result.content_type,
+        headers={
+            "Content-Disposition": (
+                f'attachment; filename="category-stats.{extension}"; '
+                f"filename*=UTF-8''{encoded_filename}"
+            ),
+            "Cache-Control": "no-store",
+        },
+    )
 
 
 @router.post(
