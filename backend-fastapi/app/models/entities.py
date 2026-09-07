@@ -93,7 +93,7 @@ class ExamCategory(BaseModel, table=True):
     subject_id: int = Field(foreign_key="subject.id", description="所属科目ID")
     parent_id: Optional[int] = Field(default=None, foreign_key="exam_category.id", description="父分类ID")
     name: str = Field(description="分类名称")
-    code: str = Field(description="分类编码")
+    code: str = Field(description="系统生成的层级分类编码")
     description: Optional[str] = Field(default=None, description="分类描述")
     order_num: int = Field(default=0, description="排序序号")
     enabled: bool = Field(default=True, description="是否启用")

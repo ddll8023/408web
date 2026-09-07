@@ -13,6 +13,12 @@ from app.schemas.category import (
     ExamCategoryResponse,
     ExamCategoryUpdateRequest,
 )
+from app.services.category_code import (
+    build_category_code,
+    next_sibling_sequence,
+    rebuild_subtree_codes,
+    subject_code_prefix,
+)
 from app.services.category_query_service import CategoryQueryService
 
 
@@ -35,32 +41,47 @@ class CategoryCommandService:
             raise
 
     async def create(self, request: ExamCategoryCreateRequest) -> ExamCategoryResponse:
-        """创建分类并提交事务。"""
+        """创建分类并自动生成层级编码。"""
         await self._lock_structure()
-        if await self.repository.get_subject(request.subject_id) is None:
+        subject = await self.repository.get_subject(request.subject_id)
+        if subject is None:
             raise NotFoundException("科目")
+
+        categories = await self.repository.list_by_subject(
+            request.subject_id,
+            include_subject=False,
+        )
+        parent = None
         if request.parent_id is not None:
             parent = await self.repository.get_by_id(request.parent_id)
             if parent is None:
                 raise NotFoundException(f"父分类不存在：ID={request.parent_id}")
             if parent.subject_id != request.subject_id:
                 raise ConflictException("父分类不属于指定的科目")
+
         if await self.repository.count_name_conflicts(
             request.subject_id,
             request.name,
         ) > 0:
             raise ConflictException(f"分类名称已存在：{request.name}")
+
+        code = build_category_code(
+            subject_code_prefix(categories, subject.name),
+            parent.code if parent else None,
+            next_sibling_sequence(categories, request.parent_id),
+            request.name,
+        )
         if await self.repository.count_code_conflicts(
             request.subject_id,
-            request.code,
+            code,
         ) > 0:
-            raise ConflictException(f"分类编码已存在：{request.code}")
+            raise ConflictException("分类编码生成冲突，请刷新后重试")
 
         category = ExamCategory(
             subject_id=request.subject_id,
             parent_id=request.parent_id,
             name=request.name,
-            code=request.code,
+            code=code,
             description=request.description,
             order_num=request.order_num,
             enabled=request.enabled,
@@ -92,7 +113,8 @@ class CategoryCommandService:
             raise ValidationException("分类必须属于一个科目")
         if subject_id != category.subject_id:
             raise ConflictException("分类所属科目创建后不可修改")
-        if await self.repository.get_subject(subject_id) is None:
+        subject = await self.repository.get_subject(subject_id)
+        if subject is None:
             raise NotFoundException("科目")
 
         parent_id = update_data.get("parent_id", category.parent_id)
@@ -114,16 +136,21 @@ class CategoryCommandService:
                 exclude_id=category_id,
             ) > 0:
                 raise ConflictException(f"分类名称已被其他分类使用：{request.name}")
-        if request.code is not None and request.code != category.code:
-            if await self.repository.count_code_conflicts(
-                subject_id,
-                request.code,
-                exclude_id=category_id,
-            ) > 0:
-                raise ConflictException(f"分类编码已被其他分类使用：{request.code}")
-
+        old_parent_id = category.parent_id
         for field, value in update_data.items():
             setattr(category, field, value)
+
+        if category.parent_id != old_parent_id:
+            categories = await self.repository.list_for_reorder(subject_id)
+            codes = rebuild_subtree_codes(
+                categories,
+                category_id,
+                subject_code_prefix(categories, subject.name),
+            )
+            for item in categories:
+                if item.id in codes:
+                    item.code = codes[item.id]
+
         await self.session.flush()
         response = self.query_service.to_response(category)
         await self.session.commit()
@@ -182,6 +209,18 @@ class CategoryCommandService:
             ]
             for order_num, item in enumerate(old_siblings):
                 item.order_num = order_num
+
+            subject = await self.repository.get_subject(category.subject_id)
+            if subject is None:
+                raise NotFoundException("科目")
+            codes = rebuild_subtree_codes(
+                categories,
+                category_id,
+                subject_code_prefix(categories, subject.name),
+            )
+            for item in categories:
+                if item.id in codes:
+                    item.code = codes[item.id]
 
         await self.session.flush()
         response = await self.query_service.get_categories_by_subject(category.subject_id)

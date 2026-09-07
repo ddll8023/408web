@@ -9,6 +9,7 @@ export interface CategoryNode {
   parentId?: number | null
   parentName?: string | null
   name: string
+  /** 系统生成的层级分类编码，创建后不可手动修改 */
   code: string
   description?: string | null
   orderNum: number
@@ -27,7 +28,6 @@ export interface CategoryCreateRequest {
   subjectId: number
   parentId?: number | null
   name: string
-  code: string
   description?: string | null
   orderNum: number
   enabled?: boolean
@@ -38,7 +38,6 @@ export interface CategoryUpdateRequest {
   subjectId?: number | null
   parentId?: number | null
   name?: string
-  code?: string
   description?: string | null
   orderNum?: number
   enabled?: boolean

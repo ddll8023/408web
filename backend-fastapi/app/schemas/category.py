@@ -30,7 +30,7 @@ class CategoryStatsRequest(CategoryQueryRequest):
 
 
 class ExamCategoryCreateRequest(BaseModel):
-    """分类创建请求"""
+    """分类创建请求；分类编码由服务端自动生成。"""
     subject_id: int = Field(
         ...,
         description="所属科目ID",
@@ -47,13 +47,6 @@ class ExamCategoryCreateRequest(BaseModel):
         max_length=50,
         description="分类名称",
         examples=["栈和队列"]
-    )
-    code: str = Field(
-        ...,
-        min_length=1,
-        max_length=50,
-        description="分类编码",
-        examples=["stack-queue"]
     )
     description: Optional[str] = Field(
         default=None,
@@ -79,7 +72,6 @@ class ExamCategoryCreateRequest(BaseModel):
                     "subject_id": 1,
                     "parent_id": None,
                     "name": "栈和队列",
-                    "code": "stack-queue",
                     "description": "栈和队列相关题目",
                     "order_num": 1,
                     "enabled": True
@@ -90,7 +82,7 @@ class ExamCategoryCreateRequest(BaseModel):
 
 
 class ExamCategoryUpdateRequest(BaseModel):
-    """分类更新请求"""
+    """分类更新请求；分类编码不可手动修改。"""
     subject_id: Optional[int] = Field(
         default=None,
         description="所属科目ID",
@@ -106,12 +98,6 @@ class ExamCategoryUpdateRequest(BaseModel):
         min_length=1,
         max_length=50,
         description="分类名称"
-    )
-    code: Optional[str] = Field(
-        default=None,
-        min_length=1,
-        max_length=50,
-        description="分类编码"
     )
     description: Optional[str] = Field(
         default=None,
@@ -165,7 +151,7 @@ class ExamCategoryResponse(BaseModel):
     parent_id: Optional[int] = Field(default=None, description="父分类ID")
     parent_name: Optional[str] = Field(default=None, description="父分类名称")
     name: str = Field(..., description="分类名称", examples=["栈和队列"])
-    code: str = Field(..., description="分类编码", examples=["stack-queue"])
+    code: str = Field(..., description="系统生成的层级分类编码", examples=["sjjg-01-xxb-01-sxb"])
     description: Optional[str] = Field(default=None, description="分类描述")
     order_num: int = Field(..., description="排序序号", examples=[1])
     enabled: bool = Field(..., description="是否启用", examples=[True])
@@ -195,7 +181,7 @@ class ExamCategoryTreeResponse(BaseModel):
     parent_id: Optional[int] = Field(default=None, description="父分类ID")
     parent_name: Optional[str] = Field(default=None, description="父分类名称")
     name: str = Field(..., description="分类名称", examples=["栈和队列"])
-    code: str = Field(..., description="分类编码", examples=["stack-queue"])
+    code: str = Field(..., description="系统生成的层级分类编码", examples=["sjjg-01-xxb-01-sxb"])
     description: Optional[str] = Field(default=None, description="分类描述")
     order_num: int = Field(..., description="排序序号", examples=[1])
     enabled: bool = Field(..., description="是否启用", examples=[True])

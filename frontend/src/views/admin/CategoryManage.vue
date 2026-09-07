@@ -337,19 +337,21 @@
             </div>
           </div>
 
-          <!-- 第二行：分类编码 + 分类名称 -->
+          <!-- 第二行：系统编码 + 分类名称 -->
           <div class="grid grid-cols-2 gap-5">
-            <CustomInput
-              v-model="form.code"
-              label="分类编码"
-              placeholder="如：stack-queue"
-              :maxlength="50"
-              required
-            >
-              <template #tip>
-                <p class="text-xs text-[#999] mt-1">建议使用英文小写字母和连字符</p>
-              </template>
-            </CustomInput>
+            <div>
+              <label for="category-code" class="flex items-center gap-1.5 text-sm font-medium text-gray-700 mb-2">
+                分类 ID
+              </label>
+              <div
+                id="category-code"
+                class="w-full min-h-[42px] flex items-center px-4 py-2.5 rounded-lg bg-gray-100 border border-gray-200 text-sm text-gray-600 font-mono break-all"
+                aria-live="polite"
+              >
+                {{ dialogMode === 'edit' ? form.code : '保存后自动生成' }}
+              </div>
+              <p class="text-xs text-[#999] mt-1.5">系统按科目、层级、编号和拼音首字母生成，无需手动填写。</p>
+            </div>
             <CustomInput
               v-model="form.name"
               label="分类名称"
@@ -992,16 +994,8 @@ const handleSubmit = async () => {
     showToast('请选择所属科目', 'warning')
     return
   }
-  if (!form.code) {
-    showToast('请输入分类编码', 'warning')
-    return
-  }
   if (!form.name) {
     showToast('请输入分类名称', 'warning')
-    return
-  }
-  if (!/^[a-zA-Z0-9_-]+$/.test(form.code)) {
-    showToast('编码只能包含字母、数字、下划线和连字符', 'warning')
     return
   }
 
@@ -1011,7 +1005,6 @@ const handleSubmit = async () => {
     const data = {
       subjectId: form.subjectId,
       parentId: form.parentId || null,
-      code: form.code,
       name: form.name,
       description: form.description || null,
       orderNum: form.orderNum,
