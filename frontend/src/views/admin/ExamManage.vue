@@ -157,12 +157,23 @@
 
           <!-- 操作列 -->
           <template #actions="{ row }">
-            <div class="flex items-center gap-2">
-              <CustomButton type="text" size="sm" @click="handleView(row)">查看</CustomButton>
-              <CustomButton type="text-primary" size="sm" @click="handleEdit(row)">编辑</CustomButton>
+            <div class="flex items-center justify-center gap-1 whitespace-nowrap">
+              <CustomButton
+                type="text"
+                size="sm"
+                class="!px-2.5 whitespace-nowrap shrink-0"
+                @click="handleView(row)"
+              >查看</CustomButton>
+              <CustomButton
+                type="text-primary"
+                size="sm"
+                class="!px-2.5 whitespace-nowrap shrink-0"
+                @click="handleEdit(row)"
+              >编辑</CustomButton>
               <CustomButton
                 type="text-danger"
                 size="sm"
+                class="!px-2.5 whitespace-nowrap shrink-0"
                 :loading="row.deleteLoading"
                 @click="handleDelete(row)"
               >
@@ -291,7 +302,7 @@ const tableColumns = [
   { prop: 'category', label: '分类', width: '200px' },
   { prop: 'difficulty', label: '难度', width: '100px' },
   { prop: 'updateTime', label: '更新时间', width: '160px', sortable: true },
-  { prop: 'actions', label: '操作', width: '200px' }
+  { prop: 'actions', label: '操作', width: '220px', align: 'center', fixed: 'right' }
 ]
 
 // 筛选条件

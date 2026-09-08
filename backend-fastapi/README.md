@@ -36,6 +36,6 @@ uv run python -m uvicorn app.main:app --host 0.0.0.0 --port 7785 --reload
 - `SERVER_HOST`、`SERVER_PORT`、`API_PREFIX`
 - `CORS_ORIGINS`
 - `UPLOAD_DIR`、`MAX_FILE_SIZE`
-- `JWT_SECRET`、`JWT_ALGORITHM`、`ACCESS_TOKEN_EXPIRE_MINUTES`
+- `JWT_SECRET`、`JWT_ALGORITHM`
 
 图片通过 `/uploads/images` 静态路径访问；日志和数据库文件属于本地运行时产物，不提交到版本库。

@@ -19,26 +19,27 @@
       <div class="flex-1 w-0 overflow-y-auto bg-[#FBF7F2]">
         <div class="min-h-[calc(100vh-60px-40px)] bg-[#FBF7F2]">
           <div class="p-4">
-            <div class="flex items-center justify-between">
-              <div class="flex items-center gap-3 flex-1">
-                <h2 class="m-0 text-[#333] font-semibold text-xl">{{ currentTitle }}</h2>
+            <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+              <div class="flex min-w-0 items-center gap-3">
+                <h2 class="m-0 min-w-0 text-[#333] font-semibold text-xl">{{ currentTitle }}</h2>
                 <Tag v-if="displayTotal > 0" type="info" size="sm">共 {{ displayTotal }} 题</Tag>
               </div>
-              <div class="flex gap-2" v-if="activeSubjectId">
+              <div class="flex w-full flex-wrap items-center justify-end gap-2 lg:w-auto" v-if="activeSubjectId">
                 <Select
                   v-model="filterQuestionType"
                   size="sm"
-                  class="w-[100px] mr-2"
+                  class="!w-[180px] shrink-0"
                   aria-label="题型筛选"
                   :options="questionTypeOptions"
                 />
 
-                <Dropdown trigger="click" @command="handleExportCommand">
+                <Dropdown trigger="click" @command="handleExportCommand" class="shrink-0">
                   <template #trigger>
                     <CustomButton
                       type="success"
                       :icon="['fas', 'download']"
                       size="sm"
+                      class="min-w-[120px] shrink-0 whitespace-nowrap"
                     >
                       导出科目
                     </CustomButton>

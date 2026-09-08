@@ -28,7 +28,7 @@
                 <Select
                   v-model="filterQuestionType"
                   size="sm"
-                  class="w-[100px] mr-2"
+                  class="!w-[180px] shrink-0"
                   aria-label="题型筛选"
                   :options="questionTypeOptions"
                 />

@@ -228,7 +228,6 @@ DATABASE_URL=sqlite+aiosqlite:///./data/web408.db
 # JWT配置
 JWT_SECRET=replace-with-a-random-secret-at-least-32-characters
 JWT_ALGORITHM=HS256
-ACCESS_TOKEN_EXPIRE_MINUTES=60
 
 # 服务器配置
 SERVER_HOST=0.0.0.0
@@ -246,7 +245,6 @@ CORS_ORIGINS=http://localhost:7784
 ```env
 JWT_SECRET=replace-with-a-random-secret-at-least-32-characters
 JWT_ALGORITHM=HS256
-ACCESS_TOKEN_EXPIRE_MINUTES=60
 ```
 
 ## 数据库

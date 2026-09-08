@@ -1,5 +1,4 @@
 """应用级密码和 JWT 安全工具。"""
-from datetime import datetime, timedelta, timezone
 from typing import Mapping, Optional
 
 from jose import JWTError, jwt
@@ -28,15 +27,9 @@ def get_password_hash(password: str) -> str:
     return pwd_context.hash(password)
 
 
-def create_access_token(
-    data: Mapping[str, object],
-    expires_delta: Optional[timedelta] = None,
-) -> str:
-    """创建短生命周期访问令牌。"""
-    to_encode = dict(data)
-    lifetime = expires_delta or timedelta(minutes=settings.jwt.access_token_expire_minutes)
-    to_encode["exp"] = datetime.now(timezone.utc) + lifetime
-    return jwt.encode(to_encode, JWT_SECRET, algorithm=JWT_ALGORITHM)
+def create_access_token(data: Mapping[str, object]) -> str:
+    """创建不会自动过期的访问令牌。"""
+    return jwt.encode(dict(data), JWT_SECRET, algorithm=JWT_ALGORITHM)
 
 
 def decode_access_token(token: str) -> Optional[dict[str, object]]:

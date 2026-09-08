@@ -75,7 +75,7 @@ const props = defineProps({
 const emit = defineEmits<{ click: [event: MouseEvent] }>()
 
 // 基础样式 - 简洁字符串，包含默认尺寸和focus ring
-const baseClasses = 'inline-flex items-center justify-center gap-2 font-medium rounded-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#8B6F47] focus:ring-offset-2 px-4 py-2.5 text-sm'
+const baseClasses = 'inline-flex items-center justify-center gap-2 font-medium rounded-md transition-all duration-200 whitespace-nowrap focus:outline-none focus:ring-2 focus:ring-[#8B6F47] focus:ring-offset-2 px-4 py-2.5 text-sm'
 
 // 尺寸样式 - 覆盖基础样式中的尺寸
 const sizeClasses: Record<string, string> = {

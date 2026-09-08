@@ -39,13 +39,6 @@ class JwtConfig(BaseSettings):
         default="HS256",
         validation_alias="JWT_ALGORITHM",
     )
-    access_token_expire_minutes: int = Field(
-        default=60,
-        gt=0,
-        le=1440,
-        validation_alias="ACCESS_TOKEN_EXPIRE_MINUTES",
-    )
-
     model_config = SettingsConfigDict(
         env_file=ENV_FILE,
         env_file_encoding="utf-8",
