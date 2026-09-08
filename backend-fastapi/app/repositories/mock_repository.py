@@ -3,7 +3,8 @@
 Repository 只负责构造和执行模拟题查询，不负责事务提交、响应转换或业务校验。
 """
 from dataclasses import dataclass
-from typing import Any, Optional
+import json
+from typing import Any
 
 from sqlalchemy import and_, func, or_
 from sqlmodel import select
@@ -18,11 +19,11 @@ class MockQuery:
 
     page: int
     page_size: int
-    source: Optional[str]
-    category: Optional[str]
-    subject_id: Optional[int]
+    source: str | None
+    category: str | None
+    subject_id: int | None
     no_category: bool
-    keyword: Optional[str]
+    keyword: str | None
     sort_field: str
     sort_order: str
 
@@ -61,13 +62,13 @@ class MockRepository:
         result = await self.session.exec(
             select(MockQuestion)
             .where(*conditions)
-            .order_by(order_column)
+            .order_by(order_column, MockQuestion.id.asc())
             .offset(offset)
             .limit(params.page_size)
         )
         return total, result.all()
 
-    async def get_by_id(self, question_id: int) -> Optional[MockQuestion]:
+    async def get_by_id(self, question_id: int) -> MockQuestion | None:
         """按主键查询模拟题。"""
         result = await self.session.exec(
             select(MockQuestion).where(MockQuestion.id == question_id)
@@ -77,10 +78,10 @@ class MockRepository:
     async def find_duplicate(
         self,
         source: str,
-        title: Optional[str],
-        question_number: Optional[int],
-        exclude_id: Optional[int] = None,
-    ) -> Optional[MockQuestion]:
+        title: str | None,
+        question_number: int | None,
+        exclude_id: int | None = None,
+    ) -> MockQuestion | None:
         """查询来源、标题和题号是否已存在模拟题。"""
         conditions: list[Any] = [
             MockQuestion.source == source,
@@ -94,7 +95,7 @@ class MockRepository:
         )
         return result.first()
 
-    async def get_source_stats(self, category: Optional[str] = None) -> list[Any]:
+    async def get_source_stats(self, category: str | None = None) -> list[Any]:
         """按来源聚合模拟题数量。"""
         conditions: list[Any] = [MockQuestion.source.isnot(None)]
         conditions.extend(self._category_conditions(category))
@@ -128,19 +129,20 @@ class MockRepository:
                 and_(
                     MockQuestion.subject_id == subject_id,
                     MockQuestion.category.isnot(None),
+                    MockQuestion.category != "",
                 )
             )
         )
         return result.all()
 
-    async def get_subject(self, subject_id: int) -> Optional[Subject]:
+    async def get_subject(self, subject_id: int) -> Subject | None:
         """按主键查询科目。"""
         result = await self.session.exec(
             select(Subject).where(Subject.id == subject_id)
         )
         return result.first()
 
-    async def get_author(self, author_id: int) -> Optional[User]:
+    async def get_author(self, author_id: int) -> User | None:
         """按主键查询作者。"""
         result = await self.session.exec(select(User).where(User.id == author_id))
         return result.first()
@@ -148,22 +150,22 @@ class MockRepository:
     async def find_by_source(
         self,
         source: str,
-        category: Optional[str] = None,
-        subject_id: Optional[int] = None,
+        category: str | None = None,
+        subject_id: int | None = None,
     ) -> list[MockQuestion]:
         """按来源、分类和科目查询模拟题。"""
         conditions: list[Any] = [MockQuestion.source == source]
-        if subject_id:
+        if subject_id is not None:
             conditions.append(MockQuestion.subject_id == subject_id)
         conditions.extend(self._category_conditions(category))
         result = await self.session.exec(
             select(MockQuestion)
             .where(*conditions)
-            .order_by(MockQuestion.question_number)
+            .order_by(MockQuestion.question_number.asc(), MockQuestion.id.asc())
         )
         return result.all()
 
-    async def list_category_values(self, subject_id: int) -> list[Optional[str]]:
+    async def list_category_values(self, subject_id: int) -> list[str | None]:
         """返回科目下模拟题原始分类 JSON。"""
         result = await self.session.exec(
             select(MockQuestion.category).where(
@@ -189,7 +191,7 @@ class MockRepository:
         )
         return result.all()
 
-    async def get_titles_by_source(self, source: str) -> list[Optional[str]]:
+    async def get_titles_by_source(self, source: str) -> list[str | None]:
         """返回指定来源下去重后的标题。"""
         result = await self.session.exec(
             select(MockQuestion.title)
@@ -205,15 +207,15 @@ class MockRepository:
         return result.all()
 
     @staticmethod
-    def _category_conditions(category: Optional[str]) -> list[Any]:
+    def _category_conditions(category: str | None) -> list[Any]:
         """构造 JSON 分类名称的兼容过滤条件。"""
-        if not category:
+        if not category or not category.strip():
             return []
-        pattern = f'%"{category}"%'
+        pattern = MockRepository._json_category_like_pattern(category.strip())
         return [
             and_(
                 MockQuestion.category.isnot(None),
-                MockQuestion.category.like(pattern),
+                MockQuestion.category.like(pattern, escape="\\"),
             )
         ]
 
@@ -236,8 +238,8 @@ class MockRepository:
         else:
             conditions.extend(MockRepository._category_conditions(params.category))
 
-        if params.keyword:
-            keyword_pattern = f"%{params.keyword}%"
+        if params.keyword and params.keyword.strip():
+            keyword_pattern = f"%{params.keyword.strip()}%"
             conditions.append(
                 or_(
                     MockQuestion.title.ilike(keyword_pattern),
@@ -245,3 +247,10 @@ class MockRepository:
                 )
             )
         return conditions
+
+    @staticmethod
+    def _json_category_like_pattern(category_name: str) -> str:
+        """构造匹配 JSON 字符串元素的 LIKE 模式。"""
+        serialized = json.dumps(category_name, ensure_ascii=False)
+        escaped = serialized.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+        return f"%{escaped}%"

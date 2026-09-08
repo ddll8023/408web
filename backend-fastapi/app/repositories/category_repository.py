@@ -2,7 +2,8 @@
 
 Repository 只负责分类、科目和题目引用查询，不负责树形业务规则或事务提交。
 """
-from typing import Any, Optional
+import json
+from typing import Any
 
 from sqlalchemy import and_, func, text
 from sqlalchemy.orm import selectinload
@@ -47,7 +48,7 @@ class CategoryRepository:
         """按科目返回分类，可选仅返回启用节点。"""
         conditions: list[Any] = [ExamCategory.subject_id == subject_id]
         if enabled_only:
-            conditions.append(ExamCategory.enabled == True)
+            conditions.append(ExamCategory.enabled.is_(True))
         statement = select(ExamCategory)
         if include_subject:
             statement = statement.options(selectinload(ExamCategory.subject))
@@ -63,7 +64,7 @@ class CategoryRepository:
         category_id: int,
         *,
         include_subject: bool = False,
-    ) -> Optional[ExamCategory]:
+    ) -> ExamCategory | None:
         """按主键查询分类。"""
         statement = select(ExamCategory)
         if include_subject:
@@ -73,7 +74,7 @@ class CategoryRepository:
         )
         return result.first()
 
-    async def get_subject(self, subject_id: int) -> Optional[Subject]:
+    async def get_subject(self, subject_id: int) -> Subject | None:
         """按主键查询科目。"""
         result = await self.session.exec(
             select(Subject).where(Subject.id == subject_id)
@@ -82,7 +83,9 @@ class CategoryRepository:
 
     async def list_subjects(self) -> list[Subject]:
         """返回全部科目。"""
-        result = await self.session.exec(select(Subject))
+        result = await self.session.exec(
+            select(Subject).order_by(Subject.order_num, Subject.id)
+        )
         return result.all()
 
     async def count_categories(
@@ -94,7 +97,7 @@ class CategoryRepository:
         """统计科目下分类数量。"""
         conditions: list[Any] = [ExamCategory.subject_id == subject_id]
         if enabled_only:
-            conditions.append(ExamCategory.enabled == True)
+            conditions.append(ExamCategory.enabled.is_(True))
         result = await self.session.exec(
             select(func.count())
             .select_from(ExamCategory)
@@ -110,10 +113,13 @@ class CategoryRepository:
         """统计科目下带分类的去重题目数量。"""
         question_model = MockQuestion if question_type == "mock" else ExamQuestion
         result = await self.session.exec(
-            select(func.count(func.distinct(question_model.id))).where(
+            select(func.count(func.distinct(question_model.id)))
+            .select_from(question_model)
+            .where(
                 and_(
                     question_model.subject_id == subject_id,
                     question_model.category.isnot(None),
+                    question_model.category != "",
                 )
             )
         )
@@ -131,6 +137,7 @@ class CategoryRepository:
                 and_(
                     question_model.subject_id == subject_id,
                     question_model.category.isnot(None),
+                    question_model.category != "",
                 )
             )
         )
@@ -168,7 +175,7 @@ class CategoryRepository:
             # 兼容题目中仍存在、但目录中已不存在的历史分类标签。
             return [category_name]
 
-        children_by_parent: dict[Optional[int], list[ExamCategory]] = {}
+        children_by_parent: dict[int | None, list[ExamCategory]] = {}
         for category in categories:
             children_by_parent.setdefault(category.parent_id, []).append(category)
 
@@ -207,7 +214,7 @@ class CategoryRepository:
         subject_id: int,
         name: str,
         *,
-        exclude_id: Optional[int] = None,
+        exclude_id: int | None = None,
     ) -> int:
         """统计同科目下同名分类数量。"""
         conditions: list[Any] = [
@@ -228,7 +235,7 @@ class CategoryRepository:
         subject_id: int,
         code: str,
         *,
-        exclude_id: Optional[int] = None,
+        exclude_id: int | None = None,
     ) -> int:
         """统计同科目下同编码分类数量。"""
         conditions: list[Any] = [
@@ -259,7 +266,10 @@ class CategoryRepository:
                 and_(
                     question_model.subject_id == subject_id,
                     question_model.category.isnot(None),
-                    question_model.category.like(f'%"{category_name}"%'),
+                    question_model.category.like(
+                        self._json_category_like_pattern(category_name),
+                        escape="\\",
+                    ),
                 )
             )
         )
@@ -273,3 +283,10 @@ class CategoryRepository:
             .order_by(ExamCategory.order_num, ExamCategory.id)
         )
         return result.all()
+
+    @staticmethod
+    def _json_category_like_pattern(category_name: str) -> str:
+        """构造匹配 JSON 字符串元素的 LIKE 模式。"""
+        serialized = json.dumps(category_name, ensure_ascii=False)
+        escaped = serialized.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+        return f"%{escaped}%"

@@ -1,5 +1,6 @@
 """真题和模拟题共用的题目字段及结构校验。"""
-from typing import Optional
+
+from typing import Self
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
@@ -24,13 +25,13 @@ class QuestionCreateFields(BaseModel):
         default=QuestionTypeEnum.ESSAY,
         description="题型",
     )
-    title: Optional[str] = Field(default=None, max_length=200, description="题目标题")
+    title: str | None = Field(default=None, max_length=200, description="题目标题")
     content: str = Field(..., min_length=1, description="Markdown 格式题目内容")
-    options: Optional[QuestionOptions] = Field(default=None, description="选择题选项")
-    answer: Optional[str] = Field(default=None, description="答案解析")
-    category: Optional[list[str]] = Field(default=None, description="分类名称列表")
-    subject_id: Optional[int] = Field(default=None, ge=1, description="科目 ID")
-    difficulty: Optional[DifficultyEnum] = Field(default=None, description="难度")
+    options: QuestionOptions | None = Field(default=None, description="选择题选项")
+    answer: str | None = Field(default=None, description="答案解析")
+    category: list[str] | None = Field(default=None, description="分类名称列表")
+    subject_id: int | None = Field(default=None, ge=1, description="科目 ID")
+    difficulty: DifficultyEnum | None = Field(default=None, description="难度")
 
     @field_validator("content")
     @classmethod
@@ -41,7 +42,7 @@ class QuestionCreateFields(BaseModel):
 
     @field_validator("category")
     @classmethod
-    def normalize_category(cls, value: Optional[list[str]]) -> Optional[list[str]]:
+    def normalize_category(cls, value: list[str] | None) -> list[str] | None:
         if value is None:
             return None
         normalized = [item.strip() for item in value]
@@ -50,7 +51,7 @@ class QuestionCreateFields(BaseModel):
         return normalized
 
     @model_validator(mode="after")
-    def validate_structure(self) -> "QuestionCreateFields":
+    def validate_structure(self) -> Self:
         validate_question_payload(self.question_type, self.content, self.options)
         return self
 
@@ -58,25 +59,25 @@ class QuestionCreateFields(BaseModel):
 class QuestionUpdateFields(BaseModel):
     """题目更新时的共用字段。"""
 
-    question_type: Optional[QuestionTypeEnum] = Field(default=None, description="题型")
-    title: Optional[str] = Field(default=None, max_length=200, description="题目标题")
-    content: Optional[str] = Field(default=None, min_length=1, description="Markdown 格式题目内容")
-    options: Optional[QuestionOptions] = Field(default=None, description="选择题选项")
-    answer: Optional[str] = Field(default=None, description="答案解析")
-    category: Optional[list[str]] = Field(default=None, description="分类名称列表")
-    subject_id: Optional[int] = Field(default=None, ge=1, description="科目 ID")
-    difficulty: Optional[DifficultyEnum] = Field(default=None, description="难度")
+    question_type: QuestionTypeEnum | None = Field(default=None, description="题型")
+    title: str | None = Field(default=None, max_length=200, description="题目标题")
+    content: str | None = Field(default=None, min_length=1, description="Markdown 格式题目内容")
+    options: QuestionOptions | None = Field(default=None, description="选择题选项")
+    answer: str | None = Field(default=None, description="答案解析")
+    category: list[str] | None = Field(default=None, description="分类名称列表")
+    subject_id: int | None = Field(default=None, ge=1, description="科目 ID")
+    difficulty: DifficultyEnum | None = Field(default=None, description="难度")
 
     @field_validator("content")
     @classmethod
-    def validate_content(cls, value: Optional[str]) -> Optional[str]:
+    def validate_content(cls, value: str | None) -> str | None:
         if value is not None and not value.strip():
             raise ValueError("题目内容不能为空")
         return value
 
     @field_validator("category")
     @classmethod
-    def normalize_category(cls, value: Optional[list[str]]) -> Optional[list[str]]:
+    def normalize_category(cls, value: list[str] | None) -> list[str] | None:
         if value is None:
             return None
         normalized = [item.strip() for item in value]
@@ -87,8 +88,8 @@ class QuestionUpdateFields(BaseModel):
 
 def validate_question_payload(
     question_type: QuestionTypeEnum | str,
-    content: Optional[str],
-    options: Optional[QuestionOptions],
+    content: str | None,
+    options: QuestionOptions | None,
 ) -> None:
     """校验题型、题干和选项之间的纯数据约束。"""
     type_value = question_type.value if isinstance(question_type, QuestionTypeEnum) else question_type

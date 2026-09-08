@@ -3,7 +3,8 @@
 Repository 只负责构造和执行真题查询，不负责事务提交、响应转换或业务校验。
 """
 from dataclasses import dataclass
-from typing import Any, Optional
+import json
+from typing import Any
 
 from sqlalchemy import and_, case, func, or_
 from sqlmodel import select
@@ -18,14 +19,14 @@ class ExamQuery:
 
     page: int
     page_size: int
-    year: Optional[int]
-    subject_id: Optional[int]
-    category: Optional[str]
+    year: int | None
+    subject_id: int | None
+    category: str | None
     no_category: bool
-    keyword: Optional[str]
+    keyword: str | None
     sort_field: str
     sort_order: str
-    category_names: Optional[tuple[str, ...]] = None
+    category_names: tuple[str, ...] | None = None
 
 
 class ExamRepository:
@@ -61,13 +62,13 @@ class ExamRepository:
         result = await self.session.exec(
             select(ExamQuestion)
             .where(*conditions)
-            .order_by(order_column)
+            .order_by(order_column, ExamQuestion.id.asc())
             .offset(offset)
             .limit(params.page_size)
         )
         return total, result.all()
 
-    async def get_by_id(self, question_id: int) -> Optional[ExamQuestion]:
+    async def get_by_id(self, question_id: int) -> ExamQuestion | None:
         """按主键查询真题。"""
         result = await self.session.exec(
             select(ExamQuestion).where(ExamQuestion.id == question_id)
@@ -77,9 +78,9 @@ class ExamRepository:
     async def find_duplicate(
         self,
         year: int,
-        question_number: Optional[int],
-        exclude_id: Optional[int] = None,
-    ) -> Optional[ExamQuestion]:
+        question_number: int | None,
+        exclude_id: int | None = None,
+    ) -> ExamQuestion | None:
         """查询指定年份和题号是否已存在真题。"""
         conditions: list[Any] = [
             ExamQuestion.year == year,
@@ -92,7 +93,7 @@ class ExamRepository:
         )
         return result.first()
 
-    async def get_year_stats(self, category: Optional[str] = None) -> list[Any]:
+    async def get_year_stats(self, category: str | None = None) -> list[Any]:
         """按年份聚合真题数量和选择题数量。"""
         conditions = self._category_conditions(category)
         result = await self.session.exec(
@@ -114,7 +115,7 @@ class ExamRepository:
 
     async def list_for_category_stats(
         self,
-        subject_id: Optional[int] = None,
+        subject_id: int | None = None,
     ) -> list[ExamQuestion]:
         """返回用于内存展开分类统计的真题。"""
         conditions: list[Any] = [
@@ -134,49 +135,53 @@ class ExamRepository:
         )
         return result.all()
 
-    async def get_subject(self, subject_id: int) -> Optional[Subject]:
+    async def get_subject(self, subject_id: int) -> Subject | None:
         """按主键查询科目。"""
         result = await self.session.exec(
             select(Subject).where(Subject.id == subject_id)
         )
         return result.first()
 
-    async def get_author(self, author_id: int) -> Optional[User]:
+    async def get_author(self, author_id: int) -> User | None:
         """按主键查询作者。"""
         result = await self.session.exec(select(User).where(User.id == author_id))
         return result.first()
 
-    async def list_index_rows(self, subject_id: Optional[int] = None) -> list[Any]:
+    async def list_index_rows(self, subject_id: int | None = None) -> list[Any]:
         """返回真题索引所需的轻量字段。"""
         conditions: list[Any] = []
-        if subject_id:
+        if subject_id is not None:
             conditions.append(ExamQuestion.subject_id == subject_id)
         result = await self.session.exec(
             select(ExamQuestion.id, ExamQuestion.year, ExamQuestion.question_number)
             .where(*conditions)
-            .order_by(ExamQuestion.year.desc(), ExamQuestion.question_number.asc())
+            .order_by(
+                ExamQuestion.year.desc(),
+                ExamQuestion.question_number.asc(),
+                ExamQuestion.id.asc(),
+            )
         )
         return result.all()
 
     async def find_by_year(
         self,
         year: int,
-        category: Optional[str] = None,
-        subject_id: Optional[int] = None,
+        category: str | None = None,
+        subject_id: int | None = None,
     ) -> list[ExamQuestion]:
         """按年份、分类和科目查询真题。"""
         conditions: list[Any] = [ExamQuestion.year == year]
-        if subject_id:
+        if subject_id is not None:
             conditions.append(ExamQuestion.subject_id == subject_id)
         conditions.extend(self._category_conditions(category))
         result = await self.session.exec(
             select(ExamQuestion)
             .where(*conditions)
-            .order_by(ExamQuestion.question_number)
+            .order_by(ExamQuestion.question_number.asc(), ExamQuestion.id.asc())
         )
         return result.all()
 
-    async def list_category_values(self, subject_id: int) -> list[Optional[str]]:
+    async def list_category_values(self, subject_id: int) -> list[str | None]:
         """返回科目下真题原始分类 JSON。"""
         result = await self.session.exec(
             select(ExamQuestion.category).where(
@@ -190,17 +195,21 @@ class ExamRepository:
 
     async def find_all_for_index(
         self,
-        category: Optional[str] = None,
+        category: str | None = None,
     ) -> list[ExamQuestion]:
         """返回年份导航使用的真题列表。"""
         result = await self.session.exec(
             select(ExamQuestion)
             .where(*self._category_conditions(category))
-            .order_by(ExamQuestion.year.desc(), ExamQuestion.question_number.asc())
+            .order_by(
+                ExamQuestion.year.desc(),
+                ExamQuestion.question_number.asc(),
+                ExamQuestion.id.asc(),
+            )
         )
         return result.all()
 
-    async def find_nav_rows(self, category: Optional[str] = None) -> list[Any]:
+    async def find_nav_rows(self, category: str | None = None) -> list[Any]:
         """返回侧边栏导航所需的轻量字段。"""
         result = await self.session.exec(
             select(
@@ -211,23 +220,31 @@ class ExamRepository:
                 ExamQuestion.category,
             )
             .where(*self._category_conditions(category))
-            .order_by(ExamQuestion.year.desc(), ExamQuestion.question_number.asc())
+            .order_by(
+                ExamQuestion.year.desc(),
+                ExamQuestion.question_number.asc(),
+                ExamQuestion.id.asc(),
+            )
         )
         return result.all()
 
     async def find_by_subject_and_category(
         self,
-        subject_id: Optional[int],
+        subject_id: int | None,
         category: str,
     ) -> list[ExamQuestion]:
         """按科目和分类查询真题。"""
         conditions: list[Any] = self._category_conditions(category)
-        if subject_id:
+        if subject_id is not None:
             conditions.append(ExamQuestion.subject_id == subject_id)
         result = await self.session.exec(
             select(ExamQuestion)
             .where(*conditions)
-            .order_by(ExamQuestion.year.desc(), ExamQuestion.question_number.asc())
+            .order_by(
+                ExamQuestion.year.desc(),
+                ExamQuestion.question_number.asc(),
+                ExamQuestion.id.asc(),
+            )
         )
         return result.all()
 
@@ -236,16 +253,20 @@ class ExamRepository:
         result = await self.session.exec(
             select(ExamQuestion)
             .where(ExamQuestion.subject_id == subject_id)
-            .order_by(ExamQuestion.year.desc(), ExamQuestion.question_number.asc())
+            .order_by(
+                ExamQuestion.year.desc(),
+                ExamQuestion.question_number.asc(),
+                ExamQuestion.id.asc(),
+            )
         )
         return result.all()
 
     @staticmethod
-    def _category_conditions(category: Optional[str]) -> list[Any]:
+    def _category_conditions(category: str | None) -> list[Any]:
         """构造 JSON 分类名称的兼容过滤条件。"""
         if not category or not category.strip():
             return []
-        return ExamRepository._category_conditions_for_names((category,))
+        return ExamRepository._category_conditions_for_names((category.strip(),))
 
     @staticmethod
     def _category_conditions_for_names(
@@ -254,7 +275,7 @@ class ExamRepository:
         """构造匹配多个分类名称的 JSON 过滤条件。"""
         normalized_names = tuple(
             dict.fromkeys(
-                name for name in category_names if name and name.strip()
+                name.strip() for name in category_names if name and name.strip()
             )
         )
         if not normalized_names:
@@ -263,7 +284,10 @@ class ExamRepository:
         category_conditions = [
             and_(
                 ExamQuestion.category.isnot(None),
-                ExamQuestion.category.like(f'%"{name}"%'),
+                ExamQuestion.category.like(
+                    ExamRepository._json_category_like_pattern(name),
+                    escape="\\",
+                ),
             )
             for name in normalized_names
         ]
@@ -298,7 +322,7 @@ class ExamRepository:
                 conditions.extend(ExamRepository._category_conditions(params.category))
 
         if params.keyword and params.keyword.strip():
-            keyword_pattern = f"%{params.keyword}%"
+            keyword_pattern = f"%{params.keyword.strip()}%"
             conditions.append(
                 or_(
                     ExamQuestion.title.ilike(keyword_pattern),
@@ -306,3 +330,10 @@ class ExamRepository:
                 )
             )
         return conditions
+
+    @staticmethod
+    def _json_category_like_pattern(category_name: str) -> str:
+        """构造匹配 JSON 字符串元素的 LIKE 模式。"""
+        serialized = json.dumps(category_name, ensure_ascii=False)
+        escaped = serialized.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+        return f"%{escaped}%"

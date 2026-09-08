@@ -1,12 +1,13 @@
-"""
-数据模型定义模块
-对应 Java 实体类与 create_tables.sql 表结构
-"""
+"""SQLModel 数据表及其关系定义。"""
+
 from datetime import datetime
-from typing import Optional, List
+from typing import List, Optional
+
 from sqlalchemy import CheckConstraint, Index, text
+
 from sqlmodel import Field, Relationship
-from app.models.base import BaseModel
+
+from app.models.base import BaseModel, utc_now
 from app.models.enums import UserRoleEnum, QuestionTypeEnum, DifficultyEnum
 
 
@@ -14,7 +15,7 @@ from app.models.enums import UserRoleEnum, QuestionTypeEnum, DifficultyEnum
 # 用户表 (user)
 # ====================================
 class User(BaseModel, table=True):
-    """用户模型"""
+    """用户模型。"""
     __tablename__ = "user"
     __table_args__ = (
         CheckConstraint(
@@ -25,46 +26,83 @@ class User(BaseModel, table=True):
 
     username: str = Field(unique=True, index=True, description="用户名")
     password: str = Field(description="Argon2 加密密码")
-    email: Optional[str] = Field(default=None, description="邮箱")
+    email: str | None = Field(default=None, description="邮箱")
     role: str = Field(default=UserRoleEnum.USER.value, description="角色")
     enabled: bool = Field(default=True, description="账户启用状态")
 
     # 关系
-    exam_questions: List["ExamQuestion"] = Relationship(back_populates="author")
-    mock_questions: List["MockQuestion"] = Relationship(back_populates="author")
-    resource_files: List["ResourceFile"] = Relationship(back_populates="uploader")
-    knowledge_points: List["KnowledgePoint"] = Relationship(back_populates="author")
+    exam_questions: List["ExamQuestion"] = Relationship(
+        back_populates="author",
+        passive_deletes=True,
+    )
+    mock_questions: List["MockQuestion"] = Relationship(
+        back_populates="author",
+        passive_deletes=True,
+    )
+    resource_files: List["ResourceFile"] = Relationship(
+        back_populates="uploader",
+        passive_deletes=True,
+    )
+    knowledge_points: List["KnowledgePoint"] = Relationship(
+        back_populates="author",
+        passive_deletes=True,
+    )
 
 
 # ====================================
 # 科目表 (subject)
 # ====================================
 class Subject(BaseModel, table=True):
-    """科目模型"""
+    """科目模型。"""
     __tablename__ = "subject"
 
     name: str = Field(unique=True, description="科目名称")
     code: str = Field(unique=True, description="科目编码")
-    description: Optional[str] = Field(default=None, description="科目描述")
+    description: str | None = Field(default=None, description="科目描述")
     order_num: int = Field(default=0, description="排序序号")
     enabled: bool = Field(default=True, description="是否启用")
 
     # 关系
-    chapters: List["Chapter"] = Relationship(back_populates="subject", cascade_delete="all")
-    exam_categories: List["ExamCategory"] = Relationship(back_populates="subject", cascade_delete="all")
-    exam_questions: List["ExamQuestion"] = Relationship(back_populates="subject")
-    mock_questions: List["MockQuestion"] = Relationship(back_populates="subject")
+    chapters: List["Chapter"] = Relationship(
+        back_populates="subject",
+        cascade_delete=True,
+        passive_deletes=True,
+    )
+    exam_categories: List["ExamCategory"] = Relationship(
+        back_populates="subject",
+        cascade_delete=True,
+        passive_deletes=True,
+    )
+    exam_questions: List["ExamQuestion"] = Relationship(
+        back_populates="subject",
+        passive_deletes=True,
+    )
+    mock_questions: List["MockQuestion"] = Relationship(
+        back_populates="subject",
+        passive_deletes=True,
+    )
 
 
 # ====================================
 # 章节表 (chapter)
 # ====================================
 class Chapter(BaseModel, table=True):
-    """章节模型"""
+    """章节模型。"""
     __tablename__ = "chapter"
 
-    subject_id: int = Field(foreign_key="subject.id", description="所属科目ID")
-    parent_id: Optional[int] = Field(default=None, foreign_key="chapter.id", description="父章节ID")
+    subject_id: int = Field(
+        foreign_key="subject.id",
+        ondelete="CASCADE",
+        index=True,
+        description="所属科目ID",
+    )
+    parent_id: int | None = Field(
+        default=None,
+        foreign_key="chapter.id",
+        ondelete="CASCADE",
+        index=True,
+        description="父章节ID",
+    )
     name: str = Field(description="章节名称")
     order_num: int = Field(default=0, description="排序序号")
     enabled: bool = Field(default=True, description="是否启用")
@@ -75,26 +113,43 @@ class Chapter(BaseModel, table=True):
         back_populates="children",
         sa_relationship_kwargs={"remote_side": "Chapter.id"}
     )
-    children: List["Chapter"] = Relationship(back_populates="parent")
-    knowledge_points: List["KnowledgePoint"] = Relationship(back_populates="chapter")
+    children: List["Chapter"] = Relationship(
+        back_populates="parent",
+        passive_deletes=True,
+    )
+    knowledge_points: List["KnowledgePoint"] = Relationship(
+        back_populates="chapter",
+        passive_deletes=True,
+    )
 
 
 # ====================================
 # 分类标签表 (exam_category)
 # ====================================
 class ExamCategory(BaseModel, table=True):
-    """分类标签模型"""
+    """分类标签模型。"""
     __tablename__ = "exam_category"
     __table_args__ = (
         Index("uq_exam_category_subject_name", "subject_id", "name", unique=True),
         Index("uq_exam_category_subject_code", "subject_id", "code", unique=True),
     )
 
-    subject_id: int = Field(foreign_key="subject.id", description="所属科目ID")
-    parent_id: Optional[int] = Field(default=None, foreign_key="exam_category.id", description="父分类ID")
+    subject_id: int = Field(
+        foreign_key="subject.id",
+        ondelete="CASCADE",
+        index=True,
+        description="所属科目ID",
+    )
+    parent_id: int | None = Field(
+        default=None,
+        foreign_key="exam_category.id",
+        ondelete="CASCADE",
+        index=True,
+        description="父分类ID",
+    )
     name: str = Field(description="分类名称")
     code: str = Field(description="系统生成的层级分类编码")
-    description: Optional[str] = Field(default=None, description="分类描述")
+    description: str | None = Field(default=None, description="分类描述")
     order_num: int = Field(default=0, description="排序序号")
     enabled: bool = Field(default=True, description="是否启用")
 
@@ -104,14 +159,17 @@ class ExamCategory(BaseModel, table=True):
         back_populates="children",
         sa_relationship_kwargs={"remote_side": "ExamCategory.id"}
     )
-    children: List["ExamCategory"] = Relationship(back_populates="parent")
+    children: List["ExamCategory"] = Relationship(
+        back_populates="parent",
+        passive_deletes=True,
+    )
 
 
 # ====================================
 # 真题表 (exam_question)
 # ====================================
 class ExamQuestion(BaseModel, table=True):
-    """真题模型"""
+    """真题模型。"""
     __tablename__ = "exam_question"
     __table_args__ = (
         CheckConstraint(
@@ -132,16 +190,27 @@ class ExamQuestion(BaseModel, table=True):
     )
 
     year: int = Field(description="年份")
-    question_number: Optional[int] = Field(default=None, description="题号")
+    question_number: int | None = Field(default=None, description="题号")
     question_type: str = Field(default=QuestionTypeEnum.ESSAY.value, description="题型")
-    title: Optional[str] = Field(default=None, description="题目标题")
+    title: str | None = Field(default=None, description="题目标题")
     content: str = Field(description="题目内容")
-    options: Optional[str] = Field(default=None, description="选择题选项(JSON)")
-    answer: Optional[str] = Field(default=None, description="答案")
-    category: Optional[str] = Field(default=None, description="分类(JSON数组)")
-    subject_id: Optional[int] = Field(default=None, foreign_key="subject.id", description="科目ID")
-    difficulty: Optional[str] = Field(default=None, description="难度")
-    author_id: int = Field(foreign_key="user.id", description="作者ID")
+    options: str | None = Field(default=None, description="选择题选项(JSON)")
+    answer: str | None = Field(default=None, description="答案")
+    category: str | None = Field(default=None, description="分类(JSON数组)")
+    subject_id: int | None = Field(
+        default=None,
+        foreign_key="subject.id",
+        ondelete="SET NULL",
+        index=True,
+        description="科目ID",
+    )
+    difficulty: str | None = Field(default=None, description="难度")
+    author_id: int = Field(
+        foreign_key="user.id",
+        ondelete="RESTRICT",
+        index=True,
+        description="作者ID",
+    )
 
     # 关系
     subject: Optional[Subject] = Relationship(back_populates="exam_questions")
@@ -152,7 +221,7 @@ class ExamQuestion(BaseModel, table=True):
 # 模拟题表 (mock_question)
 # ====================================
 class MockQuestion(BaseModel, table=True):
-    """模拟题模型"""
+    """模拟题模型。"""
     __tablename__ = "mock_question"
     __table_args__ = (
         CheckConstraint(
@@ -174,16 +243,27 @@ class MockQuestion(BaseModel, table=True):
     )
 
     source: str = Field(description="来源机构")
-    question_number: Optional[int] = Field(default=None, description="题号")
+    question_number: int | None = Field(default=None, description="题号")
     question_type: str = Field(default=QuestionTypeEnum.ESSAY.value, description="题型")
-    title: Optional[str] = Field(default=None, description="题目标题")
+    title: str | None = Field(default=None, description="题目标题")
     content: str = Field(description="题目内容")
-    options: Optional[str] = Field(default=None, description="选择题选项(JSON)")
-    answer: Optional[str] = Field(default=None, description="答案")
-    category: Optional[str] = Field(default=None, description="分类(JSON数组)")
-    subject_id: Optional[int] = Field(default=None, foreign_key="subject.id", description="科目ID")
-    difficulty: Optional[str] = Field(default=None, description="难度")
-    author_id: int = Field(foreign_key="user.id", description="作者ID")
+    options: str | None = Field(default=None, description="选择题选项(JSON)")
+    answer: str | None = Field(default=None, description="答案")
+    category: str | None = Field(default=None, description="分类(JSON数组)")
+    subject_id: int | None = Field(
+        default=None,
+        foreign_key="subject.id",
+        ondelete="SET NULL",
+        index=True,
+        description="科目ID",
+    )
+    difficulty: str | None = Field(default=None, description="难度")
+    author_id: int = Field(
+        foreign_key="user.id",
+        ondelete="RESTRICT",
+        index=True,
+        description="作者ID",
+    )
 
     # 关系
     subject: Optional[Subject] = Relationship(back_populates="mock_questions")
@@ -194,17 +274,21 @@ class MockQuestion(BaseModel, table=True):
 # 资源文件表 (resource_file)
 # ====================================
 class ResourceFile(BaseModel, table=True):
-    """资源文件模型"""
+    """资源文件模型。"""
     __tablename__ = "resource_file"
 
     filename: str = Field(description="存储文件名")
     original_filename: str = Field(description="原始文件名")
     file_path: str = Field(description="文件存储路径")
-    file_size: Optional[int] = Field(default=None, description="文件大小")
-    file_type: Optional[str] = Field(default=None, description="文件类型")
-    description: Optional[str] = Field(default=None, description="资源描述")
+    file_size: int | None = Field(default=None, description="文件大小")
+    file_type: str | None = Field(default=None, description="文件类型")
+    description: str | None = Field(default=None, description="资源描述")
     download_count: int = Field(default=0, description="下载次数")
-    uploader_id: int = Field(foreign_key="user.id", description="上传者ID")
+    uploader_id: int = Field(
+        foreign_key="user.id",
+        ondelete="RESTRICT",
+        description="上传者ID",
+    )
 
     # 关系
     uploader: Optional[User] = Relationship(back_populates="resource_files")
@@ -214,38 +298,48 @@ class ResourceFile(BaseModel, table=True):
 # 随机出题统计表 (exam_random_stat)
 # ====================================
 class ExamRandomStat(BaseModel, table=True):
-    """随机出题统计模型"""
+    """随机出题统计模型。"""
     __tablename__ = "exam_random_stat"
 
     user_id: int = Field(
         unique=True,
         foreign_key="user.id",
+        ondelete="CASCADE",
         description="用户ID",
     )
     total_attempts: int = Field(default=0, description="完成次数")
-    last_attempt_time: datetime = Field(default_factory=datetime.utcnow, description="最近完成时间")
+    last_attempt_time: datetime = Field(default_factory=utc_now, description="最近完成时间")
 
 
 # ====================================
 # 知识点表 (knowledge_point)
 # ====================================
 class KnowledgePoint(BaseModel, table=True):
-    """知识点模型"""
+    """知识点模型。"""
     __tablename__ = "knowledge_point"
 
     title: str = Field(description="标题")
     category: str = Field(description="分类")
-    chapter_id: Optional[int] = Field(default=None, foreign_key="chapter.id", description="章节ID")
+    chapter_id: int | None = Field(
+        default=None,
+        foreign_key="chapter.id",
+        ondelete="SET NULL",
+        description="章节ID",
+    )
     content: str = Field(description="Markdown格式内容")
-    author_id: int = Field(foreign_key="user.id", description="作者ID")
+    author_id: int = Field(
+        foreign_key="user.id",
+        ondelete="RESTRICT",
+        description="作者ID",
+    )
     view_count: int = Field(default=0, description="浏览次数")
-    create_time: datetime = Field(default_factory=datetime.utcnow, description="创建时间")
+    create_time: datetime = Field(default_factory=utc_now, description="创建时间")
     update_time: datetime = Field(
-        default_factory=datetime.utcnow,
-        sa_column_kwargs={"onupdate": datetime.utcnow},
+        default_factory=utc_now,
+        sa_column_kwargs={"onupdate": utc_now},
         description="更新时间",
     )
 
     # 关系
     chapter: Optional[Chapter] = Relationship(back_populates="knowledge_points")
-    author: Optional[User] = Relationship()
+    author: Optional[User] = Relationship(back_populates="knowledge_points")

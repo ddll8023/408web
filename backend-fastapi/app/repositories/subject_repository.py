@@ -1,7 +1,7 @@
 """科目查询的持久化边界。"""
-from typing import Any, Optional
+from typing import Any
 
-from sqlmodel import select, func, and_
+from sqlmodel import and_, func, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.models.entities import ExamQuestion, Subject
@@ -31,19 +31,19 @@ class SubjectRepository:
                 func.count(ExamQuestion.id).label("question_count"),
             )
             .outerjoin(ExamQuestion, Subject.id == ExamQuestion.subject_id)
-            .where(Subject.enabled == True)
+            .where(Subject.enabled.is_(True))
             .group_by(Subject.id)
             .order_by(Subject.order_num, Subject.id)
         )
         return result.all()
 
-    async def get_by_id(self, subject_id: int) -> Optional[Subject]:
+    async def get_by_id(self, subject_id: int) -> Subject | None:
         result = await self.session.exec(
             select(Subject).where(Subject.id == subject_id)
         )
         return result.first()
 
-    async def get_by_code(self, code: str) -> Optional[Subject]:
+    async def get_by_code(self, code: str) -> Subject | None:
         result = await self.session.exec(
             select(Subject).where(Subject.code == code)
         )
@@ -53,7 +53,7 @@ class SubjectRepository:
         self,
         name: str,
         *,
-        exclude_id: Optional[int] = None,
+        exclude_id: int | None = None,
     ) -> int:
         conditions: list[Any] = [Subject.name == name]
         if exclude_id is not None:
@@ -67,7 +67,7 @@ class SubjectRepository:
         self,
         code: str,
         *,
-        exclude_id: Optional[int] = None,
+        exclude_id: int | None = None,
     ) -> int:
         conditions: list[Any] = [Subject.code == code]
         if exclude_id is not None:

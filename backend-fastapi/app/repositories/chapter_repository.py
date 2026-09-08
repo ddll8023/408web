@@ -1,7 +1,7 @@
 """章节查询的持久化边界。"""
-from typing import Any, Optional
+from typing import Any
 
-from sqlmodel import select, func, and_
+from sqlmodel import and_, func, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.models.entities import Chapter, Subject
@@ -21,7 +21,7 @@ class ChapterRepository:
     ) -> list[Chapter]:
         conditions: list[Any] = [Chapter.subject_id == subject_id]
         if enabled_only:
-            conditions.append(Chapter.enabled == True)
+            conditions.append(Chapter.enabled.is_(True))
         result = await self.session.exec(
             select(Chapter)
             .where(*conditions)
@@ -29,13 +29,13 @@ class ChapterRepository:
         )
         return result.all()
 
-    async def get_by_id(self, chapter_id: int) -> Optional[Chapter]:
+    async def get_by_id(self, chapter_id: int) -> Chapter | None:
         result = await self.session.exec(
             select(Chapter).where(Chapter.id == chapter_id)
         )
         return result.first()
 
-    async def get_subject(self, subject_id: int) -> Optional[Subject]:
+    async def get_subject(self, subject_id: int) -> Subject | None:
         result = await self.session.exec(
             select(Subject).where(Subject.id == subject_id)
         )
@@ -44,10 +44,10 @@ class ChapterRepository:
     async def count_name_conflicts(
         self,
         subject_id: int,
-        parent_id: Optional[int],
+        parent_id: int | None,
         name: str,
         *,
-        exclude_id: Optional[int] = None,
+        exclude_id: int | None = None,
     ) -> int:
         conditions: list[Any] = [
             Chapter.subject_id == subject_id,
