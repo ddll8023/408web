@@ -1,7 +1,8 @@
 <template>
-  <div class="relative w-full">
+  <div ref="rootRef" class="relative w-full">
     <!-- Select 容器 -->
     <div
+      ref="triggerRef"
       class="relative flex items-center px-4 bg-white border rounded-lg transition-all duration-200 cursor-pointer select-none"
       :class="[
         containerClasses,
@@ -80,16 +81,18 @@
       </select>
     </div>
 
-    <!-- 下拉选项列表 -->
-    <transition name="select-dropdown">
-      <div
-        :id="listId"
-        v-show="visible"
-        role="listbox"
-        :aria-label="placeholder"
-        class="absolute top-full left-0 right-0 mt-1.5 bg-white border border-gray-100 rounded-lg shadow-lg z-50 overflow-hidden"
-        :class="dropdownClasses"
-      >
+    <!-- 下拉选项列表：传送到 body，避免被弹窗内容区的 overflow 裁剪 -->
+    <teleport to="body">
+      <transition name="select-dropdown">
+        <div
+          ref="dropdownRef"
+          :id="listId"
+          v-show="visible"
+          role="listbox"
+          :aria-label="placeholder"
+          class="fixed bg-white border border-gray-100 rounded-lg shadow-lg z-[99999] overflow-hidden"
+          :class="dropdownClasses"
+        >
         <!-- 搜索框（可选） -->
         <div
           v-if="filterable"
@@ -144,8 +147,9 @@
             <p>暂无数据</p>
           </li>
         </ul>
-      </div>
-    </transition>
+        </div>
+      </transition>
+    </teleport>
   </div>
 </template>
 
@@ -159,7 +163,7 @@ import type { SelectInput, SelectOption, OptionValue } from './types'
  * 遵循YAGNI原则：仅实现实际使用的props
  * 与InputSelect的区别：此组件为纯选择器，InputSelect支持输入
  */
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue'
 
 const props = defineProps({
   // v-model 绑定值
@@ -225,7 +229,10 @@ const emit = defineEmits<{ 'update:modelValue': [value: V | '']; change: [value:
 
 let nextSelectId = 0
 
+const rootRef = ref<HTMLElement | null>(null)
+const triggerRef = ref<HTMLElement | null>(null)
 const selectRef = ref<HTMLSelectElement | null>(null)
+const dropdownRef = ref<HTMLElement | null>(null)
 const visible = ref(false)
 const filterText = ref('')
 const activeIndex = ref(-1)
@@ -299,14 +306,37 @@ const dropdownClasses = computed(() => {
   return 'border border-gray-100 shadow-[0_4px_12px_rgba(0,0,0,0.08)]'
 })
 
+// 计算下拉框位置；空间不足时自动显示在控件上方。
+const updatePosition = () => {
+  if (!visible.value || !triggerRef.value || !dropdownRef.value) return
+
+  const triggerRect = triggerRef.value.getBoundingClientRect()
+  const menu = dropdownRef.value
+  const gap = 8
+  const width = triggerRect.width
+  const maxLeft = Math.max(gap, window.innerWidth - width - gap)
+  const left = Math.min(Math.max(triggerRect.left, gap), maxLeft)
+
+  // 先设置宽度，再读取高度，确保位置计算使用最终尺寸。
+  menu.style.width = `${width}px`
+  const menuHeight = menu.offsetHeight
+  const spaceBelow = window.innerHeight - triggerRect.bottom - gap
+  const spaceAbove = triggerRect.top - gap
+  const openAbove = spaceBelow < menuHeight && spaceAbove > spaceBelow
+  const top = openAbove
+    ? Math.max(gap, triggerRect.top - menuHeight - gap)
+    : triggerRect.bottom + gap
+
+  menu.style.top = `${top}px`
+  menu.style.left = `${left}px`
+}
+
 // 点击其他地方关闭下拉
 const handleClickOutside = (event: MouseEvent) => {
   if (!(event.target instanceof Element)) return
-  const container = selectRef.value?.closest('.relative')
-  if (container && !container.contains(event.target)) {
-    visible.value = false
-    filterText.value = ''
-  }
+  if (rootRef.value?.contains(event.target) || dropdownRef.value?.contains(event.target)) return
+  visible.value = false
+  filterText.value = ''
 }
 
 // 容器点击处理
@@ -397,6 +427,7 @@ watch(visible, (val) => {
     setTimeout(() => {
       document.addEventListener('click', handleClickOutside)
     }, 0)
+    void nextTick(updatePosition)
   } else {
     document.removeEventListener('click', handleClickOutside)
     filterText.value = ''
@@ -404,8 +435,15 @@ watch(visible, (val) => {
   }
 })
 
+onMounted(() => {
+  window.addEventListener('resize', updatePosition)
+  window.addEventListener('scroll', updatePosition, true)
+})
+
 onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside)
+  window.removeEventListener('resize', updatePosition)
+  window.removeEventListener('scroll', updatePosition, true)
 })
 </script>
 

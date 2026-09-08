@@ -324,15 +324,13 @@
               <label for="category-parent" class="flex items-center gap-1.5 text-sm font-medium text-gray-700 mb-2">
                 父分类
               </label>
-              <select
+              <CustomSelect
                 id="category-parent"
                 v-model="form.parentId"
-                class="w-full h-[42px] px-3 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#8B6F47]/20 disabled:opacity-50"
+                :options="[{ label: '无（顶级分类）', value: 0 }, ...parentOptions]"
+                placeholder="无（顶级分类）"
                 :disabled="!form.subjectId || parentLoading"
-              >
-                <option :value="null">无（顶级分类）</option>
-                <option v-for="parent in parentOptions" :key="parent.value" :value="parent.value">{{ parent.label }}</option>
-              </select>
+              />
               <p class="text-xs text-[#999] mt-1.5">{{ parentLoading ? '正在加载父分类…' : '支持多级分类；移动父分类时，其子分类一起移动。' }}</p>
             </div>
           </div>
@@ -359,6 +357,46 @@
               :maxlength="50"
               required
             />
+          </div>
+        </div>
+
+        <!-- 排序与状态组 -->
+        <div class="
+          relative p-5
+          bg-gradient-to-br from-white/80 to-[rgba(139,111,71,0.02)]
+          backdrop-blur-sm
+          rounded-xl
+          border border-white/50
+          shadow-[0_2px_16px_rgba(139,111,71,0.06)]
+          before:absolute before:inset-0 before:rounded-xl before:p-px
+          before:bg-gradient-to-br before:from-white/60 before:to-transparent before:-z-10
+        ">
+          <!-- 分组标题 -->
+          <div class="flex items-center gap-2 mb-5 pb-4 border-b border-dashed border-[rgba(139,111,71,0.12)]">
+            <div class="w-7 h-7 flex items-center justify-center bg-gradient-to-br from-[#73d13d] to-[#52c41a] text-white rounded-lg shadow-md">
+              <font-awesome-icon :icon="['fas', 'sliders-h']" class="text-sm" />
+            </div>
+            <span class="text-base font-semibold text-[#8B6F47]">排序与状态</span>
+          </div>
+
+          <!-- 排序 + 启用状态 -->
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-4">
+              <label for="category-order-num" class="text-sm font-medium text-gray-700">排序顺序</label>
+              <CustomInputNumber
+                id="category-order-num"
+                v-model="form.orderNum"
+                :min="0"
+                :max="9999"
+              />
+              <span class="text-xs text-[#999]">数字越小越靠前</span>
+            </div>
+            <div class="flex items-center gap-3 px-4 py-2.5 bg-[rgba(139,111,71,0.04)] rounded-xl">
+              <CustomSwitch id="category-enabled" v-model="form.enabled" aria-label="是否启用分类" />
+              <span class="text-sm font-medium" :class="form.enabled ? 'text-[#52c41a]' : 'text-[#999]'">
+                {{ form.enabled ? '已启用' : '已禁用' }}
+              </span>
+            </div>
           </div>
         </div>
 
@@ -403,46 +441,6 @@
             <div class="flex justify-end mt-2">
               <span class="text-xs px-2 py-0.5 rounded-full bg-[rgba(139,111,71,0.08)] text-[#8B6F47]">
                 {{ form.description?.length || 0 }} / 255
-              </span>
-            </div>
-          </div>
-        </div>
-
-        <!-- 排序与状态组 -->
-        <div class="
-          relative p-5
-          bg-gradient-to-br from-white/80 to-[rgba(139,111,71,0.02)]
-          backdrop-blur-sm
-          rounded-xl
-          border border-white/50
-          shadow-[0_2px_16px_rgba(139,111,71,0.06)]
-          before:absolute before:inset-0 before:rounded-xl before:p-px
-          before:bg-gradient-to-br before:from-white/60 before:to-transparent before:-z-10
-        ">
-          <!-- 分组标题 -->
-          <div class="flex items-center gap-2 mb-5 pb-4 border-b border-dashed border-[rgba(139,111,71,0.12)]">
-            <div class="w-7 h-7 flex items-center justify-center bg-gradient-to-br from-[#73d13d] to-[#52c41a] text-white rounded-lg shadow-md">
-              <font-awesome-icon :icon="['fas', 'sliders-h']" class="text-sm" />
-            </div>
-            <span class="text-base font-semibold text-[#8B6F47]">排序与状态</span>
-          </div>
-
-          <!-- 排序 + 启用状态 -->
-          <div class="flex items-center justify-between">
-            <div class="flex items-center gap-4">
-              <label for="category-order-num" class="text-sm font-medium text-gray-700">排序顺序</label>
-              <CustomInputNumber
-                id="category-order-num"
-                v-model="form.orderNum"
-                :min="0"
-                :max="9999"
-              />
-              <span class="text-xs text-[#999]">数字越小越靠前</span>
-            </div>
-            <div class="flex items-center gap-3 px-4 py-2.5 bg-[rgba(139,111,71,0.04)] rounded-xl">
-              <CustomSwitch id="category-enabled" v-model="form.enabled" aria-label="是否启用分类" />
-              <span class="text-sm font-medium" :class="form.enabled ? 'text-[#52c41a]' : 'text-[#999]'">
-                {{ form.enabled ? '已启用' : '已禁用' }}
               </span>
             </div>
           </div>
