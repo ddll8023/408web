@@ -23,6 +23,7 @@
 - **Axios** - HTTP客户端
 - **@kangc/v-md-editor** - Markdown编辑器
 - **KaTeX** - 数学公式渲染
+- **html-to-image** - 将题目内容生成 PNG，支持图片复制和下载
 - **Tailwind CSS 4** - 样式工具
 
 ### 后端

@@ -5,6 +5,8 @@
 import logging
 
 from sqlmodel.ext.asyncio.session import AsyncSession
+
+from app.models.entities import User
 from app.models.enums import UserRoleEnum
 from app.core.exceptions import ConflictException, UnauthorizedException
 from app.core.security import create_access_token, get_password_hash, verify_password
