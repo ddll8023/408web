@@ -68,6 +68,34 @@ export interface ExamCategoryStatItem {
   subjectiveCount: number
 }
 
+/** 真题分类统计树节点（对应 ExamCategoryStatsTreeItem，已转驼峰） */
+export interface ExamCategoryStatsTreeItem {
+  categoryId: number | null
+  parentId: number | null
+  categoryName: string
+  orderNum: number
+  enabled: boolean
+  isUnfiled: boolean
+  /** 本节点直接引用的题目数 */
+  count: number
+  choiceCount: number
+  subjectiveCount: number
+  /** 本节点及后代的题目 ID 去重数 */
+  subtreeCount: number
+  subtreeChoiceCount: number
+  subtreeSubjectiveCount: number
+  children: ExamCategoryStatsTreeItem[]
+}
+
+/** 单个科目的真题分类统计树（对应 ExamSubjectCategoryStats） */
+export interface ExamSubjectCategoryStats {
+  subjectId: number | null
+  subjectName: string
+  totalCount: number
+  categoryReferenceCount: number
+  categories: ExamCategoryStatsTreeItem[]
+}
+
 /** 真题分类统计（对应 ExamCategoryStatsResponse） */
 export interface ExamCategoryStats {
   subjectId?: number | null
@@ -76,7 +104,10 @@ export interface ExamCategoryStats {
   totalCount: number
   /** 分类引用总数，一题多分类时分别计入 */
   categoryReferenceCount: number
+  /** 保留的平面统计，供兼容和未归档标签使用 */
   stats: ExamCategoryStatItem[]
+  /** 按科目、章节和知识点默认层级排列的统计树，表格排序仅作用当前视图 */
+  categoryTree: ExamSubjectCategoryStats[]
 }
 
 /** 真题查重响应（对应 ExamDuplicateCheckResponse） */

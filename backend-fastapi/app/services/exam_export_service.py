@@ -1,10 +1,7 @@
 """真题导出用例。"""
 import json
-import logging
-from dataclasses import dataclass
 from datetime import datetime
 from io import BytesIO
-from typing import Iterable
 from xml.etree.ElementTree import Element, SubElement, register_namespace, tostring
 from zipfile import ZIP_DEFLATED, ZipFile
 
@@ -13,11 +10,13 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from app.core.exceptions import ValidationException
 from app.models.entities import ExamQuestion
 from app.repositories.exam_repository import ExamRepository
-from app.schemas.exam import ExportResultResponse
-from app.services.question_mapping import parse_categories
+from app.schemas.exam import (
+    ExamCategoryStatsResponse,
+    ExamCategoryStatsTreeItem,
+    ExportResultResponse,
+)
+from app.services.exam_query_service import ExamQueryService
 
-
-logger = logging.getLogger(__name__)
 
 _XLSX_NAMESPACE = "http://schemas.openxmlformats.org/spreadsheetml/2006/main"
 _RELATIONSHIP_NAMESPACE = "http://schemas.openxmlformats.org/officeDocument/2006/relationships"
@@ -28,26 +27,12 @@ register_namespace("r", _RELATIONSHIP_NAMESPACE)
 register_namespace("pr", _PACKAGE_RELATIONSHIP_NAMESPACE)
 
 
-@dataclass(frozen=True, slots=True)
-class CategorySummary:
-    """一个分类及其关联题目的统计结果。"""
-
-    name: str
-    questions: list[ExamQuestion]
-    choice_count: int
-    subjective_count: int
-
-    @property
-    def count(self) -> int:
-        """返回该分类关联的去重题数。"""
-        return len(self.questions)
-
-
 class ExamExportService:
     """查询真题并生成 Markdown 或 Excel 导出结果。"""
 
     def __init__(self, session: AsyncSession) -> None:
         self.repository = ExamRepository(session)
+        self.query_service = ExamQueryService(session)
 
     async def export_by_subject(
         self,
@@ -69,160 +54,157 @@ class ExamExportService:
         subject_id: int | None,
         format: str,
     ) -> ExportResultResponse:
-        """按科目导出只包含汇总数据的真题分类统计。"""
+        """按科目导出按章节和知识点顺序排列的分类统计。"""
         if format not in {"markdown", "xlsx"}:
             raise ValidationException("不支持的导出格式")
 
-        questions = await self.repository.list_for_category_stats(subject_id)
-        subject_name = await self._get_subject_name(subject_id)
-        summaries = self._build_category_summaries(questions)
-        total_count = len(
-            {
-                question.id
-                for summary in summaries
-                for question in summary.questions
-            }
-        )
-        category_reference_count = sum(summary.count for summary in summaries)
+        stats = await self.query_service.get_category_stats(subject_id)
+        subject_name = stats.subject_name or "全部科目"
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
         if format == "markdown":
-            content = self._generate_category_markdown(
-                subject_name,
-                summaries,
-                total_count,
-                category_reference_count,
-            )
+            content = self._generate_category_markdown(stats)
             return ExportResultResponse(
                 filename=self._build_filename(subject_name, timestamp, "md"),
                 content_type="text/markdown; charset=utf-8",
                 file_bytes=content.encode("utf-8"),
             )
 
-        content = self._generate_category_xlsx(
-            subject_name,
-            summaries,
-            total_count,
-            category_reference_count,
-        )
+        content = self._generate_category_xlsx(stats)
         return ExportResultResponse(
             filename=self._build_filename(subject_name, timestamp, "xlsx"),
             content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             file_bytes=content,
         )
 
-    async def _get_subject_name(self, subject_id: int | None) -> str:
-        """返回导出范围对应的科目名称。"""
-        if subject_id is None:
-            return "全部科目"
-        subject = await self.repository.get_subject(subject_id)
-        return subject.name if subject else f"科目{subject_id}"
+    @staticmethod
+    def _flatten_category_rows(
+        nodes: list[ExamCategoryStatsTreeItem],
+    ) -> list[tuple[str, str, int, int, int]]:
+        """按树顺序展平分类，并选择章节或知识点的统计口径。"""
+        rows: list[tuple[str, str, int, int, int]] = []
+
+        def append_nodes(
+            current_nodes: list[ExamCategoryStatsTreeItem],
+            level: int,
+        ) -> None:
+            for node in current_nodes:
+                is_chapter = level == 0 and not node.is_unfiled
+                has_children = bool(node.children)
+                use_subtree = has_children or level == 0
+                if node.is_unfiled and level == 0:
+                    scope = "未归档汇总"
+                elif is_chapter:
+                    scope = "章节合计"
+                elif has_children:
+                    scope = "知识点组汇总"
+                elif node.is_unfiled:
+                    scope = "未归档标签"
+                else:
+                    scope = "知识点直接引用"
+                choice_count = (
+                    node.subtree_choice_count
+                    if use_subtree
+                    else node.choice_count
+                )
+                subjective_count = (
+                    node.subtree_subjective_count
+                    if use_subtree
+                    else node.subjective_count
+                )
+                count = node.subtree_count if use_subtree else node.count
+                label = f"{'　' * level}{node.category_name}"
+                rows.append((label, scope, choice_count, subjective_count, count))
+                append_nodes(node.children, level + 1)
+
+        append_nodes(nodes, 0)
+        return rows
 
     @staticmethod
-    def _build_category_summaries(
-        questions: Iterable[ExamQuestion],
-    ) -> list[CategorySummary]:
-        """按分类展开题目，并保证同一题在同一分类内只计一次。"""
-        category_questions: dict[str, list[ExamQuestion]] = {}
-        for question in questions:
-            categories = parse_categories(question.category)
-            if categories is None:
-                if question.category:
-                    logger.warning(
-                        "跳过无效真题分类数据: question_id=%s",
-                        question.id,
-                    )
-                continue
-
-            unique_categories = dict.fromkeys(
-                category.strip()
-                for category in categories
-                if category.strip()
-            )
-            for category in unique_categories:
-                category_questions.setdefault(category, []).append(question)
-
-        summaries = [
-            CategorySummary(
-                name=name,
-                questions=category_items,
-                choice_count=sum(
-                    question.question_type == "CHOICE"
-                    for question in category_items
-                ),
-                subjective_count=sum(
-                    question.question_type != "CHOICE"
-                    for question in category_items
-                ),
-            )
-            for name, category_items in category_questions.items()
-        ]
-        return sorted(summaries, key=lambda item: (-item.count, item.name))
-
-    @staticmethod
-    def _generate_category_markdown(
-        subject_name: str,
-        summaries: list[CategorySummary],
-        total_count: int,
-        category_reference_count: int,
-    ) -> str:
-        """生成只包含汇总数据的分类统计 Markdown 文件内容。"""
+    def _generate_category_markdown(stats: ExamCategoryStatsResponse) -> str:
+        """生成按科目和目录顺序排列的分类统计 Markdown。"""
+        subject_name = stats.subject_name or "全部科目"
         lines = [
             "# 真题分类统计",
             "",
             f"- 科目：{subject_name}",
-            f"- 去重题目总数：{total_count}",
-            f"- 分类引用总数：{category_reference_count}",
+            f"- 去重题目总数：{stats.total_count}",
+            f"- 分类引用总数：{stats.category_reference_count}",
             "",
             "## 分类统计",
             "",
-            "| 分类 | 选择题数量 | 主观题数量 | 分类题数 |",
-            "| --- | ---: | ---: | ---: |",
         ]
-        for summary in summaries:
-            lines.append(
-                "| {name} | {choice} | {subjective} | {count} |".format(
-                    name=summary.name.replace("|", "\\|"),
-                    choice=summary.choice_count,
-                    subjective=summary.subjective_count,
-                    count=summary.count,
-                )
+        if not stats.category_tree:
+            lines.extend(
+                [
+                    "| 分类 | 统计口径 | 选择题数量 | 主观题数量 | 总题数 |",
+                    "| --- | --- | ---: | ---: | ---: |",
+                    "| 暂无分类数据 | - | 0 | 0 | 0 |",
+                ]
             )
+            return "\n".join(lines).rstrip() + "\n"
 
-        if not summaries:
-            lines.append("| 暂无分类数据 | 0 | 0 | 0 |")
+        for subject_stats in stats.category_tree:
+            lines.extend(
+                [
+                    f"### {subject_stats.subject_name}",
+                    "",
+                    "| 分类 | 统计口径 | 选择题数量 | 主观题数量 | 总题数 |",
+                    "| --- | --- | ---: | ---: | ---: |",
+                ]
+            )
+            rows = ExamExportService._flatten_category_rows(subject_stats.categories)
+            if not rows:
+                lines.append("| 暂无分类数据 | - | 0 | 0 | 0 |")
+                continue
+            for label, scope, choice_count, subjective_count, count in rows:
+                lines.append(
+                    "| {name} | {scope} | {choice} | {subjective} | {count} |".format(
+                        name=label.replace("|", "\\|"),
+                        scope=scope.replace("|", "\\|"),
+                        choice=choice_count,
+                        subjective=subjective_count,
+                        count=count,
+                    )
+                )
+            lines.append("")
 
         return "\n".join(lines).rstrip() + "\n"
 
     @staticmethod
-    def _generate_category_xlsx(
-        subject_name: str,
-        summaries: list[CategorySummary],
-        total_count: int,
-        category_reference_count: int,
-    ) -> bytes:
-        """生成只包含汇总数据的最小 Excel 工作簿。"""
+    def _generate_category_xlsx(stats: ExamCategoryStatsResponse) -> bytes:
+        """生成按科目和目录顺序排列的最小 Excel 工作簿。"""
         rows: list[list[object]] = [
             ["真题分类统计"],
-            ["科目", subject_name],
-            ["去重题目总数", total_count],
-            ["分类引用总数", category_reference_count],
+            ["科目", stats.subject_name or "全部科目"],
+            ["去重题目总数", stats.total_count],
+            ["分类引用总数", stats.category_reference_count],
             [],
-            ["分类", "选择题数量", "主观题数量", "分类题数"],
-        ]
-        rows.extend(
             [
-                [
-                    summary.name,
-                    summary.choice_count,
-                    summary.subjective_count,
-                    summary.count,
-                ]
-                for summary in summaries
-            ]
-        )
-        if not summaries:
-            rows.append(["暂无分类数据", 0, 0, 0])
+                "科目",
+                "分类",
+                "统计口径",
+                "选择题数量",
+                "主观题数量",
+                "总题数",
+            ],
+        ]
+        for subject_stats in stats.category_tree:
+            for label, scope, choice_count, subjective_count, count in (
+                ExamExportService._flatten_category_rows(subject_stats.categories)
+            ):
+                rows.append(
+                    [
+                        subject_stats.subject_name,
+                        label,
+                        scope,
+                        choice_count,
+                        subjective_count,
+                        count,
+                    ]
+                )
+        if len(rows) == 6:
+            rows.append(["", "暂无分类数据", "-", 0, 0, 0])
 
         return ExamExportService._build_xlsx(rows)
 

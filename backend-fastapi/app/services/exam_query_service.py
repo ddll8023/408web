@@ -8,21 +8,29 @@ from typing import List, Optional
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.core.exceptions import NotFoundException
-from app.models.entities import ExamQuestion
+from app.models.entities import ExamCategory, ExamQuestion
 from app.repositories.category_repository import CategoryRepository
 from app.repositories.exam_repository import ExamQuery, ExamRepository
 from app.schemas.common import PageInfo
 from app.schemas.exam import (
     ExamCategoryStatItem,
     ExamCategoryStatsResponse,
+    ExamCategoryStatsTreeItem,
     ExamDuplicateCheckResponse,
     ExamIndexItem,
     ExamIndexResponse,
     ExamNavItem,
     ExamResponse,
+    ExamSubjectCategoryStats,
     ExamYearStatResponse,
     ExamQueryParams,
     PaginatedExamResponse,
+)
+from app.services.exam_category_stats import (
+    CategoryStatsNode,
+    QuestionStats,
+    SubjectCategoryStats,
+    build_subject_category_stats,
 )
 from app.services.question_mapping import parse_categories, parse_options
 
@@ -128,55 +136,146 @@ class ExamQueryService:
         self,
         subject_id: Optional[int] = None,
     ) -> ExamCategoryStatsResponse:
-        """展开题目分类 JSON 并统计题型数量。"""
+        """按科目和分类树顺序统计真题。"""
         questions = await self.repository.list_for_category_stats(subject_id)
-        category_counts: dict[str, dict[str, int]] = {}
-        categorized_question_ids: set[int] = set()
-        for question in questions:
-            categories = parse_categories(question.category)
-            if categories is None:
-                if question.category:
-                    logger.warning(
-                        "跳过无效真题分类数据: question_id=%s",
-                        question.id,
-                    )
-                continue
-
-            unique_categories = dict.fromkeys(
-                category.strip()
-                for category in categories
-                if category.strip()
+        subjects = await self.category_repository.list_subjects()
+        categories = (
+            await self.category_repository.list_all()
+            if subject_id is None
+            else await self.category_repository.list_by_subject(
+                subject_id,
+                include_subject=True,
             )
-            if not unique_categories:
-                continue
-            categorized_question_ids.add(question.id)
-            for category in unique_categories:
-                data = category_counts.setdefault(
-                    category,
-                    {"count": 0, "choice": 0, "subjective": 0},
+        )
+
+        questions_by_subject: dict[int | None, list[ExamQuestion]] = {}
+        for question in questions:
+            questions_by_subject.setdefault(question.subject_id, []).append(question)
+
+        categories_by_subject: dict[int | None, list[ExamCategory]] = {}
+        for category in categories:
+            categories_by_subject.setdefault(category.subject_id, []).append(category)
+
+        subject_names = {subject.id: subject.name for subject in subjects}
+        subject_ids: list[int | None]
+        if subject_id is None:
+            ordered_ids = [subject.id for subject in subjects]
+            candidate_ids = set(subject_names)
+            candidate_ids.update(categories_by_subject)
+            candidate_ids.update(
+                current_id
+                for current_id in questions_by_subject
+                if current_id is not None
+            )
+            subject_ids = ordered_ids + sorted(
+                current_id
+                for current_id in candidate_ids
+                if current_id not in ordered_ids
+            )
+            if None in questions_by_subject:
+                subject_ids.append(None)
+        elif subject_id in subject_names:
+            subject_ids = [subject_id]
+        else:
+            subject_ids = []
+
+        subject_stats: list[SubjectCategoryStats] = []
+        for current_subject_id in subject_ids:
+            current_name = (
+                subject_names.get(current_subject_id, f"科目{current_subject_id}")
+                if current_subject_id is not None
+                else "未归属科目"
+            )
+            current_stats = build_subject_category_stats(
+                questions_by_subject.get(current_subject_id, []),
+                categories_by_subject.get(current_subject_id, []),
+                subject_id=current_subject_id,
+                subject_name=current_name,
+            )
+            for question_id in current_stats.invalid_question_ids:
+                logger.warning(
+                    "跳过无效真题分类数据: question_id=%s",
+                    question_id,
                 )
-                data["count"] += 1
-                data["choice" if question.question_type == "CHOICE" else "subjective"] += 1
+            subject_stats.append(current_stats)
+
+        flat_stats: dict[str, QuestionStats] = {}
+        categorized_question_ids: set[int] = set()
+        for current_stats in subject_stats:
+            categorized_question_ids.update(current_stats.categorized.question_ids)
+            self._collect_direct_stats(current_stats.categories, flat_stats)
 
         stats = [
             ExamCategoryStatItem(
-                category_name=category,
-                count=data["count"],
-                choice_count=data["choice"],
-                subjective_count=data["subjective"],
+                category_name=category_name,
+                count=data.count,
+                choice_count=data.choice_count,
+                subjective_count=data.subjective_count,
             )
-            for category, data in sorted(category_counts.items())
+            for category_name, data in sorted(flat_stats.items())
         ]
-        subject_name = None
-        if subject_id is not None:
-            subject = await self.repository.get_subject(subject_id)
-            subject_name = subject.name if subject else None
+        category_tree = [
+            ExamSubjectCategoryStats(
+                subject_id=current_stats.subject_id,
+                subject_name=current_stats.subject_name,
+                total_count=current_stats.categorized.count,
+                category_reference_count=current_stats.category_reference_count,
+                categories=[
+                    self._to_category_stats_tree(node)
+                    for node in current_stats.categories
+                ],
+            )
+            for current_stats in subject_stats
+        ]
         return ExamCategoryStatsResponse(
             subject_id=subject_id,
-            subject_name=subject_name,
+            subject_name=(
+                subject_names.get(subject_id)
+                if subject_id is not None
+                else None
+            ),
             total_count=len(categorized_question_ids),
-            category_reference_count=sum(item.count for item in stats),
+            category_reference_count=sum(
+                current_stats.category_reference_count
+                for current_stats in subject_stats
+            ),
             stats=stats,
+            category_tree=category_tree,
+        )
+
+    @staticmethod
+    def _collect_direct_stats(
+        nodes: list[CategoryStatsNode],
+        flat_stats: dict[str, QuestionStats],
+    ) -> None:
+        """收集平面统计字段，保留旧响应的兼容数据。"""
+        for node in nodes:
+            if node.direct.count:
+                flat_stats.setdefault(node.name, QuestionStats()).merge(node.direct)
+            ExamQueryService._collect_direct_stats(node.children, flat_stats)
+
+    @staticmethod
+    def _to_category_stats_tree(
+        node: CategoryStatsNode,
+    ) -> ExamCategoryStatsTreeItem:
+        """将内部分类统计节点转换为 API 响应。"""
+        return ExamCategoryStatsTreeItem(
+            category_id=node.category_id,
+            parent_id=node.parent_id,
+            category_name=node.name,
+            order_num=node.order_num,
+            enabled=node.enabled,
+            is_unfiled=node.is_unfiled,
+            count=node.direct.count,
+            choice_count=node.direct.choice_count,
+            subjective_count=node.direct.subjective_count,
+            subtree_count=node.subtree.count,
+            subtree_choice_count=node.subtree.choice_count,
+            subtree_subjective_count=node.subtree.subjective_count,
+            children=[
+                ExamQueryService._to_category_stats_tree(child)
+                for child in node.children
+            ],
         )
 
     async def get_index(self, subject_id: Optional[int] = None) -> ExamIndexResponse:

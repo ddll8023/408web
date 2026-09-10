@@ -56,20 +56,42 @@
       </div>
 
       <!-- 统计口径：去重总数与分类引用总数分开显示 -->
-      <div class="mb-4 text-lg text-[#333]">
+      <div class="mb-1 text-lg text-[#333]">
         <strong>去重题目总数：{{ totalExamCount }}</strong>
         <span class="ml-2 text-sm font-normal text-gray-500">
           分类引用总数：{{ totalCategoryReferences }}（一题多分类会分别计入）
         </span>
       </div>
+      <p class="mb-4 text-sm text-gray-500">
+        展示层级：科目 → 章节 → 知识点；有子级的目录节点显示子树合计，叶子知识点按直接引用统计；点击三个数量列的表头可切换升序/降序。
+      </p>
 
       <!-- 统计表格 -->
-      <Table :data="statsData" :columns="tableColumns" :loading="statsLoading" size="lg">
+      <Table
+        :data="sortedStatsData"
+        :columns="tableColumns"
+        :loading="statsLoading"
+        row-key="id"
+        size="lg"
+        @sort-change="handleSortChange"
+      >
         <template #subjectName="{ row }">
           {{ row.subjectName }}
         </template>
         <template #category="{ row }">
-          {{ row.category }}
+          <div class="flex items-center gap-2" :style="{ paddingLeft: `${row.level * 1.5}rem` }">
+            <span
+              class="shrink-0 rounded px-1.5 py-0.5 text-xs"
+              :class="row.isUnfiled ? 'bg-gray-100 text-gray-500' : row.isChapter ? 'bg-[#8B6F47]/10 text-[#8B6F47]' : 'bg-blue-50 text-blue-600'"
+            >
+              {{ row.isUnfiled && row.isChapter ? '待整理' : row.isChapter ? '章节' : '知识点' }}
+            </span>
+            <span :class="{ 'text-gray-400': !row.enabled && !row.isUnfiled }">{{ row.category }}</span>
+            <span v-if="!row.enabled && !row.isUnfiled" class="text-xs text-orange-500">已禁用</span>
+          </div>
+        </template>
+        <template #scope="{ row }">
+          <span class="text-sm text-gray-500">{{ row.scope }}</span>
         </template>
         <template #choiceCount="{ row }">
           {{ row.choiceCount }}
@@ -88,12 +110,12 @@
 <script setup lang="ts">
 /**
  * 真题分类统计页面
- * 功能描述：展示真题按分类的统计数据，支持按科目筛选和 Markdown/Excel 导出
+ * 功能描述：按科目、章节和知识点层级展示真题分类统计，支持三个数量列升序/降序和 Markdown/Excel 导出
  * 依赖组件：CustomCard, CustomButton, Dropdown, DropdownItem, Select, Table, Toast
  */
 
 // 1. Vue 官方 API
-import { ref, onMounted } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 
 // 2. API 接口定义
 import { exportExamCategoryStats, getExamCategoryStats } from '@/api/exam'
@@ -107,12 +129,34 @@ import DropdownItem from '@/components/basic/DropdownItem.vue'
 import Select from '@/components/basic/Select.vue'
 import Table from '@/components/basic/Table.vue'
 import Toast from '@/utils/toast'
-import type { Subject } from '@/types'
+import type { TableSort } from '@/components/basic/types'
+import type {
+  ExamCategoryStatsTreeItem,
+  ExamSubjectCategoryStats,
+  Subject
+} from '@/types'
+
+type StatsRow = {
+  id: string
+  subjectName: string
+  category: string
+  scope: string
+  level: number
+  isChapter: boolean
+  enabled: boolean
+  isUnfiled: boolean
+  choiceCount: number
+  subjectiveCount: number
+  count: number
+}
+
+type FrequencySortProp = 'choiceCount' | 'subjectiveCount' | 'count'
 
 // State
 const statsLoading = ref(false)
 const exportLoading = ref(false)
-const statsData = ref<{subjectName: string; category: string; choiceCount: number; subjectiveCount: number; count: number}[]>([])
+const statsData = ref<StatsRow[]>([])
+const statsTree = ref<ExamSubjectCategoryStats[]>([])
 const statsSubjectId = ref<number | null>(null)
 const subjectOptions = ref<Subject[]>([])
 const totalExamCount = ref(0)
@@ -122,12 +166,109 @@ let statsLoadVersion = 0
 
 // 表格列配置
 const tableColumns = [
-  { prop: 'subjectName', label: '科目', width: '180' },
-  { prop: 'category', label: '分类', minWidth: '200' },
-  { prop: 'choiceCount', label: '选择题数量', width: '130' },
-  { prop: 'subjectiveCount', label: '主观题数量', width: '130' },
-  { prop: 'count', label: '总题数', width: '120' }
+  { prop: 'subjectName', label: '科目', width: '160' },
+  { prop: 'category', label: '章节 / 知识点', minWidth: '280' },
+  { prop: 'scope', label: '统计口径', width: '150' },
+  { prop: 'choiceCount', label: '选择题数量', width: '130', sortable: true },
+  { prop: 'subjectiveCount', label: '主观题数量', width: '130', sortable: true },
+  { prop: 'count', label: '总题数', width: '120', sortable: true }
 ]
+
+/**
+ * 根据分类统计树生成默认表格行；默认顺序保持科目和目录树层级。
+ */
+const flattenCategoryTree = (
+  groups: ExamSubjectCategoryStats[],
+  sortProp: FrequencySortProp | null = null,
+  direction = 1
+): StatsRow[] => {
+  const rows: StatsRow[] = []
+
+  const getNodeSortValue = (node: ExamCategoryStatsTreeItem, level: number) => {
+    const useSubtree = node.children.length > 0 || level === 0
+    if (sortProp === 'choiceCount') {
+      return useSubtree ? node.subtreeChoiceCount : node.choiceCount
+    }
+    if (sortProp === 'subjectiveCount') {
+      return useSubtree ? node.subtreeSubjectiveCount : node.subjectiveCount
+    }
+    return useSubtree ? node.subtreeCount : node.count
+  }
+
+  groups.forEach(group => {
+    const appendNodes = (
+      nodes: ExamCategoryStatsTreeItem[],
+      level: number,
+      parentKey: string
+    ) => {
+      const orderedNodes = sortProp
+        ? [...nodes].sort((left, right) => {
+            const valueDifference = getNodeSortValue(left, level) - getNodeSortValue(right, level)
+            if (valueDifference !== 0) return direction * valueDifference
+            const orderDifference = left.orderNum - right.orderNum
+            if (orderDifference !== 0) return orderDifference
+            return (left.categoryId ?? 0) - (right.categoryId ?? 0)
+          })
+        : nodes
+
+      orderedNodes.forEach(node => {
+        const isChapter = level === 0
+        const hasChildren = node.children.length > 0
+        const useSubtree = hasChildren || isChapter
+        const scope = node.isUnfiled && isChapter
+          ? '未归档汇总'
+          : isChapter
+            ? '章节合计'
+            : hasChildren
+              ? '知识点组汇总'
+              : node.isUnfiled
+                ? '未归档标签'
+                : '知识点直接引用'
+        const nodeKey = node.categoryId === null
+          ? `${parentKey}:${node.categoryName}`
+          : `${parentKey}:${node.categoryId}`
+
+        rows.push({
+          id: nodeKey,
+          subjectName: group.subjectName,
+          category: node.categoryName,
+          scope,
+          level,
+          isChapter,
+          enabled: node.enabled,
+          isUnfiled: node.isUnfiled,
+          choiceCount: useSubtree ? node.subtreeChoiceCount : node.choiceCount,
+          subjectiveCount: useSubtree ? node.subtreeSubjectiveCount : node.subjectiveCount,
+          count: useSubtree ? node.subtreeCount : node.count
+        })
+        appendNodes(node.children, level + 1, nodeKey)
+      })
+    }
+
+    appendNodes(group.categories, 0, `subject:${group.subjectId ?? 'unassigned'}`)
+  })
+
+  return rows
+}
+
+const isFrequencySortProp = (prop: string | null): prop is FrequencySortProp => {
+  return prop === 'choiceCount' || prop === 'subjectiveCount' || prop === 'count'
+}
+
+const sortConfig = ref<TableSort>({ prop: null, order: null })
+const sortedStatsData = computed(() => {
+  const { prop, order } = sortConfig.value
+  if (!isFrequencySortProp(prop) || !order) return statsData.value
+  return flattenCategoryTree(
+    statsTree.value,
+    prop,
+    order === 'ascending' ? 1 : -1
+  )
+})
+
+const handleSortChange = (sort: TableSort) => {
+  sortConfig.value = sort
+}
 
 /**
  * 加载科目选项
@@ -155,24 +296,15 @@ const loadStats = async () => {
     if (requestVersion !== statsLoadVersion) return
     if (res.code === 200 && res.data) {
       statsError.value = ''
-      // 从 response 中提取 stats 数组
-      const statsArray = res.data.stats || []
-      // 响应键名已被拦截器统一转为驼峰，默认按总题数降序
-      statsData.value = statsArray
-        .map(item => ({
-          subjectName: res.data.subjectName || '全部科目',
-          category: item.categoryName,
-          choiceCount: item.choiceCount,
-          subjectiveCount: item.subjectiveCount,
-          count: item.count
-        }))
-        .sort((a, b) => (b.count || 0) - (a.count || 0))
-      totalExamCount.value = res.data.totalCount || 0
-      totalCategoryReferences.value = res.data.categoryReferenceCount ?? statsArray.reduce(
+      statsTree.value = res.data.categoryTree || []
+      statsData.value = flattenCategoryTree(statsTree.value)
+      totalExamCount.value = res.data.totalCount ?? 0
+      totalCategoryReferences.value = res.data.categoryReferenceCount ?? res.data.stats.reduce(
         (sum, item) => sum + (item.count || 0),
         0
       )
     } else {
+      statsTree.value = []
       statsData.value = []
       totalExamCount.value = 0
       totalCategoryReferences.value = 0
@@ -181,6 +313,7 @@ const loadStats = async () => {
     }
   } catch (error) {
     if (requestVersion !== statsLoadVersion) return
+    statsTree.value = []
     statsData.value = []
     totalExamCount.value = 0
     totalCategoryReferences.value = 0
