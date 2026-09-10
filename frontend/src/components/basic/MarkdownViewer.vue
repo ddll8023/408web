@@ -84,6 +84,7 @@ const props = defineProps({
   }
 })
 
+const emit = defineEmits<{ rendered: [] }>()
 const rootRef = ref<HTMLElement | null>(null)
 
 // 存储提取的公式
@@ -244,6 +245,7 @@ const delayedRestore = () => {
     renderTimer = setTimeout(() => {
       renderTimer = undefined
       restoreAndRenderMath()
+      emit('rendered')
     }, 100)
   })
 }
