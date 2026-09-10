@@ -67,8 +67,11 @@
             :id="`${listId}-option-${index}`"
             role="option"
             :aria-selected="isSelected(item)"
-            class="px-3 h-8 leading-8 cursor-pointer text-gray-800 whitespace-nowrap overflow-hidden text-ellipsis transition-colors duration-150"
-            :class="{ 'text-[#8B6F47] font-medium bg-gray-100': isSelected(item) }"
+            class="px-3 h-8 leading-8 cursor-pointer text-gray-800 whitespace-nowrap overflow-hidden text-ellipsis transition-colors duration-150 hover:bg-[#FBF7F2] hover:text-[#8B6F47]"
+            :class="{
+              'text-[#8B6F47] font-medium bg-[#8B6F47]/10': isSelected(item),
+              'bg-[#FBF7F2] text-[#8B6F47]': activeIndex === index && !isSelected(item)
+            }"
             @click="handleSelect(item)"
             @mouseenter="activeIndex = index"
           >
