@@ -1,6 +1,10 @@
 <template>
-  <!-- 复制下拉菜单 -->
-  <Dropdown trigger="click" :disabled="isImageCopying" @command="handleCommand">
+  <Dropdown
+    trigger="click"
+    :disabled="isImageCopying"
+    menu-class="question-copy-dropdown"
+    @command="handleCommand"
+  >
     <template #trigger>
       <CustomButton
         size="sm"
@@ -13,54 +17,37 @@
     </template>
 
     <template #dropdown>
-      <!-- Markdown 格式 -->
-      <DropdownItem disabled>
-        <font-awesome-icon :icon="['fas', 'file-lines']" class="mr-1" />
-        Markdown 格式
-      </DropdownItem>
-      <DropdownItem command="md-question">复制题目 (MD)</DropdownItem>
-      <DropdownItem
-        v-if="question.questionType === 'CHOICE' && question.options"
-        command="md-options"
-      >复制选项 (MD)</DropdownItem>
-      <DropdownItem v-if="question.answer" command="md-answer">复制答案 (MD)</DropdownItem>
-      <DropdownItem
-        v-if="question.answer || (question.questionType === 'CHOICE' && question.options)"
-        command="md-all"
-      >复制完整内容 (MD)</DropdownItem>
+      <div class="question-copy-menu" aria-label="复制内容">
+        <section
+          v-for="section in menuSections"
+          :key="section.key"
+          class="question-copy-menu__section"
+          :aria-label="section.title"
+          role="group"
+        >
+          <div class="question-copy-menu__heading">
+            <span class="question-copy-menu__icon" aria-hidden="true">
+              <font-awesome-icon :icon="section.icon" />
+            </span>
+            <span class="question-copy-menu__heading-copy">
+              <span class="question-copy-menu__title">{{ section.title }}</span>
+              <span class="question-copy-menu__description">{{ section.description }}</span>
+            </span>
+          </div>
 
-      <!-- 纯文本格式 -->
-      <DropdownItem disabled divided>
-        <font-awesome-icon :icon="['fas', 'ticket']" class="mr-1" />
-        纯文本格式
-      </DropdownItem>
-      <DropdownItem command="text-question">复制题目 (Text)</DropdownItem>
-      <DropdownItem
-        v-if="question.questionType === 'CHOICE' && question.options"
-        command="text-options"
-      >复制选项 (Text)</DropdownItem>
-      <DropdownItem v-if="question.answer" command="text-answer">复制答案 (Text)</DropdownItem>
-      <DropdownItem
-        v-if="question.answer || (question.questionType === 'CHOICE' && question.options)"
-        command="text-all"
-      >复制完整内容 (Text)</DropdownItem>
-
-      <!-- 图片格式 -->
-      <DropdownItem disabled divided>
-        <font-awesome-icon :icon="['fas', 'file']" class="mr-1" />
-        图片格式
-      </DropdownItem>
-      <DropdownItem command="image-question-options" :disabled="isImageCopying">
-        复制题目+选项 (图片)
-      </DropdownItem>
-      <DropdownItem v-if="question.answer" command="image-answer" :disabled="isImageCopying">
-        复制答案 (图片)
-      </DropdownItem>
-      <DropdownItem
-        v-if="question.answer || (question.questionType === 'CHOICE' && question.options)"
-        command="image-all"
-        :disabled="isImageCopying"
-      >复制全部 (图片)</DropdownItem>
+          <div class="question-copy-menu__items">
+            <DropdownItem
+              v-for="item in section.items"
+              :key="item.command"
+              :command="item.command"
+              :disabled="section.key === 'image' && isImageCopying"
+              :class="{ 'question-copy-menu__item--wide': item.wide }"
+            >
+              <span class="question-copy-menu__item-label">{{ item.label }}</span>
+            </DropdownItem>
+          </div>
+        </section>
+      </div>
     </template>
   </Dropdown>
 
@@ -74,7 +61,7 @@
 
 <script setup lang="ts">
 import type { PropType } from 'vue'
-import { nextTick, ref } from 'vue'
+import { computed, nextTick, ref } from 'vue'
 import type { ExamQuestion, MockQuestion } from '@/types'
 import { copyImageBlob, getImageCopyScope, type QuestionImageCopyScope } from '@/utils/questionCopy'
 import { useToast } from '@/composables/useToast'
@@ -82,6 +69,23 @@ import CustomButton from '@/components/basic/CustomButton.vue'
 import Dropdown from '@/components/basic/Dropdown.vue'
 import DropdownItem from '@/components/basic/DropdownItem.vue'
 import QuestionImageRenderer from '@/components/business/QuestionImageRenderer.vue'
+
+type CopyMenuSectionKey = 'markdown' | 'text' | 'image'
+type CopyMenuIcon = ['fas', 'file-lines'] | ['fas', 'ticket'] | ['fas', 'file']
+
+interface CopyMenuItem {
+  command: string
+  label: string
+  wide?: boolean
+}
+
+interface CopyMenuSection {
+  key: CopyMenuSectionKey
+  title: string
+  description: string
+  icon: CopyMenuIcon
+  items: CopyMenuItem[]
+}
 
 /** 题目复制菜单，统一提供 Markdown、纯文本和图片复制入口。 */
 const props = defineProps({
@@ -101,6 +105,56 @@ interface ImageRendererRef {
 const imageCopyScope = ref<QuestionImageCopyScope | null>(null)
 const imageRenderer = ref<ImageRendererRef | null>(null)
 const isImageCopying = ref(false)
+
+const hasOptions = computed(() => {
+  return props.question.questionType === 'CHOICE' && Boolean(props.question.options)
+})
+
+const hasAnswer = computed(() => Boolean(props.question.answer?.trim()))
+
+const menuSections = computed<CopyMenuSection[]>(() => [
+  {
+    key: 'markdown',
+    title: 'Markdown 格式',
+    description: '保留排版',
+    icon: ['fas', 'file-lines'],
+    items: [
+      { command: 'md-question', label: '复制题目' },
+      ...(hasOptions.value ? [{ command: 'md-options', label: '复制选项' }] : []),
+      ...(hasAnswer.value ? [{ command: 'md-answer', label: '复制答案' }] : []),
+      ...((hasAnswer.value || hasOptions.value)
+        ? [{ command: 'md-all', label: '复制完整内容', wide: true }]
+        : [])
+    ]
+  },
+  {
+    key: 'text',
+    title: '纯文本格式',
+    description: '不带样式',
+    icon: ['fas', 'ticket'],
+    items: [
+      { command: 'text-question', label: '复制题目' },
+      ...(hasOptions.value ? [{ command: 'text-options', label: '复制选项' }] : []),
+      ...(hasAnswer.value ? [{ command: 'text-answer', label: '复制答案' }] : []),
+      ...((hasAnswer.value || hasOptions.value)
+        ? [{ command: 'text-all', label: '复制完整内容', wide: true }]
+        : [])
+    ]
+  },
+  {
+    key: 'image',
+    title: '图片格式',
+    description: '生成 PNG',
+    icon: ['fas', 'file'],
+    items: [
+      { command: 'image-question-options', label: '复制题目 + 选项' },
+      ...(hasAnswer.value ? [{ command: 'image-answer', label: '复制答案' }] : []),
+      ...((hasAnswer.value || hasOptions.value)
+        ? [{ command: 'image-all', label: '复制全部内容', wide: true }]
+        : [])
+    ]
+  }
+])
 
 const getImageFilename = (scope: QuestionImageCopyScope) => {
   const question = props.question
@@ -152,3 +206,160 @@ const handleCommand = (command: string) => {
   emit('copy', command)
 }
 </script>
+
+<style>
+/* 复制菜单采用三栏分组、固定宽度和内部滚动，避免长菜单撑出视口。 */
+.dropdown-menu.question-copy-dropdown {
+  min-width: 0;
+  padding: 6px;
+  overflow: hidden;
+  border: 1px solid rgba(139, 111, 71, 0.16);
+  border-radius: 14px;
+  box-shadow: 0 18px 45px rgba(55, 42, 27, 0.16), 0 4px 12px rgba(55, 42, 27, 0.08);
+}
+
+.question-copy-dropdown .question-copy-menu {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  width: 560px;
+  max-width: calc(100vw - 24px);
+  max-height: min(440px, calc(100vh - 24px));
+  padding: 2px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(139, 111, 71, 0.35) transparent;
+}
+
+.question-copy-dropdown .question-copy-menu__section {
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid #f0ece7;
+  border-radius: 10px;
+  background: #fffdfa;
+}
+
+.question-copy-dropdown .question-copy-menu__section + .question-copy-menu__section {
+  margin: 0;
+}
+
+.question-copy-dropdown .question-copy-menu__heading {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  min-height: 28px;
+  padding: 2px 6px 7px;
+  color: #667085;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.question-copy-dropdown .question-copy-menu__heading-copy {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.question-copy-dropdown .question-copy-menu__icon {
+  display: inline-flex;
+  flex: 0 0 24px;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 7px;
+  background: #f7f1e9;
+  color: #8b6f47;
+  font-size: 12px;
+}
+
+.question-copy-dropdown .question-copy-menu__title {
+  overflow: hidden;
+  color: #344054;
+  font-weight: 700;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.question-copy-dropdown .question-copy-menu__description {
+  overflow: hidden;
+  color: #98a2b3;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dropdown-menu.question-copy-dropdown .question-copy-menu__items {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 4px;
+}
+
+.dropdown-menu.question-copy-dropdown .question-copy-menu__items .dropdown-item {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  min-height: 34px;
+  padding: 7px 10px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: #344054;
+  font-size: 13px;
+  line-height: 1.35;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.dropdown-menu.question-copy-dropdown .question-copy-menu__items .dropdown-item:hover:not(.is-disabled) {
+  border-color: rgba(139, 111, 71, 0.16);
+  background: #fbf7f2;
+  color: #8b6f47;
+}
+
+.dropdown-menu.question-copy-dropdown .question-copy-menu__items .dropdown-item:focus-visible {
+  outline: 2px solid rgba(139, 111, 71, 0.45);
+  outline-offset: -2px;
+}
+
+.dropdown-menu.question-copy-dropdown .question-copy-menu__items .dropdown-item.is-disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.dropdown-menu.question-copy-dropdown .question-copy-menu__item--wide {
+  grid-column: auto;
+}
+
+.question-copy-dropdown .question-copy-menu__item-label {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 720px) {
+  .question-copy-dropdown .question-copy-menu {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 460px;
+  }
+}
+
+@media (max-width: 420px) {
+  .question-copy-dropdown .question-copy-menu {
+    grid-template-columns: 1fr;
+    width: calc(100vw - 24px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dropdown-menu.question-copy-dropdown .question-copy-menu__items .dropdown-item {
+    transition: none;
+  }
+}
+</style>

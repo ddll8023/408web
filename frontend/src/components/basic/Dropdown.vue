@@ -24,7 +24,7 @@
           v-if="visible"
           ref="menuRef"
           class="dropdown-menu"
-          :class="menuClasses"
+          :class="[menuClasses, menuClass]"
           role="menu"
           tabindex="-1"
           @click.stop="handleMenuClick"
@@ -63,6 +63,11 @@ const props = defineProps({
   disabled: {
     type: Boolean,
     default: false
+  },
+  // 菜单容器的自定义样式类
+  menuClass: {
+    type: String,
+    default: ''
   }
 })
 
@@ -185,6 +190,10 @@ const updatePosition = () => {
 
   const triggerRect = trigger.getBoundingClientRect()
 
+  // 清理上一次的视口约束，避免窗口尺寸变化后残留旧高度。
+  menu.style.maxHeight = ''
+  menu.style.overflowY = ''
+
   // 强制计算菜单尺寸 - 先给一个临时尺寸让浏览器布局
   if (!menu.style.width) {
     menu.style.minWidth = `${triggerRect.width}px`
@@ -199,14 +208,32 @@ const updatePosition = () => {
 
   let top = 0
   let left = 0
-  const gap = 8 // 间距
+  const gap = 8
+  const viewportPadding = 12
+  const spaceBelow = Math.max(0, viewportHeight - triggerRect.bottom - gap - viewportPadding)
+  const spaceAbove = Math.max(0, triggerRect.top - gap - viewportPadding)
+  const preferTop = props.placement.startsWith('top')
 
-  // 根据 placement 计算位置
-  if (props.placement.startsWith('bottom')) {
-    top = triggerRect.bottom + gap
-  } else if (props.placement.startsWith('top')) {
-    top = triggerRect.top - menuHeight - gap
+  // 优先遵循 placement；空间不足时切换到空间更大的一侧。
+  let placeAbove = preferTop
+  if (!preferTop && menuHeight > spaceBelow && spaceAbove > spaceBelow) {
+    placeAbove = true
   }
+  if (preferTop && menuHeight > spaceAbove && spaceBelow > spaceAbove) {
+    placeAbove = false
+  }
+
+  const availableHeight = placeAbove ? spaceAbove : spaceBelow
+  const effectiveHeight = Math.min(menuHeight, Math.max(1, availableHeight))
+  if (menuHeight > availableHeight) {
+    // 菜单无法完整放入任一侧时，限制外层高度并让菜单自身滚动。
+    menu.style.maxHeight = `${Math.max(1, availableHeight)}px`
+    menu.style.overflowY = 'auto'
+  }
+
+  top = placeAbove
+    ? triggerRect.top - effectiveHeight - gap
+    : triggerRect.bottom + gap
 
   if (props.placement.includes('start')) {
     left = triggerRect.left
@@ -216,18 +243,18 @@ const updatePosition = () => {
     left = triggerRect.left + (triggerRect.width - menuWidth) / 2
   }
 
-  // 边界检查
-  if (top + menuHeight > viewportHeight - gap) {
-    top = triggerRect.top - menuHeight - gap
+  // 最终边界检查，保证弹窗至少保留视口边距。
+  if (top + effectiveHeight > viewportHeight - viewportPadding) {
+    top = viewportHeight - effectiveHeight - viewportPadding
   }
-  if (top < gap) {
-    top = triggerRect.bottom + gap
+  if (top < viewportPadding) {
+    top = viewportPadding
   }
-  if (left + menuWidth > viewportWidth - gap) {
-    left = viewportWidth - menuWidth - gap
+  if (left + menuWidth > viewportWidth - viewportPadding) {
+    left = viewportWidth - menuWidth - viewportPadding
   }
-  if (left < gap) {
-    left = gap
+  if (left < viewportPadding) {
+    left = viewportPadding
   }
 
   menu.style.top = `${top}px`
@@ -315,15 +342,29 @@ const handleClickOutside = (event: MouseEvent) => {
   }
 }
 
+// 外部滚动时关闭菜单，避免触发按钮滚走后弹窗悬浮在旧位置。
+// 菜单自身的滚动不关闭，用于支持长菜单在小屏中的浏览。
+const handleScroll = (event: Event) => {
+  if (!visible.value) return
+
+  const target = event.target
+  if (menuRef.value && target instanceof Node && menuRef.value.contains(target)) return
+
+  visible.value = false
+  emit('visible-change', false)
+}
+
 // 监听 visible 变化
 watch(visible, (val) => {
   if (val) {
     setTimeout(() => {
       document.addEventListener('click', handleClickOutside)
     }, 0)
+    document.addEventListener('scroll', handleScroll, true)
     nextTick(observeMenu)
   } else {
     document.removeEventListener('click', handleClickOutside)
+    document.removeEventListener('scroll', handleScroll, true)
     resizeObserver?.disconnect()
     resizeObserver = null
   }
@@ -334,6 +375,7 @@ onUnmounted(() => {
   clearTimeout(showTimer)
   clearTimeout(hideTimer)
   document.removeEventListener('click', handleClickOutside)
+  document.removeEventListener('scroll', handleScroll, true)
   window.removeEventListener('resize', updatePosition)
   resizeObserver?.disconnect()
   resizeObserver = null
