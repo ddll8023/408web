@@ -37,6 +37,7 @@ import katex from 'katex'
 import 'katex/dist/katex.min.css'
 // 共享的 XSS 白名单配置
 import { getViewerWhitelist, configureSvgFence } from './config/xssWhitelist'
+import { normalizeImageUrls } from '@/api/upload'
 
 // 使用共享的 XSS 白名单配置
 VMdPreview?.xss?.extend?.({
@@ -199,7 +200,7 @@ const processContent = () => {
     return
   }
   
-  const normalized = props.content.replace(/\\n/g, '\n')
+  const normalized = normalizeImageUrls(props.content.replace(/\\n/g, '\n'))
   const { safeText, expressions } = extractMath(normalized)
   mathExpressions.value = expressions
   

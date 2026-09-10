@@ -41,7 +41,7 @@
  * KaTeX 由右侧 MarkdownViewer 统一预处理
  */
 import { ref, watch, onMounted, onUnmounted } from 'vue'
-import { uploadImage, getImageUrl } from '@/api/upload'
+import { uploadImage } from '@/api/upload'
 import VMdEditor, { type EditorInstance } from '@kangc/v-md-editor'
 import '@kangc/v-md-editor/lib/style/base-editor.css'
 // GitHub主题
@@ -257,11 +257,8 @@ const uploadImageFile = async (file: File, editor: EditorInstance) => {
     // 调用统一的上传API（自动处理：Token、baseURL、错误拦截）
     const relativePath = await uploadImage(file)
     
-    // 构建完整图片URL（使用环境变量配置的baseURL）
-    const imageUrl = getImageUrl(relativePath)
-    
-    // 插入Markdown图片语法
-    const imageSyntax = `![${file.name}](${imageUrl})`
+    // 保存后端返回的相对路径，避免把当前环境的域名和端口写入题目内容
+    const imageSyntax = `![${file.name}](${relativePath})`
     editor.insert(() => ({
       text: imageSyntax,
       selected: imageSyntax

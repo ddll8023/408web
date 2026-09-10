@@ -102,6 +102,16 @@ test('导出保留 Blob 与下载文件名响应头', async () => {
   assert.deepEqual(JSON.parse(lastConfig.data), { only_unreferenced: false })
 })
 
+test('图片地址兼容历史端口并保留外部地址', () => {
+  assert.equal(upload.getImageUrl('/uploads/images/image.png'), 'http://localhost:7785/uploads/images/image.png')
+  assert.equal(upload.getImageUrl('http://localhost:8081/uploads/images/image.png'), 'http://localhost:7785/uploads/images/image.png')
+  assert.equal(upload.getImageUrl('https://cdn.example.com/image.png'), 'https://cdn.example.com/image.png')
+  assert.equal(
+    upload.normalizeImageUrls('![图片](http://localhost:8081/uploads/images/image.png)'),
+    '![图片](http://localhost:7785/uploads/images/image.png)',
+  )
+})
+
 test('图片上传保留 FormData 文件，不进入 JSON 字段转换', async () => {
   responseData = { code: 200, message: '成功', data: '/uploads/test.png' }
   const result = await upload.uploadImage(new Blob(['image-fixture'], { type: 'image/png' }))
