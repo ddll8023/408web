@@ -3,7 +3,8 @@ from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, Path, Response as FastAPIResponse
 
-from app.api.dependencies import AuthUser, SessionDep, get_current_admin
+from app.api.dependencies import SessionDep
+from app.modules.auth.dependencies import AuthUser, get_current_admin
 from app.schemas.common import ApiResponse
 from app.schemas.exam import (
     ExamByCategoryRequest,

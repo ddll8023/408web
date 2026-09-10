@@ -2,6 +2,7 @@
 
 查询持久化由 :class:`ExamRepository` 负责，Service 只处理查询参数到业务响应的转换。
 """
+import json
 import logging
 from typing import List, Optional
 
@@ -9,7 +10,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.core.exceptions import NotFoundException
 from app.models.entities import ExamCategory, ExamQuestion
-from app.repositories.category_repository import CategoryRepository
+from app.modules.catalog.category_repository import CategoryRepository
 from app.repositories.exam_repository import ExamQuery, ExamRepository
 from app.schemas.common import PageInfo
 from app.schemas.exam import (

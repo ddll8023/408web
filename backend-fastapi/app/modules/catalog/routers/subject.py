@@ -1,15 +1,16 @@
 """科目管理 HTTP 路由。"""
 from fastapi import APIRouter, Depends, Path, status
 
-from app.api.dependencies import AuthUser, SessionDep, get_current_admin
+from app.api.dependencies import SessionDep
+from app.modules.auth.dependencies import AuthUser, get_current_admin
 from app.schemas.common import ApiResponse
-from app.schemas.subject import (
+from app.modules.catalog.schemas.subject import (
     SubjectCodeRequest,
     SubjectCreateRequest,
     SubjectResponse,
     SubjectUpdateRequest,
 )
-from app.services.subject_service import SubjectService
+from app.modules.catalog.subject_service import SubjectService
 
 
 router = APIRouter()

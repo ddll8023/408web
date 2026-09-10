@@ -9,13 +9,13 @@ from collections import defaultdict
 from sqlmodel.ext.asyncio.session import AsyncSession
 from app.models.entities import Chapter
 from app.core.exceptions import ConflictException, NotFoundException, ValidationException
-from app.schemas.chapter import (
+from app.modules.catalog.schemas.chapter import (
     ChapterCreateRequest,
     ChapterUpdateRequest,
     ChapterResponse,
     ChapterTreeResponse
 )
-from app.repositories.chapter_repository import ChapterRepository
+from app.modules.catalog.chapter_repository import ChapterRepository
 
 
 logger = logging.getLogger(__name__)

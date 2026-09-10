@@ -2,7 +2,8 @@
 from fastapi import APIRouter, Depends, File, UploadFile
 
 from app.core.config import settings
-from app.api.dependencies import AuthUser, SessionDep, get_current_admin
+from app.api.dependencies import SessionDep
+from app.modules.auth.dependencies import AuthUser, get_current_admin
 from app.schemas.common import ApiResponse
 from app.schemas.image import (
     ImageCleanupRequest,

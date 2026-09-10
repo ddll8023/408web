@@ -2,9 +2,9 @@
 from fastapi import APIRouter, status
 
 from app.api.dependencies import SessionDep
-from app.schemas.auth import AuthResponse, LoginRequest, RegisterRequest
+from app.modules.auth.schemas import AuthResponse, LoginRequest, RegisterRequest
 from app.schemas.common import ApiResponse
-from app.services.auth_service import AuthService
+from app.modules.auth.service import AuthService
 
 
 router = APIRouter()

@@ -1,7 +1,8 @@
 """模拟题查询和维护 HTTP 路由。"""
 from fastapi import APIRouter, Depends, Path
 
-from app.api.dependencies import AuthUser, SessionDep, get_current_admin
+from app.api.dependencies import SessionDep
+from app.modules.auth.dependencies import AuthUser, get_current_admin
 from app.schemas.common import ApiResponse
 from app.schemas.mock import (
     MockCategoryFilterRequest,

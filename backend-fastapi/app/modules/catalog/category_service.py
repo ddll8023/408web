@@ -7,7 +7,7 @@ from typing import List, Optional
 
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from app.schemas.category import (
+from app.modules.catalog.schemas.category import (
     ExamCategoryCreateRequest,
     ExamCategoryMoveRequest,
     ExamCategoryResponse,
@@ -16,8 +16,8 @@ from app.schemas.category import (
     ExamCategoryUpdateRequest,
     ExamCategoryUsageResponse,
 )
-from app.services.category_command_service import CategoryCommandService
-from app.services.category_query_service import CategoryQueryService
+from app.modules.catalog.category_command_service import CategoryCommandService
+from app.modules.catalog.category_query_service import CategoryQueryService
 
 
 class ExamCategoryService:

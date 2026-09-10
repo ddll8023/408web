@@ -8,12 +8,12 @@ from typing import List
 from sqlmodel.ext.asyncio.session import AsyncSession
 from app.models.entities import Subject
 from app.core.exceptions import ConflictException, NotFoundException
-from app.schemas.subject import (
+from app.modules.catalog.schemas.subject import (
     SubjectCreateRequest,
     SubjectUpdateRequest,
     SubjectResponse
 )
-from app.repositories.subject_repository import SubjectRepository
+from app.modules.catalog.subject_repository import SubjectRepository
 
 
 logger = logging.getLogger(__name__)

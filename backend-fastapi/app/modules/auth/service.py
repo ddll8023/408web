@@ -8,8 +8,8 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from app.models.enums import UserRoleEnum
 from app.core.exceptions import ConflictException, UnauthorizedException
 from app.core.security import create_access_token, get_password_hash, verify_password
-from app.repositories.user_repository import UserRepository
-from app.schemas.auth import RegisterRequest, LoginRequest, AuthResponse
+from app.modules.auth.repository import UserRepository
+from app.modules.auth.schemas import RegisterRequest, LoginRequest, AuthResponse
 
 
 logger = logging.getLogger(__name__)

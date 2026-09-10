@@ -6,8 +6,8 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.core.exceptions import NotFoundException
 from app.models.entities import ExamCategory
-from app.repositories.category_repository import CategoryRepository
-from app.schemas.category import (
+from app.modules.catalog.category_repository import CategoryRepository
+from app.modules.catalog.schemas.category import (
     ExamCategoryResponse,
     ExamCategoryStatResponse,
     ExamCategoryTreeResponse,

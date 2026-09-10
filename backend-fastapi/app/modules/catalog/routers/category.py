@@ -1,8 +1,9 @@
 """分类管理 HTTP 路由。"""
 from fastapi import APIRouter, Depends, Path, status
 
-from app.api.dependencies import AuthUser, SessionDep, get_current_admin
-from app.schemas.category import (
+from app.api.dependencies import SessionDep
+from app.modules.auth.dependencies import AuthUser, get_current_admin
+from app.modules.catalog.schemas.category import (
     AvailableParentCategoriesRequest,
     CategoryBySubjectQueryRequest,
     CategoryQueryRequest,
@@ -15,7 +16,7 @@ from app.schemas.category import (
     ExamCategoryUpdateRequest,
 )
 from app.schemas.common import ApiResponse
-from app.services.category_service import ExamCategoryService
+from app.modules.catalog.category_service import ExamCategoryService
 
 
 router = APIRouter()
