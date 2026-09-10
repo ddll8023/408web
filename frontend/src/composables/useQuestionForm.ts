@@ -152,8 +152,7 @@ export function useQuestionForm(options: { extraFields?: Partial<QuestionForm> }
     try {
       const res = await getEnabledCategoryTreeBySubject(subjectId)
       if (res.code === 200) {
-        // 转换为级联选择器需要的格式
-        // 注意：checkStrictly: true 允许选择任意层级分类
+        // 转换为级联选择器需要的格式，选择器支持任意层级分类
         const transformTree = (nodes: CategoryTreeNode[]): TreeOption[] => {
           return (nodes || []).map(node => ({
             value: node.name,

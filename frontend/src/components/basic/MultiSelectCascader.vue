@@ -94,157 +94,98 @@
             <p class="text-base text-gray-400">暂无数据</p>
           </div>
 
-          <div v-else class="py-2">
-            <template v-for="item in filteredOptions" :key="item.value">
-              <!-- 一级选项 -->
-              <div
-                class="group flex items-center gap-3 mx-2 px-3 py-2.5 rounded-lg cursor-pointer transition-all duration-150"
-                :class="[
-                  isSelected(item.value)
-                    ? 'bg-[#8B6F47]/5'
-                    : 'hover:bg-gray-50'
-                ]"
+          <transition-group v-else name="expand" tag="div" class="py-2">
+            <!-- 将已展开的树按层级平铺，所有深度的节点都复用同一套选择交互。 -->
+            <div
+              v-for="row in visibleOptions"
+              :key="row.item.value"
+              class="group flex items-center gap-3 mx-2 px-3 py-2.5 rounded-lg cursor-pointer transition-all duration-150"
+              :class="[
+                isSelected(row.item.value)
+                  ? 'bg-[#8B6F47]/5'
+                  : 'hover:bg-gray-50'
+              ]"
+              :style="{ paddingLeft: `${row.level * 20 + 12}px` }"
+            >
+              <!-- 展开/收起子项按钮 -->
+              <button
+                v-if="row.item.children.length > 0"
+                type="button"
+                class="w-6 h-6 flex-shrink-0 flex items-center justify-center rounded-md text-gray-400 hover:text-[#8B6F47] hover:bg-[#8B6F47]/10 transition-all duration-150"
+                :aria-label="`${expandedKeys.includes(row.item.value) ? '收起' : '展开'} ${row.item.label}`"
+                @click.stop="toggleExpand(row.item.value)"
               >
-                <!-- 展开/收起子项按钮 -->
-                <button
-                  v-if="item.children && item.children.length > 0"
-                  type="button"
-                  class="w-6 h-6 flex items-center justify-center rounded-md text-gray-400 hover:text-[#8B6F47] hover:bg-[#8B6F47]/10 transition-all duration-150"
-                  :aria-label="`${expandedKeys.includes(item.value) ? '收起' : '展开'} ${item.label}`"
-                  @click.stop="toggleExpand(item.value)"
+                <font-awesome-icon
+                  class="text-xs transition-transform duration-200"
+                  :icon="expandedKeys.includes(row.item.value) ? ['fas', 'chevron-down'] : ['fas', 'chevron-right']"
+                />
+              </button>
+              <span v-else class="w-6 flex-shrink-0" aria-hidden="true"></span>
+
+              <!-- 自定义复选框 -->
+              <div
+                class="relative w-5 h-5 flex-shrink-0"
+                @click.stop="toggleSelect(row.item)"
+              >
+                <input
+                  type="checkbox"
+                  :checked="isSelected(row.item.value)"
+                  :disabled="disabled"
+                  :aria-label="row.item.label"
+                  class="sr-only"
+                />
+                <div
+                  class="w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all duration-200"
+                  :class="[
+                    isSelected(row.item.value)
+                      ? 'bg-[#8B6F47] border-[#8B6F47]'
+                      : 'border-gray-300 group-hover:border-[#8B6F47]/50'
+                  ]"
                 >
                   <font-awesome-icon
-                    class="text-xs transition-transform duration-200"
-                    :icon="expandedKeys.includes(item.value) ? ['fas', 'chevron-down'] : ['fas', 'chevron-right']"
+                    v-if="isSelected(row.item.value)"
+                    :icon="['fas', 'check']"
+                    class="text-white text-[10px] font-bold"
                   />
-                </button>
-                <span v-else class="w-6"></span>
-
-                <!-- 自定义复选框 -->
-                <div
-                  class="relative w-5 h-5 flex-shrink-0"
-                  @click.stop="toggleSelect(item)"
-                >
-                  <input
-                    type="checkbox"
-                    :checked="isSelected(item.value)"
-                    :disabled="disabled"
-                    :aria-label="item.label"
-                    class="sr-only"
-                  />
-                  <div
-                    class="w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all duration-200"
-                    :class="[
-                      isSelected(item.value)
-                        ? 'bg-[#8B6F47] border-[#8B6F47]'
-                        : 'border-gray-300 group-hover:border-[#8B6F47]/50'
-                    ]"
-                  >
-                    <font-awesome-icon
-                      v-if="isSelected(item.value)"
-                      :icon="['fas', 'check']"
-                      class="text-white text-[10px] font-bold"
-                    />
-                  </div>
                 </div>
-
-                <!-- 选项标签 -->
-                <span
-                  class="flex-1 text-base transition-colors duration-150"
-                  :class="[
-                    isSelected(item.value)
-                      ? 'text-[#8B6F47] font-medium'
-                      : 'text-gray-700 group-hover:text-[#8B6F47]'
-                  ]"
-                  @click.stop="toggleSelect(item)"
-                >
-                  {{ item.label }}
-                </span>
-
-                <!-- 子选项数量徽章 -->
-                <span
-                  v-if="item.children && item.children.length > 0"
-                  class="px-2 py-0.5 text-xs rounded-full transition-colors duration-150"
-                  :class="[
-                    getSelectedCount(item) > 0
-                      ? 'bg-[#8B6F47]/10 text-[#8B6F47] font-medium'
-                      : 'bg-gray-100 text-gray-400'
-                  ]"
-                >
-                  {{ getSelectedCount(item) }}/{{ item.children.length }}
-                </span>
               </div>
 
-              <!-- 子选项 -->
-              <transition name="expand">
-                <div
-                  v-if="item.children && item.children.length > 0 && expandedKeys.includes(item.value)"
-                  class="ml-4 mr-2 pl-3 border-l-2 border-gray-100"
-                >
-                  <template v-for="child in item.children" :key="child.value">
-                    <div
-                      class="group flex items-center gap-3 mx-1 px-3 py-2 rounded-lg cursor-pointer transition-all duration-150"
-                      :class="[
-                        isSelected(child.value)
-                          ? 'bg-[#8B6F47]/5'
-                          : 'hover:bg-gray-50'
-                      ]"
-                    >
-                      <span class="w-6"></span>
+              <!-- 选项标签 -->
+              <span
+                class="flex-1 text-base transition-colors duration-150"
+                :class="[
+                  isSelected(row.item.value)
+                    ? 'text-[#8B6F47] font-medium'
+                    : row.level > 0
+                      ? 'text-gray-600 group-hover:text-[#8B6F47]'
+                      : 'text-gray-700 group-hover:text-[#8B6F47]'
+                ]"
+                @click.stop="toggleSelect(row.item)"
+              >
+                {{ row.item.label }}
+              </span>
 
-                      <!-- 自定义复选框 -->
-                      <div
-                        class="relative w-5 h-5 flex-shrink-0"
-                        @click.stop="toggleSelect(child)"
-                      >
-                        <input
-                          type="checkbox"
-                          :checked="isSelected(child.value)"
-                          :disabled="disabled"
-                          :aria-label="child.label"
-                          class="sr-only"
-                        />
-                        <div
-                          class="w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all duration-200"
-                          :class="[
-                            isSelected(child.value)
-                              ? 'bg-[#8B6F47] border-[#8B6F47]'
-                              : 'border-gray-300 group-hover:border-[#8B6F47]/50'
-                          ]"
-                        >
-                          <font-awesome-icon
-                            v-if="isSelected(child.value)"
-                            :icon="['fas', 'check']"
-                            class="text-white text-[10px] font-bold"
-                          />
-                        </div>
-                      </div>
+              <!-- 子分类数量徽章 -->
+              <span
+                v-if="row.item.children.length > 0"
+                class="px-2 py-0.5 text-xs rounded-full transition-colors duration-150"
+                :class="[
+                  getSelectedCount(row.item) > 0
+                    ? 'bg-[#8B6F47]/10 text-[#8B6F47] font-medium'
+                    : 'bg-gray-100 text-gray-400'
+                ]"
+              >
+                {{ getSelectedCount(row.item) }}/{{ getDescendantCount(row.item) }}
+              </span>
 
-                      <!-- 选项标签 -->
-                      <span
-                        class="flex-1 text-base transition-colors duration-150"
-                        :class="[
-                          isSelected(child.value)
-                            ? 'text-[#8B6F47] font-medium'
-                            : 'text-gray-600 group-hover:text-[#8B6F47]'
-                        ]"
-                        @click.stop="toggleSelect(child)"
-                      >
-                        {{ child.label }}
-                      </span>
-
-                      <!-- 选中指示 -->
-                      <font-awesome-icon
-                        v-if="isSelected(child.value)"
-                        :icon="['fas', 'check-circle']"
-                        class="text-[#8B6F47] text-xs"
-                      />
-                    </div>
-                  </template>
-                </div>
-              </transition>
-            </template>
-          </div>
+              <!-- 选中指示 -->
+              <font-awesome-icon
+                v-if="isSelected(row.item.value) && row.item.children.length === 0"
+                :icon="['fas', 'check-circle']"
+                class="text-[#8B6F47] text-xs"
+              />
+            </div>
+          </transition-group>
         </div>
 
         <!-- 底部提示 -->
@@ -362,6 +303,28 @@ const filteredOptions = computed(() => {
   return filterItems(normalizedOptions.value)
 })
 
+// 按展开状态平铺可见节点，支持任意层级的分类选择。
+interface VisibleOption {
+  item: NormalizedCascaderOption
+  level: number
+}
+
+const visibleOptions = computed<VisibleOption[]>(() => {
+  const result: VisibleOption[] = []
+
+  const flatten = (items: NormalizedCascaderOption[], level: number) => {
+    for (const item of items) {
+      result.push({ item, level })
+      if (item.children.length > 0 && expandedKeys.value.includes(item.value)) {
+        flatten(item.children, level + 1)
+      }
+    }
+  }
+
+  flatten(filteredOptions.value, 0)
+  return result
+})
+
 // 选中的值数组
 const selectedValues = computed({
   get: () => props.modelValue || [],
@@ -428,10 +391,16 @@ const toggleExpand = (value: string) => {
   }
 }
 
-// 获取子项选中数量
-const getSelectedCount = (item: NormalizedCascaderOption) => {
-  if (!item.children || item.children.length === 0) return 0
-  return item.children.filter(child => selectedValues.value.includes(child.value)).length
+// 获取当前分类下所有后代数量，用于展示多级选择进度。
+const getDescendantCount = (item: NormalizedCascaderOption): number => {
+  return item.children.reduce((count, child) => count + 1 + getDescendantCount(child), 0)
+}
+
+const getSelectedCount = (item: NormalizedCascaderOption): number => {
+  return item.children.reduce((count, child) => {
+    const selected = selectedValues.value.includes(child.value) ? 1 : 0
+    return count + selected + getSelectedCount(child)
+  }, 0)
 }
 
 // 切换下拉
@@ -470,33 +439,31 @@ const handleClickOutside = (event: MouseEvent) => {
   }
 }
 
-// 监听 options 变化，自动展开
-watch(() => props.options, (newOptions) => {
-  if (newOptions && newOptions.length > 0) {
-    // 保持已选择的分类展开状态
-    const selectedValuesSet = new Set(selectedValues.value)
-    const keysToExpand: string[] = []
+// 分类树或已选值变化时，展开所有已选分类的祖先，确保深层选中项可见。
+const expandSelectedParents = () => {
+  if (normalizedOptions.value.length === 0) return
 
-    const findParentKeys = (items: CascaderOption[], parentKey: string | null = null) => {
-      for (const item of items) {
-        if (item.value !== undefined && selectedValuesSet.has(item.value) && parentKey) {
-          keysToExpand.push(parentKey)
-        }
-        if (item.children && item.children.length > 0) {
-          findParentKeys(item.children, item.value ?? null)
-        }
+  const selectedValuesSet = new Set(selectedValues.value)
+  const keysToExpand: string[] = []
+
+  const findParentKeys = (items: NormalizedCascaderOption[], parentKeys: string[] = []) => {
+    for (const item of items) {
+      if (selectedValuesSet.has(item.value)) {
+        keysToExpand.push(...parentKeys)
+      }
+      if (item.children.length > 0) {
+        findParentKeys(item.children, [...parentKeys, item.value])
       }
     }
-
-    findParentKeys(newOptions)
-
-    // 合并新的展开键
-    const newExpandedKeys = [...new Set([...expandedKeys.value, ...keysToExpand])]
-    if (newExpandedKeys.length > 0) {
-      expandedKeys.value = newExpandedKeys
-    }
   }
-}, { deep: true })
+
+  findParentKeys(normalizedOptions.value)
+
+  // 合并新的展开键，保留用户已经手动展开的节点。
+  expandedKeys.value = [...new Set([...expandedKeys.value, ...keysToExpand])]
+}
+
+watch([normalizedOptions, selectedValues], expandSelectedParents, { deep: true, immediate: true })
 
 onMounted(() => {
   document.addEventListener('click', handleClickOutside)
