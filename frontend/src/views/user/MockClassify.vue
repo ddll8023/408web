@@ -49,29 +49,36 @@
             <CustomButton size="sm" type="text" :disabled="questionsLoading" @click="loadQuestions(true)">重试</CustomButton>
           </div>
 
-          <!-- 普通分组列表 -->
-          <div v-if="groupedQuestions.length > 0" class="w-full md:max-w-[80%] flex flex-col gap-6">
-            <template v-for="group in groupedQuestions" :key="group.category">
-              <!-- 分组头 -->
-              <div class="flex items-center justify-between py-2 mt-4 mb-2 border-b border-[#dfe2e5]">
-                <h3 class="m-0 text-[#333] font-semibold text-lg">{{ group.category }}</h3>
-                <Tag type="info">{{ group.items.length }} 题</Tag>
-              </div>
-              <!-- 题目卡片 -->
-              <MockEntryCard
-                v-for="mock in group.items"
-                :key="mock.id"
-                :id="`mock-${mock.id}`"
-                :mock="mock"
-                :is-admin="isAdmin"
-                :show-answer="showAnswers[mock.id]"
-                density="compact"
-                @copy="(cmd) => handleCopy(cmd, mock)"
-                @edit="handleEdit"
-                @delete="handleDelete"
-                @toggle-answer="toggleAnswer(mock.id)"
+          <!-- 分类分组列表：标题显式区分模拟题、父子层级和题目数量 -->
+          <div v-if="groupedQuestions.length > 0" class="w-full md:max-w-[80%] flex flex-col gap-5">
+            <section
+              v-for="group in groupedQuestions"
+              :key="group.category"
+              class="category-question-section"
+              :class="group.depth > 0 ? 'ml-3 md:ml-6' : ''"
+            >
+              <CategorySectionHeader
+                :category="group.category"
+                :count="group.items.length"
+                kind="mock"
+                :depth="group.depth"
               />
-            </template>
+              <div class="mt-3 flex flex-col gap-4">
+                <MockEntryCard
+                  v-for="mock in group.items"
+                  :key="mock.id"
+                  :id="`mock-${mock.id}`"
+                  :mock="mock"
+                  :is-admin="isAdmin"
+                  :show-answer="showAnswers[mock.id]"
+                  density="compact"
+                  @copy="(cmd) => handleCopy(cmd, mock)"
+                  @edit="handleEdit"
+                  @delete="handleDelete"
+                  @toggle-answer="toggleAnswer(mock.id)"
+                />
+              </div>
+            </section>
           </div>
 
           <Empty
@@ -130,9 +137,11 @@ import Select from '@/components/basic/Select.vue'
 import Empty from '@/components/basic/Empty.vue'
 import BackTop from '@/components/basic/BackTop.vue'
 import SubjectSidebar from '@/components/business/SubjectSidebar.vue'
+import CategorySectionHeader from '@/components/business/CategorySectionHeader.vue'
 import MockEntryCard from '@/components/business/MockEntryCard.vue'
 import MockEditDialog from '@/components/business/MockEditDialog.vue'
 import { getDifficultyLabel, getDifficultyType } from '@/constants/exam'
+import { groupMockQuestionsByCategory } from '@/utils/examCategoryGrouping'
 
 const route = useRoute()
 const authStore = useAuthStore()
@@ -204,25 +213,12 @@ const groupedQuestions = computed(() => {
     list = list.filter(q => q.questionType !== 'CHOICE')
   }
 
-  const groupsMap = new Map<string, MockQuestion[]>()
+  const currentCategories = activeSubjectId.value === null
+    ? []
+    : subjectCategories.value[activeSubjectId.value] || []
 
-  list.forEach((question) => {
-    const categories = Array.isArray(question.category) && question.category.length
-      ? question.category
-      : ['未分类']
-
-    categories.forEach((cat) => {
-      if (filterCategory.value && cat !== filterCategory.value) return
-      if (!groupsMap.has(cat)) {
-        groupsMap.set(cat, [])
-      }
-      groupsMap.get(cat)?.push(question)
-    })
-  })
-
-  return Array.from(groupsMap.entries())
-    .map(([category, items]) => ({ category, items }))
-    .sort((a, b) => a.category.localeCompare(b.category, 'zh-CN'))
+  // 父分类筛选由后端展开子孙范围；按分类树顺序分组，并让父分类自身题目独立排在首组。
+  return groupMockQuestionsByCategory(list, currentCategories, filterCategory.value)
 })
 
 const displayTotal = computed(() => {

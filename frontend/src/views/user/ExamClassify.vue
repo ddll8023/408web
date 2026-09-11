@@ -70,29 +70,36 @@
               <CustomButton size="sm" type="text" :disabled="questionsLoading" @click="loadQuestions(true)">重试</CustomButton>
             </div>
 
-            <!-- 普通分组列表 -->
-            <div v-if="groupedQuestions.length > 0" class="w-full md:max-w-[80%] flex flex-col gap-6">
-              <template v-for="group in groupedQuestions" :key="group.category">
-                <!-- 分组头 -->
-                <div class="flex items-center justify-between py-2 mt-4 mb-2 border-b border-[#dfe2e5]">
-                  <h3 class="m-0 text-[#333] font-semibold text-lg">{{ group.category }}</h3>
-                  <Tag type="info" size="sm">{{ group.items.length }} 题</Tag>
-                </div>
-                <!-- 题目卡片 -->
-                <ExamEntryCard
-                  v-for="exam in group.items"
-                  :key="exam.id"
-                  :id="`exam-${exam.id}`"
-                  :exam="exam"
-                  :is-admin="isAdmin"
-                  :show-answer="showAnswers[exam.id]"
-                  density="compact"
-                  @copy="(cmd) => handleCopy(cmd, exam)"
-                  @edit="handleEdit"
-                  @delete="(id: number) => handleDelete(id)"
-                  @toggle-answer="toggleAnswer(exam.id)"
+            <!-- 分类分组列表：标题显式区分真题、父子层级和题目数量 -->
+            <div v-if="groupedQuestions.length > 0" class="w-full md:max-w-[80%] flex flex-col gap-5">
+              <section
+                v-for="group in groupedQuestions"
+                :key="group.category"
+                class="category-question-section"
+                :class="group.depth > 0 ? 'ml-3 md:ml-6' : ''"
+              >
+                <CategorySectionHeader
+                  :category="group.category"
+                  :count="group.items.length"
+                  kind="exam"
+                  :depth="group.depth"
                 />
-              </template>
+                <div class="mt-3 flex flex-col gap-4">
+                  <ExamEntryCard
+                    v-for="exam in group.items"
+                    :key="exam.id"
+                    :id="`exam-${exam.id}`"
+                    :exam="exam"
+                    :is-admin="isAdmin"
+                    :show-answer="showAnswers[exam.id]"
+                    density="compact"
+                    @copy="(cmd) => handleCopy(cmd, exam)"
+                    @edit="handleEdit"
+                    @delete="(id: number) => handleDelete(id)"
+                    @toggle-answer="toggleAnswer(exam.id)"
+                  />
+                </div>
+              </section>
             </div>
             <Empty
               v-if="!questionsLoadError && !subjectsLoadError && groupedQuestions.length === 0"
@@ -152,6 +159,7 @@ import Select from '@/components/basic/Select.vue'
 import Empty from '@/components/basic/Empty.vue'
 import BackTop from '@/components/basic/BackTop.vue'
 import SubjectSidebar from '@/components/business/SubjectSidebar.vue'
+import CategorySectionHeader from '@/components/business/CategorySectionHeader.vue'
 import ExamEntryCard from '@/components/business/ExamEntryCard.vue'
 import ExamEditDialog from '@/components/business/ExamEditDialog.vue'
 

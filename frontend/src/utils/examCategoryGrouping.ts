@@ -1,14 +1,33 @@
-import type { CategoryTreeNode, ExamQuestion } from '@/types'
+import type { CategoryTreeNode, ExamQuestion, MockQuestion } from '@/types'
 
 /** 分类分组后的题目集合。 */
 export interface ExamQuestionGroup {
   category: string
+  depth: number
   items: ExamQuestion[]
+}
+
+export interface MockQuestionGroup {
+  category: string
+  depth: number
+  items: MockQuestion[]
 }
 
 interface CategoryOrderEntry {
   name: string
   order: number
+  depth: number
+}
+
+interface CategorizedQuestion {
+  id: number
+  category?: string[] | null
+}
+
+interface CategoryQuestionGroup<T extends CategorizedQuestion> {
+  category: string
+  depth: number
+  items: T[]
 }
 
 const compareQuestions = (a: ExamQuestion, b: ExamQuestion) => {
@@ -23,15 +42,21 @@ const compareQuestions = (a: ExamQuestion, b: ExamQuestion) => {
   return a.id - b.id
 }
 
-/** 按题目 ID 去重，并保持分类页的年份/题号顺序。 */
-export const uniqueExamQuestions = (questions: readonly ExamQuestion[]) => {
-  const uniqueById = new Map<number, ExamQuestion>()
-  questions.forEach((exam) => {
-    if (!uniqueById.has(exam.id)) {
-      uniqueById.set(exam.id, exam)
+const uniqueQuestionsById = <T extends CategorizedQuestion>(
+  questions: readonly T[],
+): T[] => {
+  const uniqueById = new Map<number, T>()
+  questions.forEach((question) => {
+    if (!uniqueById.has(question.id)) {
+      uniqueById.set(question.id, question)
     }
   })
-  return Array.from(uniqueById.values()).sort(compareQuestions)
+  return Array.from(uniqueById.values())
+}
+
+/** 按题目 ID 去重，并保持真题分类页的年份/题号顺序。 */
+export const uniqueExamQuestions = (questions: readonly ExamQuestion[]) => {
+  return uniqueQuestionsById(questions).sort(compareQuestions)
 }
 
 const flattenCategoryTree = (
@@ -39,12 +64,12 @@ const flattenCategoryTree = (
 ): CategoryOrderEntry[] => {
   const result: CategoryOrderEntry[] = []
 
-  const visit = (category: CategoryTreeNode) => {
-    result.push({ name: category.name, order: result.length })
-    category.children.forEach(visit)
+  const visit = (category: CategoryTreeNode, depth: number) => {
+    result.push({ name: category.name, order: result.length, depth })
+    category.children.forEach((child) => visit(child, depth + 1))
   }
 
-  categories.forEach(visit)
+  categories.forEach((category) => visit(category, 0))
   return result
 }
 
@@ -67,17 +92,17 @@ const getSelectedScope = (
   const selected = findCategory(categories, selectedCategory)
   if (!selected) {
     return {
-      entries: [{ name: selectedCategory, order: 0 }],
+      entries: [{ name: selectedCategory, order: 0, depth: 0 }],
       found: false,
     }
   }
 
   const entries: CategoryOrderEntry[] = []
-  const visit = (category: CategoryTreeNode) => {
-    entries.push({ name: category.name, order: entries.length })
-    category.children.forEach(visit)
+  const visit = (category: CategoryTreeNode, depth: number) => {
+    entries.push({ name: category.name, order: entries.length, depth })
+    category.children.forEach((child) => visit(child, depth + 1))
   }
-  visit(selected)
+  visit(selected, 0)
   return { entries, found: true }
 }
 
@@ -86,14 +111,14 @@ const getSelectedScope = (
  *
  * 一个题目可能同时带有多个分类标签。分组时按左侧分类树的显示顺序
  * 选择最后一个匹配标签，因此同一题目只会出现在最靠后的子标签中。
+ * 仅属于父分类的题目会落在父分类组，并按树的先序顺序排在子分类之前。
  */
-export const groupExamQuestionsByCategory = (
-  questions: readonly ExamQuestion[],
+const groupQuestionsByCategory = <T extends CategorizedQuestion>(
+  questions: readonly T[],
   categories: readonly CategoryTreeNode[],
   selectedCategory = '',
-): ExamQuestionGroup[] => {
-  const uniqueQuestions = uniqueExamQuestions(questions)
-  if (uniqueQuestions.length === 0) return []
+): CategoryQuestionGroup<T>[] => {
+  if (questions.length === 0) return []
 
   const normalizedSelectedCategory = selectedCategory.trim()
   const allEntries = flattenCategoryTree(categories)
@@ -102,14 +127,15 @@ export const groupExamQuestionsByCategory = (
     : { entries: allEntries, found: true }
   const scopeEntries = selectedScope.entries
   const scopeOrder = new Map(scopeEntries.map((entry) => [entry.name, entry.order]))
-  const groups = new Map<string, ExamQuestion[]>()
+  const scopeDepth = new Map(scopeEntries.map((entry) => [entry.name, entry.depth]))
+  const groups = new Map<string, T[]>()
 
-  uniqueQuestions.forEach((exam) => {
-    const rawCategories = Array.isArray(exam.category)
-      ? exam.category.filter((category) => category.length > 0)
+  questions.forEach((question) => {
+    const rawCategories = Array.isArray(question.category)
+      ? question.category.filter((category) => category.length > 0)
       : []
-    const examCategories = new Set(rawCategories)
-    const matchedCategories = scopeEntries.filter((entry) => examCategories.has(entry.name))
+    const questionCategories = new Set(rawCategories)
+    const matchedCategories = scopeEntries.filter((entry) => questionCategories.has(entry.name))
 
     let displayCategory = matchedCategories.at(-1)?.name
     if (!displayCategory && normalizedSelectedCategory && !selectedScope.found) {
@@ -123,9 +149,9 @@ export const groupExamQuestionsByCategory = (
 
     const group = groups.get(displayCategory)
     if (group) {
-      group.push(exam)
+      group.push(question)
     } else {
-      groups.set(displayCategory, [exam])
+      groups.set(displayCategory, [question])
     }
   })
 
@@ -138,6 +164,32 @@ export const groupExamQuestionsByCategory = (
     })
     .map((category) => ({
       category,
+      depth: scopeDepth.get(category) ?? 0,
       items: groups.get(category) ?? [],
     }))
+}
+
+export const groupExamQuestionsByCategory = (
+  questions: readonly ExamQuestion[],
+  categories: readonly CategoryTreeNode[],
+  selectedCategory = '',
+): ExamQuestionGroup[] => {
+  return groupQuestionsByCategory(
+    uniqueExamQuestions(questions),
+    categories,
+    selectedCategory,
+  )
+}
+
+/** 按分类树顺序分组模拟题，并确保一题只展示一次。 */
+export const groupMockQuestionsByCategory = (
+  questions: readonly MockQuestion[],
+  categories: readonly CategoryTreeNode[],
+  selectedCategory = '',
+): MockQuestionGroup[] => {
+  return groupQuestionsByCategory(
+    uniqueQuestionsById(questions),
+    categories,
+    selectedCategory,
+  )
 }

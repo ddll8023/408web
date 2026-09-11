@@ -27,6 +27,7 @@ class MockQuery:
     keyword: str | None
     sort_field: str
     sort_order: str
+    category_names: tuple[str, ...] | None = None
 
 
 class MockRepository:
@@ -212,16 +213,37 @@ class MockRepository:
 
     @staticmethod
     def _category_conditions(category: str | None) -> list[Any]:
-        """构造 JSON 分类名称的兼容过滤条件。"""
+        """构造单个 JSON 分类名称的兼容过滤条件。"""
         if not category or not category.strip():
             return []
-        pattern = MockRepository._json_category_like_pattern(category.strip())
-        return [
+        return MockRepository._category_conditions_for_names((category.strip(),))
+
+    @staticmethod
+    def _category_conditions_for_names(
+        category_names: tuple[str, ...],
+    ) -> list[Any]:
+        """构造匹配多个分类名称的 JSON 过滤条件。"""
+        normalized_names = tuple(
+            dict.fromkeys(
+                name.strip() for name in category_names if name and name.strip()
+            )
+        )
+        if not normalized_names:
+            return []
+
+        category_conditions = [
             and_(
                 MockQuestion.category.isnot(None),
-                MockQuestion.category.like(pattern, escape="\\"),
+                MockQuestion.category.like(
+                    MockRepository._json_category_like_pattern(name),
+                    escape="\\",
+                ),
             )
+            for name in normalized_names
         ]
+        if len(category_conditions) == 1:
+            return category_conditions
+        return [or_(*category_conditions)]
 
     @staticmethod
     def _build_query_conditions(params: MockQuery) -> list[Any]:
@@ -240,7 +262,14 @@ class MockRepository:
                 )
             )
         else:
-            conditions.extend(MockRepository._category_conditions(params.category))
+            if params.category_names is not None:
+                conditions.extend(
+                    MockRepository._category_conditions_for_names(
+                        params.category_names
+                    )
+                )
+            else:
+                conditions.extend(MockRepository._category_conditions(params.category))
 
         if params.keyword and params.keyword.strip():
             keyword_pattern = f"%{params.keyword.strip()}%"

@@ -49,7 +49,16 @@ class MockQueryService:
         self.auth_read_service = AuthReadService(session)
 
     async def get_paginated(self, params: MockQueryParams) -> PaginatedMockResponse:
-        """分页查询模拟题。"""
+        """分页查询模拟题，并将父分类展开为完整子树范围。"""
+        category_names: Optional[tuple[str, ...]] = None
+        if params.category and params.subject_id is not None:
+            category_names = tuple(
+                await self.catalog_read_service.get_category_scope_names(
+                    params.subject_id,
+                    params.category,
+                )
+            )
+
         total, questions = await self.repository.list_paginated(
             MockQuery(
                 page=params.page,
@@ -61,6 +70,7 @@ class MockQueryService:
                 keyword=params.keyword,
                 sort_field=params.sort_field,
                 sort_order=params.sort_order,
+                category_names=category_names,
             )
         )
         data = await self._to_responses(questions)
