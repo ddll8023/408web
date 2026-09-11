@@ -1,21 +1,22 @@
 <template>
-  <div class="w-full relative" ref="containerRef">
+  <div ref="rootRef" class="relative w-full">
     <!-- 输入框区域 -->
     <div
-      class="relative w-full flex items-center bg-white border border-gray-200 rounded-lg px-4 py-2.5 h-[42px] text-base transition-all duration-200 hover:border-[#8B6F47]/50"
+      ref="triggerRef"
+      class="dropdown-control relative flex h-[42px] w-full items-center border px-3 text-[15px]"
       :class="{
-        'border-[#8B6F47] shadow-[0_0_0_2px_rgba(139,111,71,0.2)]': visible,
-        'has-value': modelValue,
-        'opacity-50 cursor-not-allowed pointer-events-none': disabled
+        'dropdown-control--open': visible,
+        'dropdown-control--disabled': disabled,
+        'opacity-60 cursor-not-allowed pointer-events-none': disabled
       }"
       @click="toggleMenu"
     >
       <input
         ref="inputRef"
         :id="inputId"
+        v-model="inputValue"
         type="text"
         role="combobox"
-        v-model="inputValue"
         :placeholder="placeholder"
         :disabled="disabled"
         :aria-disabled="disabled"
@@ -23,8 +24,9 @@
         :aria-controls="listId"
         :aria-label="ariaLabel || undefined"
         aria-autocomplete="list"
+        aria-haspopup="listbox"
         :aria-activedescendant="activeOptionId"
-        class="w-full px-3 pr-8 border-none bg-transparent text-gray-800 font-inherit outline-none cursor-pointer"
+        class="min-w-0 flex-1 border-none bg-transparent px-0 text-[15px] text-gray-700 placeholder:text-gray-400 font-inherit outline-none cursor-text disabled:cursor-not-allowed"
         @focus="handleFocus"
         @input="handleInput"
         @change="handleChange"
@@ -32,69 +34,84 @@
       />
 
       <!-- 后缀图标 -->
-      <div class="absolute right-4 top-1/2 -translate-y-1/2 flex items-center justify-center h-full text-gray-300">
+      <div class="ml-2 flex flex-shrink-0 items-center justify-center gap-2 text-gray-400">
         <button
           v-if="modelValue !== '' && modelValue !== null && modelValue !== undefined && clearable"
           type="button"
-          class="cursor-pointer text-sm hover:text-gray-800 mr-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8B6F47]/30 rounded"
+          class="rounded text-gray-400 transition-colors hover:text-gray-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8B6F47]/30"
           aria-label="清除选择"
           @click.stop="handleClear"
         >
-          <font-awesome-icon :icon="['fas', 'times-circle']" aria-hidden="true" />
+          <font-awesome-icon :icon="['fas', 'times-circle']" class="text-xs" aria-hidden="true" />
         </button>
         <span
-          class="transition-transform duration-150 flex items-center"
-          :class="{ 'rotate-180': visible }"
+          class="flex items-center text-gray-400 transition-transform duration-200"
+          :class="{ 'rotate-180 text-[#8B6F47]': visible }"
         >
-          <i class="border-l-[4px] border-l-transparent border-r-[4px] border-r-transparent border-t-[5px] border-t-current"></i>
+          <font-awesome-icon :icon="['fas', 'chevron-down']" class="text-xs" aria-hidden="true" />
         </span>
       </div>
     </div>
 
-    <!-- 下拉菜单 -->
-    <transition name="zoom-in-top">
-      <div
-        :id="listId"
-        v-show="visible"
-        role="listbox"
-        :aria-label="placeholder"
-        class="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded shadow-lg z-50 max-h-60 overflow-y-auto"
-      >
-        <ul v-if="filteredOptions.length > 0" class="list-none p-1">
-          <li
-            v-for="(item, index) in filteredOptions"
-            :key="index"
-            :id="`${listId}-option-${index}`"
-            role="option"
-            :aria-selected="isSelected(item)"
-            class="px-3 h-8 leading-8 cursor-pointer text-gray-800 whitespace-nowrap overflow-hidden text-ellipsis transition-colors duration-150 hover:bg-[#FBF7F2] hover:text-[#8B6F47]"
-            :class="{
-              'text-[#8B6F47] font-medium bg-[#8B6F47]/10': isSelected(item),
-              'bg-[#FBF7F2] text-[#8B6F47]': activeIndex === index && !isSelected(item)
-            }"
-            @click="handleSelect(item)"
-            @mouseenter="activeIndex = index"
-          >
-            {{ item.label }}
-          </li>
-        </ul>
-        <div v-else class="px-3 py-2 text-base text-gray-400 text-center">
-          无匹配数据
+    <!-- 下拉菜单：传送到 body，避免被弹窗或滚动容器裁剪 -->
+    <teleport to="body">
+      <transition name="select-dropdown">
+        <div
+          ref="dropdownRef"
+          :id="listId"
+          v-show="visible"
+          role="listbox"
+          :aria-label="placeholder"
+          class="dropdown-panel fixed z-[99999] overflow-hidden"
+        >
+          <ul class="dropdown-scroll dropdown-option-list overflow-y-auto py-1">
+            <li
+              v-for="(item, index) in filteredOptions"
+              :key="String(item.value)"
+              :id="`${listId}-option-${index}`"
+              role="option"
+              :aria-selected="isSelected(item)"
+              class="dropdown-option"
+              :class="{
+                'dropdown-option--selected': isSelected(item),
+                'dropdown-option--active': !isSelected(item) && activeIndex === index
+              }"
+              @click="handleSelect(item)"
+              @mouseenter="activeIndex = index"
+            >
+              <span class="min-w-0 truncate">{{ item.label }}</span>
+              <font-awesome-icon
+                v-if="isSelected(item)"
+                :icon="['fas', 'check']"
+                class="flex-shrink-0 text-xs text-[#8B6F47]"
+                aria-hidden="true"
+              />
+            </li>
+
+            <li
+              v-if="filteredOptions.length === 0"
+              class="dropdown-empty"
+            >
+              <font-awesome-icon :icon="['fas', 'folder-open']" class="mb-2 text-lg opacity-50" aria-hidden="true" />
+              <p>暂无数据</p>
+            </li>
+          </ul>
         </div>
-      </div>
-    </transition>
+      </transition>
+    </teleport>
   </div>
 </template>
 
 <script setup lang="ts">
 import type { PropType } from 'vue'
-import type { SelectInput, SelectOption, OptionValue } from './types'
+import type { SelectOption } from './types'
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
+
 /**
  * 自定义可输入下拉选择组件
  * 功能：提供支持下拉选择和手动输入的选择控件
- * 遵循KISS原则：原生实现，无重依赖
+ * 遵循 KISS 原则：原生实现，无重依赖
  */
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 
 const props = defineProps({
   modelValue: {
@@ -133,13 +150,16 @@ const emit = defineEmits<{ 'update:modelValue': [value: string | number]; change
 
 let nextInputSelectId = 0
 
-const containerRef = ref<HTMLElement | null>(null)
+const rootRef = ref<HTMLElement | null>(null)
+const triggerRef = ref<HTMLElement | null>(null)
 const inputRef = ref<HTMLInputElement | null>(null)
+const dropdownRef = ref<HTMLElement | null>(null)
 const visible = ref(false)
 const inputValue = ref('')
 const activeIndex = ref(-1)
+const generatedInputId = `input-select-${++nextInputSelectId}`
 
-const inputId = computed(() => props.id || `input-select-${++nextInputSelectId}`)
+const inputId = computed(() => props.id || generatedInputId)
 const listId = computed(() => `${inputId.value}-list`)
 
 // 标准化选项数据结构
@@ -160,7 +180,7 @@ const normalizedOptions = computed(() => {
 const filteredOptions = computed(() => {
   if (!inputValue.value) return normalizedOptions.value
   const keyword = inputValue.value.toLowerCase()
-  return normalizedOptions.value.filter(item => 
+  return normalizedOptions.value.filter(item =>
     String(item.label).toLowerCase().includes(keyword)
   )
 })
@@ -171,6 +191,8 @@ watch(filteredOptions, (options) => {
   } else if (activeIndex.value >= options.length) {
     activeIndex.value = options.length - 1
   }
+
+  if (visible.value) void nextTick(updatePosition)
 })
 
 const activeOptionId = computed(() => {
@@ -207,7 +229,7 @@ const handleFocus = () => {
 const toggleMenu = () => {
   if (props.disabled) return
   if (justFocused) return
-  
+
   if (visible.value) {
     visible.value = false
   } else {
@@ -281,43 +303,59 @@ const handleClear = () => {
   activeIndex.value = -1
 }
 
-// 点击外部关闭
-const handleClickOutside = (event: MouseEvent) => {
-  if (!(event.target instanceof Element)) return
-  if (containerRef.value && !containerRef.value.contains(event.target)) {
-    visible.value = false
-  }
+// 计算下拉框位置；空间不足时自动显示在控件上方。
+const updatePosition = () => {
+  if (!visible.value || !triggerRef.value || !dropdownRef.value) return
+
+  const triggerRect = triggerRef.value.getBoundingClientRect()
+  const menu = dropdownRef.value
+  const gap = 8
+  const width = triggerRect.width
+  const maxLeft = Math.max(gap, window.innerWidth - width - gap)
+  const left = Math.min(Math.max(triggerRect.left, gap), maxLeft)
+
+  // 先设置宽度，再读取高度，确保位置计算使用最终尺寸。
+  menu.style.width = `${width}px`
+  const menuHeight = menu.offsetHeight
+  const spaceBelow = window.innerHeight - triggerRect.bottom - gap
+  const spaceAbove = triggerRect.top - gap
+  const openAbove = spaceBelow < menuHeight && spaceAbove > spaceBelow
+  const top = openAbove
+    ? Math.max(gap, triggerRect.top - menuHeight - gap)
+    : triggerRect.bottom + gap
+
+  menu.style.top = `${top}px`
+  menu.style.left = `${left}px`
 }
 
+// 点击外部关闭下拉
+const handleClickOutside = (event: MouseEvent) => {
+  if (!(event.target instanceof Element)) return
+  if (rootRef.value?.contains(event.target) || dropdownRef.value?.contains(event.target)) return
+  visible.value = false
+}
+
+watch(visible, (value) => {
+  if (value) {
+    setTimeout(() => {
+      document.addEventListener('click', handleClickOutside)
+    }, 0)
+    void nextTick(updatePosition)
+    return
+  }
+
+  document.removeEventListener('click', handleClickOutside)
+  activeIndex.value = -1
+})
+
 onMounted(() => {
-  document.addEventListener('click', handleClickOutside)
+  window.addEventListener('resize', updatePosition)
+  window.addEventListener('scroll', updatePosition, true)
 })
 
 onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside)
+  window.removeEventListener('resize', updatePosition)
+  window.removeEventListener('scroll', updatePosition, true)
 })
 </script>
-
-<style scoped>
-/**
- * 自定义可输入下拉选择组件样式
- * 动画样式（其他样式已迁移到Tailwind CSS）
- */
-
-/* 动画 */
-.zoom-in-top-enter-active {
-  transition: transform 0.25s cubic-bezier(0.23, 1, 0.32, 1), opacity 0.25s cubic-bezier(0.23, 1, 0.32, 1);
-  transform-origin: center top;
-}
-
-.zoom-in-top-leave-active {
-  transition: transform 0.25s cubic-bezier(0.55, 0.055, 0.675, 0.19), opacity 0.25s cubic-bezier(0.55, 0.055, 0.675, 0.19);
-  transform-origin: center top;
-}
-
-.zoom-in-top-enter-from,
-.zoom-in-top-leave-to {
-  opacity: 0;
-  transform: scaleY(0);
-}
-</style>

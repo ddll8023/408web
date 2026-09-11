@@ -51,27 +51,3 @@ const itemClasses = computed(() => {
   return classes
 })
 </script>
-
-<style scoped>
-.dropdown-item {
-  display: flex;
-  align-items: center;
-  padding: 0.625rem 1rem;
-  font-size: 0.875rem;
-  color: #374151;
-  cursor: pointer;
-  transition: all 0.15s ease;
-  user-select: none;
-}
-
-.dropdown-item:hover:not(.is-disabled) {
-  background-color: #f9fafb;
-  color: #8B6F47;
-}
-
-.dropdown-item.is-disabled {
-  color: #9ca3af;
-  cursor: not-allowed;
-  background-color: transparent;
-}
-</style>

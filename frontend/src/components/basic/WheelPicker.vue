@@ -3,11 +3,14 @@
     <!-- 触发器（显示选中值或占位符） -->
     <div
       :id="pickerId"
-      class="wheel-picker-trigger relative flex items-center px-4 bg-white border border-gray-200 rounded-lg cursor-pointer transition-all duration-200"
+      class="dropdown-control wheel-picker-trigger relative flex items-center border px-3 cursor-pointer"
       :class="[
-        { 'opacity-50 cursor-not-allowed pointer-events-none': disabled },
-        { 'border-[#8B6F47] ring-2 ring-[#8B6F47]/20': isOpen },
-        sizeClasses
+        sizeClasses,
+        {
+          'dropdown-control--disabled': disabled,
+          'dropdown-control--open': isOpen,
+          'opacity-60 cursor-not-allowed pointer-events-none': disabled
+        }
       ]"
       role="combobox"
       :aria-expanded="isOpen"
@@ -64,7 +67,7 @@
         v-show="isOpen"
         role="listbox"
         :aria-label="placeholder"
-        class="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 overflow-hidden"
+        class="dropdown-panel absolute top-full left-0 right-0 mt-2 z-50 overflow-hidden"
         :style="{ height: `${containerHeight}px` }"
       >
         <div
@@ -79,7 +82,7 @@
             class="absolute left-0 right-0 pointer-events-none z-10"
             :style="highlightStyle"
           >
-            <div class="h-full bg-[#8B6F47]/10 border-y-2 border-[#8B6F47]/30 rounded-sm"></div>
+            <div class="dropdown-wheel-highlight"></div>
           </div>
 
           <!-- 选项列表 -->
@@ -195,6 +198,7 @@ const props = defineProps({
 const emit = defineEmits<{ 'update:modelValue': [value: string | number | null]; change: [value: string | number | null] }>()
 
 let nextWheelPickerId = 0
+const generatedPickerId = `wheel-picker-${++nextWheelPickerId}`
 const containerRef = ref<HTMLElement | null>(null)
 const pickerRef = ref<HTMLElement | null>(null)
 const isOpen = ref(false)
@@ -203,7 +207,7 @@ const isAnimating = ref(false)
 const isDragging = ref(false)
 const startY = ref(0)
 const startOffset = ref(0)
-const pickerId = computed(() => props.id || `wheel-picker-${++nextWheelPickerId}`)
+const pickerId = computed(() => props.id || generatedPickerId)
 const listId = computed(() => `${pickerId.value}-list`)
 
 // 计算属性：容器高度
@@ -237,8 +241,8 @@ const selectedLabel = computed(() => {
 const sizeClasses = computed(() => {
   const sizeMap: Record<string, string> = {
     sm: 'py-2 h-9 text-sm',
-    md: 'py-2.5 h-[42px] text-base',
-    lg: 'py-3 h-12 text-lg'
+    md: 'py-2.5 h-[42px] text-[15px]',
+    lg: 'py-3 h-12 text-base'
   }
   return sizeMap[props.size] || sizeMap.md
 })
@@ -508,22 +512,4 @@ defineExpose({
   -webkit-backface-visibility: hidden;
 }
 
-/* 下拉动画 */
-.wheel-dropdown-enter-active {
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.wheel-dropdown-leave-active {
-  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.wheel-dropdown-enter-from {
-  opacity: 0;
-  transform: translateY(-8px);
-}
-
-.wheel-dropdown-leave-to {
-  opacity: 0;
-  transform: translateY(-4px);
-}
 </style>

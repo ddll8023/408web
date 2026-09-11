@@ -213,9 +213,10 @@ const handleCommand = (command: string) => {
   min-width: 0;
   padding: 6px;
   overflow: hidden;
-  border: 1px solid rgba(139, 111, 71, 0.16);
-  border-radius: 14px;
-  box-shadow: 0 18px 45px rgba(55, 42, 27, 0.16), 0 4px 12px rgba(55, 42, 27, 0.08);
+  border: 1px solid var(--dropdown-border);
+  border-radius: var(--dropdown-panel-radius);
+  background: var(--dropdown-surface);
+  box-shadow: var(--dropdown-shadow);
 }
 
 .question-copy-dropdown .question-copy-menu {
@@ -236,7 +237,7 @@ const handleCommand = (command: string) => {
   padding: 10px;
   border: 1px solid #f0ece7;
   border-radius: 10px;
-  background: #fffdfa;
+  background: var(--dropdown-surface);
 }
 
 .question-copy-dropdown .question-copy-menu__section + .question-copy-menu__section {
@@ -270,8 +271,8 @@ const handleCommand = (command: string) => {
   width: 24px;
   height: 24px;
   border-radius: 7px;
-  background: #f7f1e9;
-  color: #8b6f47;
+  background: var(--dropdown-accent-soft);
+  color: var(--dropdown-accent);
   font-size: 12px;
 }
 
@@ -305,6 +306,7 @@ const handleCommand = (command: string) => {
   align-items: center;
   min-width: 0;
   min-height: 34px;
+  margin: 0;
   padding: 7px 10px;
   border: 1px solid transparent;
   border-radius: 8px;
@@ -316,9 +318,9 @@ const handleCommand = (command: string) => {
 }
 
 .dropdown-menu.question-copy-dropdown .question-copy-menu__items .dropdown-item:hover:not(.is-disabled) {
-  border-color: rgba(139, 111, 71, 0.16);
-  background: #fbf7f2;
-  color: #8b6f47;
+  border-color: var(--dropdown-border-hover);
+  background: var(--dropdown-option-hover);
+  color: var(--dropdown-accent);
 }
 
 .dropdown-menu.question-copy-dropdown .question-copy-menu__items .dropdown-item:focus-visible {

@@ -3,12 +3,14 @@
     <!-- Select 容器 -->
     <div
       ref="triggerRef"
-      class="relative flex items-center px-4 bg-white border rounded-lg transition-all duration-200 cursor-pointer select-none"
+      class="dropdown-control relative flex items-center border px-3 cursor-pointer select-none"
       :class="[
         containerClasses,
         {
-          'opacity-50 cursor-not-allowed pointer-events-none': disabled,
-          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8B6F47]/20': !disabled
+          'dropdown-control--disabled': disabled,
+          'dropdown-control--open': visible,
+          'dropdown-control--borderless': !bordered,
+          'opacity-50 cursor-not-allowed pointer-events-none': disabled
         }
       ]"
       role="combobox"
@@ -23,23 +25,23 @@
       @keydown="handleContainerKeydown"
     >
       <!-- 选中值显示 -->
-      <div class="flex-1 min-w-0 px-4">
+      <div class="min-w-0 flex-1">
         <span
           v-if="selectedLabel"
-          class="block w-full text-gray-700 text-base truncate"
+          class="block w-full truncate text-gray-700"
         >
           {{ selectedLabel }}
         </span>
         <span
           v-else
-          class="block w-full text-gray-400 text-base truncate"
+          class="block w-full truncate text-gray-400"
         >
           {{ placeholder }}
         </span>
       </div>
 
       <!-- 下拉箭头图标 -->
-      <div class="flex-shrink-0 px-3 flex items-center justify-center h-full gap-2">
+      <div class="flex h-full flex-shrink-0 items-center justify-center gap-2 pl-3">
         <button
           v-if="clearable && hasValue && !disabled"
           type="button"
@@ -90,43 +92,41 @@
           v-show="visible"
           role="listbox"
           :aria-label="placeholder"
-          class="fixed bg-white border border-gray-100 rounded-lg shadow-lg z-[99999] overflow-hidden"
-          :class="dropdownClasses"
+          class="dropdown-panel fixed z-[99999] overflow-hidden"
         >
         <!-- 搜索框（可选） -->
         <div
           v-if="filterable"
-          class="p-2 border-b border-gray-100"
+          class="dropdown-panel__header"
         >
           <input
             v-model="filterText"
             type="text"
             aria-label="筛选选项"
-            class="w-full px-3 py-2 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-[#8B6F47]/20 focus:border-[#8B6F47] transition-all duration-200"
-            placeholder="搜索..."
+            class="dropdown-filter"
+            :placeholder="filterPlaceholder"
             @click.stop
             @keydown.esc="visible = false"
           />
         </div>
 
         <!-- 选项列表 -->
-        <ul class="max-h-60 overflow-y-auto py-1">
+        <ul class="dropdown-scroll dropdown-option-list overflow-y-auto py-1">
           <li
             v-for="(option, index) in filteredOptions"
             :key="String(option.value)"
             :id="`${listId}-option-${index}`"
             role="option"
             :aria-selected="option.value === modelValue"
-            class="px-4 py-2.5 text-base text-gray-700 cursor-pointer transition-colors duration-150"
-            :class="[
-              option.value === modelValue
-                ? 'text-[#8B6F47] font-medium bg-[#8B6F47]/5'
-                : 'hover:bg-gray-50'
-            ]"
+            class="dropdown-option"
+            :class="{
+              'dropdown-option--selected': option.value === modelValue,
+              'dropdown-option--active': option.value !== modelValue && activeIndex === index
+            }"
             @click="handleSelect(option)"
             @mouseenter="activeIndex = index"
           >
-            <div class="flex items-center justify-between">
+            <div class="min-w-0 flex-1 flex items-center justify-between gap-3">
               <span class="truncate">{{ option.label }}</span>
               <!-- 选中标记 -->
               <span
@@ -141,9 +141,9 @@
           <!-- 空状态 -->
           <li
             v-if="filteredOptions.length === 0"
-            class="px-4 py-6 text-base text-gray-400 text-center"
+            class="dropdown-empty"
           >
-            <font-awesome-icon :icon="['fas', 'folder-open']" class="text-lg mb-2 opacity-50" />
+            <font-awesome-icon :icon="['fas', 'folder-open']" class="mb-2 text-lg opacity-50" aria-hidden="true" />
             <p>暂无数据</p>
           </li>
         </ul>
@@ -197,6 +197,11 @@ const props = defineProps({
     type: Boolean,
     default: false
   },
+  // 搜索输入框占位符
+  filterPlaceholder: {
+    type: String,
+    default: '搜索...'
+  },
   // 是否支持清除
   clearable: {
     type: Boolean,
@@ -228,6 +233,7 @@ const props = defineProps({
 const emit = defineEmits<{ 'update:modelValue': [value: V | '']; change: [value: V | ''] }>()
 
 let nextSelectId = 0
+const generatedSelectId = `select-${++nextSelectId}`
 
 const rootRef = ref<HTMLElement | null>(null)
 const triggerRef = ref<HTMLElement | null>(null)
@@ -237,7 +243,7 @@ const visible = ref(false)
 const filterText = ref('')
 const activeIndex = ref(-1)
 
-const inputId = computed(() => props.id || `select-${++nextSelectId}`)
+const inputId = computed(() => props.id || generatedSelectId)
 const listId = computed(() => `${inputId.value}-list`)
 const hasValue = computed(() => props.modelValue !== '' && props.modelValue !== null && props.modelValue !== undefined)
 
@@ -286,24 +292,15 @@ const selectedLabel = computed(() => {
   return option ? option.label : String(props.modelValue)
 })
 
-// 容器样式
+// 容器尺寸
 const containerClasses = computed(() => {
   const sizeClasses: Record<string, string> = {
-    sm: 'py-2 h-9 text-base',
-    md: 'py-2.5 h-[42px] text-base',
-    lg: 'py-3 text-lg'
+    sm: 'h-9 py-2 text-sm',
+    md: 'h-[42px] py-2.5 text-[15px]',
+    lg: 'h-12 py-3 text-base'
   }
 
-  const borderClasses = props.bordered
-    ? 'border-gray-200 hover:border-[#8B6F47]/50 focus-within:border-[#8B6F47] focus-within:ring-2 focus-within:ring-[#8B6F47]/20'
-    : 'border-transparent bg-transparent hover:bg-gray-50'
-
-  return `${sizeClasses[props.size]} ${borderClasses}`
-})
-
-// 下拉框样式
-const dropdownClasses = computed(() => {
-  return 'border border-gray-100 shadow-[0_4px_12px_rgba(0,0,0,0.08)]'
+  return sizeClasses[props.size] || sizeClasses.md
 })
 
 // 计算下拉框位置；空间不足时自动显示在控件上方。
@@ -446,42 +443,3 @@ onUnmounted(() => {
   window.removeEventListener('scroll', updatePosition, true)
 })
 </script>
-
-<style scoped>
-/* 下拉动画 */
-.select-dropdown-enter-active {
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.select-dropdown-leave-active {
-  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.select-dropdown-enter-from {
-  opacity: 0;
-  transform: translateY(-8px) scale(0.98);
-}
-
-.select-dropdown-leave-to {
-  opacity: 0;
-  transform: translateY(-4px);
-}
-
-/* 滚动条样式 */
-.max-h-60::-webkit-scrollbar {
-  width: 6px;
-}
-
-.max-h-60::-webkit-scrollbar-track {
-  background: #f9fafb;
-}
-
-.max-h-60::-webkit-scrollbar-thumb {
-  background: #d1d5db;
-  border-radius: 3px;
-}
-
-.max-h-60::-webkit-scrollbar-thumb:hover {
-  background: #9ca3af;
-}
-</style>

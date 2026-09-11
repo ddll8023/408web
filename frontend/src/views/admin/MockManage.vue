@@ -48,12 +48,15 @@
           <!-- 分类 -->
           <div class="flex flex-col gap-1.5">
             <label class="text-sm font-medium text-gray-700">分类</label>
-            <InputSelect
+            <Select
               v-model="filters.category"
               :options="categoryOptions"
-              placeholder="请选择或输入分类"
+              placeholder="请选择分类"
+              filterable
+              filter-placeholder="搜索分类..."
               aria-label="分类"
-              class="w-[180px]"
+              clearable
+              class="!w-[220px]"
               :disabled="!filters.subjectId"
             />
           </div>
@@ -248,7 +251,6 @@ import CustomButton from '@/components/basic/CustomButton.vue'
 import CustomCard from '@/components/basic/CustomCard.vue'
 import CustomInput from '@/components/basic/CustomInput.vue'
 import Select from '@/components/basic/Select.vue'
-import InputSelect from '@/components/basic/InputSelect.vue'
 import Table from '@/components/basic/Table.vue'
 import Pagination from '@/components/basic/Pagination.vue'
 import Tag from '@/components/basic/Tag.vue'

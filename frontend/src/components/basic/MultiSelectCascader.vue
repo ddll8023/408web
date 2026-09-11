@@ -3,13 +3,13 @@
     <!-- 触发区域 -->
     <div
       :id="triggerId"
-      class="h-[40px] leading-normal flex items-center flex-wrap gap-1.5 p-2 bg-white border rounded-lg cursor-pointer transition-all duration-300 ease-out"
+      class="dropdown-control relative flex h-[40px] items-center flex-wrap gap-1.5 border px-3 py-2 text-[15px] leading-normal cursor-pointer"
       :class="[
         disabled
-          ? 'bg-gray-50 border-gray-200 opacity-60 cursor-not-allowed'
+          ? 'dropdown-control--disabled opacity-60 cursor-not-allowed'
           : dropdownVisible
-            ? 'border-[#8B6F47] shadow-[0_0_0_2px_rgba(139,111,71,0.15)]'
-            : 'border-gray-300 hover:border-gray-400 hover:shadow-sm'
+            ? 'dropdown-control--open'
+            : ''
       ]"
       role="combobox"
       :tabindex="disabled ? -1 : 0"
@@ -26,7 +26,7 @@
         <span
           v-for="(item, index) in selectedItems"
           :key="item.value"
-          class="inline-flex items-center gap-1 px-2 py-0.5 bg-gradient-to-r from-[#8B6F47]/10 to-[#8B6F47]/5 text-[#8B6F47] text-base font-medium rounded-md border border-[#8B6F47]/20"
+          class="dropdown-selection-tag"
         >
           <font-awesome-icon :icon="['fas', 'folder']" class="text-xs" />
           <span class="max-w-[100px] truncate">{{ item.label }}</span>
@@ -45,7 +45,7 @@
       <!-- placeholder -->
       <span
         v-if="selectedItems.length === 0"
-        class="text-gray-400 text-base font-normal select-none"
+        class="text-gray-400 font-normal select-none"
       >
         {{ placeholder }}
       </span>
@@ -70,17 +70,17 @@
         v-show="dropdownVisible && !disabled"
         role="listbox"
         aria-multiselectable="true"
-        class="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-[0_8px_30px_rgba(0,0,0,0.12)] border border-gray-100 overflow-hidden z-50"
+        class="dropdown-panel absolute top-full left-0 right-0 z-50 overflow-hidden"
       >
         <!-- 搜索框 -->
-        <div v-if="enableSearch" class="p-3 border-b border-gray-100 bg-gray-50/50">
+        <div v-if="enableSearch" class="dropdown-panel__header">
           <div class="relative">
             <font-awesome-icon :icon="['fas', 'search']" class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             <input
               v-model="searchKeyword"
               type="text"
               aria-label="搜索分类"
-              class="w-full pl-9 pr-3 py-2.5 bg-white border border-gray-200 rounded-lg text-base focus:outline-none focus:border-[#8B6F47] focus:ring-2 focus:ring-[#8B6F47]/10 transition-all duration-200"
+              class="dropdown-filter dropdown-filter--with-icon"
               placeholder="搜索分类..."
               @click.stop
             />
@@ -88,10 +88,10 @@
         </div>
 
         <!-- 树形选项 -->
-        <div class="max-h-[300px] overflow-y-auto">
-          <div v-if="filteredOptions.length === 0" class="py-12 text-center">
+        <div class="dropdown-scroll max-h-[300px] overflow-y-auto">
+          <div v-if="filteredOptions.length === 0" class="dropdown-empty dropdown-empty--large">
             <font-awesome-icon :icon="['fas', 'folder-open']" class="text-3xl text-gray-200 mb-2" />
-            <p class="text-base text-gray-400">暂无数据</p>
+            <p class="text-sm text-gray-400">暂无数据</p>
           </div>
 
           <transition-group v-else name="expand" tag="div" class="py-2">
@@ -99,12 +99,10 @@
             <div
               v-for="row in visibleOptions"
               :key="row.item.value"
-              class="group flex items-center gap-3 mx-2 px-3 py-2.5 rounded-lg cursor-pointer transition-all duration-150"
-              :class="[
-                isSelected(row.item.value)
-                  ? 'bg-[#8B6F47]/5'
-                  : 'hover:bg-gray-50'
-              ]"
+              class="dropdown-tree-option group"
+              :class="{
+                'dropdown-tree-option--selected': isSelected(row.item.value)
+              }"
               :style="{ paddingLeft: `${row.level * 20 + 12}px` }"
             >
               <!-- 展开/收起子项按钮 -->
@@ -135,12 +133,8 @@
                   class="sr-only"
                 />
                 <div
-                  class="w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all duration-200"
-                  :class="[
-                    isSelected(row.item.value)
-                      ? 'bg-[#8B6F47] border-[#8B6F47]'
-                      : 'border-gray-300 group-hover:border-[#8B6F47]/50'
-                  ]"
+                  class="dropdown-checkbox group-hover:border-[#8B6F47]"
+                  :class="{ 'dropdown-checkbox--selected': isSelected(row.item.value) }"
                 >
                   <font-awesome-icon
                     v-if="isSelected(row.item.value)"
@@ -152,7 +146,7 @@
 
               <!-- 选项标签 -->
               <span
-                class="flex-1 text-base transition-colors duration-150"
+                class="flex-1 text-[15px] transition-colors duration-150"
                 :class="[
                   isSelected(row.item.value)
                     ? 'text-[#8B6F47] font-medium'
@@ -189,7 +183,7 @@
         </div>
 
         <!-- 底部提示 -->
-        <div class="px-4 py-2.5 bg-gray-50/80 border-t border-gray-100 flex items-center justify-between">
+        <div class="dropdown-panel__footer">
           <span class="text-xs text-gray-400">
             <font-awesome-icon :icon="['fas', 'info-circle']" class="mr-1" />
             已选择 {{ selectedItems.length }} 个分类
@@ -258,7 +252,8 @@ const searchKeyword = ref('')
 const expandedKeys = ref<string[]>([])
 
 let nextCascaderId = 0
-const triggerId = computed(() => props.id || `cascader-${++nextCascaderId}`)
+const generatedTriggerId = `cascader-${++nextCascaderId}`
+const triggerId = computed(() => props.id || generatedTriggerId)
 const listId = computed(() => `${triggerId.value}-list`)
 
 // 标准化选项数据
@@ -475,21 +470,6 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-/* 下拉菜单动画 */
-.dropdown-enter-active {
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.dropdown-leave-active {
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.dropdown-enter-from,
-.dropdown-leave-to {
-  opacity: 0;
-  transform: translateY(-8px) scale(0.98);
-}
-
 /* 展开/收起动画 */
 .expand-enter-active,
 .expand-leave-active {
@@ -526,22 +506,4 @@ onUnmounted(() => {
   transform: scale(0.8);
 }
 
-/* 自定义滚动条 */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-::-webkit-scrollbar-thumb {
-  background: #d1d5db;
-  border-radius: 3px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: #9ca3af;
-}
 </style>

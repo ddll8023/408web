@@ -103,6 +103,7 @@ import { useSubjectsStore } from './stores/subjects'
 
 // 导入全局样式（包含全局重置和通用样式）
 import '@/styles/tailwind.css'
+import '@/styles/dropdown.css'
 
 // 添加图标到库
 library.add(

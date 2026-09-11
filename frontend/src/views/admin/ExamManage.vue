@@ -43,12 +43,15 @@
           <!-- 分类筛选 -->
           <div class="flex items-center gap-2">
             <label class="text-sm text-gray-600 whitespace-nowrap">分类</label>
-            <InputSelect
+            <Select
               v-model="filters.category"
               :options="categoryOptions"
-              placeholder="请选择或输入分类"
+              placeholder="请选择分类"
+              filterable
+              filter-placeholder="搜索分类..."
               aria-label="分类"
-              class="!w-[180px]"
+              clearable
+              class="!w-[220px]"
               :disabled="!filters.subjectId"
             />
           </div>
@@ -240,7 +243,6 @@ import { useAdminTable } from '@/composables/useAdminTable'
 // 5. 子组件导入
 import CustomButton from '@/components/basic/CustomButton.vue'
 import CustomInput from '@/components/basic/CustomInput.vue'
-import InputSelect from '@/components/basic/InputSelect.vue'
 import WheelPicker from '@/components/basic/WheelPicker.vue'
 import Select from '@/components/basic/Select.vue'
 import Tag from '@/components/basic/Tag.vue'

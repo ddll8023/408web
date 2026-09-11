@@ -214,20 +214,19 @@ const handleLogout = () => {
   width: 90px;
 }
 
-/* 覆盖 Select 组件默认内边距，让搜索区域更紧凑 */
-.search-type-select :deep(.relative) {
+/* 覆盖 Select 的公共内边距，让导航搜索区域保持紧凑 */
+.search-type-select :deep(.dropdown-control) {
   padding-left: 8px !important;
   padding-right: 4px !important;
 }
 
-.search-type-select :deep(.flex-1) {
+.search-type-select :deep(.dropdown-control > .flex-1) {
   padding-left: 6px !important;
   padding-right: 2px !important;
 }
 
-.search-type-select :deep(.px-3) {
-  padding-left: 2px !important;
-  padding-right: 2px !important;
+.search-type-select :deep(.dropdown-control > .flex-shrink-0) {
+  padding-left: 4px !important;
 }
 
 /* 分隔线 */
