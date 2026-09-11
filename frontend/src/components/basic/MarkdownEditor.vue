@@ -25,6 +25,7 @@
         <MarkdownViewer
           :content="localContent"
           variant="plain"
+          :content-role="contentRole"
         />
       </div>
     </div>
@@ -40,7 +41,8 @@
  * Source: @kangc/v-md-editor 官方文档
  * KaTeX 由右侧 MarkdownViewer 统一预处理
  */
-import { ref, watch, onMounted, onUnmounted } from 'vue'
+import { ref, watch, onMounted, onUnmounted, type PropType } from 'vue'
+import type { MarkdownContentRole } from '@/utils/markdownMedia'
 import { uploadImage } from '@/api/upload'
 import VMdEditor, { type EditorInstance } from '@kangc/v-md-editor'
 import '@kangc/v-md-editor/lib/style/base-editor.css'
@@ -93,6 +95,11 @@ const props = defineProps({
   placeholder: {
     type: String,
     default: '请输入内容...'
+  },
+  /** 选项编辑使用与阅读、复制相同的紧凑预览规则。 */
+  contentRole: {
+    type: String as PropType<MarkdownContentRole>,
+    default: 'body'
   },
   // 编辑器的可访问名称
   ariaLabel: {
@@ -486,28 +493,6 @@ onUnmounted(() => {
   overflow: hidden;
   clip: rect(1px, 1px, 1px, 1px);
   white-space: nowrap;
-}
-
-:deep(.v-md-editor__preview) svg {
-  max-width: 100% !important;
-  height: auto !important;
-  display: block;
-  margin: 16px auto;
-}
-
-:deep(.v-md-editor__preview) .custom-svg-block {
-  max-width: 100%;
-  overflow: hidden;
-  display: flex;
-  justify-content: center;
-  margin: 16px 0;
-}
-
-:deep(.v-md-editor__preview) .custom-svg-block svg {
-  max-width: 100% !important;
-  width: 100% !important;
-  height: auto !important;
-  display: block;
 }
 
 /* 滚动条样式 */

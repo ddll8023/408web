@@ -19,7 +19,7 @@
       <MarkdownViewer
         :content="question.content"
         variant="plain"
-        max-image-height=""
+        :interactive="false"
         @rendered="handleMarkdownRendered"
       />
     </section>
@@ -36,7 +36,8 @@
           <MarkdownViewer
             :content="value"
             variant="plain"
-            max-image-height=""
+            content-role="option"
+            :interactive="false"
             @rendered="handleMarkdownRendered"
           />
         </div>
@@ -48,7 +49,7 @@
       <MarkdownViewer
         :content="question.answer || ''"
         variant="plain"
-        max-image-height=""
+        :interactive="false"
         @rendered="handleMarkdownRendered"
       />
     </section>
@@ -303,6 +304,8 @@ defineExpose({ capture })
 
 .question-image-renderer__option-key {
   flex: 0 0 auto;
+  font-size: 14px;
+  line-height: 1.5;
   color: #8b6f47;
   font-weight: 700;
 }
@@ -321,12 +324,6 @@ defineExpose({ capture })
 .question-image-renderer :deep(.github-markdown-body) {
   padding: 0;
   background: transparent;
-}
-
-.question-image-renderer :deep(img),
-.question-image-renderer :deep(svg) {
-  max-width: 100%;
-  height: auto;
 }
 
 .question-image-renderer :deep(pre) {

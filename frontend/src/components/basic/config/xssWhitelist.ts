@@ -9,8 +9,8 @@ import type MarkdownIt from 'markdown-it'
 
 // SVG 相关白名单
 const svgWhitelist = {
-  // SVG 基础元素
-  svg: ['width', 'height', 'viewBox', 'xmlns', 'class', 'style', 'xmlns:xlink', 'content'],
+  // extend 不会统一属性大小写，使用 XSS 解析器输出的小写名称保留坐标与缩放语义。
+  svg: ['width', 'height', 'viewbox', 'preserveaspectratio', 'xmlns', 'class', 'style', 'xmlns:xlink', 'content'],
   g: ['class', 'transform', 'id', 'style'],
   
   // SVG 形状元素

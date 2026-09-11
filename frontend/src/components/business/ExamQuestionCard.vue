@@ -6,7 +6,6 @@
         <MarkdownViewer
           :content="exam.content || ''"
           variant="plain"
-          :max-image-height="maxImageHeight"
         />
       </div>
 
@@ -37,6 +36,7 @@
             <MarkdownViewer
               :content="String(value)"
               variant="plain"
+              content-role="option"
             />
           </div>
         </div>
@@ -65,7 +65,6 @@
             <MarkdownViewer
               :content="exam?.answer || ''"
               variant="plain"
-              :max-image-height="maxImageHeight"
             />
           </div>
           <div v-else key="placeholder" class="answer-placeholder flex items-center justify-center gap-2 p-6 bg-white/80 rounded border-2 border-dashed border-gray-300 text-gray-400 text-sm">
@@ -112,14 +111,6 @@ const props = defineProps({
 
 const emit = defineEmits<{ 'toggle-answer': []; answered: [payload: { optionKey: string; correct: boolean }] }>()
 const { showToast } = useToast()
-
-/**
- * 计算图片最大高度
- */
-const maxImageHeight = computed(() => {
-  // return props.density === 'comfortable' ? '400px' : '300px'
-  return '440px'
-})
 
 /**
  * 用户选择的选项（用于视觉反馈）
@@ -387,20 +378,6 @@ const correctOptionKeys = computed(() => {
   padding: 0;
 }
 
-/* SVG自适应约束 - 防止题目中的SVG溢出 */
-.exam-question-card__question-content :deep(svg) {
-  max-width: 100%;
-  height: auto;
-  display: block;
-  margin: 16px auto !important;
-}
-
-/* 图片居中 */
-.exam-question-card__question-content :deep(img) {
-  display: block;
-  margin: 0 auto;
-}
-
 /* 表格居中 */
 .exam-question-card__question-content :deep(table) {
   margin: 0 auto;
@@ -494,40 +471,7 @@ const correctOptionKeys = computed(() => {
 
 /* 选项主体 - 使用Tailwind类名在template中已实现 */
 
-/* 强制紧凑：移除 MarkdownViewer 内部所有额外间距 */
-.exam-question-card__option-body :deep(.markdown-viewer) {
-  width: 100%;
-  min-height: auto;
-}
-
-.exam-question-card__option-body :deep(.v-md-editor-preview) {
-  padding: 0;
-  min-height: auto !important;
-}
-
-.exam-question-card__option-body :deep(.github-markdown-body) {
-  padding: 0;
-  font-size: 14px;
-}
-
-.exam-question-card__option-body :deep(p) {
-  margin: 0;
-  padding: 0;
-  line-height: 1.5 !important;
-}
-
-.exam-question-card__option-body :deep(img) {
-  max-height: 80px;
-  margin: 2px 0 !important;
-}
-
-.exam-question-card__option-body :deep(svg) {
-  max-width: 100%;
-  height: auto;
-  max-height: 60px;
-  display: block;
-  margin: 2px auto !important;
-}
+/* 正文、选项的字号与媒体尺寸统一由 MarkdownViewer 的 contentRole 管理。 */
 
 .exam-question-card__option-text {
   white-space: pre-line;
@@ -537,19 +481,6 @@ const correctOptionKeys = computed(() => {
 }
 
 /* 答案卡片（米色主题） - 使用Tailwind类名在template中已实现 */
-
-/* 答案内容样式 */
-.answer-card .answer-content :deep(svg) {
-  max-width: 100%;
-  height: auto;
-  display: block;
-  margin: 16px auto !important;
-}
-
-.answer-card .answer-content :deep(img) {
-  display: block;
-  margin: 0 auto;
-}
 
 .answer-card .answer-content :deep(table) {
   margin: 0 auto;

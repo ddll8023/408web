@@ -214,19 +214,19 @@
                 </div>
                 <div class="mb-4">
                   <FormLabel label="选项A" required for-id="mock-option-a" />
-                  <MarkdownEditor id="mock-option-a" aria-label="选项A" v-model="form.optionA" height="140px" placeholder="请输入选项A的内容..." />
+                  <MarkdownEditor id="mock-option-a" content-role="option" aria-label="选项A" v-model="form.optionA" height="140px" placeholder="请输入选项A的内容..." />
                 </div>
                 <div class="mb-4">
                   <FormLabel label="选项B" required for-id="mock-option-b" />
-                  <MarkdownEditor id="mock-option-b" aria-label="选项B" v-model="form.optionB" height="140px" placeholder="请输入选项B的内容..." />
+                  <MarkdownEditor id="mock-option-b" content-role="option" aria-label="选项B" v-model="form.optionB" height="140px" placeholder="请输入选项B的内容..." />
                 </div>
                 <div class="mb-4">
                   <FormLabel label="选项C" required for-id="mock-option-c" />
-                  <MarkdownEditor id="mock-option-c" aria-label="选项C" v-model="form.optionC" height="140px" placeholder="请输入选项C的内容..." />
+                  <MarkdownEditor id="mock-option-c" content-role="option" aria-label="选项C" v-model="form.optionC" height="140px" placeholder="请输入选项C的内容..." />
                 </div>
                 <div class="mb-4">
                   <FormLabel label="选项D" required for-id="mock-option-d" />
-                  <MarkdownEditor id="mock-option-d" aria-label="选项D" v-model="form.optionD" height="140px" placeholder="请输入选项D的内容..." />
+                  <MarkdownEditor id="mock-option-d" content-role="option" aria-label="选项D" v-model="form.optionD" height="140px" placeholder="请输入选项D的内容..." />
                 </div>
                 <div class="mb-4">
                   <FormLabel label="答案解析" for-id="mock-choice-answer" />
