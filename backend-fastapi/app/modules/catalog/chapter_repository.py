@@ -4,7 +4,7 @@ from typing import Any
 from sqlmodel import and_, func, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from app.models.entities import Chapter, Subject
+from app.modules.catalog.models import Chapter, Subject
 
 
 class ChapterRepository:

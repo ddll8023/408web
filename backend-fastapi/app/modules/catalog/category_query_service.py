@@ -5,7 +5,7 @@ from typing import List, Optional
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.core.exceptions import NotFoundException
-from app.models.entities import ExamCategory
+from app.modules.catalog.models import ExamCategory
 from app.modules.catalog.category_repository import CategoryRepository
 from app.modules.catalog.schemas.category import (
     ExamCategoryResponse,
@@ -14,7 +14,7 @@ from app.modules.catalog.schemas.category import (
     ExamCategoryUsageResponse,
     SubjectStatItem,
 )
-from app.services.question_mapping import parse_categories
+from app.modules.question_content.serialization import parse_categories
 
 
 class CategoryQueryService:

@@ -3,7 +3,7 @@ from collections import Counter
 from collections.abc import Iterable, Sequence
 import re
 
-from app.models.entities import ExamCategory
+from app.modules.catalog.models import ExamCategory
 
 
 # GB2312 编码对应的拼音首字母区间。使用标准库即可完成常用中文名称转换，

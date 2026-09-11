@@ -10,7 +10,8 @@ from sqlalchemy import and_, func, or_
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from app.models.entities import MockQuestion, Subject, User
+from app.modules.catalog.models import Subject
+from app.modules.mock.models import MockQuestion
 
 
 @dataclass(frozen=True, slots=True)
@@ -135,18 +136,6 @@ class MockRepository:
         )
         return result.all()
 
-    async def get_subject(self, subject_id: int) -> Subject | None:
-        """按主键查询科目。"""
-        result = await self.session.exec(
-            select(Subject).where(Subject.id == subject_id)
-        )
-        return result.first()
-
-    async def get_author(self, author_id: int) -> User | None:
-        """按主键查询作者。"""
-        result = await self.session.exec(select(User).where(User.id == author_id))
-        return result.first()
-
     async def find_by_source(
         self,
         source: str,
@@ -203,6 +192,21 @@ class MockRepository:
             )
             .distinct()
             .order_by(MockQuestion.title)
+        )
+        return result.all()
+
+    async def list_image_reference_texts(self) -> list[Any]:
+        """返回图片引用扫描所需的模拟题文本字段。"""
+        result = await self.session.exec(
+            select(
+                MockQuestion.id,
+                MockQuestion.question_number,
+                MockQuestion.title,
+                MockQuestion.source,
+                MockQuestion.content,
+                MockQuestion.answer,
+                MockQuestion.options,
+            )
         )
         return result.all()
 

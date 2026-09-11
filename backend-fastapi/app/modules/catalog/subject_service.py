@@ -6,7 +6,7 @@ import logging
 
 from typing import List
 from sqlmodel.ext.asyncio.session import AsyncSession
-from app.models.entities import Subject
+from app.modules.catalog.models import Subject
 from app.core.exceptions import ConflictException, NotFoundException
 from app.modules.catalog.schemas.subject import (
     SubjectCreateRequest,

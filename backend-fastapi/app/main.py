@@ -5,8 +5,11 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
-# 显式加载 SQLModel 表模型，避免依赖路由或 Repository 的间接导入顺序。
-from app.models import entities as _entities
+# 显式加载全部 SQLModel 表模型，避免依赖路由或 Repository 的间接导入顺序。
+from app.modules.auth import models as _auth_models
+from app.modules.catalog import models as _catalog_models
+from app.modules.exam import models as _exam_models
+from app.modules.mock import models as _mock_models
 from app.api.router import router as api_router
 from app.core.config import settings
 from app.core.logging import configure_logging

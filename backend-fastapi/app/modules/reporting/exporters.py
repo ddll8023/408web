@@ -1,21 +1,14 @@
-"""真题导出用例。"""
+"""统计与题目导出格式转换。"""
 import json
-from datetime import datetime
-from io import BytesIO
 from xml.etree.ElementTree import Element, SubElement, register_namespace, tostring
+from io import BytesIO
 from zipfile import ZIP_DEFLATED, ZipFile
 
-from sqlmodel.ext.asyncio.session import AsyncSession
-
-from app.core.exceptions import ValidationException
-from app.models.entities import ExamQuestion
-from app.repositories.exam_repository import ExamRepository
-from app.schemas.exam import (
+from app.modules.exam.query_service import ExamExportQuestionRead
+from app.modules.reporting.schemas import (
     ExamCategoryStatsResponse,
     ExamCategoryStatsTreeItem,
-    ExportResultResponse,
 )
-from app.services.exam_query_service import ExamQueryService
 
 
 _XLSX_NAMESPACE = "http://schemas.openxmlformats.org/spreadsheetml/2006/main"
@@ -27,58 +20,11 @@ register_namespace("r", _RELATIONSHIP_NAMESPACE)
 register_namespace("pr", _PACKAGE_RELATIONSHIP_NAMESPACE)
 
 
-class ExamExportService:
-    """查询真题并生成 Markdown 或 Excel 导出结果。"""
-
-    def __init__(self, session: AsyncSession) -> None:
-        self.repository = ExamRepository(session)
-        self.query_service = ExamQueryService(session)
-
-    async def export_by_subject(
-        self,
-        subject_id: int,
-        format: str = "markdown",
-    ) -> ExportResultResponse:
-        """按科目导出真题。"""
-        questions = await self.repository.find_for_export(subject_id)
-        content = self._generate_markdown(questions)
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        return ExportResultResponse(
-            filename=f"真题_{subject_id}_{timestamp}.md",
-            content_type="text/markdown; charset=utf-8",
-            file_bytes=content.encode("utf-8"),
-        )
-
-    async def export_category_stats(
-        self,
-        subject_id: int | None,
-        format: str,
-    ) -> ExportResultResponse:
-        """按科目导出按章节和知识点顺序排列的分类统计。"""
-        if format not in {"markdown", "xlsx"}:
-            raise ValidationException("不支持的导出格式")
-
-        stats = await self.query_service.get_category_stats(subject_id)
-        subject_name = stats.subject_name or "全部科目"
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-
-        if format == "markdown":
-            content = self._generate_category_markdown(stats)
-            return ExportResultResponse(
-                filename=self._build_filename(subject_name, timestamp, "md"),
-                content_type="text/markdown; charset=utf-8",
-                file_bytes=content.encode("utf-8"),
-            )
-
-        content = self._generate_category_xlsx(stats)
-        return ExportResultResponse(
-            filename=self._build_filename(subject_name, timestamp, "xlsx"),
-            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            file_bytes=content,
-        )
+class ReportingExporter:
+    """生成统计 Markdown、Excel 和真题 Markdown 内容。"""
 
     @staticmethod
-    def _flatten_category_rows(
+    def flatten_category_rows(
         nodes: list[ExamCategoryStatsTreeItem],
     ) -> list[tuple[str, str, int, int, int]]:
         """按树顺序展平分类，并选择章节或知识点的统计口径。"""
@@ -120,8 +66,8 @@ class ExamExportService:
         append_nodes(nodes, 0)
         return rows
 
-    @staticmethod
-    def _generate_category_markdown(stats: ExamCategoryStatsResponse) -> str:
+    @classmethod
+    def generate_category_markdown(cls, stats: ExamCategoryStatsResponse) -> str:
         """生成按科目和目录顺序排列的分类统计 Markdown。"""
         subject_name = stats.subject_name or "全部科目"
         lines = [
@@ -153,7 +99,7 @@ class ExamExportService:
                     "| --- | --- | ---: | ---: | ---: |",
                 ]
             )
-            rows = ExamExportService._flatten_category_rows(subject_stats.categories)
+            rows = cls.flatten_category_rows(subject_stats.categories)
             if not rows:
                 lines.append("| 暂无分类数据 | - | 0 | 0 | 0 |")
                 continue
@@ -171,8 +117,8 @@ class ExamExportService:
 
         return "\n".join(lines).rstrip() + "\n"
 
-    @staticmethod
-    def _generate_category_xlsx(stats: ExamCategoryStatsResponse) -> bytes:
+    @classmethod
+    def generate_category_xlsx(cls, stats: ExamCategoryStatsResponse) -> bytes:
         """生成按科目和目录顺序排列的最小 Excel 工作簿。"""
         rows: list[list[object]] = [
             ["真题分类统计"],
@@ -190,8 +136,8 @@ class ExamExportService:
             ],
         ]
         for subject_stats in stats.category_tree:
-            for label, scope, choice_count, subjective_count, count in (
-                ExamExportService._flatten_category_rows(subject_stats.categories)
+            for label, scope, choice_count, subjective_count, count in cls.flatten_category_rows(
+                subject_stats.categories
             ):
                 rows.append(
                     [
@@ -206,7 +152,7 @@ class ExamExportService:
         if len(rows) == 6:
             rows.append(["", "暂无分类数据", "-", 0, 0, 0])
 
-        return ExamExportService._build_xlsx(rows)
+        return cls.build_xlsx(rows)
 
     @staticmethod
     def _format_options_markdown(value: str) -> str:
@@ -223,7 +169,7 @@ class ExamExportService:
         return value
 
     @staticmethod
-    def _build_filename(subject_name: str, timestamp: str, extension: str) -> str:
+    def build_filename(subject_name: str, timestamp: str, extension: str) -> str:
         """构造安全的下载文件名。"""
         safe_subject_name = "".join(
             char if char.isalnum() or char in {" ", "-", "_"} else "_"
@@ -231,14 +177,14 @@ class ExamExportService:
         ).strip(" ._") or "全部科目"
         return f"真题分类统计_{safe_subject_name}_{timestamp}.{extension}"
 
-    @staticmethod
-    def _build_xlsx(rows: list[list[object]]) -> bytes:
+    @classmethod
+    def build_xlsx(cls, rows: list[list[object]]) -> bytes:
         """将二维数据写入最小的 XLSX Open XML 包。"""
         worksheet = Element(f"{{{_XLSX_NAMESPACE}}}worksheet")
         max_columns = max((len(row) for row in rows), default=1)
         max_row = max(len(rows), 1)
         dimension = SubElement(worksheet, f"{{{_XLSX_NAMESPACE}}}dimension")
-        dimension.set("ref", f"A1:{ExamExportService._column_name(max_columns)}{max_row}")
+        dimension.set("ref", f"A1:{cls.column_name(max_columns)}{max_row}")
         sheet_data = SubElement(worksheet, f"{{{_XLSX_NAMESPACE}}}sheetData")
 
         for row_number, values in enumerate(rows, start=1):
@@ -253,7 +199,7 @@ class ExamExportService:
                 cell = SubElement(
                     row_element,
                     f"{{{_XLSX_NAMESPACE}}}c",
-                    {"r": f"{ExamExportService._column_name(column_number)}{row_number}"},
+                    {"r": f"{cls.column_name(column_number)}{row_number}"},
                 )
                 if isinstance(value, bool):
                     cell.set("t", "b")
@@ -280,10 +226,8 @@ class ExamExportService:
             },
         )
 
-        content_types = Element(
-            "{http://schemas.openxmlformats.org/package/2006/content-types}Types"
-        )
         content_types_namespace = "http://schemas.openxmlformats.org/package/2006/content-types"
+        content_types = Element(f"{{{content_types_namespace}}}Types")
         SubElement(
             content_types,
             f"{{{content_types_namespace}}}Default",
@@ -311,9 +255,7 @@ class ExamExportService:
             },
         )
 
-        package_relationships = Element(
-            f"{{{_PACKAGE_RELATIONSHIP_NAMESPACE}}}Relationships"
-        )
+        package_relationships = Element(f"{{{_PACKAGE_RELATIONSHIP_NAMESPACE}}}Relationships")
         SubElement(
             package_relationships,
             f"{{{_PACKAGE_RELATIONSHIP_NAMESPACE}}}Relationship",
@@ -324,9 +266,7 @@ class ExamExportService:
             },
         )
 
-        workbook_relationships = Element(
-            f"{{{_PACKAGE_RELATIONSHIP_NAMESPACE}}}Relationships"
-        )
+        workbook_relationships = Element(f"{{{_PACKAGE_RELATIONSHIP_NAMESPACE}}}Relationships")
         SubElement(
             workbook_relationships,
             f"{{{_PACKAGE_RELATIONSHIP_NAMESPACE}}}Relationship",
@@ -347,7 +287,7 @@ class ExamExportService:
         return package.getvalue()
 
     @staticmethod
-    def _column_name(column_number: int) -> str:
+    def column_name(column_number: int) -> str:
         """将 1-based 列号转换为 Excel 列名。"""
         name = ""
         current = column_number
@@ -357,9 +297,9 @@ class ExamExportService:
         return name
 
     @staticmethod
-    def _generate_markdown(questions: list[ExamQuestion]) -> str:
+    def generate_exam_markdown(questions: list[ExamExportQuestionRead]) -> str:
         """生成 Markdown 格式的真题内容。"""
-        year_groups: dict[int, list[ExamQuestion]] = {}
+        year_groups: dict[int, list[ExamExportQuestionRead]] = {}
         for question in questions:
             year_groups.setdefault(question.year, []).append(question)
 
@@ -373,7 +313,7 @@ class ExamExportService:
                 lines.extend(["", question.content])
                 if question.options:
                     lines.append("**选项：**")
-                    lines.append(ExamExportService._format_options_markdown(question.options))
+                    lines.append(ReportingExporter._format_options_markdown(question.options))
                 lines.append("")
                 if question.answer:
                     lines.append(f"**答案：** {question.answer}")

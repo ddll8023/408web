@@ -3,6 +3,8 @@ from fastapi import APIRouter, Depends, Path, status
 
 from app.api.dependencies import SessionDep
 from app.modules.auth.dependencies import AuthUser, get_current_admin
+from app.modules.catalog.category_command_service import CategoryCommandService
+from app.modules.catalog.category_query_service import CategoryQueryService
 from app.modules.catalog.schemas.category import (
     AvailableParentCategoriesRequest,
     CategoryBySubjectQueryRequest,
@@ -16,10 +18,19 @@ from app.modules.catalog.schemas.category import (
     ExamCategoryUpdateRequest,
 )
 from app.schemas.common import ApiResponse
-from app.modules.catalog.category_service import ExamCategoryService
 
 
 router = APIRouter()
+
+
+def _get_query_service(session: SessionDep) -> CategoryQueryService:
+    """创建目录查询用例。"""
+    return CategoryQueryService(session)
+
+
+def _get_command_service(session: SessionDep) -> CategoryCommandService:
+    """创建目录写入用例及其查询依赖。"""
+    return CategoryCommandService(session, CategoryQueryService(session))
 
 @router.post(
     "/query",
@@ -32,7 +43,7 @@ async def get_all_categories(
     session: SessionDep,
 ) -> ApiResponse[list[ExamCategoryResponse]]:
     """查询所有分类。"""
-    categories = await ExamCategoryService(session).get_all_categories(request.question_type)
+    categories = await _get_query_service(session).get_all_categories(request.question_type)
     return ApiResponse(data=categories)
 
 
@@ -48,7 +59,7 @@ async def get_categories_by_subject(
     subject_id: int = Path(..., ge=1, description="科目 ID"),
 ) -> ApiResponse[list[ExamCategoryResponse]]:
     """按科目查询分类。"""
-    categories = await ExamCategoryService(session).get_categories_by_subject(
+    categories = await _get_query_service(session).get_categories_by_subject(
         subject_id,
         question_type=request.question_type,
     )
@@ -66,7 +77,7 @@ async def get_enabled_categories_by_subject(
     subject_id: int = Path(..., ge=1, description="科目 ID"),
 ) -> ApiResponse[list[ExamCategoryResponse]]:
     """查询启用分类。"""
-    categories = await ExamCategoryService(session).get_enabled_categories_by_subject(subject_id)
+    categories = await _get_query_service(session).get_enabled_categories_by_subject(subject_id)
     return ApiResponse(data=categories)
 
 
@@ -81,7 +92,7 @@ async def get_category_tree_by_subject(
     subject_id: int = Path(..., ge=1, description="科目 ID"),
 ) -> ApiResponse[list[ExamCategoryTreeResponse]]:
     """查询分类树。"""
-    categories = await ExamCategoryService(session).get_category_tree(subject_id, enabled_only=False)
+    categories = await _get_query_service(session).get_category_tree(subject_id, enabled_only=False)
     return ApiResponse(data=categories)
 
 
@@ -96,7 +107,7 @@ async def get_enabled_category_tree_by_subject(
     subject_id: int = Path(..., ge=1, description="科目 ID"),
 ) -> ApiResponse[list[ExamCategoryTreeResponse]]:
     """查询启用分类树。"""
-    categories = await ExamCategoryService(session).get_category_tree(subject_id, enabled_only=True)
+    categories = await _get_query_service(session).get_category_tree(subject_id, enabled_only=True)
     return ApiResponse(data=categories)
 
 
@@ -112,7 +123,7 @@ async def get_enabled_category_tree_with_stats(
     subject_id: int = Path(..., ge=1, description="科目 ID"),
 ) -> ApiResponse[list[ExamCategoryTreeResponse]]:
     """查询启用分类树及题型统计。"""
-    categories = await ExamCategoryService(session).get_enabled_category_tree_with_stats(
+    categories = await _get_query_service(session).get_enabled_category_tree_with_stats(
         subject_id,
         request.question_type,
     )
@@ -131,7 +142,7 @@ async def get_available_parent_categories(
     _admin: AuthUser = Depends(get_current_admin),
 ) -> ApiResponse[list[ExamCategoryResponse]]:
     """查询可选父分类。"""
-    categories = await ExamCategoryService(session).get_available_parent_categories(
+    categories = await _get_query_service(session).get_available_parent_categories(
         request.subject_id,
         request.exclude_id,
     )
@@ -149,7 +160,7 @@ async def get_category_stats(
     session: SessionDep,
 ) -> ApiResponse[ExamCategoryStatResponse]:
     """获取分类统计。"""
-    stats = await ExamCategoryService(session).get_category_stats(request.question_type)
+    stats = await _get_query_service(session).get_category_stats(request.question_type)
     return ApiResponse(data=stats)
 
 
@@ -165,7 +176,7 @@ async def check_category_usage(
     _admin: AuthUser = Depends(get_current_admin),
 ) -> ApiResponse[int]:
     """检查分类引用数量。"""
-    usage = await ExamCategoryService(session).check_category_usage(category_id)
+    usage = await _get_query_service(session).check_category_usage(category_id)
     return ApiResponse(data=usage)
 
 
@@ -180,7 +191,7 @@ async def get_category_by_id(
     category_id: int = Path(..., ge=1, description="分类 ID"),
 ) -> ApiResponse[ExamCategoryResponse]:
     """查询分类详情。"""
-    category = await ExamCategoryService(session).get_by_id(category_id)
+    category = await _get_query_service(session).get_by_id(category_id)
     return ApiResponse(data=category)
 
 
@@ -197,7 +208,7 @@ async def create_category(
     _admin: AuthUser = Depends(get_current_admin),
 ) -> ApiResponse[ExamCategoryResponse]:
     """创建分类。"""
-    category = await ExamCategoryService(session).create(request)
+    category = await _get_command_service(session).create(request)
     return ApiResponse(data=category, message="创建成功")
 
 
@@ -215,7 +226,7 @@ async def update_category(
     _admin: AuthUser = Depends(get_current_admin),
 ) -> ApiResponse[ExamCategoryResponse]:
     """更新分类。"""
-    category = await ExamCategoryService(session).update(category_id, request)
+    category = await _get_command_service(session).update(category_id, request)
     return ApiResponse(data=category, message="更新成功")
 
 
@@ -232,7 +243,7 @@ async def move_category(
     _admin: AuthUser = Depends(get_current_admin),
 ) -> ApiResponse[list[ExamCategoryResponse]]:
     """原子保存父级与受影响的同级顺序。"""
-    categories = await ExamCategoryService(session).move(category_id, request)
+    categories = await _get_command_service(session).move(category_id, request)
     return ApiResponse(data=categories, message="分类移动成功")
 
 
@@ -249,5 +260,5 @@ async def delete_category(
     _admin: AuthUser = Depends(get_current_admin),
 ) -> ApiResponse[None]:
     """删除分类。"""
-    await ExamCategoryService(session).delete(category_id)
+    await _get_command_service(session).delete(category_id)
     return ApiResponse(message="删除成功")

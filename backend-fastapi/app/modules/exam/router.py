@@ -1,20 +1,16 @@
 """真题查询、维护和导出 HTTP 路由。"""
-from urllib.parse import quote
-
-from fastapi import APIRouter, Depends, Path, Response as FastAPIResponse
+from fastapi import APIRouter, Depends, Path
+from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.api.dependencies import SessionDep
 from app.modules.auth.dependencies import AuthUser, get_current_admin
-from app.schemas.common import ApiResponse
-from app.schemas.exam import (
+from app.modules.exam.command_service import ExamCommandService
+from app.modules.exam.query_service import ExamQueryService
+from app.modules.exam.schemas import (
     ExamByCategoryRequest,
-    ExamCategoryStatsExportRequest,
-    ExamCategoryStatsRequest,
-    ExamCategoryStatsResponse,
     ExamCreateRequest,
     ExamDuplicateCheckResponse,
     ExamDuplicateRequest,
-    ExamExportRequest,
     ExamIndexRequest,
     ExamNavItem,
     ExamQueryParams,
@@ -24,10 +20,15 @@ from app.schemas.exam import (
     ExamYearStatResponse,
     PaginatedExamResponse,
 )
-from app.services.exam_service import ExamService
+from app.schemas.common import ApiResponse
 
 
 router = APIRouter()
+
+
+def _get_command_service(session: AsyncSession) -> ExamCommandService:
+    """创建共享查询服务的真题写入用例。"""
+    return ExamCommandService(session, ExamQueryService(session))
 
 
 @router.post(
@@ -41,7 +42,7 @@ async def get_exams(
     session: SessionDep,
 ) -> ApiResponse[PaginatedExamResponse]:
     """分页查询真题。"""
-    result = await ExamService(session).get_paginated(request)
+    result = await ExamQueryService(session).get_paginated(request)
     return ApiResponse(data=result)
 
 
@@ -57,7 +58,7 @@ async def find_by_year(
     year: int = Path(..., ge=1990, le=2100, description="年份"),
 ) -> ApiResponse[list[ExamResponse]]:
     """根据年份查询真题。"""
-    exams = await ExamService(session).find_by_year(
+    exams = await ExamQueryService(session).find_by_year(
         year,
         request.category,
         request.subject_id,
@@ -76,7 +77,7 @@ async def get_categories_by_subject(
     subject_id: int = Path(..., ge=1, description="科目 ID"),
 ) -> ApiResponse[list[str]]:
     """查询科目下的真题分类。"""
-    categories = await ExamService(session).get_categories_by_subject(subject_id)
+    categories = await ExamQueryService(session).get_categories_by_subject(subject_id)
     return ApiResponse(data=categories)
 
 
@@ -91,7 +92,7 @@ async def get_year_stats(
     session: SessionDep,
 ) -> ApiResponse[list[ExamYearStatResponse]]:
     """查询年份统计。"""
-    stats = await ExamService(session).get_year_stats(request.category)
+    stats = await ExamQueryService(session).get_year_stats(request.category)
     return ApiResponse(data=stats)
 
 
@@ -106,7 +107,7 @@ async def find_all_for_index(
     session: SessionDep,
 ) -> ApiResponse[list[ExamResponse]]:
     """查询真题索引。"""
-    exams = await ExamService(session).find_all_for_index(request.category)
+    exams = await ExamQueryService(session).find_all_for_index(request.category)
     return ApiResponse(data=exams)
 
 
@@ -121,53 +122,8 @@ async def find_for_nav_index(
     session: SessionDep,
 ) -> ApiResponse[list[ExamNavItem]]:
     """查询轻量级真题导航索引。"""
-    exams = await ExamService(session).find_for_nav_index(request.category)
+    exams = await ExamQueryService(session).find_for_nav_index(request.category)
     return ApiResponse(data=exams)
-
-
-@router.post(
-    "/category-stats",
-    response_model=ApiResponse[ExamCategoryStatsResponse],
-    summary="查询分类统计",
-    description="按分类统计真题数量",
-)
-async def get_category_stats(
-    request: ExamCategoryStatsRequest,
-    session: SessionDep,
-) -> ApiResponse[ExamCategoryStatsResponse]:
-    """查询真题分类统计。"""
-    stats = await ExamService(session).get_category_stats(request.subject_id)
-    return ApiResponse(data=stats)
-
-
-@router.post(
-    "/export-category-stats",
-    summary="导出真题分类统计",
-    description="管理员按科目导出真题分类统计 Markdown 或 Excel 文件",
-)
-async def export_category_stats(
-    request: ExamCategoryStatsExportRequest,
-    session: SessionDep,
-    _admin: AuthUser = Depends(get_current_admin),
-) -> FastAPIResponse:
-    """导出真题分类统计。"""
-    export_result = await ExamService(session).export_category_stats(
-        request.subject_id,
-        request.format,
-    )
-    encoded_filename = quote(export_result.filename)
-    extension = export_result.filename.rsplit(".", 1)[-1]
-    return FastAPIResponse(
-        content=export_result.file_bytes,
-        media_type=export_result.content_type,
-        headers={
-            "Content-Disposition": (
-                f'attachment; filename="category-stats.{extension}"; '
-                f"filename*=UTF-8''{encoded_filename}"
-            ),
-            "Cache-Control": "no-store",
-        },
-    )
 
 
 @router.post(
@@ -181,34 +137,11 @@ async def find_by_subject_and_category(
     session: SessionDep,
 ) -> ApiResponse[list[ExamResponse]]:
     """按科目和分类查询真题。"""
-    exams = await ExamService(session).find_by_subject_and_category(
+    exams = await ExamQueryService(session).find_by_subject_and_category(
         request.subject_id,
         request.category,
     )
     return ApiResponse(data=exams)
-
-
-@router.post(
-    "/export",
-    summary="导出真题",
-    description="按科目导出 Markdown 真题文件",
-)
-async def export_by_subject(
-    request: ExamExportRequest,
-    session: SessionDep,
-) -> FastAPIResponse:
-    """按科目导出真题。"""
-    export_result = await ExamService(session).export_by_subject(
-        request.subject_id,
-        request.format,
-    )
-    return FastAPIResponse(
-        content=export_result.file_bytes,
-        media_type=export_result.content_type,
-        headers={
-            "Content-Disposition": f"attachment; filename={export_result.filename}",
-        },
-    )
 
 
 @router.post(
@@ -222,7 +155,7 @@ async def get_exam_detail(
     exam_id: int = Path(..., ge=1, description="真题 ID"),
 ) -> ApiResponse[ExamResponse]:
     """查询真题详情。"""
-    exam = await ExamService(session).get_by_id(exam_id)
+    exam = await ExamQueryService(session).get_by_id(exam_id)
     return ApiResponse(data=exam)
 
 
@@ -238,7 +171,7 @@ async def check_exam_duplicate(
     _admin: AuthUser = Depends(get_current_admin),
 ) -> ApiResponse[ExamDuplicateCheckResponse]:
     """检查真题重复。"""
-    existing = await ExamService(session).check_duplicate(
+    existing = await ExamQueryService(session).check_duplicate(
         request.year,
         request.question_number,
         request.exclude_id,
@@ -258,7 +191,7 @@ async def create_exam(
     admin: AuthUser = Depends(get_current_admin),
 ) -> ApiResponse[ExamResponse]:
     """创建真题。"""
-    exam = await ExamService(session).create(request, admin.user_id)
+    exam = await _get_command_service(session).create(request, admin.user_id)
     return ApiResponse(data=exam, message="创建成功")
 
 
@@ -275,7 +208,7 @@ async def update_exam(
     _admin: AuthUser = Depends(get_current_admin),
 ) -> ApiResponse[ExamResponse]:
     """更新真题。"""
-    exam = await ExamService(session).update(exam_id, request)
+    exam = await _get_command_service(session).update(exam_id, request)
     return ApiResponse(data=exam, message="更新成功")
 
 
@@ -291,5 +224,5 @@ async def delete_exam(
     _admin: AuthUser = Depends(get_current_admin),
 ) -> ApiResponse[None]:
     """删除真题。"""
-    await ExamService(session).delete(exam_id)
+    await _get_command_service(session).delete(exam_id)
     return ApiResponse(message="删除成功")

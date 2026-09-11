@@ -1,14 +1,16 @@
 """模拟题查询用例。"""
-import json
+from dataclasses import dataclass
 from typing import List, Optional
 
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.core.exceptions import NotFoundException
-from app.models.entities import MockQuestion
-from app.repositories.mock_repository import MockQuery, MockRepository
-from app.schemas.common import PageInfo
-from app.schemas.mock import (
+from app.modules.auth.read_service import AuthReadService
+from app.modules.mock.models import MockQuestion
+from app.modules.catalog.read_service import CatalogReadService
+from app.modules.mock.mapper import to_mock_response
+from app.modules.mock.repository import MockQuery, MockRepository
+from app.modules.mock.schemas import (
     MockCategoryStatItem,
     MockCategoryStatsResponse,
     MockDuplicateCheckResponse,
@@ -20,7 +22,21 @@ from app.schemas.mock import (
     MockQueryParams,
     PaginatedMockResponse,
 )
-from app.services.question_mapping import parse_categories, parse_options
+from app.modules.question_content.serialization import parse_categories
+from app.schemas.common import PageInfo
+
+
+@dataclass(frozen=True, slots=True)
+class MockImageReferenceRead:
+    """供媒体模块使用的模拟题文本只读数据。"""
+
+    id: int
+    question_number: int | None
+    title: str | None
+    source: str
+    content: str
+    answer: str | None
+    options: str | None
 
 
 class MockQueryService:
@@ -29,6 +45,8 @@ class MockQueryService:
     def __init__(self, session: AsyncSession) -> None:
         self.session = session
         self.repository = MockRepository(session)
+        self.catalog_read_service = CatalogReadService(session)
+        self.auth_read_service = AuthReadService(session)
 
     async def get_paginated(self, params: MockQueryParams) -> PaginatedMockResponse:
         """分页查询模拟题。"""
@@ -45,7 +63,7 @@ class MockQueryService:
                 sort_order=params.sort_order,
             )
         )
-        data = [await self.to_response(question) for question in questions]
+        data = await self._to_responses(questions)
         total_pages = (total + params.page_size - 1) // params.page_size if total else 0
         return PaginatedMockResponse(
             lists=data,
@@ -116,18 +134,15 @@ class MockQueryService:
             question_ids.add(question.id)
             if not question.category:
                 continue
-            try:
-                categories = json.loads(question.category)
-            except json.JSONDecodeError:
-                continue
-            if isinstance(categories, list):
+            categories = parse_categories(question.category)
+            if categories:
                 for category in categories:
                     category_counts[category] = category_counts.get(category, 0) + 1
 
-        subject = await self.repository.get_subject(subject_id)
+        subject_name = await self.catalog_read_service.get_subject_name(subject_id)
         return MockCategoryStatsResponse(
             subject_id=subject_id,
-            subject_name=subject.name if subject else None,
+            subject_name=subject_name,
             stats=[
                 MockCategoryStatItem(category=category, count=count)
                 for category, count in sorted(category_counts.items())
@@ -143,7 +158,7 @@ class MockQueryService:
     ) -> List[MockResponse]:
         """按来源查询模拟题。"""
         questions = await self.repository.find_by_source(source, category, subject_id)
-        return [await self.to_response(question) for question in questions]
+        return await self._to_responses(questions)
 
     async def find_categories_by_subject(self, subject_id: int) -> List[str]:
         """返回科目下模拟题实际使用的分类名称。"""
@@ -151,11 +166,8 @@ class MockQueryService:
         for raw_categories in await self.repository.list_category_values(subject_id):
             if not raw_categories:
                 continue
-            try:
-                categories = json.loads(raw_categories)
-            except json.JSONDecodeError:
-                continue
-            if isinstance(categories, list):
+            categories = parse_categories(raw_categories)
+            if categories:
                 category_set.update(categories)
         return sorted(category_set)
 
@@ -178,31 +190,44 @@ class MockQueryService:
             if title
         ]
 
+    async def list_image_reference_texts(self) -> list[MockImageReferenceRead]:
+        """返回媒体模块扫描图片引用所需的模拟题文本。"""
+        return [
+            MockImageReferenceRead(
+                id=row.id,
+                question_number=row.question_number,
+                title=row.title,
+                source=row.source,
+                content=row.content,
+                answer=row.answer,
+                options=row.options,
+            )
+            for row in await self.repository.list_image_reference_texts()
+        ]
+
+    async def _to_responses(
+        self,
+        questions: list[MockQuestion],
+    ) -> list[MockResponse]:
+        """批量读取显示字段并转换题目响应。"""
+        if not questions:
+            return []
+        subject_names = await self.catalog_read_service.get_subject_names(
+            {question.subject_id for question in questions if question.subject_id is not None}
+        )
+        author_names = await self.auth_read_service.get_user_names(
+            {question.author_id for question in questions if question.author_id is not None}
+        )
+        return [
+            to_mock_response(
+                question,
+                subject_name=subject_names.get(question.subject_id),
+                author_name=author_names.get(question.author_id),
+            )
+            for question in questions
+        ]
+
     async def to_response(self, question: MockQuestion) -> MockResponse:
         """将模拟题实体转换为公开响应。"""
-        subject_name = None
-        if question.subject_id:
-            subject = await self.repository.get_subject(question.subject_id)
-            subject_name = subject.name if subject else None
-        author_name = None
-        if question.author_id:
-            author = await self.repository.get_author(question.author_id)
-            author_name = author.username if author else None
-        return MockResponse(
-            id=question.id,
-            source=question.source,
-            question_number=question.question_number,
-            question_type=question.question_type,
-            title=question.title,
-            content=question.content,
-            options=parse_options(question.options),
-            answer=question.answer,
-            category=parse_categories(question.category),
-            subject_id=question.subject_id,
-            subject_name=subject_name,
-            difficulty=question.difficulty,
-            author_id=question.author_id,
-            author_name=author_name,
-            create_time=question.create_time.isoformat() if question.create_time else None,
-            update_time=question.update_time.isoformat() if question.update_time else None,
-        )
+        responses = await self._to_responses([question])
+        return responses[0]

@@ -5,20 +5,18 @@
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.core.exceptions import ConflictException, NotFoundException, ValidationException
-from app.models.entities import ExamQuestion
-from app.repositories.exam_repository import ExamRepository
-from app.schemas.exam import ExamCreateRequest, ExamResponse, ExamUpdateRequest
-from app.services.exam_query_service import ExamQueryService
-from app.services.question_mapping import (
+from app.modules.exam.models import ExamQuestion
+from app.modules.catalog.read_service import CatalogReadService
+from app.modules.exam.query_service import ExamQueryService
+from app.modules.exam.repository import ExamRepository
+from app.modules.exam.schemas import ExamCreateRequest, ExamResponse, ExamUpdateRequest
+from app.modules.question_content.serialization import (
     parse_categories,
     parse_options,
     serialize_categories,
     serialize_options,
 )
-from app.services.question_validation import (
-    validate_question_scope,
-    validate_question_values,
-)
+from app.modules.question_content.validation import validate_question_values
 
 class ExamCommandService:
     """编排真题新增、更新和删除。"""
@@ -27,11 +25,15 @@ class ExamCommandService:
         self.session = session
         self.repository = ExamRepository(session)
         self.query_service = query_service
+        self.catalog_read_service = CatalogReadService(session)
 
     async def create(self, request: ExamCreateRequest, author_id: int) -> ExamResponse:
         """创建真题并提交事务。"""
         validate_question_values(request.question_type, request.content, request.options)
-        await validate_question_scope(self.session, request.subject_id, request.category)
+        await self.catalog_read_service.validate_question_scope(
+            request.subject_id,
+            request.category,
+        )
 
         if request.question_number is not None:
             duplicate = await self.query_service.check_duplicate(
@@ -93,8 +95,7 @@ class ExamCommandService:
         new_categories = (
             request.category if "category" in update_data else existing_categories
         )
-        await validate_question_scope(
-            self.session,
+        await self.catalog_read_service.validate_question_scope(
             new_subject_id,
             new_categories,
             existing_subject_id=question.subject_id,

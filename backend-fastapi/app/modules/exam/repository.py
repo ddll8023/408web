@@ -10,7 +10,7 @@ from sqlalchemy import and_, case, func, or_
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from app.models.entities import ExamQuestion, Subject, User
+from app.modules.exam.models import ExamQuestion
 
 
 @dataclass(frozen=True, slots=True)
@@ -135,18 +135,6 @@ class ExamRepository:
         )
         return result.all()
 
-    async def get_subject(self, subject_id: int) -> Subject | None:
-        """按主键查询科目。"""
-        result = await self.session.exec(
-            select(Subject).where(Subject.id == subject_id)
-        )
-        return result.first()
-
-    async def get_author(self, author_id: int) -> User | None:
-        """按主键查询作者。"""
-        result = await self.session.exec(select(User).where(User.id == author_id))
-        return result.first()
-
     async def list_index_rows(self, subject_id: int | None = None) -> list[Any]:
         """返回真题索引所需的轻量字段。"""
         conditions: list[Any] = []
@@ -257,6 +245,21 @@ class ExamRepository:
                 ExamQuestion.year.desc(),
                 ExamQuestion.question_number.asc(),
                 ExamQuestion.id.asc(),
+            )
+        )
+        return result.all()
+
+    async def list_image_reference_texts(self) -> list[Any]:
+        """返回图片引用扫描所需的真题文本字段。"""
+        result = await self.session.exec(
+            select(
+                ExamQuestion.id,
+                ExamQuestion.year,
+                ExamQuestion.question_number,
+                ExamQuestion.title,
+                ExamQuestion.content,
+                ExamQuestion.answer,
+                ExamQuestion.options,
             )
         )
         return result.all()

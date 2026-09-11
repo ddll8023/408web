@@ -1,8 +1,10 @@
 """用户读取的持久化边界。"""
+from typing import Any
+
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from app.models.entities import User
+from app.modules.auth.models import User
 
 
 class UserRepository:
@@ -22,3 +24,10 @@ class UserRepository:
             select(User).where(User.username == username)
         )
         return result.first()
+
+    async def list_user_names(self, user_ids: set[int]) -> list[Any]:
+        """按用户 ID 批量读取用户名。"""
+        result = await self.session.exec(
+            select(User.id, User.username).where(User.id.in_(user_ids))
+        )
+        return result.all()

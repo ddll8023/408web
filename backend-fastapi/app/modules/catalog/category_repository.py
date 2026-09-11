@@ -10,7 +10,9 @@ from sqlalchemy.orm import selectinload
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from app.models.entities import ExamCategory, ExamQuestion, MockQuestion, Subject
+from app.modules.catalog.models import ExamCategory, Subject
+from app.modules.exam.models import ExamQuestion
+from app.modules.mock.models import MockQuestion
 
 
 class CategoryRepository:
@@ -80,6 +82,13 @@ class CategoryRepository:
             select(Subject).where(Subject.id == subject_id)
         )
         return result.first()
+
+    async def list_subject_names(self, subject_ids: set[int]) -> list[Any]:
+        """按科目 ID 批量读取科目名称。"""
+        result = await self.session.exec(
+            select(Subject.id, Subject.name).where(Subject.id.in_(subject_ids))
+        )
+        return result.all()
 
     async def list_subjects(self) -> list[Subject]:
         """返回全部科目。"""

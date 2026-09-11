@@ -2,8 +2,9 @@
 from dataclasses import dataclass, field
 from typing import Iterable
 
-from app.models.entities import ExamCategory, ExamQuestion
-from app.services.question_mapping import parse_categories
+from app.modules.catalog.read_service import CatalogCategoryRead
+from app.modules.exam.query_service import ExamCategoryQuestionRead
+from app.modules.question_content.serialization import parse_categories
 
 
 _UNFILED_ORDER = 2_147_483_647
@@ -32,7 +33,7 @@ class QuestionStats:
         """返回去重后的主观题数量。"""
         return len(self.subjective_ids)
 
-    def add(self, question: ExamQuestion) -> None:
+    def add(self, question: ExamCategoryQuestionRead) -> None:
         """把一道题加入统计，并按题型归类。"""
         self.question_ids.add(question.id)
         if question.question_type == "CHOICE":
@@ -83,8 +84,8 @@ class SubjectCategoryStats:
 
 
 def build_subject_category_stats(
-    questions: Iterable[ExamQuestion],
-    categories: Iterable[ExamCategory],
+    questions: Iterable[ExamCategoryQuestionRead],
+    categories: Iterable[CatalogCategoryRead],
     *,
     subject_id: int | None,
     subject_name: str,

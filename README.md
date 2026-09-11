@@ -61,14 +61,14 @@
 │
 ├── backend-fastapi/          # FastAPI后端项目
 │   ├── app/
-│   │   ├── api/             # HTTP 路由与请求依赖
+│   │   ├── api/             # 通用 HTTP 依赖与路由聚合
 │   │   ├── core/            # 配置、异常、日志与安全
-│   │   ├── database/        # 数据库连接
-│   │   ├── repositories/    # 复杂查询与持久化边界
-│   │   ├── models/          # 数据模型
-│   │   ├── schemas/         # Pydantic模式定义
-│   │   ├── services/        # 业务逻辑层
-│   │   └── middleware/      # 中间件
+│   │   ├── database/        # 数据库连接与会话
+│   │   ├── integrations/    # 本地文件等基础设施适配
+│   │   ├── middleware/      # 中间件
+│   │   ├── models/          # 公共模型基类与枚举
+│   │   ├── schemas/         # 跨模块响应与分页模型
+│   │   └── modules/         # auth、catalog、exam、mock、reporting、media 等业务模块
 │   ├── pyproject.toml       # 依赖与项目元数据
 │   └── uv.lock              # 依赖锁定结果
 │
@@ -214,7 +214,7 @@ npm run build
 | `/api/mock` | POST | 创建模拟题 |
 | `/api/mock/{id}/detail` | POST | 获取模拟题详情 |
 
-以上为常用接口示例，不是完整路由清单。各模块的 API 目标契约和当前实现边界见 [`doc/模块/`](./doc/模块/)；完整路由与响应模型以 `backend-fastapi/app/api/` 和 `backend-fastapi/app/schemas/` 为准，运行中的接口还可通过后端 `/docs` 查看。
+以上为常用接口示例，不是完整路由清单。各模块的 API 目标契约和当前实现边界见 [`doc/模块/`](./doc/模块/)；完整路由与响应模型以 `backend-fastapi/app/api/router.py`、`backend-fastapi/app/modules/*/router.py`、各模块 `schemas.py` 和 `backend-fastapi/app/schemas/common.py` 为准，运行中的接口还可通过后端 `/docs` 查看。
 
 ## 配置说明
 

@@ -1,4 +1,4 @@
-"""图片资源请求与响应模型。"""
+"""媒体模块请求与响应模型。"""
 
 from pydantic import BaseModel, ConfigDict, Field
 

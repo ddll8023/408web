@@ -1,17 +1,17 @@
 """图片上传、资源列表和清理 HTTP 路由。"""
 from fastapi import APIRouter, Depends, File, UploadFile
 
-from app.core.config import settings
 from app.api.dependencies import SessionDep
+from app.core.config import settings
 from app.modules.auth.dependencies import AuthUser, get_current_admin
-from app.schemas.common import ApiResponse
-from app.schemas.image import (
+from app.modules.media.schemas import (
     ImageCleanupRequest,
     ImageDeleteRequest,
     ImageListRequest,
     ImageResourceResponse,
 )
-from app.services.upload_service import UploadService
+from app.modules.media.service import UploadService
+from app.schemas.common import ApiResponse
 
 
 router = APIRouter()

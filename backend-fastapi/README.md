@@ -9,7 +9,7 @@
 - Swagger：`http://localhost:7785/docs`
 - ReDoc：`http://localhost:7785/redoc`
 
-后端按 `api → services → repositories → models/schemas` 组织。配置、异常、日志和安全基础设施位于 `app/core/`；请求级数据库会话由 `app/api/dependencies.py` 提供，写用例由 Service 显式提交事务。
+后端按业务模块纵向组织在 `app/modules/` 下；各模块内部包含 Router、Schema、Query/Command Service、Repository 和 Model。`app/api/` 仅负责通用请求依赖和路由聚合，配置、异常、日志和安全基础设施位于 `app/core/`；写用例由模块内 Command Service 显式提交事务。
 
 ## 环境与启动
 
@@ -26,7 +26,7 @@ cp .env.example .env
 uv run python -m uvicorn app.main:app --host 0.0.0.0 --port 7785 --reload
 ```
 
-应用启动时会按当前 SQLModel 定义初始化表，并在 `data/`、`uploads/images/` 和 `logs/` 下创建运行时目录。当前项目保留数据库历史 `schema_migrations` 记录，但不维护通用迁移脚本；修改现有数据库前须按项目规则确认影响范围。
+应用启动时通过当前 SQLModel 定义补齐缺失表，并在 `data/`、`uploads/images/` 和 `logs/` 下创建运行时目录；不会删除未映射的历史表。当前项目保留数据库历史 `schema_migrations` 记录，但不维护通用迁移脚本；修改现有数据库前须按项目规则确认影响范围。
 
 ## 运行时配置
 

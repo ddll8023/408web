@@ -7,7 +7,7 @@ import logging
 from typing import List, Optional
 from collections import defaultdict
 from sqlmodel.ext.asyncio.session import AsyncSession
-from app.models.entities import Chapter
+from app.modules.catalog.models import Chapter
 from app.core.exceptions import ConflictException, NotFoundException, ValidationException
 from app.modules.catalog.schemas.chapter import (
     ChapterCreateRequest,

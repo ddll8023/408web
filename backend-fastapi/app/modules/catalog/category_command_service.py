@@ -5,7 +5,7 @@ from sqlalchemy.exc import OperationalError
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.core.exceptions import ConflictException, NotFoundException, ValidationException
-from app.models.entities import ExamCategory
+from app.modules.catalog.models import ExamCategory
 from app.modules.catalog.category_repository import CategoryRepository
 from app.modules.catalog.schemas.category import (
     ExamCategoryCreateRequest,

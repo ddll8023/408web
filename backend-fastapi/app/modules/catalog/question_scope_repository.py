@@ -2,7 +2,7 @@
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from app.models.entities import ExamCategory, Subject
+from app.modules.catalog.models import ExamCategory, Subject
 
 
 class QuestionScopeRepository:

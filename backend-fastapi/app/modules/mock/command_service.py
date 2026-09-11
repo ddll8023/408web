@@ -2,20 +2,18 @@
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.core.exceptions import ConflictException, NotFoundException, ValidationException
-from app.models.entities import MockQuestion
-from app.repositories.mock_repository import MockRepository
-from app.schemas.mock import MockCreateRequest, MockResponse, MockUpdateRequest
-from app.services.mock_query_service import MockQueryService
-from app.services.question_mapping import (
+from app.modules.mock.models import MockQuestion
+from app.modules.catalog.read_service import CatalogReadService
+from app.modules.mock.query_service import MockQueryService
+from app.modules.mock.repository import MockRepository
+from app.modules.mock.schemas import MockCreateRequest, MockResponse, MockUpdateRequest
+from app.modules.question_content.serialization import (
     parse_categories,
     parse_options,
     serialize_categories,
     serialize_options,
 )
-from app.services.question_validation import (
-    validate_question_scope,
-    validate_question_values,
-)
+from app.modules.question_content.validation import validate_question_values
 
 
 class MockCommandService:
@@ -25,11 +23,15 @@ class MockCommandService:
         self.session = session
         self.repository = MockRepository(session)
         self.query_service = query_service
+        self.catalog_read_service = CatalogReadService(session)
 
     async def create(self, request: MockCreateRequest, author_id: int) -> MockResponse:
         """创建模拟题并提交事务。"""
         validate_question_values(request.question_type, request.content, request.options)
-        await validate_question_scope(self.session, request.subject_id, request.category)
+        await self.catalog_read_service.validate_question_scope(
+            request.subject_id,
+            request.category,
+        )
         duplicate = await self.query_service.check_duplicate(
             request.source,
             request.title,
@@ -88,8 +90,7 @@ class MockCommandService:
         new_categories = (
             request.category if "category" in update_data else existing_categories
         )
-        await validate_question_scope(
-            self.session,
+        await self.catalog_read_service.validate_question_scope(
             new_subject_id,
             new_categories,
             existing_subject_id=question.subject_id,

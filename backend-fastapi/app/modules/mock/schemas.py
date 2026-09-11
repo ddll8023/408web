@@ -5,8 +5,12 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.models.enums import DifficultyEnum, QuestionTypeEnum
+from app.modules.question_content.schemas import (
+    QuestionCreateFields,
+    QuestionOptions,
+    QuestionUpdateFields,
+)
 from app.schemas.common import PaginatedResponse
-from app.schemas.question import QuestionCreateFields, QuestionOptions, QuestionUpdateFields
 
 
 MockSortField = Literal["source", "update_time", "question_number", "create_time"]

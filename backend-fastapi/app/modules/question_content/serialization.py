@@ -5,7 +5,7 @@ from typing import Optional
 
 from pydantic import ValidationError
 
-from app.schemas.question import QuestionOptions
+from app.modules.question_content.schemas import QuestionOptions
 
 
 def serialize_options(options: Optional[QuestionOptions]) -> Optional[str]:

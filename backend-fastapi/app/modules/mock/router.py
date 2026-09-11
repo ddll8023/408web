@@ -1,10 +1,12 @@
 """模拟题查询和维护 HTTP 路由。"""
 from fastapi import APIRouter, Depends, Path
+from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.api.dependencies import SessionDep
 from app.modules.auth.dependencies import AuthUser, get_current_admin
-from app.schemas.common import ApiResponse
-from app.schemas.mock import (
+from app.modules.mock.command_service import MockCommandService
+from app.modules.mock.query_service import MockQueryService
+from app.modules.mock.schemas import (
     MockCategoryFilterRequest,
     MockCategoryStatsResponse,
     MockCreateRequest,
@@ -19,10 +21,15 @@ from app.schemas.mock import (
     MockUpdateRequest,
     PaginatedMockResponse,
 )
-from app.services.mock_service import MockService
+from app.schemas.common import ApiResponse
 
 
 router = APIRouter()
+
+
+def _get_command_service(session: AsyncSession) -> MockCommandService:
+    """创建共享查询服务的模拟题写入用例。"""
+    return MockCommandService(session, MockQueryService(session))
 
 
 @router.post(
@@ -36,7 +43,7 @@ async def get_mock_questions(
     session: SessionDep,
 ) -> ApiResponse[PaginatedMockResponse]:
     """分页查询模拟题。"""
-    result = await MockService(session).get_paginated(request)
+    result = await MockQueryService(session).get_paginated(request)
     return ApiResponse(data=result)
 
 
@@ -52,7 +59,7 @@ async def find_by_source(
     source: str = Path(..., min_length=1, max_length=100, description="来源机构"),
 ) -> ApiResponse[list[MockResponse]]:
     """根据来源查询模拟题。"""
-    mocks = await MockService(session).find_by_source(
+    mocks = await MockQueryService(session).find_by_source(
         source,
         request.category,
         request.subject_id,
@@ -71,7 +78,7 @@ async def get_source_stats(
     session: SessionDep,
 ) -> ApiResponse[list[MockSourceStatResponse]]:
     """查询模拟题来源统计。"""
-    stats = await MockService(session).get_source_stats(request.category)
+    stats = await MockQueryService(session).get_source_stats(request.category)
     return ApiResponse(data=stats)
 
 
@@ -83,7 +90,7 @@ async def get_source_stats(
 )
 async def get_all_sources(session: SessionDep) -> ApiResponse[MockSourcesResponse]:
     """查询来源机构列表。"""
-    sources = await MockService(session).get_sources()
+    sources = await MockQueryService(session).get_sources()
     return ApiResponse(data=sources)
 
 
@@ -98,7 +105,7 @@ async def find_categories_by_subject(
     subject_id: int = Path(..., ge=1, description="科目 ID"),
 ) -> ApiResponse[list[str]]:
     """查询模拟题分类列表。"""
-    categories = await MockService(session).find_categories_by_subject(subject_id)
+    categories = await MockQueryService(session).find_categories_by_subject(subject_id)
     return ApiResponse(data=categories)
 
 
@@ -113,7 +120,7 @@ async def find_category_stats_by_subject(
     subject_id: int = Path(..., ge=1, description="科目 ID"),
 ) -> ApiResponse[MockCategoryStatsResponse]:
     """查询模拟题分类统计。"""
-    stats = await MockService(session).get_category_stats(subject_id)
+    stats = await MockQueryService(session).get_category_stats(subject_id)
     return ApiResponse(data=stats)
 
 
@@ -125,7 +132,7 @@ async def find_category_stats_by_subject(
 )
 async def count_by_subject(session: SessionDep) -> ApiResponse[list[MockSubjectStatItem]]:
     """按科目统计模拟题数量。"""
-    stats = await MockService(session).count_by_subject()
+    stats = await MockQueryService(session).count_by_subject()
     return ApiResponse(data=stats)
 
 
@@ -140,7 +147,7 @@ async def get_titles_by_source(
     source: str = Path(..., min_length=1, max_length=100, description="来源机构"),
 ) -> ApiResponse[list[str]]:
     """根据来源查询标题列表。"""
-    titles = await MockService(session).get_titles_by_source(source)
+    titles = await MockQueryService(session).get_titles_by_source(source)
     return ApiResponse(data=titles)
 
 
@@ -155,7 +162,7 @@ async def get_mock_detail(
     mock_id: int = Path(..., ge=1, description="模拟题 ID"),
 ) -> ApiResponse[MockResponse]:
     """查询模拟题详情。"""
-    mock = await MockService(session).get_by_id(mock_id)
+    mock = await MockQueryService(session).get_by_id(mock_id)
     return ApiResponse(data=mock)
 
 
@@ -171,7 +178,7 @@ async def check_mock_duplicate(
     _admin: AuthUser = Depends(get_current_admin),
 ) -> ApiResponse[MockDuplicateCheckResponse]:
     """检查模拟题重复。"""
-    existing = await MockService(session).check_duplicate(
+    existing = await MockQueryService(session).check_duplicate(
         request.source,
         request.title,
         request.question_number,
@@ -192,7 +199,7 @@ async def create_mock(
     admin: AuthUser = Depends(get_current_admin),
 ) -> ApiResponse[MockResponse]:
     """创建模拟题。"""
-    mock = await MockService(session).create(request, admin.user_id)
+    mock = await _get_command_service(session).create(request, admin.user_id)
     return ApiResponse(data=mock, message="创建成功")
 
 
@@ -209,7 +216,7 @@ async def update_mock(
     _admin: AuthUser = Depends(get_current_admin),
 ) -> ApiResponse[MockResponse]:
     """更新模拟题。"""
-    mock = await MockService(session).update(mock_id, request)
+    mock = await _get_command_service(session).update(mock_id, request)
     return ApiResponse(data=mock, message="更新成功")
 
 
@@ -225,5 +232,5 @@ async def delete_mock(
     _admin: AuthUser = Depends(get_current_admin),
 ) -> ApiResponse[None]:
     """删除模拟题。"""
-    await MockService(session).delete(mock_id)
+    await _get_command_service(session).delete(mock_id)
     return ApiResponse(message="删除成功")
