@@ -41,6 +41,7 @@ const { useJsonImport } = await import(await moduleUrl(resolve(src, 'composables
 const { useQuestionForm } = await import(await moduleUrl(resolve(src, 'composables/useQuestionForm.ts')))
 const { useFavorites } = await import(await moduleUrl(resolve(src, 'composables/useFavorites.ts')))
 const { useCategoryDrag } = await import(await moduleUrl(resolve(src, 'composables/useCategoryDrag.ts')))
+const { groupExamQuestionsByCategory } = await import(await moduleUrl(resolve(src, 'utils/examCategoryGrouping.ts')))
 
 test('JSON 导入保留中英文、公式及字符串化选项，拒绝错误字段类型', () => {
   const { parseJsonWithRelaxedSupport: parse } = useJsonImport()
@@ -94,6 +95,38 @@ test('收藏恢复过滤损坏结构，并保持去重、删除和持久化一�
   assert.equal(favorites.addFavorite({ subjectId: 1, subjectName: '数据结构', category: '图' }), true)
   assert.equal(favorites.removeFavorite(1, '栈'), true)
   assert.deepEqual(JSON.parse(stored).map(item => item.category), ['图'])
+})
+
+test('父分类展示整个子树且同一题只归入最后一个子标签', () => {
+  const category = (id, name, children = []) => ({
+    id,
+    name,
+    children,
+  })
+  const categories = [category(1, '数据结构', [
+    category(2, '栈'),
+    category(3, '队列'),
+  ])]
+  const question = (id, categoryNames) => ({
+    id,
+    year: 2024,
+    questionNumber: id,
+    questionType: 'ESSAY',
+    content: `题目${id}`,
+    category: categoryNames,
+  })
+
+  const groups = groupExamQuestionsByCategory([
+    question(1, ['数据结构', '栈', '队列']),
+    question(2, ['数据结构', '栈']),
+    question(3, ['数据结构', '队列']),
+    question(4, ['数据结构']),
+    question(1, ['数据结构', '栈', '队列']),
+  ], categories, '数据结构')
+
+  assert.deepEqual(groups.map(group => group.category), ['数据结构', '栈', '队列'])
+  assert.deepEqual(groups.map(group => group.items.map(item => item.id)), [[4], [2], [1, 3]])
+  assert.equal(groups.reduce((count, group) => count + group.items.length, 0), 4)
 })
 
 test('分类拖拽拒绝自身、子孙、跨科目及无变化，接受有效同级移动', async () => {
