@@ -35,9 +35,9 @@ uv run --locked python -m uvicorn web408.main:app --host 0.0.0.0 --port 7785 --r
 
 从仓库根目录运行时，使用 `uv run --directory backend-fastapi --locked python -m uvicorn web408.main:app --host 0.0.0.0 --port 7785 --reload --reload-dir src/web408`，或使用根目录的 `startup-backend.command`（macOS）/ `startup-backend.bat`（Windows）。两种脚本都会切换到后端工作目录，且要求项目已安装。
 
-`.env` 与数据库、上传、日志均相对后端工作目录解析，不依赖源码在虚拟环境中的安装位置。不要切换到 `src/` 启动服务；P5 不移动现有数据库或图片。
+`.env` 与数据库、上传、日志均相对后端工作目录解析，不依赖源码在虚拟环境中的安装位置。不要切换到 `src/` 启动服务。
 
-应用启动时通过当前 SQLModel 定义补齐缺失表，并在 `data/`、`uploads/images/` 和 `logs/` 下创建运行时目录；不会删除未映射的历史表。当前项目保留数据库历史 `schema_migrations` 记录，但不维护通用迁移脚本；修改现有数据库前须按项目规则确认影响范围。
+应用启动时仅通过当前 SQLModel 定义补齐缺失表，并在 `data/`、`uploads/images/` 和 `logs/` 下创建运行时目录；不负责删除或清理数据库中的其他表。当前项目保留数据库历史 `schema_migrations` 记录，但不维护通用迁移脚本；数据库表结构、字段和约束见 [`../doc/数据库设计.md`](../doc/数据库设计.md)。修改现有数据库前须按项目规则确认影响范围。
 
 ## 运行时配置
 
