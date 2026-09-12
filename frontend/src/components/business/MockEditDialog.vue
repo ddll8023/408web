@@ -164,20 +164,18 @@
                 </div>
               </div>
 
-              <!-- 标题 -->
-              <div class="mb-6">
-                <FormLabel label="标题" for-id="mock-title" />
-                <InputSelect
-                  id="mock-title"
-                  v-model="form.title"
-                  :options="titleOptions"
-                  placeholder="请选择或输入题目标题（可选）"
-                />
-              </div>
-
-              <!-- 分类与难度 -->
-              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-                <div>
+              <!-- 标题、分类与难度：桌面端按 2:1:1 分配宽度，避免标题独占一行造成空置 -->
+              <div class="grid grid-cols-1 gap-4 mb-6 sm:grid-cols-2 lg:grid-cols-4">
+                <div class="min-w-0 sm:col-span-2 lg:col-span-2">
+                  <FormLabel label="标题" for-id="mock-title" />
+                  <InputSelect
+                    id="mock-title"
+                    v-model="form.title"
+                    :options="titleOptions"
+                    placeholder="请选择或输入题目标题（可选）"
+                  />
+                </div>
+                <div class="min-w-0">
                   <FormLabel label="分类" for-id="mock-category" />
                   <!-- 多选级联选择器 -->
                   <MultiSelectCascader
@@ -189,7 +187,7 @@
                     :disabled="!form.subjectId"
                   />
                 </div>
-                <div>
+                <div class="min-w-0">
                   <FormLabel label="难度" for-id="mock-difficulty" />
                   <Select
                     id="mock-difficulty"

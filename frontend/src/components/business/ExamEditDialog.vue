@@ -164,23 +164,21 @@
             </div>
           </div>
 
-          <!-- 标题 -->
-          <div class="mb-6">
-            <FormLabel label="标题" for-id="exam-title" />
-            <input
-              id="exam-title"
-              v-model="form.title"
-              type="text"
-              maxlength="200"
-              class="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg text-gray-700 text-sm focus:outline-none focus:ring-2 focus:ring-[#8B6F47]/30 focus:border-[#8B6F47] transition-all duration-200"
-              placeholder="请输入题目标题（可选，最多200字符）"
-            />
-            <div class="text-right text-xs text-gray-400 mt-1.5">{{ form.title?.length || 0 }}/200</div>
-          </div>
-
-          <!-- 分类与难度 -->
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-            <div>
+          <!-- 标题、分类与难度：桌面端按 2:1:1 分配宽度，避免标题独占一行造成空置 -->
+          <div class="grid grid-cols-1 gap-4 mb-6 sm:grid-cols-2 lg:grid-cols-4">
+            <div class="min-w-0 sm:col-span-2 lg:col-span-2">
+              <FormLabel label="标题" for-id="exam-title" />
+              <input
+                id="exam-title"
+                v-model="form.title"
+                type="text"
+                maxlength="200"
+                class="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg text-gray-700 text-sm focus:outline-none focus:ring-2 focus:ring-[#8B6F47]/30 focus:border-[#8B6F47] transition-all duration-200"
+                placeholder="请输入题目标题（可选，最多200字符）"
+              />
+              <div class="text-right text-xs text-gray-400 mt-1.5">{{ form.title?.length || 0 }}/200</div>
+            </div>
+            <div class="min-w-0">
               <FormLabel label="分类" for-id="exam-category" />
               <!-- 多选级联选择器 -->
               <MultiSelectCascader
@@ -192,7 +190,7 @@
                 :disabled="!form.subjectId"
               />
             </div>
-            <div>
+            <div class="min-w-0">
               <FormLabel label="难度" for-id="exam-difficulty" />
               <Select
                 id="exam-difficulty"

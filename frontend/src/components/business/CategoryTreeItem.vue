@@ -9,7 +9,7 @@
   <div class="category-tree-item" :class="{ 'is-root': level === 0 }">
     <!-- 当前分类节点 -->
     <div
-      class="category-item relative flex items-center h-9 pr-3 mb-0.5 rounded-lg cursor-pointer text-sm transition-all duration-300 ease-out"
+      class="category-item relative flex items-center min-h-9 h-auto py-1.5 pr-3 mb-0.5 rounded-lg cursor-pointer text-sm transition-all duration-300 ease-out"
       :class="itemClasses"
       :style="{ paddingLeft: `${baseIndent + level * indentStep}px` }"
       :tabindex="0"
@@ -64,7 +64,11 @@
       </span>
 
       <!-- 分类名称 -->
-      <span class="category-label flex-1 truncate" :class="labelClasses">
+      <span
+        class="category-label min-w-0 flex-1 whitespace-normal break-words leading-5"
+        :class="labelClasses"
+        :title="category.name"
+      >
         {{ category.name }}
       </span>
 
@@ -321,14 +325,21 @@ const enter = (el: Element, done: () => void) => {
   el.style.opacity = '1'
   el.style.transform = 'translateY(0)'
 
-  setTimeout(done, duration)
+  setTimeout(() => {
+    // 恢复自动高度，避免后代节点展开时被父级初始高度裁剪。
+    el.style.height = 'auto'
+    done()
+  }, duration)
 }
 
 const leave = (el: Element, done: () => void) => {
   if (!(el instanceof HTMLElement)) return done()
   const duration = Math.min(150 + el.scrollHeight * 0.3, 300)
 
+  // 展开完成后高度为 auto，收起前先固定当前高度，确保动画仍可插值。
+  el.style.height = `${el.scrollHeight}px`
   el.style.transition = `all ${duration}ms cubic-bezier(0.4, 0, 0.2, 1)`
+  void el.offsetHeight
   el.style.height = '0'
   el.style.opacity = '0'
   el.style.transform = 'translateY(-8px)'
