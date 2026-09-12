@@ -14,8 +14,8 @@
       class="px-4 py-1.5 text-sm font-medium rounded-md transition-all duration-200"
       :class="[
         modelValue === option.value
-          ? 'bg-[#8B6F47] text-white shadow-sm'
-          : 'text-[#8B6F47] hover:bg-[#8B6F47]/5'
+          ? 'bg-[#6B5537] text-white shadow-sm'
+          : 'text-[#6B5537] hover:bg-[#8B6F47]/10'
       ]"
       @click="handleClick(option)"
     >
@@ -84,7 +84,6 @@ const handleClick = (option: SelectOption<V | ''>) => {
 /* 移除按钮默认样式 */
 button {
   border: none;
-  background: transparent;
   cursor: pointer;
   outline: none;
 }

@@ -25,10 +25,8 @@
                 <Tag v-if="displayTotal > 0" type="info">共 {{ displayTotal }} 题</Tag>
               </div>
               <div class="flex gap-2" v-if="activeSubjectId">
-                <Select
+                <RadioGroup
                   v-model="filterQuestionType"
-                  size="sm"
-                  class="!w-[180px] shrink-0"
                   aria-label="题型筛选"
                   :options="questionTypeOptions"
                 />
@@ -50,7 +48,7 @@
           </div>
 
           <!-- 分类分组列表：标题显式区分模拟题、父子层级和题目数量 -->
-          <div v-if="groupedQuestions.length > 0" class="w-full md:max-w-[80%] flex flex-col gap-5">
+          <div v-if="groupedQuestions.length > 0" class="mt-6 w-full md:max-w-[80%] flex flex-col gap-5">
             <section
               v-for="group in groupedQuestions"
               :key="group.category"
@@ -133,7 +131,7 @@ import { useToast } from '@/composables/useToast'
 import { useConfirm } from '@/composables/useConfirm'
 import CustomButton from '@/components/basic/CustomButton.vue'
 import Tag from '@/components/basic/Tag.vue'
-import Select from '@/components/basic/Select.vue'
+import RadioGroup from '@/components/basic/RadioGroup.vue'
 import Empty from '@/components/basic/Empty.vue'
 import BackTop from '@/components/basic/BackTop.vue'
 import SubjectSidebar from '@/components/business/SubjectSidebar.vue'

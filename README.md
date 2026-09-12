@@ -172,7 +172,7 @@ npm run build
 
 应用源码使用 TypeScript，Vue 脚本使用 `lang="ts"`；`strict: true`、`allowJs: false`。PostCSS/Tailwind 使用独立的 JavaScript 工具配置，Node 测试脚本使用 `.mjs`；自动化测试使用模拟网络和自定义组件 renderer，不等同于真实浏览器全流程验证。
 
-前端规范、项目结构和模块边界分别见 [`规范文档/前端规范文档.md`](./规范文档/前端规范文档.md)、[`doc/项目结构文档.md`](./doc/项目结构文档.md) 与 [`doc/模块/`](./doc/模块/)。
+前端规范、项目结构和模块边界分别见 [`规范文档/前端规范文档.md`](./规范文档/前端规范文档.md)、[`doc/项目结构文档.md`](./doc/项目结构文档.md) 与 [`doc/模块说明文档.md`](./doc/模块说明文档.md)。
 
 ### 4. 访问应用
 
@@ -214,7 +214,7 @@ npm run build
 | `/api/mock` | POST | 创建模拟题 |
 | `/api/mock/{id}/detail` | POST | 获取模拟题详情 |
 
-以上为常用接口示例，不是完整路由清单。各模块的 API 目标契约和当前实现边界见 [`doc/模块/`](./doc/模块/)；完整路由与响应模型以 `backend-fastapi/app/api/router.py`、`backend-fastapi/app/modules/*/router.py`、各模块 `schemas.py` 和 `backend-fastapi/app/schemas/common.py` 为准，运行中的接口还可通过后端 `/docs` 查看。
+以上为常用接口示例，不是完整路由清单。完整路由与响应模型以 `backend-fastapi/app/api/router.py`、`backend-fastapi/app/modules/*/router.py`、各模块 `schemas.py` 和 `backend-fastapi/app/schemas/common.py` 为准，运行中的接口还可通过后端 `/docs` 查看。
 
 ## 配置说明
 
@@ -267,7 +267,7 @@ JWT_ALGORITHM=HS256
 
 - [前端规范文档](./规范文档/前端规范文档.md)
 - [后端规范文档](./规范文档/后端规范文档.md)
-- [模块开发设计文档](./doc/模块/)
+- [模块说明文档](./doc/模块说明文档.md)
 
 ## License
 
