@@ -4,27 +4,38 @@
 
 ## 项目入口
 
-- 应用入口：`app/main.py`
+- 源码入口：`src/web408/main.py`
+- ASGI 入口：`web408.main:app`（先执行 `uv sync --locked` 安装项目）
 - API 前缀：`/api`
 - Swagger：`http://localhost:7785/docs`
 - ReDoc：`http://localhost:7785/redoc`
 
-后端按业务模块纵向组织在 `app/modules/` 下；各模块内部包含 Router、Schema、Query/Command Service、Repository 和 Model。`app/api/` 仅负责通用请求依赖和路由聚合，配置、异常、日志和安全基础设施位于 `app/core/`；写用例由模块内 Command Service 显式提交事务。
+后端按业务模块纵向组织在 `src/web408/modules/` 下；各模块内部包含 Router、Schema、Query/Command Service、Repository 和 Model。`src/web408/api/` 仅负责通用请求依赖和路由聚合，配置、异常、日志和安全基础设施位于 `src/web408/core/`；写用例由模块内 Command Service 显式提交事务。
+
+项目使用 `uv_build` 打包，显式声明 `src` 下的 `web408` 隐式命名空间包，不创建 `__init__.py`，也不保留旧 `app` 包别名。`uv sync` 默认以可编辑方式安装项目，无需设置 `PYTHONPATH`。
 
 ## 环境与启动
 
-要求 Python 3.12 或更高版本，并使用 uv 管理依赖：
+要求 Python 3.12 或更高版本，并使用 uv 管理依赖。以下命令必须在 `backend-fastapi/` 目录执行：
 
 ```bash
-uv sync
-cp .env.example .env
+uv sync --locked
+# 仅在没有 .env 时创建，已有配置不要覆盖
+# macOS/Linux:
+cp -n .env.example .env
+# Windows PowerShell:
+# if (!(Test-Path .env)) { Copy-Item .env.example .env }
 ```
 
 在 `.env` 中设置至少 32 个字符的 `JWT_SECRET`，然后启动开发服务：
 
 ```bash
-uv run python -m uvicorn app.main:app --host 0.0.0.0 --port 7785 --reload
+uv run --locked python -m uvicorn web408.main:app --host 0.0.0.0 --port 7785 --reload --reload-dir src/web408
 ```
+
+从仓库根目录运行时，使用 `uv run --directory backend-fastapi --locked python -m uvicorn web408.main:app --host 0.0.0.0 --port 7785 --reload --reload-dir src/web408`，或使用根目录的 `startup-backend.command`（macOS）/ `startup-backend.bat`（Windows）。两种脚本都会切换到后端工作目录，且要求项目已安装。
+
+`.env` 与数据库、上传、日志均相对后端工作目录解析，不依赖源码在虚拟环境中的安装位置。不要切换到 `src/` 启动服务；P5 不移动现有数据库或图片。
 
 应用启动时通过当前 SQLModel 定义补齐缺失表，并在 `data/`、`uploads/images/` 和 `logs/` 下创建运行时目录；不会删除未映射的历史表。当前项目保留数据库历史 `schema_migrations` 记录，但不维护通用迁移脚本；修改现有数据库前须按项目规则确认影响范围。
 

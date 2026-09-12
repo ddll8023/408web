@@ -17,6 +17,11 @@ if [[ ! -x "$PYTHON" ]]; then
   exit 1
 fi
 
+if ! "$PYTHON" -c "import web408" >/dev/null 2>&1; then
+  echo "[ERROR] 后端包尚未安装，请先在 $BACKEND_DIR 中运行 uv sync --locked。"
+  exit 1
+fi
+
 echo "============================================"
 echo "  408Web FastAPI 后端服务"
 echo "  服务地址：http://localhost:$PORT"
@@ -27,4 +32,4 @@ echo "按 Ctrl+C 停止服务"
 echo
 
 cd "$BACKEND_DIR"
-exec "$PYTHON" -m uvicorn app.main:app --host 0.0.0.0 --port "$PORT" --reload
+exec "$PYTHON" -m uvicorn web408.main:app --host 0.0.0.0 --port "$PORT" --reload --reload-dir src/web408

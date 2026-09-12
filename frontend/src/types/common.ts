@@ -1,5 +1,5 @@
 /**
- * 与后端 `app/schemas/common.py` 对应的通用响应结构。
+ * 与后端 `backend-fastapi/src/web408/schemas/common.py` 对应的通用响应结构。
  * 拦截器返回的是转换后的信封本身（非 AxiosResponse）。
  */
 

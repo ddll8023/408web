@@ -60,7 +60,7 @@
 │   └── package.json
 │
 ├── backend-fastapi/          # FastAPI后端项目
-│   ├── app/
+│   ├── src/web408/          # 可安装的隐式命名空间包
 │   │   ├── api/             # 通用 HTTP 依赖与路由聚合
 │   │   ├── core/            # 配置、异常、日志与安全
 │   │   ├── database/        # 数据库连接与会话
@@ -69,7 +69,7 @@
 │   │   ├── models/          # 公共模型基类与枚举
 │   │   ├── schemas/         # 跨模块响应与分页模型
 │   │   └── modules/         # auth、catalog、exam、mock、reporting、media 等业务模块
-│   ├── pyproject.toml       # 依赖与项目元数据
+│   ├── pyproject.toml       # 依赖、项目元数据与 uv_build 打包配置
 │   └── uv.lock              # 依赖锁定结果
 │
 ├── doc/                      # 项目结构与模块设计文档
@@ -129,14 +129,17 @@ cd 408web
 ```bash
 cd backend-fastapi
 
-# 按锁文件创建环境并同步依赖
-uv sync
+# 按锁文件同步依赖，并以可编辑方式安装 src/web408
+uv sync --locked
 
-# 创建本地环境配置（必须设置 JWT_SECRET）
-cp .env.example .env
+# 创建本地环境配置（仅在 .env 不存在时复制，必须设置 JWT_SECRET）
+# macOS/Linux:
+cp -n .env.example .env
+# Windows PowerShell:
+# if (!(Test-Path .env)) { Copy-Item .env.example .env }
 
 # 启动服务
-uv run python -m uvicorn app.main:app --host 0.0.0.0 --port 7785 --reload
+uv run --locked python -m uvicorn web408.main:app --host 0.0.0.0 --port 7785 --reload --reload-dir src/web408
 ```
 
 后端服务将在 `http://localhost:7785` 启动
@@ -214,7 +217,7 @@ npm run build
 | `/api/mock` | POST | 创建模拟题 |
 | `/api/mock/{id}/detail` | POST | 获取模拟题详情 |
 
-以上为常用接口示例，不是完整路由清单。完整路由与响应模型以 `backend-fastapi/app/api/router.py`、`backend-fastapi/app/modules/*/router.py`、各模块 `schemas.py` 和 `backend-fastapi/app/schemas/common.py` 为准，运行中的接口还可通过后端 `/docs` 查看。
+以上为常用接口示例，不是完整路由清单。完整路由与响应模型以 `backend-fastapi/src/web408/api/router.py`、各模块 `router.py`、`schemas.py`/`schemas/` 和 `backend-fastapi/src/web408/schemas/common.py` 为准，运行中的接口还可通过后端 `/docs` 查看。
 
 ## 配置说明
 
@@ -250,7 +253,7 @@ JWT_ALGORITHM=HS256
 
 ## 数据库
 
-项目使用 SQLite 数据库；从 `backend-fastapi/` 启动时，数据库文件位于 `backend-fastapi/data/web408.db`。
+项目使用 SQLite 数据库；启动工作目录固定为 `backend-fastapi/`，`.env`、数据库、上传与日志路径均以此为基准，默认数据库仍位于 `backend-fastapi/data/web408.db`。源码迁移不移动运行数据；不要在 `src/` 或 `src/web408/` 内启动服务。
 
 主要数据表：
 - `user` - 用户表
@@ -259,7 +262,7 @@ JWT_ALGORITHM=HS256
 - `exam_category` - 分类标签表
 - `exam_question` - 真题表
 - `mock_question` - 模拟题表
-- `resource_file` - 资源文件表
+- `resource_file` - 历史资源文件表（当前无 ORM 模型映射）
 
 ## 开发规范
 

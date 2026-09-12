@@ -21,7 +21,7 @@
 
         <!-- 弹窗主体 -->
         <div
-          class="relative z-10 bg-white rounded-xl shadow-2xl overflow-hidden border border-gray-100 w-[1200px] min-w-[800px] max-w-[1600px] max-h-[calc(100vh-10vh-80px)] flex flex-col"
+          class="relative top-6 z-10 bg-white rounded-xl shadow-2xl overflow-hidden border border-gray-100 w-[1200px] min-w-[800px] max-w-[1600px] max-h-[calc(100vh-10vh-40px)] flex flex-col"
         >
           <!-- 头部 -->
           <header class="flex items-center justify-between px-6 py-4 bg-gradient-to-r from-[#FBF7F2] to-white border-b border-[#8B6F47]/10">
@@ -45,7 +45,7 @@
           </header>
 
           <!-- 内容区 -->
-          <div class="flex-1 overflow-y-auto p-6">
+          <div class="flex-1 min-h-0 overflow-y-auto p-6">
             <!-- JSON快速导入区域 -->
             <section class="mb-6">
               <!-- 折叠面板头部 -->
@@ -81,7 +81,7 @@
                   <textarea
                     v-model="jsonInput"
                     class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#8B6F47]/30 focus:border-[#8B6F47] bg-gray-50/50 font-mono text-sm transition-all duration-200"
-                    rows="8"
+                    rows="5"
                     placeholder="粘贴JSON数据..."
                   ></textarea>
                   <div class="mt-4 flex flex-wrap gap-3">
