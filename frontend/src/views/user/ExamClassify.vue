@@ -16,7 +16,7 @@
       />
 
       <!-- 右侧内容区域 -->
-      <div class="flex-1 w-0 overflow-y-auto bg-[#FBF7F2]">
+      <div ref="contentScroller" class="flex-1 w-0 overflow-y-auto bg-[#FBF7F2]">
         <div class="min-h-[calc(100vh-60px-40px)] bg-[#FBF7F2]">
           <div class="p-4">
             <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
@@ -69,35 +69,52 @@
             </div>
 
             <!-- 分类分组列表：标题显式区分真题、父子层级和题目数量 -->
-            <div v-if="groupedQuestions.length > 0" class="mt-6 w-full md:max-w-[80%] flex flex-col gap-5">
-              <section
-                v-for="group in groupedQuestions"
-                :key="group.category"
-                class="category-question-section"
-                :class="group.depth > 0 ? 'ml-3 md:ml-6' : ''"
-              >
-                <CategorySectionHeader
-                  :category="group.category"
-                  :count="group.items.length"
-                  kind="exam"
-                  :depth="group.depth"
-                />
-                <div class="mt-3 flex flex-col gap-4">
-                  <ExamEntryCard
-                    v-for="exam in group.items"
-                    :key="exam.id"
-                    :id="`exam-${exam.id}`"
-                    :exam="exam"
-                    :is-admin="isAdmin"
-                    :show-answer="showAnswers[exam.id]"
-                    density="compact"
-                    @copy="(cmd) => handleCopy(cmd, exam)"
-                    @edit="handleEdit"
-                    @delete="(id: number) => handleDelete(id)"
-                    @toggle-answer="toggleAnswer(exam.id)"
+            <div
+              v-if="groupedQuestions.length > 0"
+              class="mt-6 w-full"
+              :class="outlineItems.length > 0
+                ? 'grid grid-cols-1 items-start gap-6 xl:grid-cols-[minmax(0,1fr)_230px]'
+                : 'flex flex-col gap-5 md:max-w-[80%]'"
+            >
+              <main class="min-w-0 flex flex-col gap-5">
+                <section
+                  v-for="group in groupedQuestions"
+                  :id="getCategorySectionId('exam', group.categoryId, group.category)"
+                  :key="group.categoryId ?? group.category"
+                  class="category-question-section scroll-mt-4"
+                  :class="group.depth > 0 ? 'ml-3 md:ml-6' : ''"
+                >
+                  <CategorySectionHeader
+                    :category="group.category"
+                    :count="group.items.length"
+                    kind="exam"
+                    :depth="group.depth"
                   />
-                </div>
-              </section>
+                  <div class="mt-3 flex flex-col gap-4">
+                    <ExamEntryCard
+                      v-for="exam in group.items"
+                      :key="exam.id"
+                      :id="`exam-${exam.id}`"
+                      :exam="exam"
+                      :is-admin="isAdmin"
+                      :show-answer="showAnswers[exam.id]"
+                      density="compact"
+                      @copy="(cmd) => handleCopy(cmd, exam)"
+                      @edit="handleEdit"
+                      @delete="(id: number) => handleDelete(id)"
+                      @toggle-answer="toggleAnswer(exam.id)"
+                    />
+                  </div>
+                </section>
+              </main>
+
+              <CategoryOutline
+                v-if="outlineItems.length > 0"
+                :items="outlineItems"
+                :active-id="activeOutlineId"
+                kind="exam"
+                @jump="scrollToCategory"
+              />
             </div>
             <Empty
               v-if="!questionsLoadError && !subjectsLoadError && groupedQuestions.length === 0"
@@ -131,11 +148,16 @@
 </template>
 
 <script setup lang="ts">
-import type { ExamQuestion, Subject, CategoryTreeNode } from "@/types"
+import type { CategoryOutlineItem, ExamQuestion, Subject, CategoryTreeNode } from "@/types"
 import { queryString } from "@/utils/storage"
 import { parseQuestionOptions } from "@/utils/questionOptions"
 import { errorMessage } from "@/utils/errors"
-import { groupExamQuestionsByCategory, uniqueExamQuestions } from '@/utils/examCategoryGrouping'
+import {
+  findCategoryNode,
+  getCategorySectionId,
+  groupExamQuestionsByCategory,
+  uniqueExamQuestions,
+} from '@/utils/examCategoryGrouping'
 /**
  * 真题分类浏览页面 (重构版)
  * 功能：按科目聚合展示真题，支持分类与年份筛选
@@ -157,9 +179,11 @@ import RadioGroup from '@/components/basic/RadioGroup.vue'
 import Empty from '@/components/basic/Empty.vue'
 import BackTop from '@/components/basic/BackTop.vue'
 import SubjectSidebar from '@/components/business/SubjectSidebar.vue'
+import CategoryOutline from '@/components/business/CategoryOutline.vue'
 import CategorySectionHeader from '@/components/business/CategorySectionHeader.vue'
 import ExamEntryCard from '@/components/business/ExamEntryCard.vue'
 import ExamEditDialog from '@/components/business/ExamEditDialog.vue'
+import { useCategoryOutline } from '@/composables/useCategoryOutline'
 
 const route = useRoute()
 const authStore = useAuthStore()
@@ -210,6 +234,7 @@ const questionTypeOptions = [
 const questionList = ref<ExamQuestion[]>([])
 const total = ref(0)
 const showAnswers = ref<Record<number, boolean>>({}) // map: { examId: boolean }
+const contentScroller = ref<HTMLElement | null>(null)
 
 
 
@@ -219,6 +244,16 @@ const currentTitle = computed(() => {
     return `${activeSubjectName.value} · ${filterCategory.value} · 真题`
   }
   return activeSubjectName.value ? `${activeSubjectName.value} · 真题` : '真题分类浏览'
+})
+
+const currentCategories = computed<CategoryTreeNode[]>(() => {
+  if (activeSubjectId.value === null) return []
+  return subjectCategories.value[activeSubjectId.value] || []
+})
+
+const selectedCategoryNode = computed(() => {
+  if (!filterCategory.value) return undefined
+  return findCategoryNode(currentCategories.value, filterCategory.value)
 })
 
 const groupedQuestions = computed(() => {
@@ -232,12 +267,26 @@ const groupedQuestions = computed(() => {
     list = list.filter(exam => exam.questionType !== 'CHOICE')
   }
 
-  const currentCategories = activeSubjectId.value === null
-    ? []
-    : subjectCategories.value[activeSubjectId.value] || []
-
   // 父分类筛选由后端展开子孙范围，分组由左侧树顺序决定；每题只归入最后一个匹配标签。
-  return groupExamQuestionsByCategory(list, currentCategories, filterCategory.value)
+  return groupExamQuestionsByCategory(list, currentCategories.value, filterCategory.value)
+})
+
+const outlineItems = computed<CategoryOutlineItem[]>(() => {
+  if (!selectedCategoryNode.value?.children.length || groupedQuestions.value.length === 0) {
+    return []
+  }
+
+  return groupedQuestions.value.map(group => ({
+    anchorId: getCategorySectionId('exam', group.categoryId, group.category),
+    label: group.category,
+    depth: group.depth,
+    count: group.items.length,
+  }))
+})
+
+const { activeId: activeOutlineId, scrollToCategory } = useCategoryOutline({
+  containerRef: contentScroller,
+  items: outlineItems,
 })
 
 const displayTotal = computed(() => {

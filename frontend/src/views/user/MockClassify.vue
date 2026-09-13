@@ -16,7 +16,7 @@
       />
 
       <!-- 右侧内容区域 -->
-      <div class="flex-1 w-0 overflow-y-auto bg-[#FBF7F2]">
+      <div ref="contentScroller" class="flex-1 w-0 overflow-y-auto bg-[#FBF7F2]">
         <div class="min-h-[calc(100vh-60px-40px)] bg-[#FBF7F2]">
           <div class="p-4">
             <div class="flex items-center justify-between">
@@ -48,35 +48,52 @@
           </div>
 
           <!-- 分类分组列表：标题显式区分模拟题、父子层级和题目数量 -->
-          <div v-if="groupedQuestions.length > 0" class="mt-6 w-full md:max-w-[80%] flex flex-col gap-5">
-            <section
-              v-for="group in groupedQuestions"
-              :key="group.category"
-              class="category-question-section"
-              :class="group.depth > 0 ? 'ml-3 md:ml-6' : ''"
-            >
-              <CategorySectionHeader
-                :category="group.category"
-                :count="group.items.length"
-                kind="mock"
-                :depth="group.depth"
-              />
-              <div class="mt-3 flex flex-col gap-4">
-                <MockEntryCard
-                  v-for="mock in group.items"
-                  :key="mock.id"
-                  :id="`mock-${mock.id}`"
-                  :mock="mock"
-                  :is-admin="isAdmin"
-                  :show-answer="showAnswers[mock.id]"
-                  density="compact"
-                  @copy="(cmd) => handleCopy(cmd, mock)"
-                  @edit="handleEdit"
-                  @delete="handleDelete"
-                  @toggle-answer="toggleAnswer(mock.id)"
+          <div
+            v-if="groupedQuestions.length > 0"
+            class="mt-6 w-full"
+            :class="outlineItems.length > 0
+              ? 'grid grid-cols-1 items-start gap-6 xl:grid-cols-[minmax(0,1fr)_230px]'
+              : 'flex flex-col gap-5 md:max-w-[80%]'"
+          >
+            <main class="min-w-0 flex flex-col gap-5">
+              <section
+                v-for="group in groupedQuestions"
+                :id="getCategorySectionId('mock', group.categoryId, group.category)"
+                :key="group.categoryId ?? group.category"
+                class="category-question-section scroll-mt-4"
+                :class="group.depth > 0 ? 'ml-3 md:ml-6' : ''"
+              >
+                <CategorySectionHeader
+                  :category="group.category"
+                  :count="group.items.length"
+                  kind="mock"
+                  :depth="group.depth"
                 />
-              </div>
-            </section>
+                <div class="mt-3 flex flex-col gap-4">
+                  <MockEntryCard
+                    v-for="mock in group.items"
+                    :key="mock.id"
+                    :id="`mock-${mock.id}`"
+                    :mock="mock"
+                    :is-admin="isAdmin"
+                    :show-answer="showAnswers[mock.id]"
+                    density="compact"
+                    @copy="(cmd) => handleCopy(cmd, mock)"
+                    @edit="handleEdit"
+                    @delete="handleDelete"
+                    @toggle-answer="toggleAnswer(mock.id)"
+                  />
+                </div>
+              </section>
+            </main>
+
+            <CategoryOutline
+              v-if="outlineItems.length > 0"
+              :items="outlineItems"
+              :active-id="activeOutlineId"
+              kind="mock"
+              @jump="scrollToCategory"
+            />
           </div>
 
           <Empty
@@ -112,7 +129,7 @@
 </template>
 
 <script setup lang="ts">
-import type { MockQuestion, Subject, CategoryTreeNode } from "@/types"
+import type { CategoryOutlineItem, MockQuestion, Subject, CategoryTreeNode } from "@/types"
 import { queryString } from "@/utils/storage"
 import { parseQuestionOptions } from "@/utils/questionOptions"
 import { errorMessage } from "@/utils/errors"
@@ -135,11 +152,17 @@ import RadioGroup from '@/components/basic/RadioGroup.vue'
 import Empty from '@/components/basic/Empty.vue'
 import BackTop from '@/components/basic/BackTop.vue'
 import SubjectSidebar from '@/components/business/SubjectSidebar.vue'
+import CategoryOutline from '@/components/business/CategoryOutline.vue'
 import CategorySectionHeader from '@/components/business/CategorySectionHeader.vue'
 import MockEntryCard from '@/components/business/MockEntryCard.vue'
 import MockEditDialog from '@/components/business/MockEditDialog.vue'
+import { useCategoryOutline } from '@/composables/useCategoryOutline'
 import { getDifficultyLabel, getDifficultyType } from '@/constants/exam'
-import { groupMockQuestionsByCategory } from '@/utils/examCategoryGrouping'
+import {
+  findCategoryNode,
+  getCategorySectionId,
+  groupMockQuestionsByCategory,
+} from '@/utils/examCategoryGrouping'
 
 const route = useRoute()
 const authStore = useAuthStore()
@@ -189,6 +212,7 @@ const questionTypeOptions = [
 const questionList = ref<MockQuestion[]>([])
 const total = ref(0)
 const showAnswers = ref<Record<number, boolean>>({})
+const contentScroller = ref<HTMLElement | null>(null)
 
 
 
@@ -198,6 +222,16 @@ const currentTitle = computed(() => {
     return `${activeSubjectName.value} · ${filterCategory.value} · 模拟题`
   }
   return activeSubjectName.value ? `${activeSubjectName.value} · 模拟题` : '模拟题分类浏览'
+})
+
+const currentCategories = computed<CategoryTreeNode[]>(() => {
+  if (activeSubjectId.value === null) return []
+  return subjectCategories.value[activeSubjectId.value] || []
+})
+
+const selectedCategoryNode = computed(() => {
+  if (!filterCategory.value) return undefined
+  return findCategoryNode(currentCategories.value, filterCategory.value)
 })
 
 const groupedQuestions = computed(() => {
@@ -211,12 +245,26 @@ const groupedQuestions = computed(() => {
     list = list.filter(q => q.questionType !== 'CHOICE')
   }
 
-  const currentCategories = activeSubjectId.value === null
-    ? []
-    : subjectCategories.value[activeSubjectId.value] || []
-
   // 父分类筛选由后端展开子孙范围；按分类树顺序分组，并让父分类自身题目独立排在首组。
-  return groupMockQuestionsByCategory(list, currentCategories, filterCategory.value)
+  return groupMockQuestionsByCategory(list, currentCategories.value, filterCategory.value)
+})
+
+const outlineItems = computed<CategoryOutlineItem[]>(() => {
+  if (!selectedCategoryNode.value?.children.length || groupedQuestions.value.length === 0) {
+    return []
+  }
+
+  return groupedQuestions.value.map(group => ({
+    anchorId: getCategorySectionId('mock', group.categoryId, group.category),
+    label: group.category,
+    depth: group.depth,
+    count: group.items.length,
+  }))
+})
+
+const { activeId: activeOutlineId, scrollToCategory } = useCategoryOutline({
+  containerRef: contentScroller,
+  items: outlineItems,
 })
 
 const displayTotal = computed(() => {

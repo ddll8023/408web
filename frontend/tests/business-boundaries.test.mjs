@@ -125,6 +125,7 @@ test('父分类展示整个子树且同一题只归入最后一个子标签', ()
   ], categories, '数据结构')
 
   assert.deepEqual(groups.map(group => group.category), ['数据结构', '栈', '队列'])
+  assert.deepEqual(groups.map(group => group.categoryId), [1, 2, 3])
   assert.deepEqual(groups.map(group => group.items.map(item => item.id)), [[4], [2], [1, 3]])
   assert.equal(groups.reduce((count, group) => count + group.items.length, 0), 4)
 })
@@ -156,6 +157,7 @@ test('模拟题父分类自身题目排在首组，并对父子树题目去重',
   ], categories, '数据结构')
 
   assert.deepEqual(groups.map(group => group.category), ['数据结构', '栈', '队列'])
+  assert.deepEqual(groups.map(group => group.categoryId), [1, 2, 3])
   assert.deepEqual(groups.map(group => group.items.map(item => item.id)), [[2], [1], [3]])
   assert.equal(groups.reduce((count, group) => count + group.items.length, 0), 3)
 })

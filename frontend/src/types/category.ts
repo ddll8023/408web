@@ -23,6 +23,14 @@ export interface CategoryTreeNode extends CategoryNode {
   children: CategoryTreeNode[]
 }
 
+/** 内容区域分类大纲的跳转项。 */
+export interface CategoryOutlineItem {
+  anchorId: string
+  label: string
+  depth: number
+  count: number
+}
+
 /** 分类创建请求（对应 ExamCategoryCreateRequest） */
 export interface CategoryCreateRequest {
   subjectId: number

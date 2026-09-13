@@ -3,18 +3,28 @@ import type { CategoryTreeNode, ExamQuestion, MockQuestion } from '@/types'
 /** 分类分组后的题目集合。 */
 export interface ExamQuestionGroup {
   category: string
+  categoryId?: number
   depth: number
   items: ExamQuestion[]
 }
 
 export interface MockQuestionGroup {
   category: string
+  categoryId?: number
   depth: number
   items: MockQuestion[]
 }
 
+/** 为内容分组生成稳定的 DOM 锚点；未归档历史分类使用编码后的名称兜底。 */
+export const getCategorySectionId = (
+  kind: 'exam' | 'mock',
+  categoryId: number | undefined,
+  categoryName: string,
+) => `${kind}-category-${categoryId ?? encodeURIComponent(categoryName)}`
+
 interface CategoryOrderEntry {
   name: string
+  categoryId?: number
   order: number
   depth: number
 }
@@ -26,6 +36,7 @@ interface CategorizedQuestion {
 
 interface CategoryQuestionGroup<T extends CategorizedQuestion> {
   category: string
+  categoryId?: number
   depth: number
   items: T[]
 }
@@ -65,7 +76,12 @@ const flattenCategoryTree = (
   const result: CategoryOrderEntry[] = []
 
   const visit = (category: CategoryTreeNode, depth: number) => {
-    result.push({ name: category.name, order: result.length, depth })
+    result.push({
+      name: category.name,
+      categoryId: category.id,
+      order: result.length,
+      depth,
+    })
     category.children.forEach((child) => visit(child, depth + 1))
   }
 
@@ -73,13 +89,13 @@ const flattenCategoryTree = (
   return result
 }
 
-const findCategory = (
+export const findCategoryNode = (
   categories: readonly CategoryTreeNode[],
   categoryName: string,
 ): CategoryTreeNode | undefined => {
   for (const category of categories) {
     if (category.name === categoryName) return category
-    const child = findCategory(category.children, categoryName)
+    const child = findCategoryNode(category.children, categoryName)
     if (child) return child
   }
   return undefined
@@ -89,7 +105,7 @@ const getSelectedScope = (
   categories: readonly CategoryTreeNode[],
   selectedCategory: string,
 ): { entries: CategoryOrderEntry[]; found: boolean } => {
-  const selected = findCategory(categories, selectedCategory)
+  const selected = findCategoryNode(categories, selectedCategory)
   if (!selected) {
     return {
       entries: [{ name: selectedCategory, order: 0, depth: 0 }],
@@ -99,7 +115,12 @@ const getSelectedScope = (
 
   const entries: CategoryOrderEntry[] = []
   const visit = (category: CategoryTreeNode, depth: number) => {
-    entries.push({ name: category.name, order: entries.length, depth })
+    entries.push({
+      name: category.name,
+      categoryId: category.id,
+      order: entries.length,
+      depth,
+    })
     category.children.forEach((child) => visit(child, depth + 1))
   }
   visit(selected, 0)
@@ -127,7 +148,7 @@ const groupQuestionsByCategory = <T extends CategorizedQuestion>(
     : { entries: allEntries, found: true }
   const scopeEntries = selectedScope.entries
   const scopeOrder = new Map(scopeEntries.map((entry) => [entry.name, entry.order]))
-  const scopeDepth = new Map(scopeEntries.map((entry) => [entry.name, entry.depth]))
+  const scopeEntriesByName = new Map(scopeEntries.map((entry) => [entry.name, entry]))
   const groups = new Map<string, T[]>()
 
   questions.forEach((question) => {
@@ -162,11 +183,15 @@ const groupQuestionsByCategory = <T extends CategorizedQuestion>(
       if (firstOrder !== secondOrder) return firstOrder - secondOrder
       return first.localeCompare(second, 'zh-CN')
     })
-    .map((category) => ({
-      category,
-      depth: scopeDepth.get(category) ?? 0,
-      items: groups.get(category) ?? [],
-    }))
+    .map((category) => {
+      const entry = scopeEntriesByName.get(category)
+      return {
+        category,
+        categoryId: entry?.categoryId,
+        depth: entry?.depth ?? 0,
+        items: groups.get(category) ?? [],
+      }
+    })
 }
 
 export const groupExamQuestionsByCategory = (
