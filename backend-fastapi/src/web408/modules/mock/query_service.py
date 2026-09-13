@@ -156,7 +156,7 @@ class MockQueryService:
             subject_id=subject_id,
             subject_name=subject_name,
             stats=[
-                MockCategoryStatItem(category=category, count=count)
+                MockCategoryStatItem(category_name=category, count=count)
                 for category, count in sorted(category_counts.items())
             ],
             total_count=len(question_ids),

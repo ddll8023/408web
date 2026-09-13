@@ -15,16 +15,10 @@
           { label: '真题', value: 'exam' },
           { label: '模拟题', value: 'mock' }
         ]" @change="handleQuestionTypeChange" />
-        <CustomButton v-if="questionType === 'exam'" type="primary" :disabled="moveSaving || draggingId !== null" @click="handleAdd">
+        <CustomButton type="primary" :disabled="moveSaving || draggingId !== null" @click="handleAdd">
           <font-awesome-icon :icon="['fas', 'plus']" class="mr-1.5" />
           新增分类
         </CustomButton>
-        <CustomTooltip v-else content="模拟题分类从题目中动态提取，暂不支持手动管理" placement="top">
-          <CustomButton type="primary" disabled>
-            <font-awesome-icon :icon="['fas', 'plus']" class="mr-1.5" />
-            新增分类
-          </CustomButton>
-        </CustomTooltip>
       </div>
     </div>
 
@@ -115,10 +109,24 @@
         </div>
 
         <!-- 大纲视图 -->
-        <template v-if="treeCategories.length > 0">
+        <template v-if="treeCategories.length > 0 || (questionType === 'mock' && unmappedMockCategories.length > 0)">
           <Transition name="tree-fade">
             <!-- 统一的背景容器 -->
             <div class="archive-panel">
+              <div v-if="questionType === 'mock' && unmappedMockCategories.length > 0" class="mb-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+                <div class="font-semibold">未归档模拟题分类</div>
+                <div class="mt-2 flex flex-wrap gap-2">
+                  <span
+                    v-for="item in unmappedMockCategories"
+                    :key="`${item.subjectId}-${item.name}`"
+                    class="rounded-full bg-white/80 px-2.5 py-1 text-xs"
+                  >
+                    {{ item.subjectName }}：{{ item.name }}（{{ item.count }}题）
+                  </span>
+                </div>
+                <p class="mb-0 mt-2 text-xs">这些标签没有匹配到当前科目的统一分类，不会进入层级树。</p>
+              </div>
+
               <!-- 视图工具栏 -->
               <div class="flex gap-2 pb-3 mb-2 border-b border-[rgba(139,111,71,0.1)]">
                 <CustomButton type="text" size="sm" @click="expandAllTree">
@@ -131,7 +139,7 @@
                 </CustomButton>
               </div>
 
-              <div v-if="questionType === 'exam'" class="drag-toolbar">
+              <div class="drag-toolbar">
                 <div class="drag-status" role="status" aria-live="polite">
                   {{ moveSaving ? '正在保存分类层级…' : dragMessage || moveMessage || '拖动左侧手柄：上下边缘排序，中部设为子分类；也可编辑父分类与排序。' }}
                 </div>
@@ -188,7 +196,6 @@
                   ></span>
 
                   <button
-                    v-if="questionType === 'exam'"
                     type="button"
                     class="outline-drag-handle"
                     :style="{ left: `${OUTLINER_BASE}px` }"
@@ -226,8 +233,8 @@
 
                   <!-- 名称与标签 -->
                   <span class="outline-name" :class="{ 'font-semibold': row.level === 0 }">{{ row.node.name }}</span>
-                  <span v-if="questionType === 'exam'" class="outline-code">{{ row.node.code }}</span>
-                  <CustomTag v-if="row.level === 0 && row.node.subjectName" type="info" class="ml-1">
+                  <span class="outline-code">{{ row.node.code }}</span>
+                  <CustomTag v-if="row.level === 0 && row.node.subjectName && !filterSubjectId" type="info" class="ml-1">
                     {{ row.node.subjectName }}
                   </CustomTag>
 
@@ -235,8 +242,8 @@
 
                   <span class="outline-count">{{ getChildrenQuestionCount(row.node) }}题</span>
 
-                  <!-- 操作按钮：仅真题模式显示，悬停行时浮现 -->
-                  <div v-if="questionType === 'exam'" class="outline-actions">
+                  <!-- 操作按钮：悬停行时浮现 -->
+                  <div class="outline-actions">
                     <CustomTooltip content="添加子分类" placement="top">
                       <button type="button" class="outline-action-btn" :disabled="moveSaving || draggingId !== null" aria-label="添加子分类" @click.stop="handleAddChild(row.node)">
                         <font-awesome-icon :icon="['fas', 'plus']" />
@@ -266,7 +273,7 @@
         </template>
 
         <!-- 空状态 -->
-        <div v-if="!loading && !categoryLoadError && treeCategories.length === 0" class="
+        <div v-if="!loading && !categoryLoadError && treeCategories.length === 0 && !(questionType === 'mock' && unmappedMockCategories.length > 0)" class="
           relative flex flex-col items-center justify-center py-20
           bg-white/40 backdrop-blur-sm empty-in
           rounded-2xl border border-dashed border-[rgba(139,111,71,0.15)]
@@ -464,11 +471,12 @@ import type { CategoryNode, CategoryMoveRequest, Subject } from '@/types'
 type CategoryView = Omit<CategoryNode, 'id' | 'code'> & { id: number | string; code?: string }
 type CategoryViewTree = CategoryView & { children: CategoryViewTree[] }
 type OutlineRow = { node: CategoryViewTree; level: number; hasChildren: boolean; isLastSibling: boolean; guideLevels: number[] }
+type UnmappedMockCategory = { subjectId: number; subjectName: string; name: string; count: number }
 
 /**
  * 分类标签管理页面
- * 功能：按科目管理分类标签的CRUD操作（仅ADMIN可访问）
- * 大纲支持整棵子树拖拽和原子保存；模拟题分类仅展示。
+ * 功能：按科目管理统一分类目录的CRUD操作（仅ADMIN可访问）
+ * 大纲支持整棵子树拖拽和原子保存；题目类型仅切换统计口径。
  */
 import { ref, reactive, computed, nextTick, onBeforeUnmount, onMounted } from 'vue'
 
@@ -611,7 +619,10 @@ const parentLoading = ref(false)
 const parentLoadFailed = ref(false)
 let parentLoadVersion = 0
 
-const canDrag = computed(() => questionType.value === 'exam' && !!filterSubjectId.value
+// 模拟题中未匹配到统一分类树的原始标签，避免切换为统一目录后静默丢失。
+const unmappedMockCategories = ref<UnmappedMockCategory[]>([])
+
+const canDrag = computed(() => !!filterSubjectId.value
   && !loading.value && !moveSaving.value && !submitLoading.value && !deleteLoading.value
   && !dialogVisible.value && !categoryLoadError.value)
 const {
@@ -623,9 +634,8 @@ const {
 })
 
 /**
- * 将分类数据转换为树形结构或分组结构
- * 模拟题模式：按科目分组显示（扁平结构）
- * 真题模式：构建树形结构（支持多层级）
+ * 将统一分类目录转换为树形结构。
+ * 真题和模拟题共用目录，题目类型只影响题目数量统计。
  */
 const startCategoryDrag = (event: DragEvent, node: CategoryView) => {
   if (typeof node.id !== 'number' || typeof node.code !== 'string') return
@@ -636,16 +646,6 @@ const treeCategories = computed(() => {
   const list = categories.value
   if (!list || list.length === 0) return []
 
-  // 模拟题模式：扁平列表显示（所有分类平铺，不按科目分组）
-  if (questionType.value === 'mock') {
-    // 直接返回扁平列表，每个分类都是独立的卡片
-    return list.map(item => ({
-      ...item,
-      children: []  // 模拟题没有子分类
-    }))
-  }
-
-  // 真题模式：构建树形结构
   // 创建id到节点的映射
   const map = new Map<number | string, CategoryViewTree>()
   list.forEach(item => {
@@ -801,35 +801,43 @@ const loadCategories = async ({ background = false } = {}) => {
     && subjectId === filterSubjectId.value && type === questionType.value
   loading.value = !background
   categoryLoadError.value = ''
+  unmappedMockCategories.value = []
   try {
-    let list: CategoryView[]
+    const response = subjectId
+      ? await getCategoriesBySubject(subjectId, type)
+      : await getAllCategories(type)
+    const list = (response.data || []).map(normalizeCategory)
+    if (!isCurrent()) return false
+
     if (type === 'mock') {
       const subjects = subjectId
         ? subjectOptions.value.filter(subject => subject.id === subjectId)
         : [...subjectOptions.value]
-      list = []
-      for (const subject of subjects) {
-        const response = await getMockCategoryStatsBySubject(subject.id)
+      try {
+        const statsResponses = await Promise.all(
+          subjects.map(async subject => ({
+            subject,
+            response: await getMockCategoryStatsBySubject(subject.id)
+          }))
+        )
         if (!isCurrent()) return false
-        list.push(...(response.data?.stats || []).map(item => ({
-          id: `${subject.id}-${item.category}`,
-          subjectId: subject.id,
-          subjectName: subject.name,
-          parentId: null as number | null,
-          name: item.category,
-          orderNum: 0,
-          enabled: true,
-          questionCount: item.count,
-          subtreeQuestionCount: item.count
-        })))
+        const knownCategoryKeys = new Set(
+          list.map(category => `${category.subjectId}:${category.name}`)
+        )
+        unmappedMockCategories.value = statsResponses.flatMap(({ subject, response }) => (
+          (response.data?.stats || [])
+            .filter(item => !knownCategoryKeys.has(`${subject.id}:${item.categoryName}`))
+            .map(item => ({
+              subjectId: subject.id,
+              subjectName: subject.name,
+              name: item.categoryName,
+              count: item.count
+            }))
+        ))
+      } catch (error) {
+        console.error('读取未归档模拟题分类失败:', error)
       }
-    } else {
-      const response = subjectId
-        ? await getCategoriesBySubject(subjectId, type)
-        : await getAllCategories(type)
-      list = (response.data || []).map(normalizeCategory)
     }
-    if (!isCurrent()) return false
     categories.value = list
     if (subjectId) replaceSubjectCategories(subjectId, list)
     else allCategories.value = list
@@ -1129,7 +1137,7 @@ const initTreeExpandedKeys = () => {
 const OUTLINER_BASE = 12
 const OUTLINER_INDENT = 24
 const OUTLINER_TOGGLE_SIZE = 20
-const OUTLINER_CONTENT_BASE = computed(() => OUTLINER_BASE + (questionType.value === 'exam' ? 30 : 0))
+const OUTLINER_CONTENT_BASE = OUTLINER_BASE + 30
 
 /**
  * 扁平化大纲行：按展开状态把树铺平成行列表

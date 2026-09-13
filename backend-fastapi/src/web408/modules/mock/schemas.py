@@ -146,7 +146,7 @@ class MockSubjectStatItem(BaseModel):
 class MockCategoryStatItem(BaseModel):
     """模拟题分类统计项。"""
 
-    category: str
+    category_name: str
     count: int = Field(..., ge=0)
 
     model_config = ConfigDict(from_attributes=True)

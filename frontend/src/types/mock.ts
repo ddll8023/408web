@@ -57,7 +57,7 @@ export interface MockSources {
 export interface MockCategoryStats {
   subjectId: number
   subjectName?: string | null
-  stats: { category: string; count: number }[]
+  stats: { categoryName: string; count: number }[]
   totalCount: number
 }
 

@@ -43,6 +43,7 @@ axios.defaults.adapter = async config => {
 const convert = await import(await moduleUrl(resolve(src, 'utils/convertKeys.ts')))
 const exam = await import(await moduleUrl(resolve(src, 'api/exam.ts')))
 const mock = await import(await moduleUrl(resolve(src, 'api/mock.ts')))
+const category = await import(await moduleUrl(resolve(src, 'api/category.ts')))
 const upload = await import(await moduleUrl(resolve(src, 'api/upload.ts')))
 const { default: request } = await import(await moduleUrl(resolve(src, 'api/request.ts')))
 
@@ -53,6 +54,27 @@ test('转换嵌套响应、空值和分类，拒绝错误分类内容', () => {
   for (const invalid of ['', '{', '{}', '["栈",2]']) assert.deepEqual(convert.convertCategoryString(invalid), [])
   assert.deepEqual(convert.convertKeysToCamel([]), [])
   assert.equal(convert.convertKeysToCamel(null), null)
+})
+
+test('模拟题分类统计保留普通分类名称', async () => {
+  responseData = {
+    code: 200,
+    message: '成功',
+    data: {
+      subject_id: 1,
+      subject_name: '数据结构',
+      stats: [{ category_name: '图的存储结构', count: 10 }],
+      total_count: 10
+    }
+  }
+  const result = await mock.getMockCategoryStatsBySubject(1)
+  assert.equal(result.data.stats[0].categoryName, '图的存储结构')
+})
+
+test('分类管理按题型请求共享目录', async () => {
+  responseData = { code: 200, message: '成功', data: [] }
+  await category.getCategoriesBySubject(1, 'mock')
+  assert.deepEqual(JSON.parse(lastConfig.data), { question_type: 'mock' })
 })
 
 test('请求转换保留 A-D 选项键，省略 undefined 且保留 null', () => {
