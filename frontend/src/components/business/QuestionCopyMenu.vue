@@ -1,7 +1,7 @@
 <template>
   <Dropdown
     trigger="click"
-    :disabled="isImageCopying"
+    :disabled="isCopying"
     menu-class="question-copy-dropdown"
     @command="handleCommand"
   >
@@ -10,9 +10,9 @@
         size="sm"
         type="text"
         :icon="['fas', 'copy']"
-        :loading="isImageCopying"
+        :loading="isCopying"
       >
-        {{ isImageCopying ? '生成中' : '复制' }}
+        {{ isCopying ? '生成中' : '复制' }}
       </CustomButton>
     </template>
 
@@ -40,7 +40,7 @@
               v-for="item in section.items"
               :key="item.command"
               :command="item.command"
-              :disabled="section.key === 'image' && isImageCopying"
+              :disabled="isCopying"
               :class="{ 'question-copy-menu__item--wide': item.wide }"
             >
               <span class="question-copy-menu__item-label">{{ item.label }}</span>
@@ -52,10 +52,10 @@
   </Dropdown>
 
   <QuestionImageRenderer
-    v-if="imageCopyScope"
+    v-if="renderScope"
     ref="imageRenderer"
     :question="question"
-    :scope="imageCopyScope ?? 'all'"
+    :scope="renderScope ?? 'all'"
   />
 </template>
 
@@ -63,15 +63,24 @@
 import type { PropType } from 'vue'
 import { computed, nextTick, ref } from 'vue'
 import type { ExamQuestion, MockQuestion } from '@/types'
-import { copyImageBlob, getImageCopyScope, type QuestionImageCopyScope } from '@/utils/questionCopy'
+import {
+  copyImageBlob,
+  copyRichContent,
+  getImageCopyScope,
+  getRichCopyScope,
+  type QuestionContentScope,
+  type QuestionImageCopyScope,
+  type QuestionRichCopyScope,
+  type RichCopyContent,
+} from '@/utils/questionCopy'
 import { useToast } from '@/composables/useToast'
 import CustomButton from '@/components/basic/CustomButton.vue'
 import Dropdown from '@/components/basic/Dropdown.vue'
 import DropdownItem from '@/components/basic/DropdownItem.vue'
 import QuestionImageRenderer from '@/components/business/QuestionImageRenderer.vue'
 
-type CopyMenuSectionKey = 'markdown' | 'text' | 'image'
-type CopyMenuIcon = ['fas', 'file-lines'] | ['fas', 'ticket'] | ['fas', 'file']
+type CopyMenuSectionKey = 'markdown' | 'word' | 'text' | 'image'
+type CopyMenuIcon = ['fas', 'file-lines'] | ['fas', 'file-word'] | ['fas', 'ticket'] | ['fas', 'file']
 
 interface CopyMenuItem {
   command: string
@@ -87,7 +96,7 @@ interface CopyMenuSection {
   items: CopyMenuItem[]
 }
 
-/** 题目复制菜单，统一提供 Markdown、纯文本和图片复制入口。 */
+/** 题目复制菜单，统一提供 Markdown、Word 富文本、纯文本和图片复制入口。 */
 const props = defineProps({
   question: {
     type: Object as PropType<ExamQuestion | MockQuestion>,
@@ -98,13 +107,16 @@ const props = defineProps({
 const emit = defineEmits<{ copy: [command: string] }>()
 const { showToast } = useToast()
 
-interface ImageRendererRef {
+interface QuestionRendererRef {
   capture: () => Promise<Blob>
+  getClipboardContent: () => Promise<RichCopyContent>
 }
 
-const imageCopyScope = ref<QuestionImageCopyScope | null>(null)
-const imageRenderer = ref<ImageRendererRef | null>(null)
+const renderScope = ref<QuestionContentScope | null>(null)
+const imageRenderer = ref<QuestionRendererRef | null>(null)
 const isImageCopying = ref(false)
+const isWordCopying = ref(false)
+const isCopying = computed(() => isImageCopying.value || isWordCopying.value)
 
 const hasOptions = computed(() => {
   return props.question.questionType === 'CHOICE' && Boolean(props.question.options)
@@ -124,6 +136,20 @@ const menuSections = computed<CopyMenuSection[]>(() => [
       ...(hasAnswer.value ? [{ command: 'md-answer', label: '复制答案' }] : []),
       ...((hasAnswer.value || hasOptions.value)
         ? [{ command: 'md-all', label: '复制完整内容', wide: true }]
+        : [])
+    ]
+  },
+  {
+    key: 'word',
+    title: 'Word 格式',
+    description: '可直接粘贴',
+    icon: ['fas', 'file-word'],
+    items: [
+      { command: 'word-question', label: '复制题目' },
+      ...(hasOptions.value ? [{ command: 'word-options', label: '复制选项' }] : []),
+      ...(hasAnswer.value ? [{ command: 'word-answer', label: '复制答案' }] : []),
+      ...((hasAnswer.value || hasOptions.value)
+        ? [{ command: 'word-all', label: '复制完整内容', wide: true }]
         : [])
     ]
   },
@@ -166,10 +192,10 @@ const getImageFilename = (scope: QuestionImageCopyScope) => {
 }
 
 const handleImageCopy = async (scope: QuestionImageCopyScope) => {
-  if (isImageCopying.value) return
+  if (isCopying.value) return
 
   isImageCopying.value = true
-  imageCopyScope.value = scope
+  renderScope.value = scope
   await nextTick()
 
   try {
@@ -191,15 +217,52 @@ const handleImageCopy = async (scope: QuestionImageCopyScope) => {
       showToast('图片生成失败，可能包含跨域图片或内容过长', 'error')
     }
   } finally {
-    imageCopyScope.value = null
+    renderScope.value = null
     isImageCopying.value = false
   }
 }
 
+const handleWordCopy = async (scope: QuestionRichCopyScope) => {
+  if (isCopying.value) return
+
+  isWordCopying.value = true
+  renderScope.value = scope
+  await nextTick()
+
+  try {
+    const renderer = imageRenderer.value
+    if (!renderer) throw new Error('IMAGE_RENDERER_NOT_READY')
+
+    const contentPromise = renderer.getClipboardContent()
+    const result = await copyRichContent(contentPromise)
+    if (result === 'rich') {
+      showToast('内容已复制，可直接粘贴到 Word', 'success')
+    } else {
+      showToast('当前浏览器不支持富文本剪贴板，已按纯文本复制', 'warning')
+    }
+  } catch (error) {
+    console.error('Word 内容复制失败:', error)
+    if (error instanceof Error && error.message === 'NO_COPY_CONTENT') {
+      showToast('没有可复制的内容', 'warning')
+    } else {
+      showToast('Word 内容生成失败，请重试', 'error')
+    }
+  } finally {
+    renderScope.value = null
+    isWordCopying.value = false
+  }
+}
+
 const handleCommand = (command: string) => {
-  const scope = getImageCopyScope(command)
-  if (scope) {
-    void handleImageCopy(scope)
+  const wordScope = getRichCopyScope(command)
+  if (wordScope) {
+    void handleWordCopy(wordScope)
+    return
+  }
+
+  const imageScope = getImageCopyScope(command)
+  if (imageScope) {
+    void handleImageCopy(imageScope)
     return
   }
 
@@ -208,7 +271,7 @@ const handleCommand = (command: string) => {
 </script>
 
 <style>
-/* 复制菜单采用三栏分组、固定宽度和内部滚动，避免长菜单撑出视口。 */
+/* 复制菜单采用分组、固定宽度和内部滚动，避免长菜单撑出视口。 */
 .dropdown-menu.question-copy-dropdown {
   min-width: 0;
   padding: 6px;
@@ -221,9 +284,9 @@ const handleCommand = (command: string) => {
 
 .question-copy-dropdown .question-copy-menu {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 8px;
-  width: 560px;
+  width: 760px;
   max-width: calc(100vw - 24px);
   max-height: min(440px, calc(100vh - 24px));
   padding: 2px;
@@ -345,14 +408,14 @@ const handleCommand = (command: string) => {
   white-space: nowrap;
 }
 
-@media (max-width: 720px) {
+@media (max-width: 960px) {
   .question-copy-dropdown .question-copy-menu {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    width: 460px;
+    width: 620px;
   }
 }
 
-@media (max-width: 420px) {
+@media (max-width: 520px) {
   .question-copy-dropdown .question-copy-menu {
     grid-template-columns: 1fr;
     width: calc(100vw - 24px);
