@@ -10,11 +10,11 @@
             </span>
             <span>统计看板</span>
             <span class="font-normal tracking-normal text-gray-400">/</span>
-            <span class="font-normal tracking-normal text-gray-500">按章节观察题量分布</span>
+            <span class="font-normal tracking-normal text-gray-500">按科目查看分类明细</span>
           </div>
           <h1 class="m-0 text-2xl font-semibold tracking-tight text-gray-900 md:text-[1.75rem]">真题分类统计</h1>
           <p class="mb-0 mt-2 text-sm text-gray-500">
-            先定位高频章节，再展开查看知识点明细与题型构成。
+            按科目查看章节与知识点明细，支持折叠和题型排序。
           </p>
         </div>
 
@@ -101,134 +101,10 @@
 
       <!-- 首次加载骨架屏 -->
       <div v-if="statsLoading && !hasStats" class="space-y-5" aria-busy="true" aria-live="polite">
-        <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <div v-for="index in 4" :key="index" class="h-32 animate-pulse rounded-2xl bg-white/70 shadow-sm"></div>
-        </div>
-        <div class="h-72 animate-pulse rounded-2xl bg-white/70 shadow-sm"></div>
         <div class="h-96 animate-pulse rounded-2xl bg-white/70 shadow-sm"></div>
       </div>
 
       <template v-else-if="hasStats">
-        <!-- 概览指标 -->
-        <section class="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4" aria-label="统计概览">
-          <article class="metric-card rounded-2xl border border-[#8B6F47]/10 bg-white p-5 shadow-sm">
-            <div class="flex items-center justify-between">
-              <span class="text-sm font-semibold text-gray-500">去重题目</span>
-              <span class="metric-icon metric-icon-brown">
-                <font-awesome-icon :icon="['fas', 'file-lines']" aria-hidden="true" />
-              </span>
-            </div>
-            <strong class="mt-4 block text-3xl font-semibold tracking-tight text-gray-900">{{ formatNumber(totalExamCount) }}</strong>
-            <p class="mb-0 mt-1 text-xs text-gray-400">按题目 ID 去重</p>
-          </article>
-
-          <article class="metric-card rounded-2xl border border-blue-100 bg-white p-5 shadow-sm">
-            <div class="flex items-center justify-between">
-              <span class="text-sm font-semibold text-gray-500">分类引用</span>
-              <span class="metric-icon metric-icon-blue">
-                <font-awesome-icon :icon="['fas', 'tag']" aria-hidden="true" />
-              </span>
-            </div>
-            <strong class="mt-4 block text-3xl font-semibold tracking-tight text-gray-900">{{ formatNumber(totalCategoryReferences) }}</strong>
-            <p class="mb-0 mt-1 text-xs text-gray-400">一题多分类会分别计入</p>
-          </article>
-
-          <article class="metric-card rounded-2xl border border-amber-100 bg-white p-5 shadow-sm">
-            <div class="flex items-center justify-between">
-              <span class="text-sm font-semibold text-gray-500">正式章节</span>
-              <span class="metric-icon metric-icon-amber">
-                <font-awesome-icon :icon="['fas', 'folder-open']" aria-hidden="true" />
-              </span>
-            </div>
-            <strong class="mt-4 block text-3xl font-semibold tracking-tight text-gray-900">{{ formatNumber(chapterCount) }}</strong>
-            <p class="mb-0 mt-1 text-xs text-gray-400">当前统计范围内的一级分类</p>
-          </article>
-
-          <article class="metric-card rounded-2xl border border-emerald-100 bg-white p-5 shadow-sm">
-            <div class="flex items-center justify-between">
-              <span class="text-sm font-semibold text-gray-500">知识点</span>
-              <span class="metric-icon metric-icon-green">
-                <font-awesome-icon :icon="['fas', 'list']" aria-hidden="true" />
-              </span>
-            </div>
-            <strong class="mt-4 block text-3xl font-semibold tracking-tight text-gray-900">{{ formatNumber(knowledgePointCount) }}</strong>
-            <p class="mb-0 mt-1 text-xs text-gray-400">包含零题和已禁用分类</p>
-          </article>
-        </section>
-
-        <!-- 章节题量分布 -->
-        <section class="mb-6 overflow-hidden rounded-2xl border border-[#8B6F47]/10 bg-white shadow-sm" aria-labelledby="chapter-overview-title">
-          <header class="flex flex-col gap-3 border-b border-gray-100 px-5 py-4 md:flex-row md:items-center md:justify-between md:px-6">
-            <div>
-              <h2 id="chapter-overview-title" class="m-0 text-lg font-semibold text-gray-900">章节题量分布</h2>
-              <p class="mb-0 mt-1 text-xs text-gray-500">按章节相对题量排序，点击章节可定位到下方明细。</p>
-            </div>
-            <div class="flex flex-wrap items-center gap-3 text-xs text-gray-500" aria-label="题型图例">
-              <span class="inline-flex items-center gap-1.5"><i class="legend-dot bg-[#6E9BC5]"></i>选择题</span>
-              <span class="inline-flex items-center gap-1.5"><i class="legend-dot bg-[#D69A67]"></i>主观题</span>
-              <span class="text-gray-400">条形长度表示相对题量</span>
-            </div>
-          </header>
-
-          <div class="space-y-6 p-5 md:p-6">
-            <div v-for="overview in overviewGroups" :key="`overview-${overview.group.subjectId ?? 'unassigned'}`">
-              <div
-                v-if="showSubjectGroupLabels"
-                class="mb-3 flex items-center gap-2 border-b border-dashed border-[#8B6F47]/15 pb-2 text-sm font-semibold text-[#8B6F47]"
-              >
-                <font-awesome-icon :icon="['fas', 'folder']" aria-hidden="true" />
-                <span>{{ overview.group.subjectName }}</span>
-                <span class="font-normal text-gray-400">{{ formatNumber(overview.group.totalCount) }} 题</span>
-              </div>
-
-              <div v-if="overview.chapters.length > 0" class="space-y-3">
-                <button
-                  v-for="chapter in overview.chapters"
-                  :key="chapter.key"
-                  type="button"
-                  class="group w-full rounded-xl border border-gray-100 bg-gray-50/60 p-3 text-left transition-all hover:border-[#8B6F47]/25 hover:bg-[#FBF7F2] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8B6F47] focus-visible:ring-offset-2 md:p-4"
-                  :aria-label="getRowAriaLabel(chapter.row)"
-                  @click="scrollToSection(chapter.key)"
-                >
-                  <div class="flex flex-col gap-3 md:flex-row md:items-center md:gap-5">
-                    <div class="flex min-w-0 items-center gap-3 md:w-[32%] md:shrink-0">
-                      <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#8B6F47]/10 text-[#8B6F47] transition-colors group-hover:bg-[#8B6F47] group-hover:text-white">
-                        <font-awesome-icon :icon="['fas', 'folder-open']" aria-hidden="true" />
-                      </span>
-                      <span class="min-w-0 truncate font-semibold text-gray-800">{{ chapter.row.category }}</span>
-                      <span v-if="!chapter.row.enabled" class="shrink-0 rounded-full bg-orange-50 px-2 py-0.5 text-[11px] font-medium text-orange-600">已禁用</span>
-                    </div>
-
-                    <div class="min-w-0 flex-1">
-                      <div class="mb-1.5 flex items-baseline justify-between gap-3">
-                        <span class="text-xs text-gray-400">相对题量</span>
-                        <span class="whitespace-nowrap text-sm font-semibold text-gray-800">
-                          {{ formatNumber(chapter.row.count) }}<span class="ml-1 text-xs font-normal text-gray-400">题</span>
-                        </span>
-                      </div>
-                      <div class="h-2.5 overflow-hidden rounded-full bg-gray-200/80" aria-hidden="true">
-                        <div
-                          class="flex h-full min-w-0 overflow-hidden rounded-full transition-[width] duration-300"
-                          :style="{ width: getBarWidth(chapter.row.count, overview.maxCount) }"
-                        >
-                          <span class="h-full bg-[#6E9BC5]" :style="{ width: getTypeWidth(chapter.row.choiceCount, chapter.row.count) }"></span>
-                          <span class="h-full bg-[#D69A67]" :style="{ width: getTypeWidth(chapter.row.subjectiveCount, chapter.row.count) }"></span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div class="flex shrink-0 items-center gap-3 text-xs text-gray-500 md:w-[170px] md:justify-end">
-                      <span><b class="font-semibold text-[#5D88AE]">{{ formatNumber(chapter.row.choiceCount) }}</b> 选择</span>
-                      <span><b class="font-semibold text-[#B87542]">{{ formatNumber(chapter.row.subjectiveCount) }}</b> 主观</span>
-                    </div>
-                  </div>
-                </button>
-              </div>
-              <p v-else class="mb-0 rounded-lg bg-gray-50 px-4 py-3 text-sm text-gray-400">当前科目暂无正式章节分类。</p>
-            </div>
-          </div>
-        </section>
-
         <!-- 分组明细 -->
         <section class="overflow-hidden rounded-2xl border border-[#8B6F47]/10 bg-white shadow-sm" aria-labelledby="category-detail-title" :aria-busy="statsLoading">
           <header class="flex flex-col gap-3 border-b border-gray-100 px-5 py-4 md:flex-row md:items-center md:justify-between md:px-6">
@@ -407,7 +283,7 @@
 <script setup lang="ts">
 /**
  * 真题分类统计页面
- * 功能描述：以章节分布概览和分组明细展示真题分类统计，支持题型排序与 Markdown/Excel 导出
+ * 功能描述：按科目以可折叠分组明细展示真题分类统计，支持题型排序与 Markdown/Excel 导出
  * 依赖组件：CustomButton, Dropdown, DropdownItem, Select, Toast
  */
 
@@ -465,20 +341,12 @@ type StatsGroupView = {
   sections: CategorySection[]
 }
 
-type OverviewGroup = {
-  group: ExamSubjectCategoryStats
-  chapters: CategorySection[]
-  maxCount: number
-}
-
 const statsLoading = ref(false)
 const exportLoading = ref(false)
 const statsData = ref<StatsRow[]>([])
 const statsTree = ref<ExamSubjectCategoryStats[]>([])
 const statsSubjectId = ref<number | null>(null)
 const subjectOptions = ref<Subject[]>([])
-const totalExamCount = ref(0)
-const totalCategoryReferences = ref(0)
 const statsError = ref('')
 const expandedSections = ref<Set<string>>(new Set())
 let statsLoadVersion = 0
@@ -635,51 +503,9 @@ const detailGroups = computed<StatsGroupView[]>(() => {
   })
 })
 
-const overviewGroups = computed<OverviewGroup[]>(() => {
-  return statsTree.value.map(group => {
-    const subjectKey = getSubjectKey(group)
-    const chapters = group.categories
-      .filter(node => !node.isUnfiled)
-      .map(node => buildSection(node, subjectKey, group.subjectName))
-      .sort((left, right) => {
-        if (left.row.count !== right.row.count) return right.row.count - left.row.count
-        return left.row.category.localeCompare(right.row.category, 'zh-CN')
-      })
-
-    return {
-      group,
-      chapters,
-      maxCount: Math.max(0, ...chapters.map(chapter => chapter.row.count))
-    }
-  })
-})
-
 const sectionKeys = computed(() => detailGroups.value.flatMap(view => view.sections.map(section => section.key)))
 const hasStats = computed(() => statsData.value.length > 0)
 const showSubjectGroupLabels = computed(() => statsSubjectId.value === null || statsTree.value.length > 1)
-
-const chapterCount = computed(() => {
-  return statsTree.value.reduce(
-    (total, group) => total + group.categories.filter(node => !node.isUnfiled).length,
-    0
-  )
-})
-
-const countKnowledgePoints = (nodes: ExamCategoryStatsTreeItem[]): number => {
-  return nodes.reduce(
-    (total, node) => total + (node.isUnfiled ? 0 : 1) + countKnowledgePoints(node.children),
-    0
-  )
-}
-
-const knowledgePointCount = computed(() => {
-  return statsTree.value.reduce((total, group) => {
-    const childNodes = group.categories
-      .filter(node => !node.isUnfiled)
-      .flatMap(node => node.children)
-    return total + countKnowledgePoints(childNodes)
-  }, 0)
-})
 
 const countUnfiledTags = (nodes: ExamCategoryStatsTreeItem[]): number => {
   return nodes.reduce(
@@ -727,33 +553,9 @@ const toggleSection = (key: string) => {
 
 const getSectionDomId = (key: string) => `stats-section-${encodeURIComponent(key)}`
 
-const scrollToSection = (key: string) => {
-  if (!expandedSections.value.has(key)) {
-    const next = new Set(expandedSections.value)
-    next.add(key)
-    expandedSections.value = next
-  }
-
-  requestAnimationFrame(() => {
-    const element = document.getElementById(getSectionDomId(key))
-    if (!element) return
-    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    element.scrollIntoView({ behavior: prefersReducedMotion ? 'auto' : 'smooth', block: 'start' })
-  })
-}
-
 const getBarWidth = (value: number, max: number) => {
   if (value <= 0 || max <= 0) return '0%'
   return `${Math.min(100, Math.max(0, (value / max) * 100))}%`
-}
-
-const getTypeWidth = (value: number, total: number) => {
-  if (value <= 0 || total <= 0) return '0%'
-  return `${Math.min(100, Math.max(0, (value / total) * 100))}%`
-}
-
-const getRowAriaLabel = (row: StatsRow) => {
-  return `${row.category}，${formatNumber(row.count)} 题，选择题 ${formatNumber(row.choiceCount)}，主观题 ${formatNumber(row.subjectiveCount)}`
 }
 
 const isSortActive = (prop: FrequencySortProp | null) => {
@@ -806,17 +608,10 @@ const loadStats = async () => {
       statsError.value = ''
       statsTree.value = res.data.categoryTree || []
       statsData.value = flattenCategoryTree(statsTree.value)
-      totalExamCount.value = res.data.totalCount ?? 0
-      totalCategoryReferences.value = res.data.categoryReferenceCount ?? res.data.stats.reduce(
-        (sum, item) => sum + (item.count || 0),
-        0
-      )
       expandedSections.value = new Set(sectionKeys.value)
     } else {
       statsTree.value = []
       statsData.value = []
-      totalExamCount.value = 0
-      totalCategoryReferences.value = 0
       expandedSections.value = new Set()
       statsError.value = res.message || '获取统计数据失败，请重试。'
       Toast.error(res.message || '获取统计数据失败')
@@ -825,8 +620,6 @@ const loadStats = async () => {
     if (requestVersion !== statsLoadVersion) return
     statsTree.value = []
     statsData.value = []
-    totalExamCount.value = 0
-    totalCategoryReferences.value = 0
     expandedSections.value = new Set()
     statsError.value = '获取统计数据失败，请重试。'
     console.error('获取统计数据失败:', error)
@@ -919,60 +712,6 @@ onMounted(() => {
 <style scoped>
 .stats-page {
   color-scheme: light;
-}
-
-.metric-card {
-  position: relative;
-  isolation: isolate;
-  overflow: hidden;
-}
-
-.metric-card::after {
-  position: absolute;
-  right: -24px;
-  bottom: -42px;
-  z-index: -1;
-  width: 112px;
-  height: 112px;
-  border-radius: 9999px;
-  background: rgba(139, 111, 71, 0.05);
-  content: '';
-}
-
-.metric-icon {
-  display: inline-flex;
-  width: 32px;
-  height: 32px;
-  align-items: center;
-  justify-content: center;
-  border-radius: 8px;
-}
-
-.metric-icon-brown {
-  color: #8b6f47;
-  background: rgba(139, 111, 71, 0.1);
-}
-
-.metric-icon-blue {
-  color: #5d88ae;
-  background: rgba(93, 136, 174, 0.1);
-}
-
-.metric-icon-amber {
-  color: #b87542;
-  background: rgba(214, 154, 103, 0.14);
-}
-
-.metric-icon-green {
-  color: #4f8a69;
-  background: rgba(79, 138, 105, 0.1);
-}
-
-.legend-dot {
-  display: inline-block;
-  width: 7px;
-  height: 7px;
-  border-radius: 9999px;
 }
 
 .tree-marker {
