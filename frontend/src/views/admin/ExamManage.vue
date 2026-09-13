@@ -1,63 +1,63 @@
 <template>
-  <div class="max-w-[1400px] mx-auto px-4 py-6 min-h-[calc(100vh-60px)]">
-    <div class="bg-white rounded-lg shadow-sm">
-      <!-- 头部 -->
-      <div class="flex items-center justify-between p-4 border-b border-gray-200">
-        <h2 class="m-0 text-xl text-[#333] font-semibold">真题管理</h2>
-        <div class="flex gap-2">
-          <CustomButton type="primary" @click="handleAdd">
-            <font-awesome-icon :icon="['fas', 'plus']" class="mr-1.5" />
-            新增真题
-          </CustomButton>
-        </div>
-      </div>
+  <main class="mx-auto px-4 py-6 min-h-[calc(100vh-60px)] max-w-[1400px]">
+    <CustomCard shadow>
+      <template #header>
+        <header class="flex items-center justify-between">
+          <h2 class="m-0 text-xl text-[#333] font-semibold">真题管理</h2>
+          <div class="flex gap-2">
+            <CustomButton type="primary" @click="handleAdd">
+              <font-awesome-icon :icon="['fas', 'plus']" class="mr-1.5" />
+              新增真题
+            </CustomButton>
+          </div>
+        </header>
+      </template>
 
       <!-- 筛选条件 -->
       <div class="mb-6 p-4 bg-[#efefef] rounded">
-        <div class="flex flex-wrap gap-4 items-center">
+        <div class="flex flex-wrap items-end gap-4">
           <!-- 年份筛选 -->
-          <div class="flex items-center gap-2">
-            <label class="text-sm text-gray-600 whitespace-nowrap">年份</label>
+          <div class="flex flex-col gap-1.5">
+            <label class="text-sm font-medium text-gray-700">年份</label>
             <WheelPicker
               v-model="filters.year"
               :options="yearOptions"
               placeholder="选择年份"
               aria-label="年份"
               clearable
-              class="!w-[140px]"
+              class="!w-[180px]"
             />
           </div>
           <!-- 科目筛选 -->
-          <div class="flex items-center gap-2">
-            <label class="text-sm text-gray-600 whitespace-nowrap">科目</label>
+          <div class="flex flex-col gap-1.5">
+            <label class="text-sm font-medium text-gray-700">科目</label>
             <Select
               v-model="filters.subjectId"
               :options="subjectOptions"
               placeholder="请选择科目"
               aria-label="科目"
               clearable
-              class="!w-[180px]"
+              class="w-[150px]"
               @change="handleSubjectChange"
             />
           </div>
           <!-- 分类筛选 -->
-          <div class="flex items-center gap-2">
-            <label class="text-sm text-gray-600 whitespace-nowrap">分类</label>
-            <Select
-              v-model="filters.category"
-              :options="categoryOptions"
+          <div class="flex flex-col gap-1.5">
+            <label class="text-sm font-medium text-gray-700">分类</label>
+            <MultiSelectCascader
+              v-model="categorySelection"
+              :options="categoryTreeOptions"
               placeholder="请选择分类"
-              filterable
-              filter-placeholder="搜索分类..."
               aria-label="分类"
-              clearable
               class="!w-[220px]"
               :disabled="!filters.subjectId"
+              :multiple="false"
+              @change="handleCategoryFilterChange"
             />
           </div>
           <!-- 关键词搜索 -->
-          <div class="flex items-center gap-2">
-            <label class="text-sm text-gray-600 whitespace-nowrap">关键词</label>
+          <div class="flex flex-col gap-1.5">
+            <label class="text-sm font-medium text-gray-700">关键词</label>
             <CustomInput
               v-model="filters.keyword"
               placeholder="搜索题目内容"
@@ -72,36 +72,42 @@
             </CustomInput>
           </div>
           <!-- 仅显示无分类 -->
-          <div class="flex items-center gap-2">
-            <label class="flex items-center gap-2 cursor-pointer">
+          <div class="flex flex-col gap-1.5 pb-2">
+            <label class="flex items-center gap-2 cursor-pointer select-none">
               <input
                 v-model="filters.noCategory"
                 type="checkbox"
-                class="w-4 h-4 rounded border-gray-300 text-[#8B6F47] focus:ring-[#8B6F47]"
+                class="w-4 h-4 rounded border-gray-300 text-[#8B6F47] focus:ring-[#8B6F47] focus:ring-2 focus:ring-offset-0 transition-colors cursor-pointer"
               />
-              <span class="text-sm text-gray-600">仅显示无分类</span>
+              <span class="text-sm text-gray-700">仅显示无分类</span>
             </label>
           </div>
           <!-- 按钮组 -->
-          <div class="flex items-center gap-2">
-            <CustomButton type="primary" @click="handleSearch">查询</CustomButton>
-            <CustomButton @click="handleReset">重置</CustomButton>
+          <div class="flex gap-2 ml-auto pb-0.5">
+            <CustomButton type="primary" @click="handleSearch">
+              <font-awesome-icon :icon="['fas', 'magnifying-glass']" class="mr-1.5" />
+              查询
+            </CustomButton>
+            <CustomButton type="default" @click="handleReset">
+              <font-awesome-icon :icon="['fas', 'sync']" class="mr-1.5" />
+              重置
+            </CustomButton>
           </div>
         </div>
       </div>
 
-      <div v-if="listError" class="mx-4 mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700" role="alert">
+      <div v-if="listError" class="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700" role="alert">
         {{ listError }}
         <CustomButton size="sm" type="text" :disabled="loading" @click="loadExamList">重试</CustomButton>
       </div>
 
       <!-- 真题列表表格 -->
-      <div class="p-4">
+      <section class="mt-6">
         <Table
           :data="exams"
           :columns="tableColumns"
           :loading="loading"
-          size="lg"
+          size="md"
           @sort-change="handleSortChange"
         >
           <!-- ID 列 -->
@@ -121,14 +127,21 @@
 
           <!-- 题型列 -->
           <template #questionType="{ row }">
-            <Tag :type="row.questionType === 'CHOICE' ? 'success' : 'primary'">
+            <Tag :type="row.questionType === 'CHOICE' ? 'success' : 'primary'" size="sm">
               {{ row.questionType === 'CHOICE' ? '选择题' : '主观题' }}
             </Tag>
           </template>
 
           <!-- 标题列 -->
           <template #title="{ row }">
-            <span class="hover:!text-[#8B6F47]">{{ row.title }}</span>
+            <button
+              type="button"
+              class="cursor-pointer border-0 bg-transparent p-0 text-left hover:text-[#8B6F47] transition-colors line-clamp-2"
+              @click="handleView(row)"
+              :title="row.title ?? ''"
+            >
+              {{ row.title }}
+            </button>
           </template>
 
           <!-- 分类列 -->
@@ -187,22 +200,25 @@
         </Table>
 
         <!-- 分页 -->
-        <div class="flex justify-end mt-6">
+        <footer class="flex justify-end mt-6 pt-4 border-t border-gray-100">
           <Pagination
-            v-model:current-page="pagination.page"
-            v-model:page-size="pagination.size"
-            :page-sizes="[10, 20, 50, 100]"
+            v-model:currentPage="pagination.page"
+            v-model:pageSize="pagination.size"
+            :pageSizes="[10, 20, 50, 100]"
             :total="pagination.total"
+            showTotal
+            showSizes
+            showJumper
             @current-change="loadExamList"
             @size-change="loadExamList"
           />
-        </div>
-      </div>
-    </div>
+        </footer>
+      </section>
+    </CustomCard>
 
     <!-- 返回顶部 -->
     <BackTop :right="32" :bottom="32">
-      <div class="w-10 h-10 rounded-full bg-[#8B6F47] flex items-center justify-center text-white shadow-lg">
+      <div class="w-10 h-10 rounded-full bg-[#8B6F47] flex items-center justify-center text-white shadow-lg transition-transform hover:scale-110">
         <font-awesome-icon :icon="['fas', 'arrow-up']" />
       </div>
     </BackTop>
@@ -213,7 +229,7 @@
       :exam-id="editingExamId"
       @success="handleEditSuccess"
     />
-  </div>
+  </main>
 </template>
 
 <script setup lang="ts">
@@ -234,6 +250,7 @@ import { useRoute } from 'vue-router'
 
 // 3. API 接口定义
 import { getExamList, deleteExam, getExamCategoriesBySubject } from '@/api/exam'
+import { getEnabledCategoryTreeBySubject } from '@/api/category'
 
 // 4. 组合式函数
 import { useToast } from '@/composables/useToast'
@@ -242,7 +259,9 @@ import { useAdminTable } from '@/composables/useAdminTable'
 
 // 5. 子组件导入
 import CustomButton from '@/components/basic/CustomButton.vue'
+import CustomCard from '@/components/basic/CustomCard.vue'
 import CustomInput from '@/components/basic/CustomInput.vue'
+import MultiSelectCascader from '@/components/basic/MultiSelectCascader.vue'
 import WheelPicker from '@/components/basic/WheelPicker.vue'
 import Select from '@/components/basic/Select.vue'
 import Tag from '@/components/basic/Tag.vue'
@@ -261,7 +280,7 @@ const { showConfirm } = useConfirm()
 const {
   loading,
   subjectOptions,
-  categoryOptions,
+  categoryTreeOptions,
   sorting,
   pagination,
   subjectMap,
@@ -269,8 +288,8 @@ const {
   getDifficultyType,
   formatDateTime,
   loadSubjectOptions,
-  loadSubjectCategoryOptions,
   handleSortChange: baseSortChange,
+  loadSubjectCategoryTreeOptions,
   clearUrlKeyword,
   getUrlKeyword
 } = useAdminTable()
@@ -296,13 +315,13 @@ const yearOptions = computed(() => {
 
 // 表格列配置
 const tableColumns = [
-  { prop: 'id', label: 'ID', width: '80px' },
-  { prop: 'year', label: '年份', width: '100px', sortable: true },
-  { prop: 'questionNumber', label: '题号', width: '80px', sortable: true },
-  { prop: 'questionType', label: '题型', width: '100px' },
+  { prop: 'id', label: 'ID', width: '80px', align: 'center' },
+  { prop: 'year', label: '年份', width: '150px', align: 'center', sortable: true },
+  { prop: 'questionNumber', label: '题号', width: '80px', align: 'center', sortable: true },
+  { prop: 'questionType', label: '题型', width: '100px', align: 'center' },
   { prop: 'title', label: '标题', minWidth: '250px' },
   { prop: 'category', label: '分类', width: '200px' },
-  { prop: 'difficulty', label: '难度', width: '100px' },
+  { prop: 'difficulty', label: '难度', width: '100px', align: 'center' },
   { prop: 'updateTime', label: '更新时间', width: '160px', sortable: true },
   { prop: 'actions', label: '操作', width: '220px', align: 'center', fixed: 'right' }
 ]
@@ -315,6 +334,7 @@ const filters = reactive({
   keyword: '',
   noCategory: false
 })
+const categorySelection = ref<string[]>([])
 
 /**
  * 加载真题列表
@@ -363,7 +383,16 @@ const loadExamList = async () => {
 const handleSubjectChange = async (subjectId: string | number | null) => {
   filters.subjectId = subjectId ? Number(subjectId) : null
   filters.category = ''
-  await loadSubjectCategoryOptions(filters.subjectId, getExamCategoriesBySubject)
+  categorySelection.value = []
+  await loadSubjectCategoryTreeOptions(
+    filters.subjectId,
+    getEnabledCategoryTreeBySubject,
+    getExamCategoriesBySubject,
+  )
+}
+
+const handleCategoryFilterChange = (values: string[]) => {
+  filters.category = values[0] || ''
 }
 
 /**
@@ -383,7 +412,8 @@ const handleReset = () => {
   filters.category = ''
   filters.keyword = ''
   filters.noCategory = false
-  categoryOptions.value = []
+  categoryTreeOptions.value = []
+  categorySelection.value = []
   sorting.sortField = null
   sorting.sortOrder = null
   pagination.page = 1
@@ -497,7 +527,8 @@ watch(() => route.query.keyword, (newKeyword) => {
 /* 响应式布局 */
 @media (max-width: 768px) {
   .max-w-\[1400px\] {
-    padding: 16px 8px;
+    padding-left: 8px;
+    padding-right: 8px;
   }
 
   .flex.justify-end {

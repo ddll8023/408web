@@ -21,27 +21,32 @@
       @click="toggleDropdown"
       @keydown="handleTriggerKeydown"
     >
-      <!-- 已选中标签和占位符 -->
+      <!-- 已选中分类和占位符 -->
       <div class="min-w-0 flex-1">
-        <transition-group name="tag" tag="div" class="flex flex-wrap items-center gap-1">
-          <span
-            v-for="(item, index) in selectedItems"
-            :key="item.value"
-            class="dropdown-selection-tag max-w-full"
-          >
-            <font-awesome-icon :icon="['fas', 'folder']" class="flex-shrink-0 text-xs" />
-            <span class="min-w-0 max-w-[100px] truncate">{{ item.label }}</span>
-            <button
-              v-if="!disabled"
-              type="button"
-              class="ml-0.5 flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-full text-[#8B6F47]/70 transition-colors hover:bg-[#8B6F47]/20 hover:text-[#8B6F47]"
-              aria-label="移除分类"
-              @click.stop="removeTag(item.value)"
+        <template v-if="multiple">
+          <transition-group name="tag" tag="div" class="flex flex-wrap items-center gap-1">
+            <span
+              v-for="item in selectedItems"
+              :key="item.value"
+              class="dropdown-selection-tag max-w-full"
             >
-              <font-awesome-icon :icon="['fas', 'times']" class="text-[10px]" />
-            </button>
-          </span>
-        </transition-group>
+              <font-awesome-icon :icon="['fas', 'folder']" class="flex-shrink-0 text-xs" />
+              <span class="min-w-0 max-w-[100px] truncate">{{ item.label }}</span>
+              <button
+                v-if="!disabled"
+                type="button"
+                class="ml-0.5 flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-full text-[#8B6F47]/70 transition-colors hover:bg-[#8B6F47]/20 hover:text-[#8B6F47]"
+                aria-label="移除分类"
+                @click.stop="removeTag(item.value)"
+              >
+                <font-awesome-icon :icon="['fas', 'times']" class="text-[10px]" />
+              </button>
+            </span>
+          </transition-group>
+        </template>
+        <span v-else-if="selectedItems.length > 0" class="block truncate text-gray-700">
+          {{ selectedItems[0].label }}
+        </span>
 
         <span
           v-if="selectedItems.length === 0"
@@ -53,9 +58,16 @@
 
       <!-- 下拉箭头 -->
       <div class="ml-auto flex-shrink-0 flex items-center gap-2">
-        <span v-if="!disabled && selectedItems.length > 0" class="text-xs text-gray-400 hover:text-[#8B6F47] transition-colors">
-          <button type="button" class="hover:bg-gray-100 px-1.5 py-0.5 rounded" @click.stop="clearAll">清空</button>
-        </span>
+        <button
+          v-if="!disabled && selectedItems.length > 0"
+          type="button"
+          class="flex h-6 w-6 items-center justify-center rounded-full text-gray-400 transition-colors hover:bg-[#8B6F47]/10 hover:text-[#8B6F47] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8B6F47]/30"
+          aria-label="清空分类"
+          title="清空分类"
+          @click.stop="clearAll"
+        >
+          <font-awesome-icon :icon="['fas', 'times-circle']" class="text-sm" aria-hidden="true" />
+        </button>
         <font-awesome-icon
           class="text-gray-400 transition-transform duration-300"
           :class="dropdownVisible ? 'text-[#8B6F47] rotate-180' : ''"
@@ -70,8 +82,9 @@
         :id="listId"
         v-show="dropdownVisible && !disabled"
         role="listbox"
-        aria-multiselectable="true"
+        :aria-multiselectable="multiple ? 'true' : undefined"
         class="dropdown-panel absolute top-full left-0 right-0 z-50 overflow-hidden"
+        :class="multiple ? '' : 'min-w-[320px] max-w-[calc(100vw-24px)]'"
       >
         <!-- 搜索框 -->
         <div v-if="enableSearch" class="dropdown-panel__header">
@@ -121,8 +134,9 @@
               </button>
               <span v-else class="w-6 flex-shrink-0" aria-hidden="true"></span>
 
-              <!-- 自定义复选框 -->
+              <!-- 多选使用复选框，单选使用选中图标 -->
               <div
+                v-if="multiple && row.item.selectable"
                 class="relative w-5 h-5 flex-shrink-0"
                 @click.stop="toggleSelect(row.item)"
               >
@@ -144,10 +158,12 @@
                   />
                 </div>
               </div>
+              <!-- 单选模式不额外预留复选框列，避免展开图标与文本之间出现大间距。 -->
 
               <!-- 选项标签 -->
               <span
-                class="flex-1 text-[15px] transition-colors duration-150"
+                class="min-w-0 flex-1 truncate whitespace-nowrap text-[15px] transition-colors duration-150"
+                :title="row.item.label"
                 :class="[
                   isSelected(row.item.value)
                     ? 'text-[#8B6F47] font-medium'
@@ -155,7 +171,7 @@
                       ? 'text-gray-600 group-hover:text-[#8B6F47]'
                       : 'text-gray-700 group-hover:text-[#8B6F47]'
                 ]"
-                @click.stop="toggleSelect(row.item)"
+                @click.stop="handleItemClick(row.item)"
               >
                 {{ row.item.label }}
               </span>
@@ -165,17 +181,22 @@
                 v-if="row.item.children.length > 0"
                 class="px-2 py-0.5 text-xs rounded-full transition-colors duration-150"
                 :class="[
-                  getSelectedCount(row.item) > 0
+                  multiple && getSelectedCount(row.item) > 0
                     ? 'bg-[#8B6F47]/10 text-[#8B6F47] font-medium'
                     : 'bg-gray-100 text-gray-400'
                 ]"
               >
-                {{ getSelectedCount(row.item) }}/{{ getDescendantCount(row.item) }}
+                <template v-if="multiple">
+                  {{ getSelectedCount(row.item) }}/{{ getDescendantCount(row.item) }}
+                </template>
+                <template v-else>
+                  {{ getDescendantCount(row.item) }} 个子项
+                </template>
               </span>
 
               <!-- 选中指示 -->
               <font-awesome-icon
-                v-if="isSelected(row.item.value) && row.item.children.length === 0"
+                v-if="row.item.selectable && isSelected(row.item.value) && (multiple ? row.item.children.length === 0 : true)"
                 :icon="['fas', 'check-circle']"
                 class="text-[#8B6F47] text-xs"
               />
@@ -183,8 +204,8 @@
           </transition-group>
         </div>
 
-        <!-- 底部提示 -->
-        <div class="dropdown-panel__footer">
+        <!-- 多选需要确认区，单选选择后立即关闭下拉框。 -->
+        <div v-if="multiple" class="dropdown-panel__footer">
           <span class="text-xs text-gray-400">
             <font-awesome-icon :icon="['fas', 'info-circle']" class="mr-1" />
             已选择 {{ selectedItems.length }} 个分类
@@ -209,7 +230,7 @@ import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 
 /**
  * 多选级联选择器组件
- * 功能：支持多选、树形层级、搜索过滤
+ * 功能：支持单选/多选、树形层级、搜索过滤
  * 设计：精致学术风，使用项目主题色 #8B6F47
  */
 const props = defineProps({
@@ -242,6 +263,11 @@ const props = defineProps({
   ariaLabel: {
     type: String,
     default: ''
+  },
+  // false 时作为单选分类树使用，选择节点后立即关闭下拉框。
+  multiple: {
+    type: Boolean,
+    default: true
   }
 })
 
@@ -263,7 +289,8 @@ const normalizedOptions = computed(() => {
     return items.map(item => ({
       value: item.value || item.name || '',
       label: item.label || item.name || '',
-      children: item.children ? normalize(item.children) : []
+      children: item.children ? normalize(item.children) : [],
+      selectable: item.selectable !== false
     }))
   }
   return normalize(props.options || [])
@@ -353,7 +380,22 @@ const isSelected = (value: string) => {
 }
 
 // 切换选择
+const handleItemClick = (item: NormalizedCascaderOption) => {
+  if (!item.selectable && item.children.length > 0) {
+    toggleExpand(item.value)
+    return
+  }
+  toggleSelect(item)
+}
+
 const toggleSelect = (item: NormalizedCascaderOption) => {
+  if (!item.selectable) return
+  if (!props.multiple) {
+    selectedValues.value = [item.value]
+    dropdownVisible.value = false
+    return
+  }
+
   const newValues = [...selectedValues.value]
   const index = newValues.indexOf(item.value)
 

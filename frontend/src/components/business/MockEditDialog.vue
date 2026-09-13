@@ -45,7 +45,7 @@
           </header>
 
           <!-- 内容区 -->
-          <div class="flex-1 min-h-0 overflow-y-auto p-6">
+          <div ref="contentRef" class="flex-1 min-h-0 overflow-y-auto p-6">
             <!-- JSON快速导入区域 -->
             <section class="mb-6">
               <!-- 折叠面板头部 -->
@@ -309,6 +309,7 @@ let nextEditDialogId = 0
 const dialogTitleId = `mock-edit-dialog-title-${++nextEditDialogId}`
 const jsonImportPanelId = `mock-json-import-${nextEditDialogId}`
 const dialogRef = ref<HTMLElement | null>(null)
+const contentRef = ref<HTMLElement | null>(null)
 let previouslyFocused: HTMLElement | null = null
 let previousBodyOverflow = ''
 
@@ -327,7 +328,7 @@ const {
   subjectOptions, categoryTreeOptions,
   loadSubjectOptions,
   handleSubjectChange, handleQuestionTypeChange,
-  fillFormFromData, buildSubmitData
+  resetForm, fillFormFromData, buildSubmitData
 } = useQuestionForm({
   extraFields: { source: '', questionNumber: null }
 })
@@ -346,6 +347,12 @@ const jsonImportVisible = ref(false)
 // 切换 JSON 导入区域
 const toggleJsonImport = () => {
   jsonImportVisible.value = !jsonImportVisible.value
+}
+
+const resetContentScroll = () => {
+  if (!contentRef.value) return
+  contentRef.value.scrollTop = 0
+  contentRef.value.scrollLeft = 0
 }
 
 // 题型选项
@@ -486,11 +493,12 @@ const initDialog = async () => {
     loading.value = true
     jsonImportVisible.value = false // 编辑模式收起 JSON 导入区域
   } else {
-    // 新建模式：直接设置默认值并显示
-    form.source = ''
-    form.questionNumber = null
+    // 新建模式：清空上一次编辑内容，并展开 JSON 导入区域
+    resetForm({ source: '', questionNumber: null })
+    resetContentScroll()
     jsonInput.value = ''
-    jsonImportVisible.value = true // 新建模式展开 JSON 导入区域
+    titleOptions.value = []
+    jsonImportVisible.value = true
   }
 
   // 加载科目选项和来源选项（所有模式都需要）
@@ -518,6 +526,9 @@ watch(() => props.visible, async (visible) => {
     document.body.style.overflow = 'hidden'
     await initDialog()
     await nextTick()
+    if (!isEditMode.value) {
+      resetContentScroll()
+    }
     focusInitialElement()
   } else {
     document.body.style.overflow = previousBodyOverflow

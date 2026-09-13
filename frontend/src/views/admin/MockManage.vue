@@ -48,16 +48,15 @@
           <!-- 分类 -->
           <div class="flex flex-col gap-1.5">
             <label class="text-sm font-medium text-gray-700">分类</label>
-            <Select
-              v-model="filters.category"
-              :options="categoryOptions"
+            <MultiSelectCascader
+              v-model="categorySelection"
+              :options="categoryTreeOptions"
               placeholder="请选择分类"
-              filterable
-              filter-placeholder="搜索分类..."
               aria-label="分类"
-              clearable
               class="!w-[220px]"
               :disabled="!filters.subjectId"
+              :multiple="false"
+              @change="handleCategoryFilterChange"
             />
           </div>
 
@@ -71,7 +70,11 @@
               clearable
               class="w-[180px]"
               @keyup.enter="handleSearch"
-            />
+            >
+              <template #prefix>
+                <font-awesome-icon :icon="['fas', 'search']" class="text-gray-400" />
+              </template>
+            </CustomInput>
           </div>
 
           <!-- 仅显示无分类 -->
@@ -245,11 +248,13 @@ import {
   getAllMockSources,
   getMockCategoriesBySubject
 } from '@/api/mock'
+import { getEnabledCategoryTreeBySubjectWithStats } from '@/api/category'
 
 // 自定义基础组件
 import CustomButton from '@/components/basic/CustomButton.vue'
 import CustomCard from '@/components/basic/CustomCard.vue'
 import CustomInput from '@/components/basic/CustomInput.vue'
+import MultiSelectCascader from '@/components/basic/MultiSelectCascader.vue'
 import Select from '@/components/basic/Select.vue'
 import Table from '@/components/basic/Table.vue'
 import Pagination from '@/components/basic/Pagination.vue'
@@ -287,7 +292,7 @@ const tableColumns = [
 const {
   loading,
   subjectOptions,
-  categoryOptions,
+  categoryTreeOptions,
   sorting,
   pagination,
   subjectMap,
@@ -295,8 +300,8 @@ const {
   getDifficultyType,
   formatDateTime,
   loadSubjectOptions,
-  loadSubjectCategoryOptions,
   handleSortChange: baseSortChange,
+  loadSubjectCategoryTreeOptions,
   clearUrlKeyword,
   getUrlKeyword
 } = useAdminTable()
@@ -322,6 +327,7 @@ const filters = reactive({
   keyword: '',
   noCategory: false
 })
+const categorySelection = ref<string[]>([])
 
 /**
  * 加载来源机构选项（模拟题特有）
@@ -386,7 +392,16 @@ const loadMockList = async () => {
 const handleSubjectChange = async (subjectId: string | number | null) => {
   filters.subjectId = subjectId ? Number(subjectId) : null
   filters.category = ''
-  await loadSubjectCategoryOptions(filters.subjectId, getMockCategoriesBySubject)
+  categorySelection.value = []
+  await loadSubjectCategoryTreeOptions(
+    filters.subjectId,
+    getEnabledCategoryTreeBySubjectWithStats,
+    getMockCategoriesBySubject,
+  )
+}
+
+const handleCategoryFilterChange = (values: string[]) => {
+  filters.category = values[0] || ''
 }
 
 /**
@@ -406,7 +421,8 @@ const handleReset = () => {
   filters.category = ''
   filters.keyword = ''
   filters.noCategory = false
-  categoryOptions.value = []
+  categoryTreeOptions.value = []
+  categorySelection.value = []
   sorting.sortField = null
   sorting.sortOrder = null
   pagination.page = 1
@@ -529,6 +545,10 @@ watch(() => route.query.keyword, (newKeyword) => {
   .max-w-\[1400px\] {
     padding-left: 8px;
     padding-right: 8px;
+  }
+
+  .flex.justify-end {
+    overflow-x: auto;
   }
 }
 
