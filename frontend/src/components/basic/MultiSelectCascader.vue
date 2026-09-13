@@ -3,7 +3,7 @@
     <!-- 触发区域 -->
     <div
       :id="triggerId"
-      class="dropdown-control relative flex h-[40px] items-center flex-wrap gap-1.5 border px-3 py-2 text-[15px] leading-normal cursor-pointer"
+      class="dropdown-control relative flex min-h-[42px] w-full items-center gap-2 border px-3 py-2 text-[15px] leading-normal cursor-pointer"
       :class="[
         disabled
           ? 'dropdown-control--disabled opacity-60 cursor-not-allowed'
@@ -21,34 +21,35 @@
       @click="toggleDropdown"
       @keydown="handleTriggerKeydown"
     >
-      <!-- 已选中标签 -->
-      <transition-group name="tag" tag="div" class="flex flex-wrap gap-1">
-        <span
-          v-for="(item, index) in selectedItems"
-          :key="item.value"
-          class="dropdown-selection-tag"
-        >
-          <font-awesome-icon :icon="['fas', 'folder']" class="text-xs" />
-          <span class="max-w-[100px] truncate">{{ item.label }}</span>
-          <button
-            v-if="!disabled"
-            type="button"
-            class="ml-0.5 w-4 h-4 flex items-center justify-center rounded-full hover:bg-[#8B6F47]/20 text-[#8B6F47]/70 hover:text-[#8B6F47] transition-colors"
-            aria-label="移除分类"
-            @click.stop="removeTag(item.value)"
+      <!-- 已选中标签和占位符 -->
+      <div class="min-w-0 flex-1">
+        <transition-group name="tag" tag="div" class="flex flex-wrap items-center gap-1">
+          <span
+            v-for="(item, index) in selectedItems"
+            :key="item.value"
+            class="dropdown-selection-tag max-w-full"
           >
-            <font-awesome-icon :icon="['fas', 'times']" class="text-[10px]" />
-          </button>
-        </span>
-      </transition-group>
+            <font-awesome-icon :icon="['fas', 'folder']" class="flex-shrink-0 text-xs" />
+            <span class="min-w-0 max-w-[100px] truncate">{{ item.label }}</span>
+            <button
+              v-if="!disabled"
+              type="button"
+              class="ml-0.5 flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-full text-[#8B6F47]/70 transition-colors hover:bg-[#8B6F47]/20 hover:text-[#8B6F47]"
+              aria-label="移除分类"
+              @click.stop="removeTag(item.value)"
+            >
+              <font-awesome-icon :icon="['fas', 'times']" class="text-[10px]" />
+            </button>
+          </span>
+        </transition-group>
 
-      <!-- placeholder -->
-      <span
-        v-if="selectedItems.length === 0"
-        class="text-gray-400 font-normal select-none"
-      >
-        {{ placeholder }}
-      </span>
+        <span
+          v-if="selectedItems.length === 0"
+          class="block truncate font-normal text-gray-400 select-none"
+        >
+          {{ placeholder }}
+        </span>
+      </div>
 
       <!-- 下拉箭头 -->
       <div class="ml-auto flex-shrink-0 flex items-center gap-2">

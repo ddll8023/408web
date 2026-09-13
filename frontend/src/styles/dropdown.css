@@ -328,6 +328,8 @@
 }
 
 .dropdown-scroll {
+  /* 内容增多触发滚动时，预留滚动条槽位，避免选项区域宽度发生跳变。 */
+  scrollbar-gutter: stable;
   scrollbar-width: thin;
   scrollbar-color: #d1c6ba transparent;
 }

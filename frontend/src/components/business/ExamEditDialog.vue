@@ -164,9 +164,9 @@
             </div>
           </div>
 
-          <!-- 标题、分类与难度：桌面端按 2:1:1 分配宽度，避免标题独占一行造成空置 -->
-          <div class="grid grid-cols-1 gap-4 mb-6 sm:grid-cols-2 lg:grid-cols-4">
-            <div class="min-w-0 sm:col-span-2 lg:col-span-2">
+          <!-- 标题与难度同排，分类使用整行宽度，给多选标签留出稳定空间 -->
+          <div class="grid grid-cols-1 gap-4 mb-6 lg:grid-cols-12">
+            <div class="min-w-0 lg:col-span-8">
               <FormLabel label="标题" for-id="exam-title" />
               <input
                 id="exam-title"
@@ -178,7 +178,16 @@
               />
               <div class="text-right text-xs text-gray-400 mt-1.5">{{ form.title?.length || 0 }}/200</div>
             </div>
-            <div class="min-w-0">
+            <div class="min-w-0 lg:col-span-4">
+              <FormLabel label="难度" for-id="exam-difficulty" />
+              <Select
+                id="exam-difficulty"
+                v-model="form.difficulty"
+                :options="difficultyOptions"
+                placeholder="请选择难度（可选）"
+              />
+            </div>
+            <div class="min-w-0 lg:col-span-12">
               <FormLabel label="分类" for-id="exam-category" />
               <!-- 多选级联选择器 -->
               <MultiSelectCascader
@@ -188,15 +197,6 @@
                 placeholder="请选择分类（支持多个）"
                 aria-label="分类"
                 :disabled="!form.subjectId"
-              />
-            </div>
-            <div class="min-w-0">
-              <FormLabel label="难度" for-id="exam-difficulty" />
-              <Select
-                id="exam-difficulty"
-                v-model="form.difficulty"
-                :options="difficultyOptions"
-                placeholder="请选择难度（可选）"
               />
             </div>
           </div>
