@@ -928,6 +928,8 @@ defineExpose({ capture, getClipboardContent })
   padding: 2px 8px;
   border: 1px solid rgba(139, 111, 71, 0.25);
   border-radius: 999px;
+  flex: 0 0 auto;
+  white-space: nowrap;
 }
 
 .question-image-renderer__section {
