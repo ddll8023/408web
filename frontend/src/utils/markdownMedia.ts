@@ -1,6 +1,40 @@
 /** 编辑预览、阅读和 PNG 复制共用的正文/选项排版语义。 */
 export type MarkdownContentRole = 'body' | 'option'
 
+/** Word/WPS 富文本复制中独立图片的默认显示高度，单位为厘米。 */
+export const WORD_CLIPBOARD_IMAGE_HEIGHT_CM = 3
+
+const CSS_PIXELS_PER_INCH = 96
+const CENTIMETERS_PER_INCH = 2.54
+
+/** 3 厘米按浏览器 96 DPI 换算出的 HTML 高度属性。 */
+export const WORD_CLIPBOARD_IMAGE_HEIGHT_PX = Math.round(
+  WORD_CLIPBOARD_IMAGE_HEIGHT_CM / CENTIMETERS_PER_INCH * CSS_PIXELS_PER_INCH,
+)
+
+export interface WordClipboardImageSize {
+  widthCm: number
+  heightCm: number
+  widthPx: number
+  heightPx: number
+  ratio: number
+}
+
+/** 按原图比例计算 Word 图片尺寸，同时提供厘米和 HTML 像素属性，供 Word/WPS 锁定初始比例。 */
+export const getWordClipboardImageSize = (ratio: number): WordClipboardImageSize | null => {
+  if (!Number.isFinite(ratio) || ratio <= 0) return null
+
+  const heightCm = WORD_CLIPBOARD_IMAGE_HEIGHT_CM
+  const widthCm = Math.max(0.01, Number((heightCm * ratio).toFixed(2)))
+  return {
+    widthCm,
+    heightCm,
+    widthPx: Math.max(1, Math.round(widthCm / CENTIMETERS_PER_INCH * CSS_PIXELS_PER_INCH)),
+    heightPx: WORD_CLIPBOARD_IMAGE_HEIGHT_PX,
+    ratio,
+  }
+}
+
 interface SvgViewport {
   width: number
   height: number

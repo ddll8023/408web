@@ -8,8 +8,13 @@ const source = await readFile(new URL('../src/utils/markdownMedia.ts', import.me
 const { outputText } = ts.transpileModule(source, {
   compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext },
 })
-const { parseMediaWidth, resolveSvgViewport, prepareMarkdownImage, prepareMarkdownMedia } =
-  await import(`data:text/javascript;base64,${Buffer.from(outputText).toString('base64')}`)
+const {
+  parseMediaWidth,
+  resolveSvgViewport,
+  prepareMarkdownImage,
+  prepareMarkdownMedia,
+  getWordClipboardImageSize,
+} = await import(`data:text/javascript;base64,${Buffer.from(outputText).toString('base64')}`)
 
 class Media {
   constructor(attributes = {}) {
@@ -80,6 +85,18 @@ test('单图宽度只接受明确的正数和允许单位', () => {
   for (const value of [null, '', '-1px', '0', 'Infinity', 'calc(100% + 10px)', 'url(x)', '300vw']) {
     assert.equal(parseMediaWidth(value), null)
   }
+})
+
+test('Word 图片默认高度为 3 厘米，并按原比例计算宽度', () => {
+  assert.deepEqual(getWordClipboardImageSize(6.5 / 3), {
+    widthCm: 6.5,
+    heightCm: 3,
+    widthPx: 246,
+    heightPx: 113,
+    ratio: 6.5 / 3,
+  })
+  assert.equal(getWordClipboardImageSize(0), null)
+  assert.equal(getWordClipboardImageSize(Number.NaN), null)
 })
 
 test('1024 像素矩阵只记录自然尺寸，显示尺寸交给共享规则，不写死成原图大小', () => {
