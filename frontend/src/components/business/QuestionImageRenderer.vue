@@ -345,77 +345,6 @@ const sanitizeClipboardDom = (root: HTMLElement) => {
   })
 }
 
-const escapeHtmlAttribute = (value: string) => {
-  return value.replace(/&/g, '&amp;')
-    .replace(/"/g, '&quot;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-}
-
-/** Word 的 VML 图片节点支持对象级 aspectratio 锁定，普通 HTML 客户端使用 img 回退。 */
-const wordVmlShapeType = [
-  '<!--[if gte vml 1]>',
-  '<v:shapetype id="_x0000_t75" coordsize="21600,21600" o:spt="75" o:preferrelative="t" path="m@4@5l@4@11@9@11l@9@5xe" filled="f" stroked="f">',
-  '<v:stroke joinstyle="miter"/>',
-  '<v:formulas>',
-  '<v:f eqn="if lineDrawn pixelLineWidth 0"/>',
-  '<v:f eqn="sum @0 1 0"/>',
-  '<v:f eqn="sum 0 0 @1"/>',
-  '<v:f eqn="prod @2 1 2"/>',
-  '<v:f eqn="prod @3 21600 pixelWidth"/>',
-  '<v:f eqn="prod @3 21600 pixelHeight"/>',
-  '<v:f eqn="sum @0 0 1"/>',
-  '<v:f eqn="prod @6 1 2"/>',
-  '<v:f eqn="prod @7 21600 pixelWidth"/>',
-  '<v:f eqn="sum @8 21600 0"/>',
-  '<v:f eqn="prod @7 21600 pixelHeight"/>',
-  '<v:f eqn="sum @10 21600 0"/>',
-  '</v:formulas>',
-  '<v:path gradientshapeok="t" o:connecttype="rect"/>',
-  '<o:lock v:ext="edit" aspectratio="t"/>',
-  '</v:shapetype>',
-  '<![endif]-->',
-].join('')
-
-const serializeWordClipboardMarkup = (wrapper: HTMLElement) => {
-  const fixedImages = Array.from(wrapper.querySelectorAll<HTMLImageElement>('img[data-word-fixed-size]'))
-  if (fixedImages.length === 0) return wrapper.outerHTML
-
-  wrapper.setAttribute('xmlns:v', 'urn:schemas-microsoft-com:vml')
-  wrapper.setAttribute('xmlns:o', 'urn:schemas-microsoft-com:office:office')
-  let html = wrapper.outerHTML
-
-  fixedImages.forEach((image, index) => {
-    const fallback = image.cloneNode(true) as HTMLImageElement
-    fallback.removeAttribute('data-word-fixed-size')
-
-    const source = image.getAttribute('src') || ''
-    if (!source) {
-      html = html.replace(image.outerHTML, fallback.outerHTML)
-      return
-    }
-
-    const width = image.style.width || image.getAttribute('width') || 'auto'
-    const height = image.style.height || image.getAttribute('height') || 'auto'
-    const title = image.alt ? ` o:title="${escapeHtmlAttribute(image.alt)}"` : ''
-    const shapeId = `_x0000_i${1025 + index}`
-    const vmlImage = [
-      '<!--[if gte vml 1]>',
-      `<v:shape id="${shapeId}" type="#_x0000_t75" style="display:inline-block;width:${width};height:${height};visibility:visible;mso-wrap-style:inline">`,
-      `<v:imagedata src="${escapeHtmlAttribute(source)}"${title}/>`,
-      '<o:lock v:ext="edit" aspectratio="t"/>',
-      '</v:shape>',
-      '<![endif]-->',
-      '<!--[if !vml]><!-->',
-      fallback.outerHTML,
-      '<!--<![endif]-->',
-    ].join('')
-    html = html.replace(image.outerHTML, vmlImage)
-  })
-
-  return `${wordVmlShapeType}${html}`
-}
-
 /** 用表格承载选项，避免 Word/WPS 对 flex、gap 和 calc 宽度支持不一致。 */
 const compactClipboardOptions = (root: HTMLElement) => {
   root.querySelectorAll<HTMLElement>('.question-image-renderer__options').forEach(container => {
@@ -661,8 +590,7 @@ const getClipboardMediaRatio = (source: HTMLElement | SVGElement): number | null
 const applyWordImageSize = (image: HTMLImageElement, ratio: number | null) => {
   const size = ratio ? getWordClipboardImageSize(ratio) : null
   if (size) {
-    image.setAttribute('data-word-fixed-size', 'true')
-    // 同时写入厘米 CSS、像素属性和 aspect-ratio，兼容 Word/WPS 的 HTML 尺寸解析。
+    // 同时写入厘米 CSS、像素属性和 aspect-ratio，避免依赖 Word/WPS 的 VML 解析。
     image.setAttribute('width', String(size.widthPx))
     image.setAttribute('height', String(size.heightPx))
     setInlineStyles(image, {
@@ -978,10 +906,9 @@ const getClipboardContent = async (): Promise<RichCopyContent> => {
     lineHeight: wordLineHeight,
   })
   wrapper.innerHTML = clone.innerHTML
-  const html = serializeWordClipboardMarkup(wrapper)
 
   return {
-    html: `<!--StartFragment-->${html}<!--EndFragment-->`,
+    html: `<!--StartFragment-->${wrapper.outerHTML}<!--EndFragment-->`,
     text,
   }
 }
