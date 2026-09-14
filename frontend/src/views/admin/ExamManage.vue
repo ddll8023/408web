@@ -1,5 +1,5 @@
 <template>
-  <main class="mx-auto px-4 py-6 min-h-[calc(100vh-60px)] max-w-[1400px]">
+  <main class="admin-manage-page mx-auto w-full min-w-0 px-4 py-6 min-h-[calc(100vh-60px)]">
     <CustomCard shadow>
       <template #header>
         <header class="flex items-center justify-between">
@@ -14,8 +14,8 @@
       </template>
 
       <!-- 筛选条件 -->
-      <div class="mb-6 p-4 bg-[#efefef] rounded">
-        <div class="flex flex-wrap items-end gap-4">
+      <div class="mb-6 rounded-xl border border-[#eadfd4] bg-white/70 p-5 shadow-sm backdrop-blur-sm">
+        <div class="grid grid-cols-1 items-end gap-4 sm:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-6">
           <!-- 年份筛选 -->
           <div class="flex flex-col gap-1.5">
             <label class="text-sm font-medium text-gray-700">年份</label>
@@ -25,7 +25,7 @@
               placeholder="选择年份"
               aria-label="年份"
               clearable
-              class="!w-[180px]"
+              class="w-full"
             />
           </div>
           <!-- 科目筛选 -->
@@ -37,7 +37,7 @@
               placeholder="请选择科目"
               aria-label="科目"
               clearable
-              class="w-[150px]"
+              class="w-full"
               @change="handleSubjectChange"
             />
           </div>
@@ -49,7 +49,7 @@
               :options="categoryTreeOptions"
               placeholder="请选择分类"
               aria-label="分类"
-              class="!w-[220px]"
+              class="w-full min-w-0"
               :disabled="!filters.subjectId"
               :multiple="false"
               @change="handleCategoryFilterChange"
@@ -63,7 +63,7 @@
               placeholder="搜索题目内容"
               aria-label="关键词"
               clearable
-              class="!w-[180px]"
+              class="w-full"
               @keyup.enter="handleSearch"
             >
               <template #prefix>
@@ -83,7 +83,7 @@
             </label>
           </div>
           <!-- 按钮组 -->
-          <div class="flex gap-2 ml-auto pb-0.5">
+          <div class="flex justify-end gap-2 pb-0.5">
             <CustomButton type="primary" @click="handleSearch">
               <font-awesome-icon :icon="['fas', 'magnifying-glass']" class="mr-1.5" />
               查询
@@ -315,7 +315,7 @@ const yearOptions = computed(() => {
 
 // 表格列配置
 const tableColumns = [
-  { prop: 'id', label: 'ID', width: '80px', align: 'center' },
+  { prop: 'id', label: 'ID', width: '80px', align: 'center', sortable: true },
   { prop: 'year', label: '年份', width: '150px', align: 'center', sortable: true },
   { prop: 'questionNumber', label: '题号', width: '80px', align: 'center', sortable: true },
   { prop: 'questionType', label: '题型', width: '100px', align: 'center' },
@@ -526,7 +526,7 @@ watch(() => route.query.keyword, (newKeyword) => {
 
 /* 响应式布局 */
 @media (max-width: 768px) {
-  .max-w-\[1400px\] {
+  .admin-manage-page {
     padding-left: 8px;
     padding-right: 8px;
   }

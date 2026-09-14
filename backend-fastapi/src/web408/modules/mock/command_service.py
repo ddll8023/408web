@@ -2,7 +2,7 @@
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from web408.core.exceptions import ConflictException, NotFoundException, ValidationException
-from web408.modules.mock.models import MockQuestion
+from web408.modules.mock.models import MockQuestion, MockQuestionExamMark
 from web408.modules.catalog.read_service import CatalogReadService
 from web408.modules.mock.query_service import MockQueryService
 from web408.modules.mock.repository import MockRepository
@@ -147,6 +147,23 @@ class MockCommandService:
 
         await self.session.flush()
         await self.session.refresh(question)
+        response = await self.query_service.to_response(question)
+        await self.session.commit()
+        return response
+
+    async def set_exam_mark(self, question_id: int, marked: bool) -> MockResponse:
+        """设置模拟题出题标记，状态记录独立于模拟题主体。"""
+        question = await self.repository.get_by_id(question_id)
+        if question is None:
+            raise NotFoundException(f"模拟题不存在：ID={question_id}")
+
+        existing_mark = await self.repository.get_exam_mark(question_id)
+        if marked and existing_mark is None:
+            self.session.add(MockQuestionExamMark(mock_question_id=question_id))
+        elif not marked and existing_mark is not None:
+            await self.session.delete(existing_mark)
+
+        await self.session.flush()
         response = await self.query_service.to_response(question)
         await self.session.commit()
         return response

@@ -49,6 +49,7 @@ class ExamRepository:
         total = count_result.first() or 0
 
         order_column = {
+            "id": ExamQuestion.id,
             "year": ExamQuestion.year,
             "update_time": ExamQuestion.update_time,
             "question_number": ExamQuestion.question_number,

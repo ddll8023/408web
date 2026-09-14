@@ -13,7 +13,7 @@ from web408.modules.question_content.schemas import (
 from web408.schemas.common import PaginatedResponse
 
 
-ExamSortField = Literal["year", "update_time", "question_number"]
+ExamSortField = Literal["id", "year", "update_time", "question_number"]
 SortOrder = Literal["asc", "desc"]
 
 

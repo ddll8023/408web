@@ -52,6 +52,14 @@ export function deleteMockQuestion(id: number) {
   })
 }
 
+export function setMockExamMark(id: number, marked: boolean) {
+  return request<MockQuestion>({
+    url: `/api/mock/${id}/exam-mark`,
+    method: 'post',
+    data: { marked }
+  })
+}
+
 export function getAllMockSources() {
   return request<MockSources>({
     url: '/api/mock/sources',

@@ -141,7 +141,12 @@ import { errorMessage } from "@/utils/errors"
 import { ref, onMounted, computed, nextTick, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { getEnabledSubjects } from '@/api/subject'
-import { getMockQuestions, deleteMockQuestion, getMockSubjectStats } from '@/api/mock'
+import {
+  getMockQuestions,
+  getMockQuestionById,
+  deleteMockQuestion,
+  getMockSubjectStats,
+} from '@/api/mock'
 import { getEnabledCategoryTreeBySubjectWithStats } from '@/api/category'
 import { useAuthStore } from '@/stores/auth'
 import { useToast } from '@/composables/useToast'
@@ -364,24 +369,46 @@ const loadSubjects = async () => {
 const handleHashScroll = async () => {
   const hash = window.location.hash
   if (!hash || !hash.startsWith('#mock-')) return
-  
-  // 等待DOM渲染完成
-  await nextTick()
-  // 给予数据DOM渲染的额外时间
-  await new Promise(resolve => setTimeout(resolve, 300))
-  
-  const elementId = hash.slice(1) // 移除#号
-  const element = document.getElementById(elementId)
-  
-  if (element) {
-    // 滚动到元素位置
+
+  const mockId = hash.slice('#mock-'.length)
+  if (!mockId || Number.isNaN(Number(mockId))) return
+
+  try {
+    const response = await getMockQuestionById(Number(mockId))
+    if (response.code !== 200 || !response.data) {
+      console.warn('目标模拟题不存在:', mockId)
+      return
+    }
+
+    const targetMock = response.data
+    if (targetMock.subjectId != null && targetMock.subjectId !== activeSubjectId.value) {
+      const targetSubject = subjects.value.find(subject => subject.id === targetMock.subjectId)
+      if (!targetSubject) return
+      await handleSubjectSelect(targetSubject)
+    }
+
+    if (targetMock.category && targetMock.category.length > 0) {
+      filterCategory.value = targetMock.category[0]
+      await loadQuestions(true)
+    }
+
+    if (!questionList.value.some(question => question.id === targetMock.id)) {
+      questionList.value.unshift(targetMock)
+    }
+
+    await nextTick()
+    await new Promise(resolve => setTimeout(resolve, 100))
+
+    const element = document.getElementById(`mock-${mockId}`)
+    if (!element) return
+
     element.scrollIntoView({ behavior: 'smooth', block: 'center' })
-    
-    // 添加高亮效果
     element.classList.add('highlight-card')
     setTimeout(() => {
       element.classList.remove('highlight-card')
     }, 2000)
+  } catch (error) {
+    console.error('处理模拟题 hash 跳转失败:', error)
   }
 }
 

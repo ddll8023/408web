@@ -13,7 +13,7 @@ from web408.modules.question_content.schemas import (
 from web408.schemas.common import PaginatedResponse
 
 
-MockSortField = Literal["source", "update_time", "question_number", "create_time"]
+MockSortField = Literal["id", "source", "update_time", "question_number", "create_time"]
 SortOrder = Literal["asc", "desc"]
 
 
@@ -26,6 +26,7 @@ class MockQueryParams(BaseModel):
     category: str | None = Field(default=None, description="分类筛选")
     subject_id: int | None = Field(default=None, ge=1, description="科目 ID 筛选")
     no_category: bool | None = Field(default=None, description="是否筛选无分类")
+    is_exam_marked: bool | None = Field(default=None, description="是否已标记为出题")
     keyword: str | None = Field(default=None, max_length=200, description="关键词搜索")
     sort_field: MockSortField = Field(default="update_time", description="排序字段")
     sort_order: SortOrder = Field(default="desc", description="排序方向")
@@ -59,6 +60,12 @@ class MockCategoryFilterRequest(BaseModel):
     """模拟题来源统计筛选请求。"""
 
     category: str | None = Field(default=None, description="分类筛选")
+
+
+class MockExamMarkRequest(BaseModel):
+    """设置模拟题出题标记的请求。"""
+
+    marked: bool = Field(..., description="是否标记为已出题")
 
 
 class MockDuplicateRequest(BaseModel):
@@ -103,6 +110,7 @@ class MockResponse(BaseModel):
     author_name: str | None = None
     create_time: str | None = None
     update_time: str | None = None
+    is_exam_marked: bool = Field(default=False, description="是否已标记为出题")
 
     model_config = ConfigDict(from_attributes=True)
 

@@ -83,8 +83,7 @@
         v-show="dropdownVisible && !disabled"
         role="listbox"
         :aria-multiselectable="multiple ? 'true' : undefined"
-        class="dropdown-panel absolute top-full left-0 right-0 z-50 overflow-hidden"
-        :class="multiple ? '' : 'min-w-[320px] max-w-[calc(100vw-24px)]'"
+        class="dropdown-panel category-cascader-panel absolute top-full left-0 right-0 z-50 overflow-hidden"
       >
         <!-- 搜索框 -->
         <div v-if="enableSearch" class="dropdown-panel__header">
@@ -513,6 +512,17 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+/* 分类树弹层保持足够宽度，避免父子分类名称被过早截断。 */
+.category-cascader-panel {
+  width: min(380px, calc(100vw - 24px));
+  min-width: min(320px, calc(100vw - 24px));
+  max-width: calc(100vw - 24px);
+}
+
+.category-cascader-panel :deep(.dropdown-tree-option) {
+  min-height: 42px;
+}
+
 /* 展开/收起动画 */
 .expand-enter-active,
 .expand-leave-active {

@@ -1,5 +1,6 @@
 <template>
   <Dropdown
+    v-if="!props.headless"
     trigger="click"
     :disabled="isCopying"
     menu-class="question-copy-dropdown"
@@ -72,6 +73,7 @@ import {
   type QuestionImageCopyScope,
   type QuestionRichCopyScope,
   type RichCopyContent,
+  type RichCopyResult,
 } from '@/utils/questionCopy'
 import { useToast } from '@/composables/useToast'
 import CustomButton from '@/components/basic/CustomButton.vue'
@@ -101,10 +103,17 @@ const props = defineProps({
   question: {
     type: Object as PropType<ExamQuestion | MockQuestion>,
     required: true
+  },
+  headless: {
+    type: Boolean,
+    default: false
   }
 })
 
-const emit = defineEmits<{ copy: [command: string] }>()
+const emit = defineEmits<{
+  copy: [command: string]
+  'word-copied': [result: RichCopyResult]
+}>()
 const { showToast } = useToast()
 
 interface QuestionRendererRef {
@@ -208,8 +217,8 @@ const handleImageCopy = async (scope: QuestionImageCopyScope) => {
   }
 }
 
-const handleWordCopy = async (scope: QuestionRichCopyScope) => {
-  if (isCopying.value) return
+const handleWordCopy = async (scope: QuestionRichCopyScope): Promise<RichCopyResult | null> => {
+  if (isCopying.value) return null
 
   isWordCopying.value = true
   renderScope.value = scope
@@ -226,6 +235,7 @@ const handleWordCopy = async (scope: QuestionRichCopyScope) => {
     } else {
       showToast('当前浏览器不支持富文本剪贴板，已按纯文本复制', 'warning')
     }
+    return result
   } catch (error) {
     console.error('Word 内容复制失败:', error)
     if (error instanceof Error && error.message === 'NO_COPY_CONTENT') {
@@ -233,11 +243,20 @@ const handleWordCopy = async (scope: QuestionRichCopyScope) => {
     } else {
       showToast('Word 内容生成失败，请重试', 'error')
     }
+    return null
   } finally {
     renderScope.value = null
     isWordCopying.value = false
   }
 }
+
+const copyWord = async (scope: QuestionRichCopyScope = 'all') => {
+  const result = await handleWordCopy(scope)
+  if (result) emit('word-copied', result)
+  return result
+}
+
+defineExpose({ copyWord })
 
 const handleCommand = (command: string) => {
   const wordScope = getRichCopyScope(command)

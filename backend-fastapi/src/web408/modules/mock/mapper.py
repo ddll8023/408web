@@ -9,6 +9,7 @@ def to_mock_response(
     *,
     subject_name: str | None,
     author_name: str | None,
+    is_exam_marked: bool = False,
 ) -> MockResponse:
     """将已取得显示字段的模拟题实体转换为公开响应。"""
     return MockResponse(
@@ -28,4 +29,5 @@ def to_mock_response(
         author_name=author_name,
         create_time=question.create_time.isoformat() if question.create_time else None,
         update_time=question.update_time.isoformat() if question.update_time else None,
+        is_exam_marked=is_exam_marked,
     )

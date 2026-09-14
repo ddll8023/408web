@@ -69,6 +69,7 @@ class MockQueryService:
                 category=params.category,
                 subject_id=params.subject_id,
                 no_category=params.no_category is True,
+                is_exam_marked=params.is_exam_marked,
                 keyword=params.keyword,
                 sort_field=params.sort_field,
                 sort_order=params.sort_order,
@@ -226,6 +227,10 @@ class MockQueryService:
         """批量读取显示字段并转换题目响应。"""
         if not questions:
             return []
+        question_ids = {
+            question.id for question in questions if question.id is not None
+        }
+        marked_question_ids = await self.repository.list_exam_marked_ids(question_ids)
         subject_names = await self.catalog_read_service.get_subject_names(
             {question.subject_id for question in questions if question.subject_id is not None}
         )
@@ -237,6 +242,7 @@ class MockQueryService:
                 question,
                 subject_name=subject_names.get(question.subject_id),
                 author_name=author_names.get(question.author_id),
+                is_exam_marked=question.id in marked_question_ids,
             )
             for question in questions
         ]

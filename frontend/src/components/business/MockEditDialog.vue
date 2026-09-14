@@ -91,6 +91,13 @@
                     <CustomButton type="primary" size="sm" @click="handleParseJson">
                       <font-awesome-icon :icon="['fas', 'check']" class="mr-1.5" />解析并填充
                     </CustomButton>
+                    <CustomButton
+                      size="sm"
+                      title="仅更新题干、选项和答案解析，不修改基础信息"
+                      @click="handleParseContentJson"
+                    >
+                      <font-awesome-icon :icon="['fas', 'edit']" class="mr-1.5" />仅更新题目内容
+                    </CustomButton>
                     <CustomButton size="sm" @click="handleClearJson">
                       <font-awesome-icon :icon="['fas', 'trash']" class="mr-1.5" />清空
                     </CustomButton>
@@ -328,7 +335,7 @@ const {
   subjectOptions, categoryTreeOptions,
   loadSubjectOptions,
   handleSubjectChange, handleQuestionTypeChange,
-  resetForm, fillFormFromData, buildSubmitData
+  resetForm, fillFormFromData, fillContentFromData, buildSubmitData
 } = useQuestionForm({
   extraFields: { source: '', questionNumber: null }
 })
@@ -579,6 +586,36 @@ const handleParseJson = async () => {
 
 
     showToast('JSON解析成功，已填充到表单', 'success')
+    jsonImportVisible.value = false
+  } catch (e) {
+    showToast('JSON格式错误：' + (e instanceof Error ? e.message : String(e)), 'error')
+  }
+}
+
+// 仅解析并更新题目内容，不修改基础信息
+const handleParseContentJson = () => {
+  if (!jsonInput.value.trim()) {
+    showToast('请先粘贴JSON数据', 'warning')
+    return
+  }
+
+  try {
+    const data = parseJsonWithRelaxedSupport(jsonInput.value)
+    if (data.questionType && data.questionType !== form.questionType) {
+      showToast('仅更新题目内容时，JSON题型必须与当前题型一致', 'error')
+      return
+    }
+
+    const hasContentFields = data.content !== undefined ||
+      data.answer !== undefined ||
+      (form.questionType === 'CHOICE' && data.options !== undefined)
+    if (!hasContentFields) {
+      showToast('JSON中没有当前题型可更新的题目、选项或答案内容', 'warning')
+      return
+    }
+
+    fillContentFromData(data)
+    showToast('JSON解析成功，仅更新题目、选项和答案，基础信息未改变', 'success')
     jsonImportVisible.value = false
   } catch (e) {
     showToast('JSON格式错误：' + (e instanceof Error ? e.message : String(e)), 'error')

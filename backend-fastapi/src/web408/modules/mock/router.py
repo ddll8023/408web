@@ -12,6 +12,7 @@ from web408.modules.mock.schemas import (
     MockCreateRequest,
     MockDuplicateCheckResponse,
     MockDuplicateRequest,
+    MockExamMarkRequest,
     MockQueryParams,
     MockResponse,
     MockSourceQueryRequest,
@@ -164,6 +165,26 @@ async def get_mock_detail(
     """查询模拟题详情。"""
     mock = await MockQueryService(session).get_by_id(mock_id)
     return ApiResponse(data=mock)
+
+
+@router.post(
+    "/{mock_id}/exam-mark",
+    response_model=ApiResponse[MockResponse],
+    summary="更新模拟题出题标记",
+    description="设置指定模拟题是否已出题，仅管理员可访问",
+)
+async def set_mock_exam_mark(
+    request: MockExamMarkRequest,
+    session: SessionDep,
+    mock_id: int = Path(..., ge=1, description="模拟题 ID"),
+    _admin: AuthUser = Depends(get_current_admin),
+) -> ApiResponse[MockResponse]:
+    """更新模拟题出题标记。"""
+    mock = await _get_command_service(session).set_exam_mark(
+        mock_id,
+        request.marked,
+    )
+    return ApiResponse(data=mock, message="出题标记已更新")
 
 
 @router.post(

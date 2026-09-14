@@ -10,7 +10,7 @@ from sqlalchemy import and_, func, or_
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from web408.modules.mock.models import MockQuestion
+from web408.modules.mock.models import MockQuestion, MockQuestionExamMark
 
 
 @dataclass(frozen=True, slots=True)
@@ -23,6 +23,7 @@ class MockQuery:
     category: str | None
     subject_id: int | None
     no_category: bool
+    is_exam_marked: bool | None
     keyword: str | None
     sort_field: str
     sort_order: str
@@ -49,6 +50,7 @@ class MockRepository:
         total = count_result.first() or 0
 
         order_column = {
+            "id": MockQuestion.id,
             "source": MockQuestion.source,
             "update_time": MockQuestion.update_time,
             "question_number": MockQuestion.question_number,
@@ -73,6 +75,27 @@ class MockRepository:
         """按主键查询模拟题。"""
         result = await self.session.exec(
             select(MockQuestion).where(MockQuestion.id == question_id)
+        )
+        return result.first()
+
+    async def list_exam_marked_ids(self, question_ids: set[int]) -> set[int]:
+        """批量读取已标记为出题的模拟题 ID。"""
+        if not question_ids:
+            return set()
+
+        result = await self.session.exec(
+            select(MockQuestionExamMark.mock_question_id).where(
+                MockQuestionExamMark.mock_question_id.in_(question_ids)
+            )
+        )
+        return set(result.all())
+
+    async def get_exam_mark(self, question_id: int) -> MockQuestionExamMark | None:
+        """读取指定模拟题的出题标记记录。"""
+        result = await self.session.exec(
+            select(MockQuestionExamMark).where(
+                MockQuestionExamMark.mock_question_id == question_id
+            )
         )
         return result.first()
 
@@ -282,6 +305,14 @@ class MockRepository:
             conditions.append(MockQuestion.source == params.source)
         if params.subject_id is not None:
             conditions.append(MockQuestion.subject_id == params.subject_id)
+
+        if params.is_exam_marked is not None:
+            marked_exists = select(MockQuestionExamMark.id).where(
+                MockQuestionExamMark.mock_question_id == MockQuestion.id
+            ).exists()
+            conditions.append(
+                marked_exists if params.is_exam_marked else ~marked_exists
+            )
 
         if params.no_category is True:
             conditions.append(

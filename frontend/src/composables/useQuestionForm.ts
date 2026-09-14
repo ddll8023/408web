@@ -269,6 +269,26 @@ export function useQuestionForm(options: { extraFields?: Partial<QuestionForm> }
   }
 
   /**
+   * 仅用 JSON 更新题目内容、选项和答案，不修改题型及其他基础信息。
+   */
+  const fillContentFromData = (data: QuestionFormData) => {
+    if (data.content !== undefined) {
+      form.content = data.content
+    }
+    if (data.answer !== undefined) {
+      form.answer = data.answer || ''
+    }
+
+    if (form.questionType !== 'CHOICE' || data.options === undefined) return
+
+    const options = parseOptions(data.options)
+    form.optionA = options.A || ''
+    form.optionB = options.B || ''
+    form.optionC = options.C || ''
+    form.optionD = options.D || ''
+  }
+
+  /**
    * 构建提交数据
    * @param {Object} extraData - 额外的提交字段
    * @returns {Object} 提交数据
@@ -320,6 +340,7 @@ export function useQuestionForm(options: { extraFields?: Partial<QuestionForm> }
     handleSubjectChange,
     handleQuestionTypeChange,
     fillFormFromData,
+    fillContentFromData,
     buildSubmitData
   }
 }

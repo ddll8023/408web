@@ -92,7 +92,7 @@
           v-show="visible"
           role="listbox"
           :aria-label="placeholder"
-          class="dropdown-panel fixed z-[99999] overflow-hidden"
+          class="dropdown-panel select-dropdown-panel fixed z-[99999] overflow-hidden"
         >
         <!-- 搜索框（可选） -->
         <div

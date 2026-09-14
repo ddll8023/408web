@@ -98,14 +98,18 @@
 
 ### 模拟题模块
 - 模拟题列表
-- 按机构分类
+- 按来源、科目和分类浏览
 - 选择题作答反馈
+- 管理端完整复制到 Word 和出题状态管理
 
 ### 管理功能（管理员）
 - 科目管理
 - 章节管理
 - 分类标签管理
 - 题目管理（真题/模拟题）
+- 真题/模拟题按分类子树筛选和按 ID 排序
+- 编辑弹窗 JSON 完整导入和仅更新题目内容
+- 模拟题 Word 复制和出题状态管理
 - 图片资源管理
 - 数据统计
 
@@ -213,9 +217,10 @@ npm run build
 ### 模拟题模块
 | 接口 | 方法 | 说明 |
 |------|------|------|
-| `/api/mock/query` | POST | 获取模拟题列表 |
+| `/api/mock/query` | POST | 获取模拟题列表（支持出题状态筛选） |
 | `/api/mock` | POST | 创建模拟题 |
 | `/api/mock/{id}/detail` | POST | 获取模拟题详情 |
+| `/api/mock/{id}/exam-mark` | POST | 切换模拟题出题状态（管理员） |
 
 以上为常用接口示例，不是完整路由清单。完整路由与响应模型以 `backend-fastapi/src/web408/api/router.py`、各模块 `router.py`、`schemas.py`/`schemas/` 和 `backend-fastapi/src/web408/schemas/common.py` 为准，运行中的接口还可通过后端 `/docs` 查看。
 
@@ -262,6 +267,7 @@ JWT_ALGORITHM=HS256
 - `exam_category` - 分类标签表
 - `exam_question` - 真题表
 - `mock_question` - 模拟题表
+- `mock_question_exam_mark` - 模拟题出题状态表
 
 完整字段、索引、约束和外键说明见 [`doc/数据库设计.md`](./doc/数据库设计.md)。
 

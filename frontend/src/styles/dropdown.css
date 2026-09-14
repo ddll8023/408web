@@ -80,6 +80,12 @@
   overflow: hidden;
 }
 
+/* Select 的弹层不能小于可读宽度，同时在窄屏内收缩。 */
+.select-dropdown-panel {
+  min-width: 180px;
+  max-width: calc(100vw - 24px);
+}
+
 /* ==================== 单选列表 ==================== */
 
 .dropdown-option-list {

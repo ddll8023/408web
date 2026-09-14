@@ -19,6 +19,7 @@ export interface MockQuestion {
   authorName?: string | null
   createTime?: string | null
   updateTime?: string | null
+  isExamMarked: boolean
 }
 
 /** 模拟题分页查询参数（对应 MockQueryParams，size 为页面分页组件的历史别名） */
@@ -31,6 +32,7 @@ export interface MockQueryParams {
   category?: string | null
   subjectId?: number | null
   noCategory?: boolean | null
+  isExamMarked?: boolean | null
   keyword?: string | null
   sortField?: string
   sortOrder?: 'asc' | 'desc'

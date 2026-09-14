@@ -1,7 +1,7 @@
 """模拟题模块持久化模型。"""
 from typing import Optional
 
-from sqlalchemy import CheckConstraint, Index, text
+from sqlalchemy import CheckConstraint, Index, UniqueConstraint, text
 from sqlmodel import Field, Relationship
 
 from web408.models.base import BaseModel
@@ -56,3 +56,22 @@ class MockQuestion(BaseModel, table=True):
     # 关系
     subject: Optional["Subject"] = Relationship(back_populates="mock_questions")
     author: Optional["User"] = Relationship(back_populates="mock_questions")
+
+
+class MockQuestionExamMark(BaseModel, table=True):
+    """模拟题出题标记；独立保存状态，不修改模拟题主体记录。"""
+
+    __tablename__ = "mock_question_exam_mark"
+    __table_args__ = (
+        UniqueConstraint(
+            "mock_question_id",
+            name="uq_mock_question_exam_mark_question",
+        ),
+    )
+
+    mock_question_id: int = Field(
+        foreign_key="mock_question.id",
+        ondelete="CASCADE",
+        index=True,
+        description="模拟题 ID",
+    )
