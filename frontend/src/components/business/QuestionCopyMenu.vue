@@ -69,6 +69,7 @@ import {
   copyRichContent,
   getImageCopyScope,
   getRichCopyScope,
+  type ImageCopyResult,
   type QuestionContentScope,
   type QuestionImageCopyScope,
   type QuestionRichCopyScope,
@@ -186,8 +187,8 @@ const getImageFilename = (scope: QuestionImageCopyScope) => {
   return `${safePrefix || '408题目'}-${scope}.png`
 }
 
-const handleImageCopy = async (scope: QuestionImageCopyScope) => {
-  if (isCopying.value) return
+const handleImageCopy = async (scope: QuestionImageCopyScope): Promise<ImageCopyResult | null> => {
+  if (isCopying.value) return null
 
   isImageCopying.value = true
   renderScope.value = scope
@@ -204,6 +205,7 @@ const handleImageCopy = async (scope: QuestionImageCopyScope) => {
     } else {
       showToast('当前浏览器不支持图片剪贴板，已下载 PNG', 'success')
     }
+    return result
   } catch (error) {
     console.error('图片复制失败:', error)
     if (error instanceof Error && error.message === 'NO_COPY_CONTENT') {
@@ -211,6 +213,7 @@ const handleImageCopy = async (scope: QuestionImageCopyScope) => {
     } else {
       showToast('图片生成失败，可能包含跨域图片或内容过长', 'error')
     }
+    return null
   } finally {
     renderScope.value = null
     isImageCopying.value = false
@@ -256,7 +259,11 @@ const copyWord = async (scope: QuestionRichCopyScope = 'all') => {
   return result
 }
 
-defineExpose({ copyWord })
+const copyImage = async (scope: QuestionImageCopyScope = 'all') => {
+  return handleImageCopy(scope)
+}
+
+defineExpose({ copyWord, copyImage })
 
 const handleCommand = (command: string) => {
   const wordScope = getRichCopyScope(command)

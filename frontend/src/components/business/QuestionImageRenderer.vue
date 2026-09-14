@@ -894,6 +894,8 @@ defineExpose({ capture, getClipboardContent })
   overflow: visible;
   background: #fff;
   color: #333;
+  text-align: left;
+  white-space: normal;
   font-family: Arial, "Microsoft YaHei", "PingFang SC", sans-serif;
   font-size: 16px;
   line-height: 1.6;

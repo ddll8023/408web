@@ -23,6 +23,10 @@
           <font-awesome-icon :icon="['fas', 'file-word']" aria-hidden="true" />
           <span>复制到 Word</span>
         </DropdownItem>
+        <DropdownItem command="copy-image" :disabled="isBusy">
+          <font-awesome-icon :icon="['fas', 'file']" aria-hidden="true" />
+          <span>导出题目图片</span>
+        </DropdownItem>
         <DropdownItem command="toggle-status" :disabled="isBusy" divided>
           <font-awesome-icon :icon="['fas', 'rotate']" aria-hidden="true" />
           <span>切换出题状态</span>
@@ -34,9 +38,9 @@
     </template>
   </Dropdown>
 
-  <!-- 复用现有 Word 富文本复制实现，仅隐藏触发器。 -->
+  <!-- 复用现有 Word/题目图片导出实现，仅隐藏触发器。 -->
   <QuestionCopyMenu
-    ref="wordCopyMenu"
+    ref="copyMenu"
     :question="question"
     headless
     @word-copied="handleWordCopied"
@@ -46,7 +50,12 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import type { MockQuestion } from '@/types'
-import type { QuestionRichCopyScope, RichCopyResult } from '@/utils/questionCopy'
+import type {
+  ImageCopyResult,
+  QuestionImageCopyScope,
+  QuestionRichCopyScope,
+  RichCopyResult,
+} from '@/utils/questionCopy'
 import CustomButton from '@/components/basic/CustomButton.vue'
 import Dropdown from '@/components/basic/Dropdown.vue'
 import DropdownItem from '@/components/basic/DropdownItem.vue'
@@ -66,13 +75,15 @@ const emit = defineEmits<{
   'toggle-exam-status': []
 }>()
 
-interface WordCopyMenuRef {
+interface QuestionCopyMenuRef {
   copyWord: (scope?: QuestionRichCopyScope) => Promise<RichCopyResult | null>
+  copyImage: (scope?: QuestionImageCopyScope) => Promise<ImageCopyResult | null>
 }
 
-const wordCopyMenu = ref<WordCopyMenuRef | null>(null)
+const copyMenu = ref<QuestionCopyMenuRef | null>(null)
 const isWordCopying = ref(false)
-const isBusy = computed(() => isWordCopying.value || props.statusLoading)
+const isImageCopying = ref(false)
+const isBusy = computed(() => isWordCopying.value || isImageCopying.value || props.statusLoading)
 
 const handleWordCopied = (result: RichCopyResult) => {
   emit('word-copied', result)
@@ -81,20 +92,39 @@ const handleWordCopied = (result: RichCopyResult) => {
 const copyWord = async () => {
   if (isBusy.value) return
 
-  const copyMenu = wordCopyMenu.value
-  if (!copyMenu) return
+  const menu = copyMenu.value
+  if (!menu) return
 
   isWordCopying.value = true
   try {
-    await copyMenu.copyWord('all')
+    await menu.copyWord('all')
   } finally {
     isWordCopying.value = false
+  }
+}
+
+const copyImage = async () => {
+  if (isBusy.value) return
+
+  const menu = copyMenu.value
+  if (!menu) return
+
+  isImageCopying.value = true
+  try {
+    await menu.copyImage('question-options')
+  } finally {
+    isImageCopying.value = false
   }
 }
 
 const handleCommand = (command: string) => {
   if (command === 'copy-word') {
     void copyWord()
+    return
+  }
+
+  if (command === 'copy-image') {
+    void copyImage()
     return
   }
 
