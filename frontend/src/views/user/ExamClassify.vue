@@ -678,81 +678,6 @@ const formatFullMarkdown = (exam: ExamQuestion) => {
   return parts.join('\n')
 }
 
-// ==================== 纯文本格式化函数 ====================
-
-const formatQuestionText = (exam: ExamQuestion) => {
-  if (!exam?.content) return ''
-  const questionNumber = exam.questionNumber || ''
-  const questionType = exam.questionType === 'CHOICE' ? '选择题' : '主观题'
-  const category = Array.isArray(exam.category) ? exam.category.join(', ') : (exam.category || '')
-
-  const parts = []
-  parts.push(`第${questionNumber}题 (${questionType}${category ? ' - ' + category : ''})`)
-  parts.push('')
-  parts.push('【题目】')
-  parts.push(normalizeLineBreaks(exam.content))
-  return parts.join('\n')
-}
-
-const formatOptionsText = (exam: ExamQuestion) => {
-  const optionsObj = parseOptions(exam)
-  if (!optionsObj) return ''
-  const optionKeys = Object.keys(optionsObj).sort()
-  const parts = []
-  parts.push('【选项】')
-  optionKeys.forEach(key => {
-    parts.push(`${key}. ${normalizeLineBreaks(optionsObj[key])}`)
-  })
-  return parts.join('\n')
-}
-
-const formatAnswerText = (exam: ExamQuestion) => {
-  if (!exam?.answer) return ''
-  const parts = []
-  parts.push('【答案】')
-  parts.push(normalizeLineBreaks(exam.answer))
-  return parts.join('\n')
-}
-
-const formatFullText = (exam: ExamQuestion) => {
-  const parts = []
-  const questionNumber = exam.questionNumber || ''
-  const questionType = exam.questionType === 'CHOICE' ? '选择题' : '主观题'
-  const category = Array.isArray(exam.category) ? exam.category.join(', ') : (exam.category || '')
-
-  // 标题行
-  parts.push(`第${questionNumber}题 (${questionType}${category ? ' - ' + category : ''})`)
-  parts.push('')
-
-  // 题目内容
-  if (exam?.content) {
-    parts.push('【题目】')
-    parts.push(normalizeLineBreaks(exam.content))
-    parts.push('')
-  }
-
-  // 选项（仅选择题）
-  if (exam?.questionType === 'CHOICE') {
-    const optionsObj = parseOptions(exam)
-    if (optionsObj) {
-      const optionKeys = Object.keys(optionsObj).sort()
-      parts.push('【选项】')
-      optionKeys.forEach(key => {
-        parts.push(`${key}. ${normalizeLineBreaks(optionsObj[key])}`)
-      })
-      parts.push('')
-    }
-  }
-
-  // 答案
-  if (exam?.answer) {
-    parts.push('【答案】')
-    parts.push(normalizeLineBreaks(exam.answer))
-  }
-
-  return parts.join('\n')
-}
-
 const handleCopy = async (command: string, exam: ExamQuestion) => {
   let text = ''
   let message = ''
@@ -775,23 +700,6 @@ const handleCopy = async (command: string, exam: ExamQuestion) => {
       case 'md-all':
         text = formatFullMarkdown(exam)
         message = '完整内容已复制 (Markdown)'
-        break
-      // 纯文本格式
-      case 'text-question':
-        text = formatQuestionText(exam)
-        message = '题目已复制 (纯文本)'
-        break
-      case 'text-options':
-        text = formatOptionsText(exam)
-        message = '选项已复制 (纯文本)'
-        break
-      case 'text-answer':
-        text = formatAnswerText(exam)
-        message = '答案已复制 (纯文本)'
-        break
-      case 'text-all':
-        text = formatFullText(exam)
-        message = '完整内容已复制 (纯文本)'
         break
       default:
         return

@@ -722,82 +722,7 @@ const formatFullMarkdown = (mock: MockQuestion) => {
   return parts.join('\n')
 }
 
-// ==================== 纯文本格式化函数 ====================
-
-const formatQuestionText = (mock: MockQuestion) => {
-  if (!mock?.content) return ''
-  const questionType = mock.questionType === 'CHOICE' ? '选择题' : '主观题'
-  const category = Array.isArray(mock.category) ? mock.category.join(', ') : (mock.category || '')
-  const titleLine = getMockTitleLine(mock)
-  
-  const parts = []
-  // 标题行: 包含标题和题号
-  if (titleLine) {
-    parts.push(`${titleLine} (${questionType}${category ? ' - ' + category : ''})`)
-  } else {
-    parts.push(`模拟题 (${questionType}${category ? ' - ' + category : ''})`)
-  }
-  parts.push('')
-  parts.push('【题目】')
-  parts.push(normalizeLineBreaks(mock.content))
-  return parts.join('\n')
-}
-
-const formatOptionsText = (mock: MockQuestion) => {
-  const optionsObj = parseOptions(mock)
-  if (!optionsObj) return ''
-  const parts = ['【选项】']
-  Object.keys(optionsObj).sort().forEach(key => {
-    parts.push(`${key}. ${normalizeLineBreaks(optionsObj[key])}`)
-  })
-  return parts.join('\n')
-}
-
-const formatAnswerText = (mock: MockQuestion) => {
-  if (!mock?.answer) return ''
-  return ['【答案】', normalizeLineBreaks(mock.answer)].join('\n')
-}
-
-const formatFullText = (mock: MockQuestion) => {
-  const questionType = mock.questionType === 'CHOICE' ? '选择题' : '主观题'
-  const category = Array.isArray(mock.category) ? mock.category.join(', ') : (mock.category || '')
-  const titleLine = getMockTitleLine(mock)
-  
-  const parts = []
-  // 标题行: 包含标题和题号
-  if (titleLine) {
-    parts.push(`${titleLine} (${questionType}${category ? ' - ' + category : ''})`)
-  } else {
-    parts.push(`模拟题 (${questionType}${category ? ' - ' + category : ''})`)
-  }
-  parts.push('')
-  
-  if (mock?.content) {
-    parts.push('【题目】')
-    parts.push(normalizeLineBreaks(mock.content))
-    parts.push('')
-  }
-  
-  if (mock?.questionType === 'CHOICE') {
-    const optionsObj = parseOptions(mock)
-    if (optionsObj) {
-      parts.push('【选项】')
-      Object.keys(optionsObj).sort().forEach(key => {
-        parts.push(`${key}. ${normalizeLineBreaks(optionsObj[key])}`)
-      })
-      parts.push('')
-    }
-  }
-  
-  if (mock?.answer) {
-    parts.push('【答案】')
-    parts.push(normalizeLineBreaks(mock.answer))
-  }
-  
-  return parts.join('\n')
-}
-
-// 统一处理复制逻辑（支持 md-* 和 text-* 两种格式）
+// 统一处理 Markdown 复制逻辑
 const handleCopy = async (command: string, mock: MockQuestion) => {
   let text = ''
   let message = ''
@@ -820,23 +745,6 @@ const handleCopy = async (command: string, mock: MockQuestion) => {
       case 'md-all':
         text = formatFullMarkdown(mock)
         message = '完整内容已复制 (Markdown)'
-        break
-      // 纯文本格式
-      case 'text-question':
-        text = formatQuestionText(mock)
-        message = '题目已复制 (纯文本)'
-        break
-      case 'text-options':
-        text = formatOptionsText(mock)
-        message = '选项已复制 (纯文本)'
-        break
-      case 'text-answer':
-        text = formatAnswerText(mock)
-        message = '答案已复制 (纯文本)'
-        break
-      case 'text-all':
-        text = formatFullText(mock)
-        message = '完整内容已复制 (纯文本)'
         break
       default:
         return

@@ -79,8 +79,8 @@ import Dropdown from '@/components/basic/Dropdown.vue'
 import DropdownItem from '@/components/basic/DropdownItem.vue'
 import QuestionImageRenderer from '@/components/business/QuestionImageRenderer.vue'
 
-type CopyMenuSectionKey = 'markdown' | 'word' | 'text' | 'image'
-type CopyMenuIcon = ['fas', 'file-lines'] | ['fas', 'file-word'] | ['fas', 'ticket'] | ['fas', 'file']
+type CopyMenuSectionKey = 'markdown' | 'word' | 'image'
+type CopyMenuIcon = ['fas', 'file-lines'] | ['fas', 'file-word'] | ['fas', 'file']
 
 interface CopyMenuItem {
   command: string
@@ -96,7 +96,7 @@ interface CopyMenuSection {
   items: CopyMenuItem[]
 }
 
-/** 题目复制菜单，统一提供 Markdown、Word 富文本、纯文本和图片复制入口。 */
+/** 题目复制菜单，统一提供 Markdown、Word 富文本和图片复制入口。 */
 const props = defineProps({
   question: {
     type: Object as PropType<ExamQuestion | MockQuestion>,
@@ -150,20 +150,6 @@ const menuSections = computed<CopyMenuSection[]>(() => [
       ...(hasAnswer.value ? [{ command: 'word-answer', label: '复制答案' }] : []),
       ...((hasAnswer.value || hasOptions.value)
         ? [{ command: 'word-all', label: '复制完整内容', wide: true }]
-        : [])
-    ]
-  },
-  {
-    key: 'text',
-    title: '纯文本格式',
-    description: '不带样式',
-    icon: ['fas', 'ticket'],
-    items: [
-      { command: 'text-question', label: '复制题目' },
-      ...(hasOptions.value ? [{ command: 'text-options', label: '复制选项' }] : []),
-      ...(hasAnswer.value ? [{ command: 'text-answer', label: '复制答案' }] : []),
-      ...((hasAnswer.value || hasOptions.value)
-        ? [{ command: 'text-all', label: '复制完整内容', wide: true }]
         : [])
     ]
   },
@@ -284,7 +270,7 @@ const handleCommand = (command: string) => {
 
 .question-copy-dropdown .question-copy-menu {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
   width: 760px;
   max-width: calc(100vw - 24px);

@@ -203,79 +203,50 @@ const waitForReadyContent = async (root: HTMLElement) => {
   await waitForNextFrame()
 }
 
+const setInlineStyles = (element: HTMLElement, styles: Record<string, string>) => {
+  Object.entries(styles).forEach(([property, value]) => {
+    const cssProperty = property.replace(/[A-Z]/g, match => `-${match.toLowerCase()}`)
+    element.style.setProperty(cssProperty, value)
+  })
+}
+
 const applyInlineStyles = (
   root: HTMLElement,
   selector: string,
   styles: Record<string, string>,
 ) => {
   root.querySelectorAll<HTMLElement>(selector).forEach(element => {
-    Object.entries(styles).forEach(([property, value]) => {
-      const cssProperty = property.replace(/[A-Z]/g, match => `-${match.toLowerCase()}`)
-      element.style.setProperty(cssProperty, value)
-    })
+    setInlineStyles(element, styles)
   })
 }
 
-const getFormulaText = (formula: Element) => {
-  return formula.querySelector('annotation')?.textContent?.trim() ||
+// Word/WPS 使用 mso 字体属性区分西文和中文字体，普通 CSS 作为其他富文本应用的回退。
+const wordBodyFontStyles = {
+  fontFamily: '"Times New Roman", "宋体", SimSun, serif',
+  msoAsciiFontFamily: '"Times New Roman"',
+  msoHansiFontFamily: '"Times New Roman"',
+  msoFareastFontFamily: '宋体',
+  msoBidiFontFamily: '"Times New Roman"',
+}
+const wordCodeFontStyles = {
+  fontFamily: 'Consolas, monospace',
+  msoAsciiFontFamily: 'Consolas',
+  msoHansiFontFamily: 'Consolas',
+  msoFareastFontFamily: 'Consolas',
+  msoBidiFontFamily: 'Consolas',
+}
+const wordLineHeight = '1'
+const wordCodeLineHeight = '10pt'
+
+const getFormulaLatex = (formula: Element) => {
+  return formula.querySelector('annotation[encoding="application/x-tex"]')?.textContent?.trim() ||
+    formula.querySelector('annotation')?.textContent?.trim() ||
     formula.textContent?.trim() ||
     '公式'
 }
 
-const superscriptMap: Record<string, string> = {
-  '0': '⁰', '1': '¹', '2': '²', '3': '³', '4': '⁴', '5': '⁵', '6': '⁶', '7': '⁷', '8': '⁸', '9': '⁹',
-  '+': '⁺', '-': '⁻', '=': '⁼', '(': '⁽', ')': '⁾', 'n': 'ⁿ', 'i': 'ⁱ',
-}
-
-const subscriptMap: Record<string, string> = {
-  '0': '₀', '1': '₁', '2': '₂', '3': '₃', '4': '₄', '5': '₅', '6': '₆', '7': '₇', '8': '₈', '9': '₉',
-  '+': '₊', '-': '₋', '=': '₌', '(': '₍', ')': '₎', 'i': 'ᵢ', 'n': 'ₙ',
-}
-
-const toUnicodeScript = (value: string, map: Record<string, string>) => {
-  return Array.from(value).map(character => map[character] || character).join('')
-}
-
-/** 将常见 LaTeX 公式转为 Word/WPS 稳定显示的数学文本，避免数据 URI 图片被目标应用丢弃。 */
-const latexToWordText = (value: string) => {
-  let result = value
-    .replace(/\\(?:left|right)\s*/g, '')
-    .replace(/\\(?:text|mathrm|mathbf|mathit|operatorname)\{([^{}]*)\}/g, '$1')
-    .replace(/\\frac\{([^{}]*)\}\{([^{}]*)\}/g, '($1)/($2)')
-    .replace(/\\sqrt\{([^{}]*)\}/g, '√($1)')
-    .replace(/\\sum/g, '∑')
-    .replace(/\\prod/g, '∏')
-    .replace(/\\infty/g, '∞')
-    .replace(/\\(?:Theta|theta)/g, 'Θ')
-    .replace(/\\(?:Lambda|lambda)/g, 'λ')
-    .replace(/\\(?:alpha|Alpha)/g, 'α')
-    .replace(/\\(?:beta|Beta)/g, 'β')
-    .replace(/\\(?:gamma|Gamma)/g, 'γ')
-    .replace(/\\(?:delta|Delta)/g, 'δ')
-    .replace(/\\(log|ln|sin|cos|tan)\b/g, ' $1')
-    .replace(/\\(?:cdot|cdotp)/g, '·')
-    .replace(/\\times/g, '×')
-    .replace(/\\(?:leq|le)/g, '≤')
-    .replace(/\\(?:geq|ge)/g, '≥')
-    .replace(/\\ne/g, '≠')
-    .replace(/\\pm/g, '±')
-    .replace(/\\to/g, '→')
-    .replace(/\\in/g, '∈')
-    .replace(/\\[,;!:]/g, '')
-    .replace(/\^\{([^{}]*)\}/g, (_match, content: string) => toUnicodeScript(content, superscriptMap))
-    .replace(/_\{([^{}]*)\}/g, (_match, content: string) => toUnicodeScript(content, subscriptMap))
-    .replace(/\^([A-Za-z0-9])/g, (_match, content: string) => toUnicodeScript(content, superscriptMap))
-    .replace(/_([A-Za-z0-9])/g, (_match, content: string) => toUnicodeScript(content, subscriptMap))
-    .replace(/[{}]/g, '')
-    .replace(/\\([A-Za-z]+)/g, '$1')
-    .replace(/\s+/g, ' ')
-    .trim()
-
-  return result || '公式'
-}
-
-/** 用稳定的数学文本替换 KaTeX DOM，避免 Word/WPS 不支持页面外部 CSS 或 data URI 图片。 */
-const replaceFormulaWithWordText = (sourceRoot: HTMLElement, targetRoot: HTMLElement) => {
+/** 用原始 LaTeX 替换 KaTeX DOM；WPS 公式编辑器不需要 Markdown 的 `$` 分隔符。 */
+const replaceFormulaWithLatex = (sourceRoot: HTMLElement, targetRoot: HTMLElement) => {
   const sourceFormulas = Array.from(sourceRoot.querySelectorAll<HTMLElement>('.katex'))
   const targetFormulas = Array.from(targetRoot.querySelectorAll<HTMLElement>('.katex'))
 
@@ -284,17 +255,74 @@ const replaceFormulaWithWordText = (sourceRoot: HTMLElement, targetRoot: HTMLEle
     if (!targetFormula) return
 
     const text = document.createElement('span')
-    text.textContent = latexToWordText(getFormulaText(sourceFormula))
+    text.className = 'word-formula'
+    text.textContent = getFormulaLatex(sourceFormula)
     const isDisplay = Boolean(sourceFormula.closest('.katex-display-wrapper'))
     text.style.display = isDisplay ? 'block' : 'inline-block'
-    text.style.fontFamily = 'Cambria Math, STIX Two Math, Times New Roman, serif'
+    text.style.fontFamily = '"Times New Roman", serif'
     text.style.fontSize = isDisplay ? '10.5pt' : 'inherit'
-    text.style.lineHeight = '1.2'
+    text.style.lineHeight = wordLineHeight
     text.style.textAlign = isDisplay ? 'center' : 'left'
     text.style.whiteSpace = isDisplay ? 'normal' : 'nowrap'
     text.style.verticalAlign = 'middle'
     if (isDisplay) text.style.margin = '0.2em 0'
     targetFormula.replaceWith(text)
+  })
+}
+
+const wordChineseCharacterPattern = /[\u3400-\u4DBF\u4E00-\u9FFF\uF900-\uFAFF\u3000-\u303F\uFF00-\uFFEF]/
+const wordTextPartPattern = /[\u3400-\u4DBF\u4E00-\u9FFF\uF900-\uFAFF\u3000-\u303F\uFF00-\uFFEF]+|[^\u3400-\u4DBF\u4E00-\u9FFF\uF900-\uFAFF\u3000-\u303F\uFF00-\uFFEF]+/g
+const wordChineseFontStyles = {
+  fontFamily: '"宋体", SimSun, serif',
+  msoAsciiFontFamily: '宋体',
+  msoHansiFontFamily: '宋体',
+  msoFareastFontFamily: '宋体',
+  msoBidiFontFamily: '宋体',
+}
+const wordEnglishFontStyles = {
+  fontFamily: '"Times New Roman", serif',
+  msoAsciiFontFamily: '"Times New Roman"',
+  msoHansiFontFamily: '"Times New Roman"',
+  msoFareastFontFamily: '"Times New Roman"',
+  msoBidiFontFamily: '"Times New Roman"',
+}
+
+/** 为 Word 文本运行显式指定中西文字体，避免 Word 使用当前文档的默认字体。 */
+const applyWordCharacterFonts = (root: HTMLElement) => {
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT)
+  const textNodes: Text[] = []
+  let currentNode = walker.nextNode()
+
+  while (currentNode) {
+    if (currentNode instanceof Text) {
+      const parent = currentNode.parentElement
+      if (parent && !parent.closest('.clipboard-code, .word-formula') && currentNode.nodeValue?.trim()) {
+        textNodes.push(currentNode)
+      }
+    }
+    currentNode = walker.nextNode()
+  }
+
+  textNodes.forEach(textNode => {
+    const value = textNode.nodeValue
+    if (!value) return
+
+    const parts = value.match(wordTextPartPattern)
+    if (!parts) return
+
+    const fragment = document.createDocumentFragment()
+    parts.forEach(part => {
+      const span = document.createElement('span')
+      setInlineStyles(
+        span,
+        wordChineseCharacterPattern.test(part)
+          ? wordChineseFontStyles
+          : wordEnglishFontStyles,
+      )
+      span.textContent = part
+      fragment.appendChild(span)
+    })
+    textNode.replaceWith(fragment)
   })
 }
 
@@ -325,8 +353,11 @@ const compactClipboardOptions = (root: HTMLElement) => {
     table.style.margin = '0'
     table.style.borderCollapse = 'collapse'
     table.style.tableLayout = 'fixed'
-    table.style.fontSize = '9.5pt'
-    table.style.lineHeight = '1.25'
+    setInlineStyles(table, {
+      ...wordBodyFontStyles,
+      fontSize: '9.5pt',
+      lineHeight: wordLineHeight,
+    })
 
     const body = document.createElement('tbody')
     options.forEach(option => {
@@ -340,16 +371,22 @@ const compactClipboardOptions = (root: HTMLElement) => {
       keyCell.style.width = '28px'
       keyCell.style.padding = '2px 6px 2px 0'
       keyCell.style.border = '0'
-      keyCell.style.color = '#8b6f47'
-      keyCell.style.fontSize = '9.5pt'
-      keyCell.style.fontWeight = '700'
-      keyCell.style.lineHeight = '1.25'
-      keyCell.style.verticalAlign = 'top'
-      contentCell.style.padding = '2px 0'
-      contentCell.style.border = '0'
-      contentCell.style.fontSize = '9pt'
-      contentCell.style.lineHeight = '1.2'
-      contentCell.style.verticalAlign = 'top'
+      setInlineStyles(keyCell, {
+        ...wordBodyFontStyles,
+        color: '#8b6f47',
+        fontSize: '9.5pt',
+        fontWeight: '700',
+        lineHeight: wordLineHeight,
+        verticalAlign: 'top',
+      })
+      setInlineStyles(contentCell, {
+        ...wordBodyFontStyles,
+        padding: '2px 0',
+        border: '0',
+        fontSize: '9pt',
+        lineHeight: wordLineHeight,
+        verticalAlign: 'top',
+      })
 
       if (content) {
         content.style.display = 'block'
@@ -366,7 +403,7 @@ const compactClipboardOptions = (root: HTMLElement) => {
   })
 }
 
-/** 将代码块改为紧凑 div，并用 br 明确保留换行，规避 Word/WPS 折叠 pre 的空白字符。 */
+/** 将代码块改为紧凑段落，并用 br 明确保留换行，规避 Word/WPS 折叠 pre 的空白字符。 */
 const compactClipboardCode = (root: HTMLElement) => {
   root.querySelectorAll<HTMLElement>('pre').forEach(pre => {
     const code = pre.querySelector<HTMLElement>('code') || pre
@@ -377,7 +414,7 @@ const compactClipboardCode = (root: HTMLElement) => {
       .replace(/^[ \t]*\n/, '')
       .replace(/\n[ \t]*\n+/g, '\n')
       .replace(/\n[ \t]*$/, '')
-    const replacement = document.createElement('div')
+    const replacement = document.createElement('p')
 
     replacement.className = 'clipboard-code'
     codeText.split('\n').forEach((line, index, lines) => {
@@ -385,16 +422,196 @@ const compactClipboardCode = (root: HTMLElement) => {
       replacement.appendChild(document.createTextNode(line.replace(/\t/g, '    ').replace(/ /g, '\u00a0')))
       if (index < lines.length - 1) replacement.appendChild(document.createElement('br'))
     })
+    setInlineStyles(replacement, {
+      ...wordCodeFontStyles,
+      boxSizing: 'border-box',
+      display: 'block',
+      width: '100%',
+      margin: '4px 0',
+      padding: '4px 6px',
+      background: '#f6f8fa',
+      border: '1px solid #e5e7eb',
+      borderRadius: '3px',
+      fontSize: '8pt',
+      lineHeight: wordCodeLineHeight,
+      msoLineHeightRule: 'exactly',
+      msoLineHeightAlt: wordCodeLineHeight,
+      whiteSpace: 'normal',
+      overflowWrap: 'anywhere',
+    })
+    // CSSOM 可能丢弃 mso-* 属性，直接补入 style 属性确保 Word 识别为“固定值”。
+    const codeStyle = replacement.getAttribute('style') || ''
     replacement.setAttribute(
       'style',
-      'box-sizing:border-box;display:block;width:100%;margin:4px 0;padding:4px 6px;' +
-        'background:#f6f8fa;border:1px solid #e5e7eb;border-radius:3px;' +
-        'font-family:Menlo,Monaco,Consolas,monospace;font-size:8pt;' +
-        'line-height:9pt;mso-line-height-rule:exactly;white-space:normal;' +
-        'overflow-wrap:anywhere;',
+      `${codeStyle};line-height:${wordCodeLineHeight};mso-line-height-rule:exactly;mso-line-height-alt:${wordCodeLineHeight};`,
     )
     pre.replaceWith(replacement)
   })
+}
+
+const clipboardMediaScale = 2
+const parseClipboardDimension = (value: string | null) => {
+  if (!value) return null
+  const match = /^\s*(\d+(?:\.\d+)?)(?:px)?\s*$/i.exec(value)
+  const dimension = match ? Number(match[1]) : NaN
+  return Number.isFinite(dimension) && dimension > 0 ? dimension : null
+}
+
+const getSvgDimensions = (svg: SVGSVGElement) => {
+  const viewBox = (svg.getAttribute('viewBox') || '').trim().split(/[\\s,]+/).map(Number)
+  const hasViewBox = viewBox.length === 4 && viewBox[2] > 0 && viewBox[3] > 0
+  const rect = svg.getBoundingClientRect()
+  const width = parseClipboardDimension(svg.getAttribute('width')) ||
+    (hasViewBox ? viewBox[2] : null) || rect.width || 300
+  const height = parseClipboardDimension(svg.getAttribute('height')) ||
+    (hasViewBox ? viewBox[3] : null) || rect.height || width
+
+  return {
+    width: width || height,
+    height: height || width,
+  }
+}
+
+const getCanvasSize = (width: number, height: number) => {
+  const scale = Math.min(clipboardMediaScale, 4096 / width, 4096 / height)
+  return {
+    width: Math.max(1, Math.round(width * scale)),
+    height: Math.max(1, Math.round(height * scale)),
+  }
+}
+
+const rasterizeLoadedImage = (
+  image: HTMLImageElement,
+  width = image.naturalWidth,
+  height = image.naturalHeight,
+) => {
+  if (!width || !height) return null
+
+  const canvas = document.createElement('canvas')
+  const size = getCanvasSize(width, height)
+  canvas.width = size.width
+  canvas.height = size.height
+  const context = canvas.getContext('2d')
+  if (!context) return null
+
+  context.drawImage(image, 0, 0, size.width, size.height)
+  return canvas.toDataURL('image/png')
+}
+
+const loadClipboardImage = (source: string) => {
+  return new Promise<HTMLImageElement>((resolve, reject) => {
+    const image = new Image()
+    image.onload = () => resolve(image)
+    image.onerror = () => reject(new Error('CLIPBOARD_IMAGE_LOAD_FAILED'))
+    image.src = source
+  })
+}
+
+const serializeSvg = (svg: SVGSVGElement) => {
+  const clone = svg.cloneNode(true) as SVGSVGElement
+  clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg')
+  clone.removeAttribute('tabindex')
+  clone.removeAttribute('role')
+  return new XMLSerializer().serializeToString(clone)
+}
+
+/** 将 SVG 栅格化为 PNG，Word 粘贴时使用稳定的图片格式；失败时保留 SVG 图片数据。 */
+const rasterizeSvg = async (svg: SVGSVGElement) => {
+  const serialized = serializeSvg(svg)
+  const svgSource = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(serialized)}`
+  const dimensions = getSvgDimensions(svg)
+
+  try {
+    const image = await loadClipboardImage(svgSource)
+    return rasterizeLoadedImage(image, dimensions.width, dimensions.height) || svgSource
+  } catch {
+    return svgSource
+  }
+}
+
+const rasterizeImage = async (image: HTMLImageElement) => {
+  const source = image.currentSrc || image.src
+  if (!source) return null
+
+  try {
+    const loadedImage = image.complete && image.naturalWidth
+      ? image
+      : await loadClipboardImage(source)
+    return rasterizeLoadedImage(loadedImage) || source
+  } catch {
+    // 跨域图片可能无法绘制到 Canvas，保留原地址作为兼容回退。
+    return source
+  }
+}
+
+const copyMediaAttributes = (source: HTMLElement | SVGElement, target: HTMLImageElement) => {
+  const className = source.getAttribute('class')
+  if (className) target.setAttribute('class', `${className} clipboard-media`)
+  else target.classList.add('clipboard-media')
+
+  const alt = source.getAttribute('alt') || source.querySelector('title')?.textContent?.trim()
+  if (alt) target.alt = alt
+
+  for (const attribute of ['width', 'height']) {
+    const value = source.getAttribute(attribute)
+    if (value) target.setAttribute(attribute, value)
+  }
+
+  const preferredWidth = source.style.getPropertyValue('--media-preferred-width').trim()
+  if (preferredWidth) target.style.width = preferredWidth
+}
+
+const alignClipboardMedia = (image: HTMLImageElement, standalone: boolean) => {
+  if (standalone) {
+    setInlineStyles(image, {
+      display: 'inline-block',
+      maxWidth: '100%',
+      height: 'auto',
+      margin: '4px 0',
+      objectFit: 'contain',
+    })
+
+    const parent = image.parentElement
+    if (parent) {
+      setInlineStyles(parent, { textAlign: 'center' })
+      if (parent.tagName === 'A') {
+        setInlineStyles(parent, { display: 'inline-block', textAlign: 'center' })
+        if (parent.parentElement) setInlineStyles(parent.parentElement, { textAlign: 'center' })
+      }
+    }
+    return
+  }
+
+  setInlineStyles(image, {
+    display: 'inline-block',
+    maxWidth: '100%',
+    height: 'auto',
+    verticalAlign: 'middle',
+    objectFit: 'contain',
+  })
+}
+
+/** 将图片和 SVG 变为 Word 可识别的 img 图片，并为独占段落补充居中样式。 */
+const prepareClipboardMedia = async (root: HTMLElement) => {
+  const media = Array.from(root.querySelectorAll<HTMLImageElement | SVGSVGElement>('img, svg'))
+    .filter(element => !element.closest('.katex, math, .clipboard-code'))
+    .filter(element => !element.parentElement?.closest('svg'))
+
+  for (const source of media) {
+    const standalone = source.classList.contains('markdown-media-block')
+    if (source instanceof SVGSVGElement) {
+      const image = document.createElement('img')
+      copyMediaAttributes(source, image)
+      image.src = await rasterizeSvg(source)
+      source.replaceWith(image)
+      alignClipboardMedia(image, standalone)
+      continue
+    }
+
+    const imageSource = await rasterizeImage(source)
+    if (imageSource) source.src = imageSource
+    alignClipboardMedia(source, standalone)
+  }
 }
 
 const prepareClipboardClone = (root: HTMLElement) => {
@@ -411,24 +628,31 @@ const prepareClipboardClone = (root: HTMLElement) => {
   clone.style.padding = '0'
   clone.style.backgroundColor = '#ffffff'
   clone.style.pointerEvents = 'auto'
+  setInlineStyles(clone, {
+    ...wordBodyFontStyles,
+    lineHeight: wordLineHeight,
+  })
 
   applyInlineStyles(clone, '.question-image-renderer__header', {
+    ...wordBodyFontStyles,
     paddingBottom: '6px',
     borderBottom: '1px solid #e5e7eb',
   })
   applyInlineStyles(clone, '.question-image-renderer__title', {
     margin: '0',
+    ...wordBodyFontStyles,
     color: '#374151',
     fontSize: '13pt',
     fontWeight: '700',
-    lineHeight: '1.25',
+    lineHeight: wordLineHeight,
   })
   applyInlineStyles(clone, '.question-image-renderer__meta', {
     display: 'block',
+    ...wordBodyFontStyles,
     marginTop: '3px',
     color: '#8b6f47',
     fontSize: '8.5pt',
-    lineHeight: '1.2',
+    lineHeight: wordLineHeight,
   })
   applyInlineStyles(clone, '.question-image-renderer__meta span', {
     display: 'inline',
@@ -439,11 +663,12 @@ const prepareClipboardClone = (root: HTMLElement) => {
     marginTop: '6px',
   })
   applyInlineStyles(clone, '.question-image-renderer__section h2', {
+    ...wordBodyFontStyles,
     margin: '0 0 2px',
     color: '#4b5563',
     fontSize: '10pt',
     fontWeight: '700',
-    lineHeight: '1.2',
+    lineHeight: wordLineHeight,
   })
   applyInlineStyles(clone, '.question-image-renderer__options', {
     display: 'block',
@@ -457,10 +682,11 @@ const prepareClipboardClone = (root: HTMLElement) => {
   applyInlineStyles(clone, '.question-image-renderer__option-key', {
     display: 'inline-block',
     marginRight: '6px',
+    ...wordBodyFontStyles,
     color: '#8b6f47',
     fontSize: '9.5pt',
     fontWeight: '700',
-    lineHeight: '1.25',
+    lineHeight: wordLineHeight,
     verticalAlign: 'top',
   })
   applyInlineStyles(clone, '.question-image-renderer__option .markdown-viewer', {
@@ -470,17 +696,18 @@ const prepareClipboardClone = (root: HTMLElement) => {
     verticalAlign: 'top',
   })
   applyInlineStyles(clone, '.markdown-viewer, .v-md-editor-preview, .github-markdown-body', {
+    ...wordBodyFontStyles,
     width: '100%',
     minHeight: 'auto',
     padding: '0',
     backgroundColor: 'transparent',
-    fontFamily: 'Arial, "Microsoft YaHei", "PingFang SC", sans-serif',
     fontSize: '9.5pt',
-    lineHeight: '1.2',
+    lineHeight: wordLineHeight,
   })
   applyInlineStyles(clone, '.markdown-viewer.is-option, .markdown-viewer.is-option .github-markdown-body', {
+    ...wordBodyFontStyles,
     fontSize: '9pt',
-    lineHeight: '1.2',
+    lineHeight: wordLineHeight,
   })
   applyInlineStyles(clone, '.question-image-renderer__option .markdown-viewer', {
     display: 'block',
@@ -489,9 +716,10 @@ const prepareClipboardClone = (root: HTMLElement) => {
     verticalAlign: 'top',
   })
   applyInlineStyles(clone, '.markdown-viewer h1, .markdown-viewer h2, .markdown-viewer h3', {
+    ...wordBodyFontStyles,
     margin: '4px 0 2px',
     fontWeight: '700',
-    lineHeight: '1.2',
+    lineHeight: wordLineHeight,
   })
   applyInlineStyles(clone, '.markdown-viewer h1', {
     fontSize: '11.5pt',
@@ -506,9 +734,10 @@ const prepareClipboardClone = (root: HTMLElement) => {
     margin: '4px 0',
   })
   applyInlineStyles(clone, 'p', {
+    ...wordBodyFontStyles,
     margin: '0',
     padding: '0',
-    lineHeight: '1.2',
+    lineHeight: wordLineHeight,
     msoMarginTopAlt: '0',
     msoMarginBottomAlt: '0',
   })
@@ -557,7 +786,7 @@ const extractClipboardText = (root: HTMLElement) => {
   clone.style.width = '760px'
 
   clone.querySelectorAll<HTMLElement>('.katex').forEach(formula => {
-    formula.replaceWith(document.createTextNode(latexToWordText(getFormulaText(formula))))
+    formula.replaceWith(document.createTextNode(getFormulaLatex(formula)))
   })
 
   const holder = document.createElement('div')
@@ -592,15 +821,23 @@ const getClipboardContent = async (): Promise<RichCopyContent> => {
   await waitForReadyContent(root)
   const text = extractClipboardText(root)
   const clone = prepareClipboardClone(root)
-  replaceFormulaWithWordText(root, clone)
+  replaceFormulaWithLatex(root, clone)
+  await prepareClipboardMedia(clone)
+  applyWordCharacterFonts(clone)
   sanitizeClipboardDom(clone)
 
   const wrapper = document.createElement('div')
-  wrapper.setAttribute(
-    'style',
-    'box-sizing:border-box;width:100%;max-width:760px;padding:0;background:#fff;color:#333;' +
-      'font-family:Arial,"Microsoft YaHei","PingFang SC",sans-serif;font-size:9.5pt;line-height:1.2;',
-  )
+  setInlineStyles(wrapper, {
+    ...wordBodyFontStyles,
+    boxSizing: 'border-box',
+    width: '100%',
+    maxWidth: '760px',
+    padding: '0',
+    background: '#fff',
+    color: '#333',
+    fontSize: '9.5pt',
+    lineHeight: wordLineHeight,
+  })
   wrapper.innerHTML = clone.innerHTML
 
   return {
