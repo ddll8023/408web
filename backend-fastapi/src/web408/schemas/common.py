@@ -47,7 +47,3 @@ def error_response(code: int, message: str) -> dict[str, object | None]:
         "message": message,
         "data": None,
     }
-
-
-# 兼容尚未迁移的外部导入；新代码统一使用 ApiResponse。
-Response = ApiResponse

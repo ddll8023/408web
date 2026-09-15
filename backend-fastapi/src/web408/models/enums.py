@@ -1,4 +1,4 @@
-"""数据库枚举值及其兼容别名。"""
+"""数据库枚举值。"""
 
 from enum import Enum
 
@@ -21,9 +21,3 @@ class DifficultyEnum(str, Enum):
     EASY = "EASY"
     MEDIUM = "MEDIUM"
     HARD = "HARD"
-
-
-# 保留旧名称，兼容尚未迁移的外部导入。
-UserRole = UserRoleEnum
-QuestionType = QuestionTypeEnum
-Difficulty = DifficultyEnum
