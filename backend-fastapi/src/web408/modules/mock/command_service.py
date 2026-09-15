@@ -6,7 +6,12 @@ from web408.modules.mock.models import MockQuestion, MockQuestionExamMark
 from web408.modules.catalog.read_service import CatalogReadService
 from web408.modules.mock.query_service import MockQueryService
 from web408.modules.mock.repository import MockRepository
-from web408.modules.mock.schemas import MockCreateRequest, MockResponse, MockUpdateRequest
+from web408.modules.mock.schemas import (
+    MockCreateRequest,
+    MockExamMarkBatchResponse,
+    MockResponse,
+    MockUpdateRequest,
+)
 from web408.modules.question_content.serialization import (
     parse_categories,
     parse_options,
@@ -167,6 +172,43 @@ class MockCommandService:
         response = await self.query_service.to_response(question)
         await self.session.commit()
         return response
+
+    async def set_exam_marks(
+        self,
+        question_ids: list[int],
+        marked: bool,
+    ) -> MockExamMarkBatchResponse:
+        """在一个事务内批量设置模拟题出题标记。"""
+        normalized_ids = list(dict.fromkeys(question_ids))
+        questions = await self.repository.get_by_ids(set(normalized_ids))
+        existing_ids = {question.id for question in questions}
+        missing_ids = [
+            question_id
+            for question_id in normalized_ids
+            if question_id not in existing_ids
+        ]
+        if missing_ids:
+            raise NotFoundException(f"模拟题不存在：ID={missing_ids[0]}")
+
+        marks = await self.repository.list_exam_marks(set(normalized_ids))
+        mark_map = {mark.mock_question_id: mark for mark in marks}
+        updated_count = 0
+
+        for question_id in normalized_ids:
+            existing_mark = mark_map.get(question_id)
+            if marked and existing_mark is None:
+                self.session.add(MockQuestionExamMark(mock_question_id=question_id))
+                updated_count += 1
+            elif not marked and existing_mark is not None:
+                await self.session.delete(existing_mark)
+                updated_count += 1
+
+        await self.session.commit()
+        return MockExamMarkBatchResponse(
+            question_ids=normalized_ids,
+            marked=marked,
+            updated_count=updated_count,
+        )
 
     async def delete(self, question_id: int) -> None:
         """删除模拟题并提交事务。"""

@@ -1,3 +1,4 @@
+<!-- 全局导航组件：包含管理员入口和出题工作台跳转。 -->
 <template>
   <nav class="navigation fixed top-0 left-0 right-0 h-[60px] px-8 bg-[rgba(251,247,242,0.85)] backdrop-blur-md border-b border-black/[0.08] shadow-[0_2px_8px_rgba(0,0,0,0.1)] z-[1000]">
     <div class="nav-container h-full flex items-center justify-between px-8">
@@ -58,6 +59,7 @@
             <DropdownItem command="category">分类标签管理</DropdownItem>
             <DropdownItem command="exam">真题管理</DropdownItem>
             <DropdownItem command="mock">模拟题管理</DropdownItem>
+            <DropdownItem command="compose">出题工作台</DropdownItem>
             <DropdownItem command="image">图片管理</DropdownItem>
             <DropdownItem command="exam-category">分类统计</DropdownItem>
           </template>
@@ -158,6 +160,8 @@ const handleManageCommand = (command: string | number) => {
     router.push('/manage/exam')
   } else if (command === 'mock') {
     router.push('/manage/mock')
+  } else if (command === 'compose') {
+    router.push('/manage/compose')
   } else if (command === 'image') {
     router.push('/manage/image')
   } else if (command === 'exam-category') {

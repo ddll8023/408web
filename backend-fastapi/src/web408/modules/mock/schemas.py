@@ -68,6 +68,33 @@ class MockExamMarkRequest(BaseModel):
     marked: bool = Field(..., description="是否标记为已出题")
 
 
+class MockExamMarkBatchRequest(BaseModel):
+    """批量设置模拟题出题标记的请求。"""
+
+    question_ids: list[int] = Field(
+        ...,
+        min_length=1,
+        max_length=100,
+        description="模拟题 ID 列表",
+    )
+    marked: bool = Field(..., description="是否标记为已出题")
+
+
+class MockExamMarkBatchResponse(BaseModel):
+    """批量设置模拟题出题标记的响应。"""
+
+    question_ids: list[int] = Field(
+        default_factory=list,
+        description="已处理的模拟题 ID",
+    )
+    marked: bool = Field(..., description="最终标记状态")
+    updated_count: int = Field(
+        ...,
+        ge=0,
+        description="实际发生状态变化的题目数",
+    )
+
+
 class MockDuplicateRequest(BaseModel):
     """模拟题查重请求。"""
 

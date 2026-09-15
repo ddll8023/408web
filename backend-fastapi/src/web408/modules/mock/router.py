@@ -12,6 +12,8 @@ from web408.modules.mock.schemas import (
     MockCreateRequest,
     MockDuplicateCheckResponse,
     MockDuplicateRequest,
+    MockExamMarkBatchRequest,
+    MockExamMarkBatchResponse,
     MockExamMarkRequest,
     MockQueryParams,
     MockResponse,
@@ -150,6 +152,25 @@ async def get_titles_by_source(
     """根据来源查询标题列表。"""
     titles = await MockQueryService(session).get_titles_by_source(source)
     return ApiResponse(data=titles)
+
+
+@router.post(
+    "/exam-mark/batch",
+    response_model=ApiResponse[MockExamMarkBatchResponse],
+    summary="批量更新模拟题出题标记",
+    description="批量设置模拟题是否已出题，仅管理员可访问",
+)
+async def set_mock_exam_marks_batch(
+    request: MockExamMarkBatchRequest,
+    session: SessionDep,
+    _admin: AuthUser = Depends(get_current_admin),
+) -> ApiResponse[MockExamMarkBatchResponse]:
+    """批量更新模拟题出题标记。"""
+    result = await _get_command_service(session).set_exam_marks(
+        request.question_ids,
+        request.marked,
+    )
+    return ApiResponse(data=result, message="批量出题标记已更新")
 
 
 @router.post(

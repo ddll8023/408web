@@ -1,4 +1,14 @@
-import type { MockQuestion, MockQueryParams, MockCreateRequest, MockUpdateRequest, MockSources, MockSubjectStat, MockCategoryStats, Paginated } from '@/types'
+import type {
+  MockCategoryStats,
+  MockCreateRequest,
+  MockExamMarkBatchResponse,
+  MockQuestion,
+  MockQueryParams,
+  MockSources,
+  MockSubjectStat,
+  MockUpdateRequest,
+  Paginated,
+} from '@/types'
 /**
  * 模拟题 API 模块
  */
@@ -57,6 +67,14 @@ export function setMockExamMark(id: number, marked: boolean) {
     url: `/api/mock/${id}/exam-mark`,
     method: 'post',
     data: { marked }
+  })
+}
+
+export function setMockExamMarks(ids: number[], marked: boolean) {
+  return request<MockExamMarkBatchResponse>({
+    url: '/api/mock/exam-mark/batch',
+    method: 'post',
+    data: convertKeysToSnake({ questionIds: ids, marked })
   })
 }
 

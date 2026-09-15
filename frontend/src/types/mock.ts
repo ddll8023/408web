@@ -70,6 +70,13 @@ export interface MockSubjectStat {
   count: number
 }
 
+/** 批量设置模拟题出题标记响应（对应 MockExamMarkBatchResponse） */
+export interface MockExamMarkBatchResponse {
+  questionIds: number[]
+  marked: boolean
+  updatedCount: number
+}
+
 /** 模拟题查重响应（对应 MockDuplicateCheckResponse） */
 export interface MockDuplicateCheck {
   isDuplicate: boolean

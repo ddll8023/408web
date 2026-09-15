@@ -78,6 +78,16 @@ class MockRepository:
         )
         return result.first()
 
+    async def get_by_ids(self, question_ids: set[int]) -> list[MockQuestion]:
+        """批量查询模拟题，供批量状态操作校验题目是否存在。"""
+        if not question_ids:
+            return []
+
+        result = await self.session.exec(
+            select(MockQuestion).where(MockQuestion.id.in_(question_ids))
+        )
+        return result.all()
+
     async def list_exam_marked_ids(self, question_ids: set[int]) -> set[int]:
         """批量读取已标记为出题的模拟题 ID。"""
         if not question_ids:
@@ -98,6 +108,18 @@ class MockRepository:
             )
         )
         return result.first()
+
+    async def list_exam_marks(self, question_ids: set[int]) -> list[MockQuestionExamMark]:
+        """批量读取模拟题出题标记记录。"""
+        if not question_ids:
+            return []
+
+        result = await self.session.exec(
+            select(MockQuestionExamMark).where(
+                MockQuestionExamMark.mock_question_id.in_(question_ids)
+            )
+        )
+        return result.all()
 
     async def find_duplicate(
         self,

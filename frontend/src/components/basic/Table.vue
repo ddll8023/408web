@@ -1,3 +1,4 @@
+<!-- 基础表格组件：可选地提供当前页多选能力。 -->
 <template>
   <div class="overflow-x-auto" :aria-busy="loading">
     <!-- 加载状态 -->
@@ -14,6 +15,22 @@
     <table v-else class="w-full border-collapse" :style="fontStyle">
       <thead>
         <tr class="bg-gray-50 border-b border-gray-200">
+          <th
+            v-if="selectable"
+            class="w-12 px-3 py-3 text-center"
+            scope="col"
+          >
+            <input
+              ref="headerCheckboxRef"
+              type="checkbox"
+              class="h-4 w-4 cursor-pointer rounded border-gray-300 text-[#8B6F47] focus:ring-2 focus:ring-[#8B6F47] focus:ring-offset-0"
+              :checked="allRowsSelected"
+              :aria-checked="someRowsSelected ? 'mixed' : allRowsSelected"
+              aria-label="选择当前页题目"
+              :disabled="selectableRows.length === 0"
+              @change="handleSelectAll"
+            >
+          </th>
           <th
             v-for="column in columns"
             :key="column.prop"
@@ -60,6 +77,20 @@
           :class="{ 'even:bg-gray-50': stripe }"
         >
           <td
+            v-if="selectable"
+            class="w-12 px-3 py-3 text-center"
+          >
+            <input
+              type="checkbox"
+              class="h-4 w-4 cursor-pointer rounded border-gray-300 text-[#8B6F47] focus:ring-2 focus:ring-[#8B6F47] focus:ring-offset-0"
+              :checked="isRowSelected(row, index)"
+              :disabled="!rowSelectable(row, index)"
+              :aria-label="`选择第 ${index + 1} 行题目`"
+              @click.stop
+              @change="handleRowSelection(row, index, $event)"
+            >
+          </td>
+          <td
             v-for="column in columns"
             :key="column.prop"
             class="px-4 text-gray-700"
@@ -77,7 +108,7 @@
           </td>
         </tr>
         <tr v-if="!data || data.length === 0">
-          <td :colspan="columns.length" class="px-4 py-8 text-center text-gray-400">
+          <td :colspan="columns.length + (selectable ? 1 : 0)" class="px-4 py-8 text-center text-gray-400">
             <slot name="empty">
               <div class="flex flex-col items-center">
                 <font-awesome-icon :icon="['fas', 'inbox']" class="text-2xl mb-2 opacity-50" aria-hidden="true" />
@@ -92,8 +123,8 @@
 </template>
 
 <script setup lang="ts" generic="T extends object">
-import type { TableColumn, TableSort } from './types'
-import { reactive, computed } from 'vue'
+import type { TableColumn, TableRowKey, TableSort } from './types'
+import { reactive, computed, onMounted, onUpdated, ref } from 'vue'
 
 /**
  * Table 表格组件
@@ -106,19 +137,80 @@ const props = withDefaults(defineProps<{
   columns: TableColumn[]
   loading?: boolean
   stripe?: boolean
-  rowKey?: string | ((row: T, index: number) => string | number)
+  rowKey?: string | ((row: T, index: number) => TableRowKey)
   size?: 'sm' | 'md' | 'lg'
   fontSize?: number | null
-}>(), { data: () => [], loading: false, stripe: false, rowKey: '', size: 'md', fontSize: null })
-const emit = defineEmits<{ 'sort-change': [sort: TableSort] }>()
+  selectable?: boolean
+  selectedKeys?: readonly TableRowKey[]
+  rowSelectable?: (row: T, index: number) => boolean
+}>(), {
+  data: () => [],
+  loading: false,
+  stripe: false,
+  rowKey: '',
+  size: 'md',
+  fontSize: null,
+  selectable: false,
+  selectedKeys: () => [],
+  rowSelectable: () => true,
+})
+const emit = defineEmits<{
+  'sort-change': [sort: TableSort]
+  'selection-change': [payload: { key: TableRowKey; selected: boolean; row: T }]
+  'select-all': [payload: { selected: boolean; rows: T[] }]
+}>()
 defineSlots<{ loading?: () => unknown; empty?: () => unknown } & { [name: string]: (props: { row: T; column: TableColumn }) => unknown }>()
 const cellValue = (row: T, key: string): unknown => Reflect.get(row, key)
 
-const getRowKey = (row: T, index: number) => {
+const getRowKey = (row: T, index: number): TableRowKey => {
   if (typeof props.rowKey === 'function') return props.rowKey(row, index)
   if (props.rowKey) return String(Reflect.get(row, props.rowKey))
   const id = Reflect.get(row, 'id')
-  return id === undefined || id === null ? index : String(id)
+  return typeof id === 'string' || typeof id === 'number' ? id : index
+}
+
+const selectedKeySet = computed(() => new Set(props.selectedKeys || []))
+const selectableRows = computed(() => (props.data || []).filter((row, index) => props.rowSelectable(row, index)))
+const selectedRowsOnPage = computed(() => selectableRows.value.filter((row, index) => {
+  const dataIndex = (props.data || []).indexOf(row)
+  return selectedKeySet.value.has(getRowKey(row, dataIndex))
+}))
+const allRowsSelected = computed(() => {
+  return selectableRows.value.length > 0 && selectedRowsOnPage.value.length === selectableRows.value.length
+})
+const someRowsSelected = computed(() => selectedRowsOnPage.value.length > 0 && !allRowsSelected.value)
+const headerCheckboxRef = ref<HTMLInputElement | null>(null)
+
+const syncHeaderCheckbox = () => {
+  if (headerCheckboxRef.value) {
+    headerCheckboxRef.value.indeterminate = someRowsSelected.value
+  }
+}
+
+onMounted(syncHeaderCheckbox)
+onUpdated(syncHeaderCheckbox)
+
+const isRowSelected = (row: T, index: number) => selectedKeySet.value.has(getRowKey(row, index))
+
+const emitRowSelection = (row: T, index: number, selected: boolean) => {
+  emit('selection-change', {
+    key: getRowKey(row, index),
+    selected,
+    row,
+  })
+}
+
+const handleRowSelection = (row: T, index: number, event: Event) => {
+  const target = event.target
+  if (!(target instanceof HTMLInputElement)) return
+  emitRowSelection(row, index, target.checked)
+}
+
+const handleSelectAll = () => {
+  emit('select-all', {
+    selected: !allRowsSelected.value,
+    rows: selectableRows.value,
+  })
 }
 
 const normalizeSize = (value: string) => /^\d+(?:\.\d+)?$/.test(value.trim()) ? `${value}px` : value

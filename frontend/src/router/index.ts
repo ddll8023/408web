@@ -84,6 +84,11 @@ const routes: RouteRecordRaw[] = [
     path: '/manage/mock',
     component: () => import('@/views/admin/MockManage.vue'),
     meta: { requiresAuth: true, requiresAdmin: true, keepAlive: true }
+  },
+  {
+    path: '/manage/compose',
+    component: () => import('@/views/admin/QuestionCompose.vue'),
+    meta: { requiresAuth: true, requiresAdmin: true, keepAlive: true }
   }
 ]
 
