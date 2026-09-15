@@ -268,6 +268,10 @@ interface ChapterSection {
 
 type ExamStatusFilter = 'all' | 'unmarked' | 'marked'
 
+interface LoadMockListOptions {
+  preserveScroll?: boolean
+}
+
 const MAX_BATCH_COPY_COUNT = 100
 const UNFILED_ROOT_ID = -1
 const UNFILED_ROOT_NAME = '未归档分类'
@@ -525,13 +529,20 @@ const loadChapterTree = async (subjectId: number) => {
   }
 }
 
-const loadMockList = async () => {
-  questionScroller.value?.scrollTo({ top: 0, behavior: 'auto' })
+const loadMockList = async ({ preserveScroll = false }: LoadMockListOptions = {}) => {
+  const scrollTop = preserveScroll ? questionScroller.value?.scrollTop ?? 0 : null
+  if (!preserveScroll) {
+    questionScroller.value?.scrollTo({ top: 0, behavior: 'auto' })
+  }
   if (!filters.subjectId) {
     resetQuestions()
     return
   }
   await reloadQuestions()
+  if (scrollTop === null) return
+
+  await nextTick()
+  questionScroller.value?.scrollTo({ top: scrollTop, behavior: 'auto' })
 }
 
 const observeLoadMoreSentinel = () => {
@@ -664,7 +675,7 @@ const handleEditSuccess = (question: MockQuestion | null) => {
   }
   editingMockId.value = null
   editingMockData.value = null
-  void loadMockList()
+  void loadMockList({ preserveScroll: true })
 }
 
 const saveExamStatus = async (row: QuestionRow, marked: boolean, automatic = false) => {
