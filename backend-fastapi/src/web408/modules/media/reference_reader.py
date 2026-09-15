@@ -1,4 +1,5 @@
 """媒体模块的题目图片引用读取边界。"""
+from web408.modules.exam.process_image_read_service import ExamProcessImageReadService
 from web408.modules.exam.query_service import ExamQueryService
 from web408.modules.media.schemas import ImageResourceResponse, ImageUsageResponse
 from web408.modules.mock.query_service import MockQueryService
@@ -10,6 +11,7 @@ class MediaReferenceReader:
 
     def __init__(self, session: AsyncSession) -> None:
         self.exam_query_service = ExamQueryService(session)
+        self.exam_process_image_read_service = ExamProcessImageReadService(session)
         self.mock_query_service = MockQueryService(session)
 
     async def mark_references(self, images: list[ImageResourceResponse]) -> None:
@@ -40,6 +42,27 @@ class MediaReferenceReader:
                             or f"真题-{exam.year}年第{exam.question_number or '?'}题",
                         )
                     )
+
+        process_image_rows = await (
+            self.exam_process_image_read_service.list_for_media_reference()
+        )
+        for process_image in process_image_rows:
+            image = image_map.get(process_image.filename)
+            if image is None:
+                continue
+
+            image.referenced = True
+            if any(item.id == process_image.exam_id for item in image.exams):
+                continue
+            image.exams.append(
+                ImageUsageResponse(
+                    id=process_image.exam_id,
+                    year=process_image.year,
+                    question_number=process_image.question_number,
+                    title=process_image.title
+                    or f"真题-{process_image.year}年第{process_image.question_number or '?'}题",
+                )
+            )
 
         for mock in mock_rows:
             text = " ".join(

@@ -1,3 +1,4 @@
+<!-- 真题题目头部：展示题目元信息、复制、过程图片和管理员操作。 -->
 <template>
   <div class="exam-item-header flex items-center justify-between mb-6 pb-4 border-b border-black/[0.03]">
     <div class="flex-1">
@@ -19,6 +20,7 @@
     </div>
     <div class="question-actions flex gap-1 opacity-80 transition-opacity duration-200 hover:opacity-100">
       <QuestionCopyMenu :question="exam" @copy="(command) => $emit('copy', command)" />
+      <ExamProcessMenu :exam="exam" :is-admin="isAdmin" />
       <template v-if="isAdmin">
         <CustomButton size="sm" type="text" @click="$emit('edit', exam)">编辑</CustomButton>
         <CustomButton size="sm" type="text" @click="$emit('delete', exam.id)">删除</CustomButton>
@@ -33,12 +35,13 @@ import type { ExamQuestion } from '@/types'
 /**
  * 题目头部组件
  * 功能描述：显示题目年份、题号、类型标签和操作按钮
- * 依赖组件：CustomButton, QuestionCopyMenu, Tag
+ * 依赖组件：CustomButton, QuestionCopyMenu, ExamProcessMenu, Tag
  */
 
 // 1. 子组件导入
 import CustomButton from '@/components/basic/CustomButton.vue'
 import QuestionCopyMenu from '@/components/business/QuestionCopyMenu.vue'
+import ExamProcessMenu from '@/components/business/ExamProcessMenu.vue'
 import Tag from '@/components/basic/Tag.vue'
 
 // 2. Props 定义

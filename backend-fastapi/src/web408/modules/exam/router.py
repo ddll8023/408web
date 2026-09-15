@@ -1,10 +1,11 @@
 """真题查询、维护和导出 HTTP 路由。"""
-from fastapi import APIRouter, Depends, Path
+from fastapi import APIRouter, Depends, File, Path, UploadFile
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from web408.api.dependencies import SessionDep
 from web408.modules.auth.dependencies import AuthUser, get_current_admin
 from web408.modules.exam.command_service import ExamCommandService
+from web408.modules.exam.process_image_service import ExamProcessImageService
 from web408.modules.exam.query_service import ExamQueryService
 from web408.modules.exam.schemas import (
     ExamByCategoryRequest,
@@ -13,6 +14,8 @@ from web408.modules.exam.schemas import (
     ExamDuplicateRequest,
     ExamIndexRequest,
     ExamNavItem,
+    ExamProcessImageResponse,
+    ExamProcessImageReorderRequest,
     ExamQueryParams,
     ExamResponse,
     ExamUpdateRequest,
@@ -29,6 +32,11 @@ router = APIRouter()
 def _get_command_service(session: AsyncSession) -> ExamCommandService:
     """创建共享查询服务的真题写入用例。"""
     return ExamCommandService(session, ExamQueryService(session))
+
+
+def _get_process_image_service(session: AsyncSession) -> ExamProcessImageService:
+    """创建真题过程图片业务服务。"""
+    return ExamProcessImageService(session)
 
 
 @router.post(
@@ -142,6 +150,79 @@ async def find_by_subject_and_category(
         request.category,
     )
     return ApiResponse(data=exams)
+
+
+@router.post(
+    "/{exam_id}/process-images",
+    response_model=ApiResponse[list[ExamProcessImageResponse]],
+    summary="查询真题过程图片",
+    description="查询指定真题的讲解过程图片",
+)
+async def list_exam_process_images(
+    session: SessionDep,
+    exam_id: int = Path(..., ge=1, description="真题 ID"),
+) -> ApiResponse[list[ExamProcessImageResponse]]:
+    """查询真题过程图片。"""
+    images = await _get_process_image_service(session).list_images(exam_id)
+    return ApiResponse(data=images)
+
+
+@router.post(
+    "/{exam_id}/process-images/upload",
+    response_model=ApiResponse[ExamProcessImageResponse],
+    summary="上传真题过程图片",
+    description="上传并关联一张真题讲解过程图片，仅管理员可访问",
+)
+async def upload_exam_process_image(
+    session: SessionDep,
+    file: UploadFile = File(..., description="过程图片文件"),
+    admin: AuthUser = Depends(get_current_admin),
+    exam_id: int = Path(..., ge=1, description="真题 ID"),
+) -> ApiResponse[ExamProcessImageResponse]:
+    """上传并关联真题过程图片。"""
+    image = await _get_process_image_service(session).upload_image(
+        exam_id,
+        file,
+        admin.user_id,
+    )
+    return ApiResponse(data=image, message="过程图片上传成功")
+
+
+@router.post(
+    "/{exam_id}/process-images/{image_id}/delete",
+    response_model=ApiResponse[None],
+    summary="删除真题过程图片",
+    description="删除指定真题的过程图片关联，仅管理员可访问",
+)
+async def delete_exam_process_image(
+    session: SessionDep,
+    _admin: AuthUser = Depends(get_current_admin),
+    exam_id: int = Path(..., ge=1, description="真题 ID"),
+    image_id: int = Path(..., ge=1, description="过程图片 ID"),
+) -> ApiResponse[None]:
+    """删除真题过程图片关联。"""
+    await _get_process_image_service(session).delete_image(exam_id, image_id)
+    return ApiResponse(message="过程图片删除成功")
+
+
+@router.post(
+    "/{exam_id}/process-images/reorder",
+    response_model=ApiResponse[list[ExamProcessImageResponse]],
+    summary="调整真题过程图片顺序",
+    description="保存指定真题的过程图片展示顺序，仅管理员可访问",
+)
+async def reorder_exam_process_images(
+    request: ExamProcessImageReorderRequest,
+    session: SessionDep,
+    _admin: AuthUser = Depends(get_current_admin),
+    exam_id: int = Path(..., ge=1, description="真题 ID"),
+) -> ApiResponse[list[ExamProcessImageResponse]]:
+    """调整真题过程图片顺序。"""
+    images = await _get_process_image_service(session).reorder_images(
+        exam_id,
+        request,
+    )
+    return ApiResponse(data=images, message="过程图片顺序已保存")
 
 
 @router.post(

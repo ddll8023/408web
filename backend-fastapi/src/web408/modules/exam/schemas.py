@@ -131,6 +131,31 @@ class ExamResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class ExamProcessImageResponse(BaseModel):
+    """真题过程图片响应。"""
+
+    id: int = Field(..., ge=1, description="过程图片 ID")
+    exam_id: int = Field(..., ge=1, description="真题 ID")
+    filename: str = Field(..., min_length=1, max_length=255, description="图片文件名")
+    url: str = Field(..., min_length=1, description="图片访问 URL")
+    sort_order: int = Field(..., ge=0, description="展示顺序")
+    create_time: str | None = Field(default=None, description="创建时间")
+    update_time: str | None = Field(default=None, description="更新时间")
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ExamProcessImageReorderRequest(BaseModel):
+    """真题过程图片排序请求。"""
+
+    image_ids: list[int] = Field(
+        ...,
+        min_length=1,
+        max_length=100,
+        description="按展示顺序排列的过程图片 ID",
+    )
+
+
 class ExamYearStatResponse(BaseModel):
     """真题年份统计响应。"""
 

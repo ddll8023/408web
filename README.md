@@ -6,7 +6,7 @@
 
 本项目是一个全栈Web应用，旨在帮助408计算机考研学子高效学习和复习。平台提供：
 
-- **真题资源**：收录历年考研真题，支持按年份、科目和分类浏览
+- **真题资源**：收录历年考研真题，支持按年份、科目和分类浏览，并可查看独立的讲解过程图片
 - **模拟题练习**：提供按来源、科目和分类浏览的模拟题及即时作答反馈
 - **章节与分类管理**：支持树形章节和分类结构，方便知识点梳理
 - **Markdown支持**：题目和答案支持完整的Markdown渲染，包含LaTeX数学公式
@@ -94,6 +94,8 @@
 - 历年真题浏览（按年份）
 - 按科目/分类筛选
 - Markdown格式题目和答案展示
+- 真题过程图片上传、查看、排序和删除关联（管理员维护）
+- 真题过程图片与 Markdown 图片共用 `backend-fastapi/uploads/images/`；删除过程关联后由未引用资源清理机制管理物理文件
 - 数学公式支持（LaTeX）
 
 ### 模拟题模块
@@ -214,6 +216,10 @@ npm run build
 | `/api/exam/query` | POST | 获取真题列表 |
 | `/api/exam` | POST | 创建真题 |
 | `/api/exam/{id}/detail` | POST | 获取真题详情 |
+| `/api/exam/{id}/process-images` | POST | 查询真题过程图片 |
+| `/api/exam/{id}/process-images/upload` | POST | 上传真题过程图片（管理员） |
+| `/api/exam/{id}/process-images/reorder` | POST | 调整真题过程图片顺序（管理员） |
+| `/api/exam/{id}/process-images/{image_id}/delete` | POST | 删除真题过程图片关联（管理员） |
 
 ### 模拟题模块
 | 接口 | 方法 | 说明 |

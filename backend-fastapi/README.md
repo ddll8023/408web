@@ -49,4 +49,4 @@ uv run --locked python -m uvicorn web408.main:app --host 0.0.0.0 --port 7785 --r
 - `UPLOAD_DIR`、`MAX_FILE_SIZE`
 - `JWT_SECRET`、`JWT_ALGORITHM`
 
-图片通过 `/uploads/images` 静态路径访问；日志和数据库文件属于本地运行时产物，不提交到版本库。
+图片通过 `/uploads/images` 静态路径访问，真题过程图片与 Markdown 图片共用该目录；删除过程图片只解除真题关联，物理文件进入未引用清理流程。日志和数据库文件属于本地运行时产物，不提交到版本库。

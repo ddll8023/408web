@@ -55,3 +55,31 @@ class ExamQuestion(BaseModel, table=True):
     # 关系
     subject: Optional["Subject"] = Relationship(back_populates="exam_questions")
     author: Optional["User"] = Relationship(back_populates="exam_questions")
+
+
+class ExamProcessImage(BaseModel, table=True):
+    """真题讲解过程图片关联模型。"""
+
+    __tablename__ = "exam_process_image"
+    __table_args__ = (
+        Index(
+            "ix_exam_process_image_exam_sort",
+            "exam_id",
+            "sort_order",
+        ),
+    )
+
+    exam_id: int = Field(
+        foreign_key="exam_question.id",
+        ondelete="CASCADE",
+        index=True,
+        description="真题 ID",
+    )
+    filename: str = Field(description="图片文件名")
+    sort_order: int = Field(default=0, ge=0, description="展示顺序")
+    created_by: int = Field(
+        foreign_key="user.id",
+        ondelete="RESTRICT",
+        index=True,
+        description="上传管理员 ID",
+    )
