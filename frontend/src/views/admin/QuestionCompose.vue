@@ -51,6 +51,15 @@
           </CustomInput>
         </div>
         <div class="compose-filters__field">
+          <label for="compose-question-type" class="compose-filters__label">题目类型</label>
+          <Select
+            id="compose-question-type"
+            v-model="filters.questionType"
+            :options="questionTypeOptions"
+            aria-label="题目类型"
+          />
+        </div>
+        <div class="compose-filters__field">
           <label for="compose-status" class="compose-filters__label">出题状态</label>
           <Select
             id="compose-status"
@@ -220,7 +229,7 @@
  */
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import type { CategoryTreeNode, MockQuestion } from '@/types'
+import type { CategoryTreeNode, MockQuestion, QuestionType } from '@/types'
 import type { RichCopyResult } from '@/utils/questionCopy'
 import { queryString } from '@/utils/storage'
 import { getEnabledCategoryTreeBySubjectWithStats } from '@/api/category'
@@ -262,11 +271,11 @@ interface ChapterSection {
   name: string
   path: string[]
   questions: QuestionRow[]
-  nodeIds: number[]
   order: number[]
 }
 
 type ExamStatusFilter = 'all' | 'unmarked' | 'marked'
+type QuestionTypeFilter = 'all' | QuestionType
 
 interface LoadMockListOptions {
   preserveScroll?: boolean
@@ -305,11 +314,17 @@ const filters = reactive({
   category: '',
   noCategory: false,
   examStatus: 'all' as ExamStatusFilter,
+  questionType: 'all' as QuestionTypeFilter,
 })
 const examStatusOptions = [
   { label: '全部状态', value: 'all' },
   { label: '未出题', value: 'unmarked' },
   { label: '已出题', value: 'marked' },
+]
+const questionTypeOptions = [
+  { label: '全部类型', value: 'all' },
+  { label: '选择题', value: 'CHOICE' },
+  { label: '主观题', value: 'ESSAY' },
 ]
 const sourceOptions = ref<string[]>([])
 const chapterTree = ref<CategoryTreeNode[]>([])
@@ -345,6 +360,7 @@ const {
     category: filters.category || undefined,
     keyword: filters.keyword || undefined,
     noCategory: filters.noCategory || undefined,
+    questionType: filters.questionType === 'all' ? undefined : filters.questionType,
     isExamMarked: filters.examStatus === 'all' ? undefined : filters.examStatus === 'marked',
     sortField: 'update_time',
     sortOrder: 'desc',
@@ -364,20 +380,21 @@ const activeChapterLabel = computed(() => {
   return filters.category
 })
 
-const categoryPathMap = computed(() => {
-  const result = new Map<string, CategoryPathInfo>()
+const categoryIndex = computed(() => {
+  const byName = new Map<string, CategoryPathInfo>()
+  const byId = new Map<number, CategoryPathInfo>()
 
   const visit = (nodes: CategoryTreeNode[], parentPath: CategoryTreeNode[], parentOrder: number[]) => {
     nodes.forEach((node, index) => {
-      const path = [...parentPath, node]
-      const order = [...parentOrder, index]
-      result.set(node.name, { node, path, order })
-      visit(node.children, path, order)
+      const info: CategoryPathInfo = { node, path: [...parentPath, node], order: [...parentOrder, index] }
+      byName.set(node.name, info)
+      byId.set(node.id, info)
+      visit(node.children, info.path, info.order)
     })
   }
 
   visit(chapterTree.value, [], [])
-  return result
+  return { byName, byId }
 })
 
 const getQuestionCategoryInfos = (question: MockQuestion) => {
@@ -385,11 +402,11 @@ const getQuestionCategoryInfos = (question: MockQuestion) => {
     ? question.category.filter(category => category.trim())
     : []
   const infos = names
-    .map(name => categoryPathMap.value.get(name))
+    .map(name => categoryIndex.value.byName.get(name))
     .filter((info): info is CategoryPathInfo => Boolean(info))
 
   if (infos.length === 0) {
-    const unfiledInfo = categoryPathMap.value.get(UNFILED_ROOT_NAME)
+    const unfiledInfo = categoryIndex.value.byName.get(UNFILED_ROOT_NAME)
     return unfiledInfo ? [unfiledInfo] : []
   }
 
@@ -413,7 +430,29 @@ const selectedCountsByCategory = computed(() => {
   return counts
 })
 
+const buildActiveChapterSection = (info: CategoryPathInfo): ChapterSection[] => {
+  const questions = mockQuestions.value.filter(question =>
+    getQuestionCategoryInfos(question).some(categoryInfo =>
+      categoryInfo.path.some(node => node.id === info.node.id),
+    ),
+  )
+  if (questions.length === 0) return []
+
+  return [{
+    id: info.node.id,
+    name: info.node.name,
+    path: info.path.map(node => node.name),
+    order: info.order,
+    questions,
+  }]
+}
+
 const chapterSections = computed<ChapterSection[]>(() => {
+  const activeInfo = activeChapterId.value === null
+    ? null
+    : categoryIndex.value.byId.get(activeChapterId.value)
+  if (activeInfo) return buildActiveChapterSection(activeInfo)
+
   const sectionMap = new Map<number, ChapterSection>()
   const sectionQuestionIds = new Map<number, Set<number>>()
 
@@ -425,7 +464,6 @@ const chapterSections = computed<ChapterSection[]>(() => {
           id: nodeId,
           name: info.node.name,
           path: info.path.map(node => node.name),
-          nodeIds: info.path.map(node => node.id),
           order: info.order,
           questions: [],
         })
@@ -589,14 +627,6 @@ const handleSubjectChange = async (subjectId: string | number | null) => {
   await loadMockList()
 }
 
-const scrollToActiveChapter = async () => {
-  await nextTick()
-  if (activeChapterId.value === null) return
-  const target = chapterSections.value.find(section => section.nodeIds.includes(activeChapterId.value!))
-  if (!target) return
-  document.getElementById(`chapter-section-${target.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-}
-
 const handleChapterSelect = async (node: CategoryTreeNode) => {
   activeChapterId.value = node.id
   if (node.id === UNFILED_ROOT_ID) {
@@ -607,7 +637,6 @@ const handleChapterSelect = async (node: CategoryTreeNode) => {
     filters.noCategory = false
   }
   await loadMockList()
-  await scrollToActiveChapter()
 }
 
 const handleAllChapters = async () => {
@@ -631,6 +660,7 @@ const handleReset = () => {
   filters.category = ''
   filters.noCategory = false
   filters.examStatus = 'all'
+  filters.questionType = 'all'
   activeChapterId.value = null
   void loadMockList()
 }
@@ -790,7 +820,7 @@ watch(() => route.query.keyword, newKeyword => {
 
 .compose-filters {
   display: grid;
-  grid-template-columns: minmax(170px, 1fr) minmax(150px, 0.9fr) minmax(220px, 1.5fr) minmax(140px, 0.8fr) auto;
+  grid-template-columns: minmax(170px, 1fr) minmax(150px, 0.9fr) minmax(220px, 1.5fr) minmax(112px, 0.7fr) minmax(112px, 0.7fr) auto;
   align-items: end;
   gap: 12px;
 }

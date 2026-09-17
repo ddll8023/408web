@@ -10,6 +10,7 @@ from sqlalchemy import and_, func, or_
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
+from web408.models.enums import QuestionTypeEnum
 from web408.modules.mock.models import MockQuestion, MockQuestionExamMark
 
 
@@ -27,6 +28,7 @@ class MockQuery:
     keyword: str | None
     sort_field: str
     sort_order: str
+    question_type: QuestionTypeEnum | None = None
     category_names: tuple[str, ...] | None = None
 
 
@@ -335,6 +337,9 @@ class MockRepository:
             conditions.append(
                 marked_exists if params.is_exam_marked else ~marked_exists
             )
+
+        if params.question_type is not None:
+            conditions.append(MockQuestion.question_type == params.question_type)
 
         if params.no_category is True:
             conditions.append(

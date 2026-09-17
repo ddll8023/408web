@@ -114,7 +114,6 @@ const handleQuestionStatusToggle = (question: QuestionRow) => {
 
 <style scoped>
 .question-chapter-section {
-  scroll-margin-top: 92px;
   border: 1px solid #e6ded2;
   border-radius: 18px;
   background: rgba(255, 253, 248, 0.68);

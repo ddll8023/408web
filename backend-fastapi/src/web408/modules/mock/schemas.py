@@ -26,6 +26,7 @@ class MockQueryParams(BaseModel):
     category: str | None = Field(default=None, description="分类筛选")
     subject_id: int | None = Field(default=None, ge=1, description="科目 ID 筛选")
     no_category: bool | None = Field(default=None, description="是否筛选无分类")
+    question_type: QuestionTypeEnum | None = Field(default=None, description="题型筛选")
     is_exam_marked: bool | None = Field(default=None, description="是否已标记为出题")
     keyword: str | None = Field(default=None, max_length=200, description="关键词搜索")
     sort_field: MockSortField = Field(default="update_time", description="排序字段")
@@ -41,6 +42,7 @@ class MockQueryParams(BaseModel):
                     "category": "栈",
                     "subject_id": 1,
                     "no_category": False,
+                    "question_type": "CHOICE",
                     "keyword": "链表",
                     "sort_field": "update_time",
                     "sort_order": "desc",

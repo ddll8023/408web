@@ -69,6 +69,7 @@ class MockQueryService:
                 category=params.category,
                 subject_id=params.subject_id,
                 no_category=params.no_category is True,
+                question_type=params.question_type,
                 is_exam_marked=params.is_exam_marked,
                 keyword=params.keyword,
                 sort_field=params.sort_field,

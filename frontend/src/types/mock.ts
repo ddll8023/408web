@@ -32,6 +32,7 @@ export interface MockQueryParams {
   category?: string | null
   subjectId?: number | null
   noCategory?: boolean | null
+  questionType?: QuestionType | null
   isExamMarked?: boolean | null
   keyword?: string | null
   sortField?: string
