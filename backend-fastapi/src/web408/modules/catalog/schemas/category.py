@@ -32,6 +32,25 @@ class CategoryStatsRequest(CategoryQueryRequest):
     """分类统计请求。"""
 
 
+class CategoryCodeRebuildRequest(BaseModel):
+    """分类编码重排请求；category_id 为空时按科目整体重排。"""
+
+    subject_id: int = Field(
+        ...,
+        ge=1,
+        description="科目 ID",
+        validation_alias=AliasChoices("subject_id", "subjectId"),
+    )
+    category_id: int | None = Field(
+        default=None,
+        ge=1,
+        description="只重排该分类的子孙编码，为空时重排整个科目",
+        validation_alias=AliasChoices("category_id", "categoryId"),
+    )
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
 class ExamCategoryCreateRequest(BaseModel):
     """分类创建请求；分类编码由服务端自动生成。"""
     subject_id: int = Field(

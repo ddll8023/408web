@@ -175,3 +175,44 @@ def rebuild_subtree_codes(
     codes[root.id] = root_code
     assign_children(root, root_code)
     return codes
+
+
+def renumber_category_codes(
+    categories: Sequence[ExamCategory],
+    subject_prefix: str,
+    root_id: int | None = None,
+) -> dict[int, str]:
+    """按显示顺序重排同级序号，返回新的层级编码。
+
+    root_id 为空时重排整个科目（含顶级分类）；传入节点时只重排该节点的子孙，
+    该节点及其祖先的编码保持不变。
+    """
+    by_id = {category.id: category for category in categories}
+    children_by_parent: dict[int | None, list[ExamCategory]] = {}
+    for category in categories:
+        children_by_parent.setdefault(category.parent_id, []).append(category)
+    for children in children_by_parent.values():
+        children.sort(key=lambda item: (item.order_num, item.id or 0))
+
+    codes: dict[int, str] = {}
+
+    def assign_group(parent_id: int | None, parent_code: str | None) -> None:
+        for sequence, child in enumerate(
+            children_by_parent.get(parent_id, []),
+            start=1,
+        ):
+            child_code = build_category_code(
+                subject_prefix,
+                parent_code,
+                sequence,
+                child.name,
+            )
+            codes[child.id] = child_code
+            assign_group(child.id, child_code)
+
+    if root_id is None:
+        assign_group(None, None)
+    elif root_id in by_id:
+        assign_group(root_id, by_id[root_id].code)
+
+    return codes

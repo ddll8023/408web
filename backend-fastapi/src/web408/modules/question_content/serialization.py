@@ -32,6 +32,22 @@ def parse_options(value: Optional[str]) -> Optional[QuestionOptions]:
         return None
 
 
+def replace_category_name(
+    value: Optional[str],
+    old_name: str,
+    new_name: str,
+) -> Optional[str]:
+    """将分类 JSON 中的旧名称替换为新名称，无需更新或数据无效时返回 None。"""
+    categories = parse_categories(value)
+    if not categories or old_name == new_name:
+        return None
+    replaced = [new_name if name == old_name else name for name in categories]
+    if replaced == categories:
+        return None
+    # 同一题目可能同时存在新旧名称，按原顺序去重后落库。
+    return serialize_categories(list(dict.fromkeys(replaced)))
+
+
 def parse_categories(value: Optional[str]) -> Optional[list[str]]:
     """将数据库中的分类 JSON 转换为列表。"""
     if not value:

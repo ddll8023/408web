@@ -17,10 +17,13 @@ from web408.modules.catalog.category_code import (
     build_category_code,
     next_sibling_sequence,
     rebuild_subtree_codes,
+    renumber_category_codes,
     subject_code_prefix,
 )
 from web408.modules.catalog.category_query_service import CategoryQueryService
+from web408.modules.exam.category_tag_service import ExamCategoryTagService
 from web408.modules.exam.read_service import ExamReadService
+from web408.modules.mock.category_tag_service import MockCategoryTagService
 from web408.modules.mock.read_service import MockReadService
 
 
@@ -33,6 +36,8 @@ class CategoryCommandService:
         self.query_service = query_service
         self.exam_read_service = ExamReadService(session)
         self.mock_read_service = MockReadService(session)
+        self.exam_category_tag_service = ExamCategoryTagService(session)
+        self.mock_category_tag_service = MockCategoryTagService(session)
 
     async def _lock_structure(self) -> None:
         """在分类写用例内取得 SQLite 写锁。"""
@@ -141,19 +146,27 @@ class CategoryCommandService:
             ) > 0:
                 raise ConflictException(f"分类名称已被其他分类使用：{request.name}")
         old_parent_id = category.parent_id
+        old_name = category.name
         for field, value in update_data.items():
             setattr(category, field, value)
 
-        if category.parent_id != old_parent_id:
+        # 编码同时包含层级路径和名称首字母，两者任一变化都要重建整棵子树编码。
+        if category.parent_id != old_parent_id or category.name != old_name:
             categories = await self.repository.list_for_reorder(subject_id)
-            codes = rebuild_subtree_codes(
-                categories,
-                category_id,
-                subject_code_prefix(categories, subject.name),
+            self._rebuild_subtree_codes(categories, category_id, subject.name)
+
+        # 题目按分类名称引用分类，改名需要同步题目里保存的旧名称。
+        if category.name != old_name:
+            await self.exam_category_tag_service.rename_category(
+                subject_id,
+                old_name,
+                category.name,
             )
-            for item in categories:
-                if item.id in codes:
-                    item.code = codes[item.id]
+            await self.mock_category_tag_service.rename_category(
+                subject_id,
+                old_name,
+                category.name,
+            )
 
         await self.session.flush()
         response = self.query_service.to_response(category)
@@ -217,17 +230,46 @@ class CategoryCommandService:
             subject = await self.repository.get_subject(category.subject_id)
             if subject is None:
                 raise NotFoundException("科目")
-            codes = rebuild_subtree_codes(
-                categories,
-                category_id,
-                subject_code_prefix(categories, subject.name),
-            )
-            for item in categories:
-                if item.id in codes:
-                    item.code = codes[item.id]
+            self._rebuild_subtree_codes(categories, category_id, subject.name)
 
         await self.session.flush()
         response = await self.query_service.get_categories_by_subject(category.subject_id)
+        await self.session.commit()
+        return response
+
+    async def rebuild_codes(
+        self,
+        subject_id: int,
+        root_id: int | None = None,
+    ) -> List[ExamCategoryResponse]:
+        """按当前显示顺序重排同级序号并重建层级编码。"""
+        await self._lock_structure()
+        subject = await self.repository.get_subject(subject_id)
+        if subject is None:
+            raise NotFoundException("科目")
+        if root_id is not None:
+            root = await self.repository.get_by_id(root_id)
+            if root is None:
+                raise NotFoundException(f"分类不存在：ID={root_id}")
+            if root.subject_id != subject_id:
+                raise ConflictException("分类不属于指定的科目")
+
+        categories = await self.repository.list_for_reorder(subject_id)
+        codes = renumber_category_codes(
+            categories,
+            subject_code_prefix(categories, subject.name),
+            root_id,
+        )
+        # 同级序号可能互换，先写入唯一临时编码，避免唯一约束在批量更新中瞬时冲突。
+        for item in categories:
+            if item.id in codes:
+                item.code = f"tmp-{item.id}"
+        await self.session.flush()
+        for item in categories:
+            if item.id in codes:
+                item.code = codes[item.id]
+        await self.session.flush()
+        response = await self.query_service.get_categories_by_subject(subject_id)
         await self.session.commit()
         return response
 
@@ -253,3 +295,19 @@ class CategoryCommandService:
             raise ConflictException(f"该分类被 {mock_count} 道模拟题引用，无法删除")
         await self.session.delete(category)
         await self.session.commit()
+
+    @staticmethod
+    def _rebuild_subtree_codes(
+        categories: List[ExamCategory],
+        root_id: int,
+        subject_name: str,
+    ) -> None:
+        """按当前名称与层级重建子树编码，保持编码与分类树同步。"""
+        codes = rebuild_subtree_codes(
+            categories,
+            root_id,
+            subject_code_prefix(categories, subject_name),
+        )
+        for item in categories:
+            if item.id in codes:
+                item.code = codes[item.id]

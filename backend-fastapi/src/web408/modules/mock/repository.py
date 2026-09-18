@@ -257,6 +257,23 @@ class MockRepository:
         )
         return result.one() or 0
 
+    async def list_by_category_tag(
+        self,
+        subject_id: int,
+        category_name: str,
+    ) -> list[MockQuestion]:
+        """返回科目下分类 JSON 含指定名称的模拟题，供分类改名同步标签。"""
+        result = await self.session.exec(
+            select(MockQuestion).where(
+                MockQuestion.subject_id == subject_id,
+                MockQuestion.category.isnot(None),
+                MockQuestion.category.like(
+                    self._json_category_like_pattern(category_name), escape="\\",
+                ),
+            )
+        )
+        return result.all()
+
     async def get_titles_by_source(self, source: str) -> list[str | None]:
         """返回指定来源下去重后的标题。"""
         result = await self.session.exec(

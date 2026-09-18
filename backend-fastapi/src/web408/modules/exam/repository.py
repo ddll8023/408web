@@ -171,6 +171,23 @@ class ExamRepository:
         )
         return result.one() or 0
 
+    async def list_by_category_tag(
+        self,
+        subject_id: int,
+        category_name: str,
+    ) -> list[ExamQuestion]:
+        """返回科目下分类 JSON 含指定名称的真题，供分类改名同步标签。"""
+        result = await self.session.exec(
+            select(ExamQuestion).where(
+                ExamQuestion.subject_id == subject_id,
+                ExamQuestion.category.isnot(None),
+                ExamQuestion.category.like(
+                    self._json_category_like_pattern(category_name), escape="\\",
+                ),
+            )
+        )
+        return result.all()
+
     async def count_by_subject(self, subject_ids: set[int]) -> list[Any]:
         """批量统计指定科目的真题数量，不读取目录模型。"""
         result = await self.session.exec(

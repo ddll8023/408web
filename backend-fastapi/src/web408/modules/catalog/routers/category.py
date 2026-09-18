@@ -8,6 +8,7 @@ from web408.modules.catalog.category_query_service import CategoryQueryService
 from web408.modules.catalog.schemas.category import (
     AvailableParentCategoriesRequest,
     CategoryBySubjectQueryRequest,
+    CategoryCodeRebuildRequest,
     CategoryQueryRequest,
     CategoryStatsRequest,
     ExamCategoryCreateRequest,
@@ -147,6 +148,25 @@ async def get_available_parent_categories(
         request.exclude_id,
     )
     return ApiResponse(data=categories)
+
+
+@router.post(
+    "/rebuild-codes",
+    response_model=ApiResponse[list[ExamCategoryResponse]],
+    summary="重排分类编码",
+    description="按当前显示顺序重排同级序号并重建分类编码，仅管理员可访问",
+)
+async def rebuild_category_codes(
+    request: CategoryCodeRebuildRequest,
+    session: SessionDep,
+    _admin: AuthUser = Depends(get_current_admin),
+) -> ApiResponse[list[ExamCategoryResponse]]:
+    """重排指定科目或指定分类子树的层级编码。"""
+    categories = await _get_command_service(session).rebuild_codes(
+        request.subject_id,
+        request.category_id,
+    )
+    return ApiResponse(data=categories, message="编码重排成功")
 
 
 @router.post(

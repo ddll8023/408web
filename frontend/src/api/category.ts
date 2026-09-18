@@ -1,7 +1,7 @@
-import type { CategoryQuestionType, CategoryNode, CategoryTreeNode, CategoryCreateRequest, CategoryUpdateRequest, CategoryMoveRequest, CategoryStats } from '@/types'
 /**
  * 分类标签 API
  */
+import type { CategoryQuestionType, CategoryNode, CategoryTreeNode, CategoryCreateRequest, CategoryUpdateRequest, CategoryMoveRequest, CategoryStats } from '@/types'
 import request from './request'
 import { convertKeysToSnake } from '@/utils/convertKeys'
 
@@ -86,6 +86,15 @@ export const deleteCategory = (id: number) => {
   return request<null>({
     url: `/api/exam-category/${id}/delete`,
     method: 'post'
+  })
+}
+
+/** 重排科目或指定分类子树的同级编码序号；categoryId 为空时按科目整体重排。 */
+export const rebuildCategoryCodes = (subjectId: number, categoryId: number | null = null) => {
+  return request<CategoryNode[]>({
+    url: '/api/exam-category/rebuild-codes',
+    method: 'post',
+    data: convertKeysToSnake({ subjectId, categoryId })
   })
 }
 

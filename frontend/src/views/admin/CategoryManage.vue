@@ -1,3 +1,7 @@
+<!--
+  分类标签管理页面
+  按科目管理统一分类目录的层级、编码与启停状态，仅管理员可访问。
+-->
 <template>
   <div class="max-w-[1400px] mx-auto px-6 py-8 h-[calc(100vh-60px)] overflow-hidden">
     <!-- 页面标题栏 -->
@@ -15,6 +19,14 @@
           { label: '真题', value: 'exam' },
           { label: '模拟题', value: 'mock' }
         ]" @change="handleQuestionTypeChange" />
+        <CustomButton
+          :disabled="!filterSubjectId || moveSaving || loading || codeRebuildLoading || draggingId !== null"
+          :loading="codeRebuildLoading"
+          @click="handleRebuildCodes"
+        >
+          <font-awesome-icon :icon="['fas', 'list-ol']" class="mr-1.5" />
+          重排编码
+        </CustomButton>
         <CustomButton type="primary" :disabled="moveSaving || draggingId !== null" @click="handleAdd">
           <font-awesome-icon :icon="['fas', 'plus']" class="mr-1.5" />
           新增分类
@@ -493,6 +505,7 @@ import {
   updateCategory,
   moveCategory,
   deleteCategory,
+  rebuildCategoryCodes,
   checkCategoryUsage,
   getAvailableParentCategories,
   getCategoryStats
@@ -611,6 +624,8 @@ const dialogMode = ref('add')
 // 提交加载状态
 const submitLoading = ref(false)
 const deleteLoading = ref(false)
+// 编码重排进行中，期间禁止拖动和其他写操作
+const codeRebuildLoading = ref(false)
 
 // 父分类选项
 const parentOptions = ref<{value: number; label: string}[]>([])
@@ -624,6 +639,7 @@ const unmappedMockCategories = ref<UnmappedMockCategory[]>([])
 
 const canDrag = computed(() => !!filterSubjectId.value
   && !loading.value && !moveSaving.value && !submitLoading.value && !deleteLoading.value
+  && !codeRebuildLoading.value
   && !dialogVisible.value && !categoryLoadError.value)
 const {
   draggingId, draggingIds, dropTarget, dragMessage, canMove,
@@ -1099,6 +1115,47 @@ const handleDelete = async (row: CategoryView) => {
     }
   } finally {
     deleteLoading.value = false
+  }
+}
+
+/**
+ * 重排当前科目的分类编码
+ * 按当前显示顺序重建同级序号（01、02…），层级、名称和题目标签不变。
+ */
+const handleRebuildCodes = async () => {
+  const subjectId = filterSubjectId.value
+  if (!subjectId || codeRebuildLoading.value || moveSaving.value || draggingId.value !== null) return
+
+  const confirmed = await showConfirm({
+    title: '重排编码确认',
+    message: '将按当前显示顺序重排该科目所有同级分类编号（如 01、02、03），分类 ID 会随之变化。\n\n分类名称、层级和题目标签不受影响。确认继续吗？',
+    confirmText: '确定',
+    cancelText: '取消'
+  })
+  if (!confirmed) return
+
+  const savedTreeExpandedKeys = getTreeExpandedKeys()
+  const scrollTop = contentRef.value?.scrollTop ?? 0
+  codeRebuildLoading.value = true
+  ++categoryLoadVersion
+  try {
+    const response = await rebuildCategoryCodes(subjectId)
+    if (disposed) return
+    const list = (response.data || []).map(normalizeCategory)
+    categories.value = list
+    replaceSubjectCategories(subjectId, list)
+    categoryLoadError.value = ''
+    showToast('编码重排成功', 'success')
+  } catch (error) {
+    console.error('重排编码失败:', error)
+    showToast('重排编码失败', 'error')
+  } finally {
+    if (!disposed) {
+      restoreTreeExpandedKeys(savedTreeExpandedKeys)
+      await nextTick()
+      if (contentRef.value) contentRef.value.scrollTop = scrollTop
+      codeRebuildLoading.value = false
+    }
   }
 }
 
