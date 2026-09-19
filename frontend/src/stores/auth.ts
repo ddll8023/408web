@@ -65,7 +65,8 @@ export const useAuthStore = defineStore('auth', () => {
    * @returns {boolean} true-是管理员，false-不是管理员
    */
   function isAdmin() {
-    return userInfo.value?.role === 'ADMIN'
+    // 必须同时持有 Token：仅凭 localStorage 里残留的 userInfo 会把管理员入口显示给已登出的用户。
+    return !!token.value && userInfo.value?.role === 'ADMIN'
   }
 
   return {

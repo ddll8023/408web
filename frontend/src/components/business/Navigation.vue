@@ -466,17 +466,26 @@ watch(() => route.fullPath, closeMobileMenu)
   }
 
   .mobile-panel {
+    /* .navigation 带 backdrop-filter，会成为固定定位子元素的包含块，
+       此时 bottom: 0 等于贴在导航栏底边，面板高度会被压成一条边，
+       所以改为显式高度，保证面板铺满导航栏以下的可视区域。 */
     position: fixed;
     top: var(--app-nav-height);
     right: 0;
-    bottom: 0;
     left: 0;
+    height: calc(100vh - var(--app-nav-height));
     display: block;
     overflow-y: auto;
     overscroll-behavior: contain;
     padding: 16px max(16px, env(safe-area-inset-right)) max(24px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
     border-top: 1px solid rgba(139, 111, 71, 0.12);
     background: #fbf7f2;
+  }
+
+  @supports (height: 100dvh) {
+    .mobile-panel {
+      height: calc(100dvh - var(--app-nav-height));
+    }
   }
 
   .mobile-search {

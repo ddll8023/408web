@@ -76,156 +76,159 @@
       </div>
     </div>
 
-    <!-- 下拉菜单 -->
-    <transition name="dropdown">
-      <div
-        :id="listId"
-        v-show="dropdownVisible && !disabled"
-        role="listbox"
-        :aria-multiselectable="multiple ? 'true' : undefined"
-        class="dropdown-panel category-cascader-panel absolute top-full left-0 right-0 z-50 overflow-hidden"
-      >
-        <!-- 搜索框 -->
-        <div v-if="enableSearch" class="dropdown-panel__header">
-          <div class="relative">
-            <font-awesome-icon :icon="['fas', 'search']" class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            <input
-              v-model="searchKeyword"
-              type="text"
-              aria-label="搜索分类"
-              class="dropdown-filter dropdown-filter--with-icon"
-              placeholder="搜索分类..."
-              @click.stop
-            />
-          </div>
-        </div>
-
-        <!-- 树形选项 -->
-        <div class="dropdown-scroll max-h-[300px] overflow-y-auto">
-          <div v-if="filteredOptions.length === 0" class="dropdown-empty dropdown-empty--large">
-            <font-awesome-icon :icon="['fas', 'folder-open']" class="text-3xl text-gray-200 mb-2" />
-            <p class="text-sm text-gray-400">暂无数据</p>
-          </div>
-
-          <transition-group v-else name="expand" tag="div" class="py-2">
-            <!-- 将已展开的树按层级平铺，所有深度的节点都复用同一套选择交互。 -->
-            <div
-              v-for="row in visibleOptions"
-              :key="row.item.value"
-              class="dropdown-tree-option group"
-              :class="{
-                'dropdown-tree-option--selected': isSelected(row.item.value)
-              }"
-              :style="{ paddingLeft: `${row.level * 20 + 12}px` }"
-            >
-              <!-- 展开/收起子项按钮 -->
-              <button
-                v-if="row.item.children.length > 0"
-                type="button"
-                class="w-6 h-6 flex-shrink-0 flex items-center justify-center rounded-md text-gray-400 hover:text-[#8B6F47] hover:bg-[#8B6F47]/10 transition-all duration-150"
-                :aria-label="`${expandedKeys.includes(row.item.value) ? '收起' : '展开'} ${row.item.label}`"
-                @click.stop="toggleExpand(row.item.value)"
-              >
-                <font-awesome-icon
-                  class="text-xs transition-transform duration-200"
-                  :icon="expandedKeys.includes(row.item.value) ? ['fas', 'chevron-down'] : ['fas', 'chevron-right']"
-                />
-              </button>
-              <span v-else class="w-6 flex-shrink-0" aria-hidden="true"></span>
-
-              <!-- 多选使用复选框，单选使用选中图标 -->
-              <div
-                v-if="multiple && row.item.selectable"
-                class="relative w-5 h-5 flex-shrink-0"
-                @click.stop="toggleSelect(row.item)"
-              >
-                <input
-                  type="checkbox"
-                  :checked="isSelected(row.item.value)"
-                  :disabled="disabled"
-                  :aria-label="row.item.label"
-                  class="sr-only"
-                />
-                <div
-                  class="dropdown-checkbox group-hover:border-[#8B6F47]"
-                  :class="{ 'dropdown-checkbox--selected': isSelected(row.item.value) }"
-                >
-                  <font-awesome-icon
-                    v-if="isSelected(row.item.value)"
-                    :icon="['fas', 'check']"
-                    class="text-white text-[10px] font-bold"
-                  />
-                </div>
-              </div>
-              <!-- 单选模式不额外预留复选框列，避免展开图标与文本之间出现大间距。 -->
-
-              <!-- 选项标签 -->
-              <span
-                class="min-w-0 flex-1 truncate whitespace-nowrap text-[15px] transition-colors duration-150"
-                :title="row.item.label"
-                :class="[
-                  isSelected(row.item.value)
-                    ? 'text-[#8B6F47] font-medium'
-                    : row.level > 0
-                      ? 'text-gray-600 group-hover:text-[#8B6F47]'
-                      : 'text-gray-700 group-hover:text-[#8B6F47]'
-                ]"
-                @click.stop="handleItemClick(row.item)"
-              >
-                {{ row.item.label }}
-              </span>
-
-              <!-- 子分类数量徽章 -->
-              <span
-                v-if="row.item.children.length > 0"
-                class="px-2 py-0.5 text-xs rounded-full transition-colors duration-150"
-                :class="[
-                  multiple && getSelectedCount(row.item) > 0
-                    ? 'bg-[#8B6F47]/10 text-[#8B6F47] font-medium'
-                    : 'bg-gray-100 text-gray-400'
-                ]"
-              >
-                <template v-if="multiple">
-                  {{ getSelectedCount(row.item) }}/{{ getDescendantCount(row.item) }}
-                </template>
-                <template v-else>
-                  {{ getDescendantCount(row.item) }} 个子项
-                </template>
-              </span>
-
-              <!-- 选中指示 -->
-              <font-awesome-icon
-                v-if="row.item.selectable && isSelected(row.item.value) && (multiple ? row.item.children.length === 0 : true)"
-                :icon="['fas', 'check-circle']"
-                class="text-[#8B6F47] text-xs"
+    <!-- 下拉菜单：传送到 body，避免被弹窗等滚动容器的 overflow 裁剪 -->
+    <Teleport to="body">
+      <transition name="dropdown">
+        <div
+          :id="listId"
+          ref="panelRef"
+          v-show="dropdownVisible && !disabled"
+          role="listbox"
+          :aria-multiselectable="multiple ? 'true' : undefined"
+          class="dropdown-panel category-cascader-panel fixed z-[99999] flex flex-col overflow-hidden"
+        >
+          <!-- 搜索框 -->
+          <div v-if="enableSearch" class="dropdown-panel__header">
+            <div class="relative">
+              <font-awesome-icon :icon="['fas', 'search']" class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <input
+                v-model="searchKeyword"
+                type="text"
+                aria-label="搜索分类"
+                class="dropdown-filter dropdown-filter--with-icon"
+                placeholder="搜索分类..."
+                @click.stop
               />
             </div>
-          </transition-group>
-        </div>
+          </div>
 
-        <!-- 多选需要确认区，单选选择后立即关闭下拉框。 -->
-        <div v-if="multiple" class="dropdown-panel__footer">
-          <span class="text-xs text-gray-400">
-            <font-awesome-icon :icon="['fas', 'info-circle']" class="mr-1" />
-            已选择 {{ selectedItems.length }} 个分类
-          </span>
-          <button
-            type="button"
-            class="text-xs text-[#8B6F47] hover:text-[#6B5537] font-medium transition-colors"
-            @click.stop="dropdownVisible = false"
-          >
-            确定 <font-awesome-icon :icon="['fas', 'arrow-right']" class="ml-1" />
-          </button>
+          <!-- 树形选项 -->
+          <div class="dropdown-scroll min-h-0 max-h-[300px] overflow-y-auto">
+            <div v-if="filteredOptions.length === 0" class="dropdown-empty dropdown-empty--large">
+              <font-awesome-icon :icon="['fas', 'folder-open']" class="text-3xl text-gray-200 mb-2" />
+              <p class="text-sm text-gray-400">暂无数据</p>
+            </div>
+
+            <transition-group v-else name="expand" tag="div" class="py-2">
+              <!-- 将已展开的树按层级平铺，所有深度的节点都复用同一套选择交互。 -->
+              <div
+                v-for="row in visibleOptions"
+                :key="row.item.value"
+                class="dropdown-tree-option group"
+                :class="{
+                  'dropdown-tree-option--selected': isSelected(row.item.value)
+                }"
+                :style="{ paddingLeft: `${row.level * 20 + 12}px` }"
+              >
+                <!-- 展开/收起子项按钮 -->
+                <button
+                  v-if="row.item.children.length > 0"
+                  type="button"
+                  class="w-6 h-6 flex-shrink-0 flex items-center justify-center rounded-md text-gray-400 hover:text-[#8B6F47] hover:bg-[#8B6F47]/10 transition-all duration-150"
+                  :aria-label="`${expandedKeys.includes(row.item.value) ? '收起' : '展开'} ${row.item.label}`"
+                  @click.stop="toggleExpand(row.item.value)"
+                >
+                  <font-awesome-icon
+                    class="text-xs transition-transform duration-200"
+                    :icon="expandedKeys.includes(row.item.value) ? ['fas', 'chevron-down'] : ['fas', 'chevron-right']"
+                  />
+                </button>
+                <span v-else class="w-6 flex-shrink-0" aria-hidden="true"></span>
+
+                <!-- 多选使用复选框，单选使用选中图标 -->
+                <div
+                  v-if="multiple && row.item.selectable"
+                  class="relative w-5 h-5 flex-shrink-0"
+                  @click.stop="toggleSelect(row.item)"
+                >
+                  <input
+                    type="checkbox"
+                    :checked="isSelected(row.item.value)"
+                    :disabled="disabled"
+                    :aria-label="row.item.label"
+                    class="sr-only"
+                  />
+                  <div
+                    class="dropdown-checkbox group-hover:border-[#8B6F47]"
+                    :class="{ 'dropdown-checkbox--selected': isSelected(row.item.value) }"
+                  >
+                    <font-awesome-icon
+                      v-if="isSelected(row.item.value)"
+                      :icon="['fas', 'check']"
+                      class="text-white text-[10px] font-bold"
+                    />
+                  </div>
+                </div>
+                <!-- 单选模式不额外预留复选框列，避免展开图标与文本之间出现大间距。 -->
+
+                <!-- 选项标签 -->
+                <span
+                  class="min-w-0 flex-1 truncate whitespace-nowrap text-[15px] transition-colors duration-150"
+                  :title="row.item.label"
+                  :class="[
+                    isSelected(row.item.value)
+                      ? 'text-[#8B6F47] font-medium'
+                      : row.level > 0
+                        ? 'text-gray-600 group-hover:text-[#8B6F47]'
+                        : 'text-gray-700 group-hover:text-[#8B6F47]'
+                  ]"
+                  @click.stop="handleItemClick(row.item)"
+                >
+                  {{ row.item.label }}
+                </span>
+
+                <!-- 子分类数量徽章 -->
+                <span
+                  v-if="row.item.children.length > 0"
+                  class="px-2 py-0.5 text-xs rounded-full transition-colors duration-150"
+                  :class="[
+                    multiple && getSelectedCount(row.item) > 0
+                      ? 'bg-[#8B6F47]/10 text-[#8B6F47] font-medium'
+                      : 'bg-gray-100 text-gray-400'
+                  ]"
+                >
+                  <template v-if="multiple">
+                    {{ getSelectedCount(row.item) }}/{{ getDescendantCount(row.item) }}
+                  </template>
+                  <template v-else>
+                    {{ getDescendantCount(row.item) }} 个子项
+                  </template>
+                </span>
+
+                <!-- 选中指示 -->
+                <font-awesome-icon
+                  v-if="row.item.selectable && isSelected(row.item.value) && (multiple ? row.item.children.length === 0 : true)"
+                  :icon="['fas', 'check-circle']"
+                  class="text-[#8B6F47] text-xs"
+                />
+              </div>
+            </transition-group>
+          </div>
+
+          <!-- 多选需要确认区，单选选择后立即关闭下拉框。 -->
+          <div v-if="multiple" class="dropdown-panel__footer">
+            <span class="text-xs text-gray-400">
+              <font-awesome-icon :icon="['fas', 'info-circle']" class="mr-1" />
+              已选择 {{ selectedItems.length }} 个分类
+            </span>
+            <button
+              type="button"
+              class="text-xs text-[#8B6F47] hover:text-[#6B5537] font-medium transition-colors"
+              @click.stop="dropdownVisible = false"
+            >
+              确定 <font-awesome-icon :icon="['fas', 'arrow-right']" class="ml-1" />
+            </button>
+          </div>
         </div>
-      </div>
-    </transition>
+      </transition>
+    </Teleport>
   </div>
 </template>
 
 <script setup lang="ts">
 import type { PropType } from 'vue'
 import type { CascaderOption, NormalizedCascaderOption } from './types'
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 
 /**
  * 多选级联选择器组件
@@ -273,6 +276,7 @@ const props = defineProps({
 const emit = defineEmits<{ 'update:modelValue': [value: string[]]; change: [value: string[]] }>()
 
 const containerRef = ref<HTMLElement | null>(null)
+const panelRef = ref<HTMLElement | null>(null)
 const dropdownVisible = ref(false)
 const searchKeyword = ref('')
 const expandedKeys = ref<string[]>([])
@@ -440,6 +444,58 @@ const getSelectedCount = (item: NormalizedCascaderOption): number => {
   }, 0)
 }
 
+// 弹层与触发控件、视口边缘的间距。
+const PANEL_GAP = 6
+const VIEWPORT_PADDING = 12
+
+/**
+ * 在视口内定位弹层。
+ * 弹层已传送到 body，不再受弹窗等滚动容器裁剪，因此需要自行保证不被视口截断：
+ * 优先贴在触发控件下方，下方空间不足且上方更宽裕时上翻，空间仍不足时限制高度交回列表滚动。
+ */
+const updatePanelPosition = () => {
+  if (!dropdownVisible.value || !containerRef.value || !panelRef.value) return
+
+  const trigger = containerRef.value.querySelector<HTMLElement>('.dropdown-control')
+  const panel = panelRef.value
+  const list = panel.querySelector<HTMLElement>('.dropdown-scroll')
+  if (!trigger) return
+
+  // 先清空上一次的高度约束，按内容重新测量
+  panel.style.maxHeight = ''
+  if (list) list.style.maxHeight = ''
+
+  const triggerRect = trigger.getBoundingClientRect()
+  const panelWidth = panel.offsetWidth
+  const panelHeight = panel.offsetHeight
+  const viewportWidth = window.innerWidth
+  const viewportHeight = window.innerHeight
+
+  const maxLeft = Math.max(VIEWPORT_PADDING, viewportWidth - panelWidth - VIEWPORT_PADDING)
+  const left = Math.min(Math.max(triggerRect.left, VIEWPORT_PADDING), maxLeft)
+
+  const spaceBelow = viewportHeight - triggerRect.bottom - PANEL_GAP - VIEWPORT_PADDING
+  const spaceAbove = triggerRect.top - PANEL_GAP - VIEWPORT_PADDING
+  const placeAbove = panelHeight > spaceBelow && spaceAbove > spaceBelow
+  const availableHeight = Math.max(1, placeAbove ? spaceAbove : spaceBelow)
+
+  if (panelHeight > availableHeight) {
+    // 高度不足时固定面板高度，压缩列表高度，保留搜索框和底部操作区可见。
+    panel.style.maxHeight = `${availableHeight}px`
+    if (list) {
+      const chromeHeight = panelHeight - list.offsetHeight
+      list.style.maxHeight = `${Math.max(80, availableHeight - chromeHeight)}px`
+    }
+  }
+
+  const top = placeAbove
+    ? Math.max(VIEWPORT_PADDING, triggerRect.top - PANEL_GAP - panel.offsetHeight)
+    : triggerRect.bottom + PANEL_GAP
+
+  panel.style.top = `${top}px`
+  panel.style.left = `${left}px`
+}
+
 // 切换下拉
 const toggleDropdown = () => {
   if (props.disabled) return
@@ -454,6 +510,8 @@ const toggleDropdown = () => {
         expandedKeys.value = [firstWithChildren.value]
       }
     }
+    // 等弹层渲染完成后再测量尺寸定位。
+    nextTick(updatePanelPosition)
   }
 }
 
@@ -468,12 +526,20 @@ const handleTriggerKeydown = (event: KeyboardEvent) => {
   }
 }
 
-// 点击外部关闭
+// 点击外部关闭；弹层已传送到 body，需要单独判断是否点在弹层内部。
 const handleClickOutside = (event: MouseEvent) => {
   if (!(event.target instanceof Element)) return
-  if (containerRef.value && !containerRef.value.contains(event.target)) {
-    dropdownVisible.value = false
-  }
+  if (containerRef.value?.contains(event.target)) return
+  if (panelRef.value?.contains(event.target)) return
+  dropdownVisible.value = false
+}
+
+// 页面滚动或视口变化时重新定位，弹层内部的滚动不触发重算。
+const handleViewportScroll = (event: Event) => {
+  if (!dropdownVisible.value) return
+  const target = event.target
+  if (panelRef.value && target instanceof Node && panelRef.value.contains(target)) return
+  updatePanelPosition()
 }
 
 // 分类树或已选值变化时，展开所有已选分类的祖先，确保深层选中项可见。
@@ -502,12 +568,21 @@ const expandSelectedParents = () => {
 
 watch([normalizedOptions, selectedValues], expandSelectedParents, { deep: true, immediate: true })
 
+// 展开节点、搜索过滤或异步载入选项后高度会变化，需要重新定位弹层。
+watch(visibleOptions, () => {
+  if (dropdownVisible.value) nextTick(updatePanelPosition)
+})
+
 onMounted(() => {
   document.addEventListener('click', handleClickOutside)
+  document.addEventListener('scroll', handleViewportScroll, true)
+  window.addEventListener('resize', updatePanelPosition)
 })
 
 onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside)
+  document.removeEventListener('scroll', handleViewportScroll, true)
+  window.removeEventListener('resize', updatePanelPosition)
 })
 </script>
 
