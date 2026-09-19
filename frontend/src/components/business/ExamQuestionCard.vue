@@ -6,6 +6,7 @@
         <MarkdownViewer
           :content="exam.content || ''"
           variant="plain"
+          resizable
         />
       </div>
 

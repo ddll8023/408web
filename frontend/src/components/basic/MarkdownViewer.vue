@@ -14,17 +14,12 @@
     ></v-md-preview>
   </div>
 
-  <Dialog
-    v-if="interactive && previewUrl"
-    :visible="true"
-    title="插图原尺寸预览（可滚动查看）"
-    :close-on-click-modal="true"
+  <ImageViewer
+    :visible="interactive && Boolean(previewUrl)"
+    :src="previewUrl"
+    :alt="previewAlt"
     @close="closeMediaPreview"
-  >
-    <div class="media-preview-content">
-      <img :src="previewUrl" :alt="previewAlt" />
-    </div>
-  </Dialog>
+  />
 </template>
 
 <script setup lang="ts">
@@ -51,7 +46,8 @@ import 'katex/dist/katex.min.css'
 import { getViewerWhitelist, configureSvgFence } from './config/xssWhitelist'
 import { normalizeImageUrls } from '@/api/upload'
 import { prepareMarkdownImage, prepareMarkdownMedia, type MarkdownContentRole } from '@/utils/markdownMedia'
-import Dialog from './Dialog.vue'
+import ImageViewer from './ImageViewer.vue'
+import { useMarkdownMediaResize } from '@/composables/useMarkdownMediaResize'
 
 // 使用共享的 XSS 白名单配置
 VMdPreview?.xss?.extend?.({
@@ -97,11 +93,17 @@ const props = defineProps({
   interactive: {
     type: Boolean,
     default: true
+  },
+  /** 是否允许拖拽调整独立插图宽度；仅题干等题目展示场景开启。 */
+  resizable: {
+    type: Boolean,
+    default: false
   }
 })
 
 const emit = defineEmits<{ rendered: [] }>()
 const rootRef = ref<HTMLElement | null>(null)
+const mediaResize = useMarkdownMediaResize({ getRoot: () => rootRef.value })
 
 // 存储提取的公式
 interface MathExpression { placeholder: string; content: string; display: boolean; original: string }
@@ -231,7 +233,7 @@ const previewUrl = ref('')
 const previewAlt = ref('')
 let previewObjectUrl = ''
 
-/** 关闭原图预览并释放 SVG 临时资源，避免重复查看时累积 Blob。 */
+/** 关闭全屏查看并释放 SVG 临时资源，避免重复查看时累积 Blob。 */
 const closeMediaPreview = () => {
   previewUrl.value = ''
   if (previewObjectUrl) URL.revokeObjectURL(previewObjectUrl)
@@ -254,10 +256,14 @@ const prepareMedia = () => {
     media.setAttribute('tabindex', '0')
     media.setAttribute('role', 'button')
     media.setAttribute('aria-label', `放大查看：${media.getAttribute('alt') || media.querySelector('title')?.textContent || '插图'}`)
+    // 只有题目展示场景的正文独立大图可拖拽调尺寸；选项图与内联小图不挂把手
+    if (props.resizable && media.classList.contains('markdown-media-block')) {
+      mediaResize.attach(media)
+    }
   }
 }
 
-/** 点击或按 Enter/空格查看原尺寸；拦截冒泡，避免同时触发选项作答。 */
+/** 点击或按 Enter/空格打开全屏查看；拦截冒泡，避免同时触发选项作答。 */
 const handleMediaPreview = (event: MouseEvent | KeyboardEvent) => {
   if (!props.interactive || !(event.target instanceof Element)) return
   if (event instanceof KeyboardEvent && !['Enter', ' '].includes(event.key)) return
@@ -322,6 +328,7 @@ watch(
 
 onBeforeUnmount(() => {
   if (renderTimer) clearTimeout(renderTimer)
+  mediaResize.dispose()
   closeMediaPreview()
 })
 </script>
@@ -428,15 +435,167 @@ onBeforeUnmount(() => {
   outline-offset: 3px;
 }
 
-.media-preview-content {
-  overflow: auto;
+/* 以下为拖拽调尺寸相关样式，顺序需保持在 media-wide/media-inline 之后，
+   才能用手动尺寸覆盖紧凑上限。 */
+.markdown-viewer :deep(.markdown-media-frame) {
+  position: relative;
+  display: block;
+  width: fit-content;
+  max-width: 100%;
+  margin: 0.75em auto;
+  line-height: 0;
+  border-radius: 4px;
 }
 
-.media-preview-content img {
-  display: block;
-  width: auto;
-  height: auto;
-  max-width: none;
-  max-height: none;
+/* 拖拽框架内的插图改用固定长度：min() 里一旦残留百分比，在 fit-content 中就是循环尺寸，
+   外层会被原图宽度撑开，把手无法贴住图片右下角。容器约束改由 max-width 承担。 */
+.markdown-viewer :deep(.markdown-media-frame > .markdown-media:not(.media-inline)) {
+  width: min(
+    var(--media-intrinsic-width, 9999px),
+    var(--media-preferred-width, 9999px),
+    var(--media-max-width, 9999px),
+    calc(var(--media-max-height, 9999px) * var(--media-ratio, 1))
+  ) !important;
+  max-width: 100% !important;
+  max-height: none !important;
+  margin: 0 !important;
+}
+
+/* 手动调整过的图片解除紧凑上限，宽度只受容器约束（框架宽度由脚本同步设定） */
+.markdown-viewer :deep(.markdown-media-frame > .markdown-media.media-manual:not(.media-inline)) {
+  width: min(var(--media-preferred-width, 100%), 100%) !important;
+  max-height: none !important;
+}
+
+.markdown-viewer :deep(.markdown-media-frame:hover),
+.markdown-viewer :deep(.markdown-media-frame:focus-within) {
+  outline: 1px dashed rgba(139, 111, 71, 0.45);
+  outline-offset: 2px;
+}
+
+.markdown-viewer :deep(.markdown-media-frame.is-resizing) {
+  outline-style: solid;
+  outline-color: rgba(139, 111, 71, 0.8);
+}
+
+.markdown-viewer :deep(.markdown-media-size-tip) {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 6px);
+  z-index: 1;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background-color: rgb(0 0 0 / 0.8);
+  color: #fff;
+  font-size: 12px;
+  line-height: 1.5;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  opacity: 0;
+  transform: translateX(-50%);
+  transition: opacity 0.15s ease;
+  pointer-events: none;
+}
+
+.markdown-viewer :deep(.markdown-media-size-tip.is-visible) {
+  opacity: 1;
+}
+
+.markdown-viewer :deep(.markdown-media-handle),
+.markdown-viewer :deep(.markdown-media-reset) {
+  position: absolute;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  opacity: 0;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+.markdown-viewer :deep(.markdown-media-handle) {
+  right: 3px;
+  bottom: 3px;
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  background-color: #8b6f47;
+  color: #fff;
+  cursor: nwse-resize;
+  touch-action: none;
+}
+
+.markdown-viewer :deep(.markdown-media-handle svg) {
+  width: 8px;
+  height: 8px;
+  fill: currentColor;
+}
+
+.markdown-viewer :deep(.markdown-media-reset) {
+  /* 默认不可见且不可聚焦，避免空白按钮进入 Tab 顺序 */
+  right: 21px;
+  bottom: 3px;
+  width: 20px;
+  height: 20px;
+  border: 1px solid rgba(139, 111, 71, 0.35);
+  border-radius: 9999px;
+  background-color: rgb(255 255 255 / 0.92);
+  color: #8b6f47;
+  cursor: pointer;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.markdown-viewer :deep(.markdown-media-reset svg) {
+  width: 11px;
+  height: 11px;
+  fill: currentColor;
+}
+
+.markdown-viewer :deep(.markdown-media-frame:hover .markdown-media-handle),
+.markdown-viewer :deep(.markdown-media-frame:focus-within .markdown-media-handle),
+.markdown-viewer :deep(.markdown-media-frame.is-resizing .markdown-media-handle) {
+  opacity: 1;
+}
+
+.markdown-viewer :deep(.markdown-media-frame.is-resizing .markdown-media-handle) {
+  transform: scale(1.1);
+}
+
+.markdown-viewer :deep(.markdown-media-frame.is-customized:hover .markdown-media-reset),
+.markdown-viewer :deep(.markdown-media-frame.is-customized:focus-within .markdown-media-reset) {
+  visibility: visible;
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.markdown-viewer :deep(.markdown-media-handle:hover),
+.markdown-viewer :deep(.markdown-media-handle:focus-visible) {
+  opacity: 1;
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+
+.markdown-viewer :deep(.markdown-media-reset:focus-visible) {
+  opacity: 1;
+  outline: 2px solid #8b6f47;
+  outline-offset: 2px;
+}
+
+/* 到达宽度上下限时把手变淡，提示已到边界；置于悬停规则之后覆盖其不透明度 */
+.markdown-viewer :deep(.markdown-media-frame.is-limit .markdown-media-handle) {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* 触屏没有悬停状态，直接常显入口 */
+@media (pointer: coarse) {
+  .markdown-viewer :deep(.markdown-media-frame) {
+    outline: 1px dashed rgba(139, 111, 71, 0.3);
+    outline-offset: 2px;
+  }
+
+  .markdown-viewer :deep(.markdown-media-handle) {
+    opacity: 0.85;
+  }
 }
 </style>
