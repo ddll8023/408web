@@ -262,6 +262,8 @@ CORS_ORIGINS=http://localhost:7784
 
 前端可用 `frontend/.env` 中的 `VITE_API_BASE_URL` 覆盖默认的同源代理行为：不设置时请求相对路径 `/api`，由开发服务器代理到后端；设置为完整后端地址（如 `http://192.168.1.10:7785`）时直连后端，此时需同步调整 `CORS_ORIGINS`。
 
+`CORS_ORIGINS` 未列出的来源不会收到 `Access-Control-Allow-Origin` 等允许头，请求本身仍会正常返回；经开发服务器同源代理访问时不依赖这些响应头，因此不必为每个局域网地址加白名单。
+
 ### 环境变量
 
 可在 `.env` 文件中配置：
