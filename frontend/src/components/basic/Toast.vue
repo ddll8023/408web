@@ -1,9 +1,10 @@
+<!-- 全局消息提示：限制窄屏宽度并支持长文本换行。 -->
 <template>
   <teleport to="body">
     <transition name="toast">
       <div
         v-if="visible"
-        class="fixed top-4 left-1/2 transform -translate-x-1/2 z-[9999] px-4 py-3 rounded-lg shadow-lg text-white text-sm font-medium"
+        class="fixed top-4 left-1/2 z-[9999] max-w-[calc(100vw-32px)] -translate-x-1/2 rounded-lg px-4 py-3 text-sm font-medium text-white shadow-lg"
         :class="typeClass"
         :role="type === 'error' ? 'alert' : 'status'"
         :aria-live="type === 'error' ? 'assertive' : 'polite'"
@@ -11,7 +12,7 @@
       >
         <div class="flex items-center gap-2">
           <font-awesome-icon :icon="icon" aria-hidden="true" />
-          <span>{{ message }}</span>
+          <span class="min-w-0 break-words">{{ message }}</span>
         </div>
       </div>
     </transition>

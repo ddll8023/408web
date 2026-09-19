@@ -1,8 +1,8 @@
-<!-- 全局导航组件：包含管理员入口和出题工作台跳转。 -->
+<!-- 全局导航组件：桌面端保持单行布局，窄屏切换为固定高度菜单栏与可滚动面板。 -->
 <template>
-  <nav class="navigation fixed top-0 left-0 right-0 h-[60px] px-8 bg-[rgba(251,247,242,0.85)] backdrop-blur-md border-b border-black/[0.08] shadow-[0_2px_8px_rgba(0,0,0,0.1)] z-[1000]">
-    <div class="nav-container h-full flex items-center justify-between px-8">
-      <!-- 搜索区域 - 靠左 (复古优雅风) -->
+  <nav class="navigation">
+    <!-- 桌面导航 -->
+    <div class="nav-container desktop-nav">
       <div class="nav-search" role="search">
         <div class="search-container">
           <Select
@@ -13,15 +13,15 @@
             placeholder="类型"
             aria-label="搜索类型"
             bordered
-            style="width: 90px;"
           />
-          <span class="search-divider"></span>
+          <span class="search-divider" aria-hidden="true"></span>
           <div class="search-input-wrapper">
             <input
               v-model="searchKeyword"
-              type="text"
+              type="search"
               class="search-input"
               placeholder="搜索题目..."
+              aria-label="搜索题目"
               @keyup.enter="handleSearch"
             />
             <button type="button" class="search-btn" aria-label="搜索" @click="handleSearch">
@@ -31,29 +31,19 @@
         </div>
       </div>
 
-      <!-- 导航菜单 -->
-      <div class="nav-menu flex items-center justify-center gap-8">
-        <!-- 真题首页 - 独立导航 -->
-        <RouterLink to="/exam" class="nav-link text-gray-800 no-underline text-base px-6 py-2.5 rounded transition-all duration-300 cursor-pointer select-none">真题首页</RouterLink>
+      <div class="nav-menu">
+        <RouterLink to="/exam" class="nav-link">真题首页</RouterLink>
+        <RouterLink to="/exam/classify" class="nav-link">真题分类</RouterLink>
+        <RouterLink to="/mock" class="nav-link">模拟题</RouterLink>
+        <span class="nav-link disabled" aria-disabled="true">资源</span>
 
-        <!-- 真题分类 - 独立导航 -->
-        <RouterLink to="/exam/classify" class="nav-link text-gray-800 no-underline text-base px-6 py-2.5 rounded transition-all duration-300 cursor-pointer select-none">真题分类</RouterLink>
-
-        <!-- 模拟题 - 独立导航 -->
-        <RouterLink to="/mock" class="nav-link text-gray-800 no-underline text-base px-6 py-2.5 rounded transition-all duration-300 cursor-pointer select-none">模拟题</RouterLink>
-
-        <!-- 预留未来功能入口 -->
-        <span class="nav-link disabled text-gray-400 cursor-not-allowed">资源</span>
-
-        <!-- 管理菜单（仅ADMIN可见） -->
         <Dropdown v-if="authStore.isAdmin()" trigger="hover" @command="handleManageCommand">
           <template #trigger>
-            <span class="nav-link dropdown-trigger inline-flex items-center cursor-pointer select-none text-gray-800 no-underline text-base px-6 py-2.5 rounded transition-all duration-300">
+            <span class="nav-link dropdown-trigger">
               管理
-              <font-awesome-icon :icon="['fas', 'chevron-down']" class="ml-1.5 text-xs transition-transform duration-150" />
+              <font-awesome-icon :icon="['fas', 'chevron-down']" class="ml-1.5 text-xs" aria-hidden="true" />
             </span>
           </template>
-
           <template #dropdown>
             <DropdownItem command="subject">科目管理</DropdownItem>
             <DropdownItem command="category">分类标签管理</DropdownItem>
@@ -66,10 +56,9 @@
         </Dropdown>
       </div>
 
-      <!-- 用户信息区域 -->
-      <div class="nav-user flex items-center justify-end gap-4">
+      <div class="nav-user">
         <template v-if="authStore.isLoggedIn()">
-          <RouterLink to="/user/center" class="username text-gray-800 text-sm cursor-pointer px-4 py-2 mr-2 rounded transition-all duration-300 select-none hover:bg-black/[0.05] hover:text-[#8B6F47]">{{ authStore.userInfo?.username }}</RouterLink>
+          <RouterLink to="/user/center" class="username">{{ authStore.userInfo?.username }}</RouterLink>
           <CustomButton size="sm" @click="handleLogout">退出</CustomButton>
         </template>
         <template v-else>
@@ -78,18 +67,88 @@
         </template>
       </div>
     </div>
+
+    <!-- 平板与移动端导航 -->
+    <div class="mobile-bar">
+      <RouterLink to="/exam" class="mobile-brand" @click="closeMobileMenu">408 题库</RouterLink>
+      <div class="mobile-bar-actions">
+        <span v-if="authStore.isLoggedIn()" class="mobile-username">{{ authStore.userInfo?.username }}</span>
+        <button
+          type="button"
+          class="mobile-menu-button"
+          :aria-expanded="mobileMenuOpen"
+          aria-controls="mobile-navigation-panel"
+          :aria-label="mobileMenuOpen ? '关闭导航菜单' : '打开导航菜单'"
+          @click="mobileMenuOpen = !mobileMenuOpen"
+        >
+          <font-awesome-icon :icon="['fas', mobileMenuOpen ? 'times' : 'bars']" aria-hidden="true" />
+        </button>
+      </div>
+    </div>
+
+    <Transition name="mobile-menu">
+      <div v-if="mobileMenuOpen" id="mobile-navigation-panel" class="mobile-panel scrollbar-stable">
+        <div class="mobile-search" role="search">
+          <Select
+            v-model="searchType"
+            class="mobile-search-type"
+            :options="searchTypeOptions"
+            size="sm"
+            placeholder="类型"
+            aria-label="搜索类型"
+            bordered
+          />
+          <input
+            v-model="searchKeyword"
+            type="search"
+            class="mobile-search-input"
+            placeholder="搜索题目..."
+            aria-label="搜索题目"
+            @keyup.enter="handleSearch"
+          />
+          <button type="button" class="mobile-search-button" aria-label="搜索" @click="handleSearch">
+            <font-awesome-icon :icon="['fas', 'magnifying-glass']" aria-hidden="true" />
+          </button>
+        </div>
+
+        <div class="mobile-links" aria-label="主要导航">
+          <RouterLink to="/exam" class="mobile-link" @click="closeMobileMenu">真题首页</RouterLink>
+          <RouterLink to="/exam/classify" class="mobile-link" @click="closeMobileMenu">真题分类</RouterLink>
+          <RouterLink to="/mock" class="mobile-link" @click="closeMobileMenu">模拟题</RouterLink>
+          <span class="mobile-link disabled" aria-disabled="true">资源</span>
+        </div>
+
+        <section v-if="authStore.isAdmin()" class="mobile-manage" aria-labelledby="mobile-manage-title">
+          <h2 id="mobile-manage-title">管理</h2>
+          <div class="mobile-manage-grid">
+            <button v-for="item in manageItems" :key="item.command" type="button" @click="handleManageCommand(item.command)">
+              {{ item.label }}
+            </button>
+          </div>
+        </section>
+
+        <div class="mobile-user-actions">
+          <template v-if="authStore.isLoggedIn()">
+            <CustomButton block @click="goToUserCenter">个人中心</CustomButton>
+            <CustomButton block type="danger" @click="handleLogout">退出登录</CustomButton>
+          </template>
+          <template v-else>
+            <CustomButton block @click="goToLogin">登录</CustomButton>
+            <CustomButton block type="primary" @click="goToRegister">注册</CustomButton>
+          </template>
+        </div>
+      </div>
+    </Transition>
   </nav>
 </template>
 
 <script setup lang="ts">
 /**
- * 顶部导航栏组件
- * 功能：统一的导航菜单、用户信息展示、路由跳转
- * 遵循KISS原则：简洁的导航栏设计
- * 使用项目自定义 Button 和 Dropdown 组件
+ * 全局导航栏组件。
+ * 桌面端展示完整导航，窄屏保持 60px 顶栏并将全部操作收纳到独立滚动面板。
  */
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import CustomButton from '@/components/basic/CustomButton.vue'
 import Dropdown from '@/components/basic/Dropdown.vue'
@@ -98,287 +157,457 @@ import Select from '@/components/basic/Select.vue'
 import { useToast } from '@/composables/useToast'
 
 const router = useRouter()
+const route = useRoute()
 const authStore = useAuthStore()
 const { showToast } = useToast()
 
-// 搜索类型选项
 const searchTypeOptions = [
   { label: '真题', value: 'exam' },
-  { label: '模拟题', value: 'mock' }
+  { label: '模拟题', value: 'mock' },
 ]
 
-// 搜索相关状态
-const searchType = ref<'exam' | 'mock'>('exam')  // 默认搜索真题
-const searchKeyword = ref('')
+const manageItems = [
+  { command: 'subject', label: '科目管理' },
+  { command: 'category', label: '分类标签管理' },
+  { command: 'exam', label: '真题管理' },
+  { command: 'mock', label: '模拟题管理' },
+  { command: 'compose', label: '出题工作台' },
+  { command: 'image', label: '图片管理' },
+  { command: 'exam-category', label: '分类统计' },
+] as const
 
-/**
- * 处理搜索
- * 根据选择的类型跳转到对应的管理页面并带上keyword参数
- */
+type ManageCommand = typeof manageItems[number]['command']
+
+const searchType = ref<'exam' | 'mock'>('exam')
+const searchKeyword = ref('')
+const mobileMenuOpen = ref(false)
+
+const closeMobileMenu = () => {
+  mobileMenuOpen.value = false
+}
+
 const handleSearch = () => {
-  if (!searchKeyword.value.trim()) {
+  const keyword = searchKeyword.value.trim()
+  if (!keyword) {
     showToast('请输入搜索关键词', 'warning')
     return
   }
 
-  // 根据类型跳转到对应的管理页面
   const routeMap = {
     exam: '/manage/exam',
-    mock: '/manage/mock'
+    mock: '/manage/mock',
   }
 
-  router.push({
-    path: routeMap[searchType.value],
-    query: { keyword: searchKeyword.value.trim() }
-  })
+  closeMobileMenu()
+  router.push({ path: routeMap[searchType.value], query: { keyword } })
 }
 
-/**
- * 跳转到登录页
- */
 const goToLogin = () => {
+  closeMobileMenu()
   router.push('/login')
 }
 
-/**
- * 跳转到注册页
- */
 const goToRegister = () => {
+  closeMobileMenu()
   router.push('/register')
 }
 
-/**
- * 处理管理菜单选择
- * @param {string} command - 命令（subject/chapter/exam）
- */
-const handleManageCommand = (command: string | number) => {
-  if (command === 'subject') {
-    router.push('/manage/subject')
-  } else if (command === 'category') {
-    router.push('/manage/category')
-  } else if (command === 'exam') {
-    router.push('/manage/exam')
-  } else if (command === 'mock') {
-    router.push('/manage/mock')
-  } else if (command === 'compose') {
-    router.push('/manage/compose')
-  } else if (command === 'image') {
-    router.push('/manage/image')
-  } else if (command === 'exam-category') {
-    router.push('/manage/exam-category')
-  }
+const goToUserCenter = () => {
+  closeMobileMenu()
+  router.push('/user/center')
 }
 
-/**
- * 退出登录
- */
+const handleManageCommand = (command: string | number) => {
+  const routeMap: Record<ManageCommand, string> = {
+    subject: '/manage/subject',
+    category: '/manage/category',
+    exam: '/manage/exam',
+    mock: '/manage/mock',
+    compose: '/manage/compose',
+    image: '/manage/image',
+    'exam-category': '/manage/exam-category',
+  }
+  const target = routeMap[command as ManageCommand]
+  if (!target) return
+  closeMobileMenu()
+  router.push(target)
+}
+
 const handleLogout = () => {
   authStore.clearAuth()
+  closeMobileMenu()
   showToast('已退出登录', 'success')
   router.push('/exam')
 }
+
+watch(() => route.fullPath, closeMobileMenu)
 </script>
 
 <style scoped>
-/**
- * 导航栏组件样式
- * 复古优雅风格 - 温暖、精致、有质感
- */
-
-/* 导航栏容器 */
-.nav-container {
-  max-width: 1400px;
-  margin-left: auto;
-  margin-right: auto;
+.navigation {
+  position: fixed;
+  inset: 0 0 auto;
+  z-index: 1000;
+  height: var(--app-nav-height);
+  padding-top: env(safe-area-inset-top);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  background: rgba(251, 247, 242, 0.92);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  backdrop-filter: blur(12px);
 }
 
-/* ==================== 搜索区域 - 复古优雅风 ==================== */
+.nav-container {
+  display: flex;
+  width: 100%;
+  max-width: 1400px;
+  height: 60px;
+  align-items: center;
+  gap: 20px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
 .nav-search {
-  flex-shrink: 0;
+  width: clamp(250px, 24vw, 340px);
+  flex: 0 1 340px;
+  min-width: 220px;
 }
 
 .search-container {
-  display: inline-flex;
+  display: flex;
+  width: 100%;
   align-items: center;
-  gap: 0;
-  padding: 6px 10px;
-  border-radius: 4em;
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-  max-width: 400px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  transition: box-shadow 0.2s ease;
 }
 
 .search-container:focus-within {
-  box-shadow: 0 2px 12px rgba(139, 111, 71, 0.2), 0 0 0 3px rgba(139, 111, 71, 0.1);
-  border-color: #8B6F47;
+  box-shadow: 0 0 0 3px rgba(139, 111, 71, 0.12);
 }
 
-/* 搜索类型选择器 */
 .search-type-select {
+  width: 82px;
   flex-shrink: 0;
-  width: 90px;
 }
 
-/* 覆盖 Select 的公共内边距，让导航搜索区域保持紧凑 */
 .search-type-select :deep(.dropdown-control) {
-  padding-left: 8px !important;
   padding-right: 4px !important;
+  padding-left: 8px !important;
 }
 
-.search-type-select :deep(.dropdown-control > .flex-1) {
-  padding-left: 6px !important;
-  padding-right: 2px !important;
-}
-
-.search-type-select :deep(.dropdown-control > .flex-shrink-0) {
-  padding-left: 4px !important;
-}
-
-/* 分隔线 */
 .search-divider {
   width: 1px;
   height: 24px;
-  background: linear-gradient(to bottom, transparent, #D4C4A8, transparent);
-  margin: 0 10px;
+  flex-shrink: 0;
+  margin: 0 8px;
+  background: linear-gradient(to bottom, transparent, #d4c4a8, transparent);
 }
 
-/* 搜索输入框容器 */
 .search-input-wrapper {
   display: flex;
-  align-items: center;
-  flex: 1;
   min-width: 0;
-  gap: 8px;
+  flex: 1;
+  align-items: center;
+  gap: 6px;
 }
 
-/* 搜索输入框 */
 .search-input {
-  flex: 1;
   min-width: 0;
-  height: 32px;
+  height: 36px;
+  flex: 1;
+  border: 0;
+  outline: 0;
   background: transparent;
-  border: none;
-  outline: none;
-  font-size: 14px;
   color: #374151;
-  padding: 4px 6px;
+  font-size: 16px;
 }
 
 .search-input::placeholder {
-  color: #9CA3AF;
+  color: #9ca3af;
 }
 
-.search-input::-webkit-input-placeholder {
-  color: #9CA3AF;
-}
-
-/* 搜索按钮 */
-.search-btn {
-  flex-shrink: 0;
-  font-size: 16px;
-  color: #9CA3AF;
-  border: none;
+.search-btn,
+.mobile-menu-button,
+.mobile-search-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
   background: transparent;
-  padding: 6px;
-  border-radius: 50%;
+  color: #8b6f47;
   cursor: pointer;
-  transition: all 0.2s ease;
 }
 
-.search-btn:focus-visible {
-  outline: 2px solid #8B6F47;
-  outline-offset: 2px;
+.search-btn {
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  border-radius: 50%;
 }
 
 .search-btn:hover {
-  color: #8B6F47;
-  background: rgba(139, 111, 71, 0.08);
-  transform: scale(1.08);
+  background: rgba(139, 111, 71, 0.1);
 }
 
-.search-btn:active {
-  transform: scale(0.95);
+.search-btn:focus-visible,
+.mobile-menu-button:focus-visible,
+.mobile-search-button:focus-visible {
+  outline: 2px solid #8b6f47;
+  outline-offset: 2px;
 }
 
-/* ==================== 导航菜单 ==================== */
 .nav-menu {
+  display: flex;
+  min-width: 0;
   flex: 1;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
 }
 
-/* ==================== 用户区域 ==================== */
-.nav-user {
-  flex-shrink: 0;
-  width: 180px;
+.nav-link {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 12px;
+  border-radius: 8px;
+  color: #374151;
+  font-size: 15px;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
-/* 导航链接样式 - 保留hover效果 */
-.nav-link:not(.disabled):hover {
-  background-color: rgba(0,0,0,0.05);
+.nav-link:not(.disabled):hover,
+.nav-link.router-link-active:not(.disabled) {
+  background: rgba(139, 111, 71, 0.1);
+  color: #6b5537;
 }
 
 .nav-link.disabled {
-  color: #999;
+  color: #9ca3af;
   cursor: not-allowed;
 }
 
-/* 激活状态 */
-.nav-link.router-link-active:not(.disabled) {
-  background-color: rgba(0,0,0,0.08);
-  color: #333;
+.nav-user {
+  display: flex;
+  min-width: 170px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
 }
 
-/* 下拉菜单触发器样式 */
-/* 用户名样式 - 使用Tailwind类名在template中已实现 */
+.username {
+  max-width: 110px;
+  overflow: hidden;
+  padding: 8px 10px;
+  border-radius: 8px;
+  color: #374151;
+  text-overflow: ellipsis;
+  text-decoration: none;
+  white-space: nowrap;
+}
 
-/* 响应式布局 */
-@media (max-width: 768px) {
-  .nav-container {
-    max-width: 100%;
-    padding-left: 16px;
-    padding-right: 16px;
-    flex-wrap: wrap;
-    height: auto;
-    min-height: 60px;
-    padding-top: 8px;
-    padding-bottom: 8px;
-  }
+.username:hover {
+  background: rgba(139, 111, 71, 0.08);
+  color: #8b6f47;
+}
 
-  .nav-search {
-    order: 1;
-    width: 100%;
-    justify-content: center;
-    margin-bottom: 8px;
-  }
+.mobile-bar,
+.mobile-panel {
+  display: none;
+}
 
-  .search-container {
-    max-width: 320px;
-  }
-
-  .nav-menu {
-    order: 2;
-    justify-content: flex-start;
-    flex: 1;
-  }
-
-  .nav-user {
-    order: 3;
-    justify-content: flex-end;
-  }
-
-  .nav-menu {
-    gap: 16px;
-  }
-
-  .nav-link {
-    font-size: 14px;
-    padding: 8px 16px;
-  }
-
-  .username {
+@media (max-width: 1279px) {
+  .desktop-nav {
     display: none;
   }
 
-  .nav-user {
+  .mobile-bar {
+    display: flex;
+    height: 60px;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 max(16px, env(safe-area-inset-right)) 0 max(16px, env(safe-area-inset-left));
+  }
+
+  .mobile-brand {
+    color: #6b5537;
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-decoration: none;
+  }
+
+  .mobile-bar-actions {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .mobile-username {
+    max-width: 120px;
+    overflow: hidden;
+    color: #6b7280;
+    font-size: 13px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .mobile-menu-button {
+    width: 42px;
+    height: 42px;
+    border-radius: 10px;
+    background: rgba(139, 111, 71, 0.08);
+    font-size: 18px;
+  }
+
+  .mobile-panel {
+    position: fixed;
+    top: var(--app-nav-height);
+    right: 0;
+    bottom: 0;
+    left: 0;
+    display: block;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 16px max(16px, env(safe-area-inset-right)) max(24px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+    border-top: 1px solid rgba(139, 111, 71, 0.12);
+    background: #fbf7f2;
+  }
+
+  .mobile-search {
+    display: grid;
+    grid-template-columns: 92px minmax(0, 1fr) 42px;
+    align-items: center;
     gap: 8px;
+    max-width: 720px;
+    margin: 0 auto 16px;
+  }
+
+  .mobile-search-input {
+    width: 100%;
+    height: 42px;
+    min-width: 0;
+    padding: 0 12px;
+    border: 1px solid #e6ddd3;
+    border-radius: 10px;
+    outline: 0;
+    background: #fff;
+    color: #374151;
+    font-size: 16px;
+  }
+
+  .mobile-search-input:focus {
+    border-color: #8b6f47;
+    box-shadow: 0 0 0 3px rgba(139, 111, 71, 0.12);
+  }
+
+  .mobile-search-button {
+    width: 42px;
+    height: 42px;
+    border-radius: 10px;
+    background: #8b6f47;
+    color: #fff;
+  }
+
+  .mobile-links {
+    display: grid;
+    max-width: 720px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    margin: 0 auto;
+  }
+
+  .mobile-link,
+  .mobile-manage-grid button {
+    display: flex;
+    min-height: 44px;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 12px;
+    border: 1px solid rgba(139, 111, 71, 0.14);
+    border-radius: 10px;
+    background: #fff;
+    color: #374151;
+    text-decoration: none;
+  }
+
+  .mobile-link.router-link-active {
+    border-color: rgba(139, 111, 71, 0.35);
+    background: rgba(139, 111, 71, 0.1);
+    color: #6b5537;
+    font-weight: 600;
+  }
+
+  .mobile-link.disabled {
+    color: #9ca3af;
+  }
+
+  .mobile-manage {
+    max-width: 720px;
+    margin: 20px auto 0;
+    padding-top: 16px;
+    border-top: 1px solid rgba(139, 111, 71, 0.12);
+  }
+
+  .mobile-manage h2 {
+    margin: 0 0 10px;
+    color: #6b5537;
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  .mobile-manage-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .mobile-manage-grid button {
+    font-size: 14px;
+    cursor: pointer;
+  }
+
+  .mobile-user-actions {
+    display: grid;
+    max-width: 720px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    margin: 20px auto 0;
+    padding-top: 16px;
+    border-top: 1px solid rgba(139, 111, 71, 0.12);
+  }
+}
+
+@media (max-width: 420px) {
+  .mobile-links,
+  .mobile-manage-grid,
+  .mobile-user-actions {
+    grid-template-columns: 1fr;
+  }
+}
+
+.mobile-menu-enter-active,
+.mobile-menu-leave-active {
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+
+.mobile-menu-enter-from,
+.mobile-menu-leave-to {
+  opacity: 0;
+  transform: translateY(-8px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mobile-menu-enter-active,
+  .mobile-menu-leave-active,
+  .nav-link,
+  .search-container {
+    transition: none;
   }
 }
 </style>

@@ -1,3 +1,4 @@
+<!-- 题目复制菜单：按视口宽度调整菜单列数。 -->
 <template>
   <Dropdown
     v-if="!props.headless"
@@ -301,8 +302,10 @@ const handleCommand = (command: string) => {
   width: 760px;
   max-width: calc(100vw - 24px);
   max-height: min(440px, calc(100vh - 24px));
+  max-height: min(440px, calc(100dvh - 24px));
   padding: 2px;
   overflow-y: auto;
+  scrollbar-gutter: stable;
   scrollbar-width: thin;
   scrollbar-color: rgba(139, 111, 71, 0.35) transparent;
 }

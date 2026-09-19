@@ -1,3 +1,4 @@
+<!-- 年份导航：桌面侧栏与移动端顶部折叠区共用。 -->
 <template>
   <div class="year-nav-container w-[280px] h-full bg-[#FBF7F2] border-r border-black/[0.05] flex flex-col transition-all duration-300 flex-shrink-0 z-10" :class="{ collapsed: isCollapsed }" role="navigation" aria-label="年份导航">
     <!-- 顶部标题栏 -->
@@ -22,7 +23,7 @@
     </div>
 
     <!-- 年份列表 -->
-    <div class="year-list-scroll flex-1 overflow-y-auto px-2 py-3" v-show="!isCollapsed">
+    <div class="year-list-scroll scrollbar-stable flex-1 overflow-y-auto px-2 py-3" v-show="!isCollapsed">
       <!-- 加载状态 -->
       <div v-if="loading" class="flex items-center justify-center h-32" role="status" aria-live="polite">
         <font-awesome-icon icon="spinner" class="fa-spin text-[#8B6F47] text-xl" aria-hidden="true" />
@@ -344,7 +345,7 @@ watch(() => props.activeYear, (newYear) => {
 }
 
 /* 响应式布局 */
-@media (max-width: 768px) {
+@media (max-width: 767px) {
   .year-nav-container {
     width: 100%;
     height: auto;
@@ -357,7 +358,8 @@ watch(() => props.activeYear, (newYear) => {
   }
 
   .year-nav-container .year-list-scroll {
-    max-height: 300px;
+    max-height: 220px;
+    max-height: min(32dvh, 220px);
   }
 }
 </style>

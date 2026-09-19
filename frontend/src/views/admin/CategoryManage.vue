@@ -3,9 +3,9 @@
   按科目管理统一分类目录的层级、编码与启停状态，仅管理员可访问。
 -->
 <template>
-  <div class="max-w-[1400px] mx-auto px-6 py-8 h-[calc(100vh-60px)] overflow-hidden">
+  <div class="category-manage-page mx-auto max-w-[1400px] overflow-hidden px-4 py-5 sm:px-6 sm:py-8">
     <!-- 页面标题栏 -->
-    <div class="flex items-center justify-between mb-8 pb-6 border-b-2 border-[rgba(139,111,71,0.1)]">
+    <div class="category-manage-header mb-6 flex flex-col items-stretch gap-4 border-b-2 border-[rgba(139,111,71,0.1)] pb-5 lg:mb-8 lg:flex-row lg:items-center lg:justify-between lg:pb-6">
       <div class="flex flex-col gap-1">
         <h1 class="m-0 text-[1.75rem] font-semibold text-[#8B6F47] flex items-center">
           <span class="inline-block w-1.5 h-7 bg-gradient-to-b from-[#8B6F47] to-[#a88a5f] mr-4 rounded-sm"></span>
@@ -13,7 +13,7 @@
         </h1>
         <span class="text-xs text-[#999] ml-[calc(5px+16px)]">管理各科目的题目分类层级结构</span>
       </div>
-      <div class="flex items-center gap-6">
+      <div class="category-manage-actions flex flex-wrap items-center gap-2 sm:gap-3 lg:gap-6">
         <!-- 题目类型切换 -->
         <CustomRadioGroup v-model="questionType" aria-label="题目类型" :disabled="moveSaving" :options="[
           { label: '真题', value: 'exam' },
@@ -35,9 +35,9 @@
     </div>
 
     <!-- 左右分栏布局 -->
-    <div class="flex gap-8 items-start">
+    <div class="category-manage-layout flex items-start gap-8">
       <!-- 左侧筛选栏 -->
-      <aside class="w-64 flex-shrink-0 sticky top-[calc(60px+24px)]">
+      <aside class="category-manage-sidebar sticky top-4 w-64 flex-shrink-0">
         <!-- 科目筛选列表 -->
         <div class="bg-white rounded-xl p-6 shadow-sm border border-[rgba(139,111,71,0.08)] mb-6">
           <h3 class="m-0 mb-4 text-sm font-semibold text-[#8B6F47] flex items-center gap-2 pb-3 border-b border-[rgba(139,111,71,0.1)]">
@@ -79,7 +79,7 @@
       <!-- 右侧主内容区 -->
       <main
         ref="contentRef"
-        class="flex-1 min-w-0 relative h-[calc(100vh-60px-128px)] overflow-y-auto content-scroll"
+        class="category-manage-content content-scroll scrollbar-stable relative min-w-0 flex-1 overflow-y-auto"
         :aria-busy="loading || moveSaving"
         @dragover="handleContainerDragOver"
         @dragleave="handleContainerDragLeave"
@@ -323,7 +323,7 @@
           </div>
 
           <!-- 第一行：所属科目 + 父分类 -->
-          <div class="grid grid-cols-2 gap-5 mb-5">
+          <div class="mb-5 grid grid-cols-1 gap-5 sm:grid-cols-2">
             <div>
               <label for="category-subject" class="flex items-center gap-1.5 text-sm font-medium text-gray-700 mb-2">
                 所属科目
@@ -355,7 +355,7 @@
           </div>
 
           <!-- 第二行：系统编码 + 分类名称 -->
-          <div class="grid grid-cols-2 gap-5">
+          <div class="grid grid-cols-1 gap-5 sm:grid-cols-2">
             <div>
               <label for="category-code" class="flex items-center gap-1.5 text-sm font-medium text-gray-700 mb-2">
                 分类 ID
@@ -1620,7 +1620,7 @@ onBeforeUnmount(() => {
   background: rgba(139, 111, 71, 0.1);
 }
 
-@media (max-width: 768px) {
+@media (max-width: 1023px), (pointer: coarse) {
   .outline-actions {
     opacity: 1;
   }
@@ -1710,40 +1710,54 @@ onBeforeUnmount(() => {
 }
 
 
-/* 响应式布局 */
-@media (max-width: 768px) {
-  .max-w-\[1400px\] {
-    padding: 16px 8px;
+/* 页面在桌面端保留独立内容滚动，窄屏改用浏览器原生纵向滚动。 */
+.category-manage-page {
+  height: var(--app-page-height);
+}
+
+.category-manage-content {
+  height: calc(var(--app-page-height) - 136px);
+}
+
+@media (max-width: 1023px) {
+  .category-manage-page {
+    min-height: var(--app-page-height);
     height: auto;
     overflow: visible;
   }
 
-  .max-w-\[1400px\] > .flex:first-child {
+  .category-manage-layout {
     flex-direction: column;
-    gap: 16px;
-    align-items: flex-start;
+    gap: 20px;
   }
 
-  .max-w-\[1400px\] > .flex:first-child > .flex:last-child {
-    flex-direction: column;
-    width: 100%;
-    gap: 16px;
-  }
-
-  .flex.gap-8 {
-    flex-direction: column;
-    gap: 24px;
-  }
-
-  .w-64 {
-    width: 100%;
+  .category-manage-sidebar {
     position: static;
+    width: 100%;
+  }
+
+  .category-manage-content {
+    width: 100%;
     height: auto;
     overflow: visible;
   }
+}
 
-  .bg-white.rounded-2xl {
-    padding: 16px 24px;
+@media (max-width: 640px) {
+  .category-manage-actions {
+    align-items: stretch;
+  }
+
+  .category-manage-actions :deep(button) {
+    flex: 1 1 auto;
+  }
+
+  .outline-row {
+    padding-right: 6px;
+  }
+
+  .outline-code {
+    display: none;
   }
 }
 </style>

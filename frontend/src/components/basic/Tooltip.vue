@@ -1,3 +1,4 @@
+<!-- 工具提示组件：兼容键盘、鼠标和触屏点击交互。 -->
 <template>
   <div
     ref="rootRef"
@@ -17,7 +18,7 @@
         v-if="visible"
         ref="tooltipRef"
         role="tooltip"
-        class="absolute z-50 px-2.5 py-1.5 text-xs text-white bg-gray-800 rounded-md shadow-lg whitespace-nowrap pointer-events-none"
+        class="pointer-events-none absolute z-50 max-w-[min(280px,calc(100vw-24px))] break-words rounded-md bg-gray-800 px-2.5 py-1.5 text-xs text-white shadow-lg"
         :class="placementClass"
       >
         <slot name="content">{{ content }}</slot>
@@ -141,31 +142,30 @@ const handleFocusOut = (event: FocusEvent) => {
   }
 }
 
-// 点击切换（click 触发模式）
+const usesClickInteraction = () => {
+  return props.trigger === 'click' || window.matchMedia('(pointer: coarse)').matches
+}
+
+// 触屏设备没有稳定的 hover，点击时沿用 click 模式。
 const handleClick = () => {
-  if (props.trigger === 'click') {
-    if (visible.value) {
-      hide()
-    } else {
-      show()
-    }
+  if (!usesClickInteraction()) return
+  if (visible.value) {
+    hide()
+  } else {
+    show()
   }
 }
 
 // 点击外部关闭
 const handleClickOutside = (event: MouseEvent) => {
-  if (!(event.target instanceof Element)) return
-  if (props.trigger === 'click' && visible.value) {
-    if (rootRef.value && !rootRef.value.contains(event.target)) {
-      hide()
-    }
+  if (!(event.target instanceof Element) || !usesClickInteraction() || !visible.value) return
+  if (rootRef.value && !rootRef.value.contains(event.target)) {
+    hide()
   }
 }
 
 onMounted(() => {
-  if (props.trigger === 'click') {
-    document.addEventListener('click', handleClickOutside)
-  }
+  document.addEventListener('click', handleClickOutside)
 })
 
 onUnmounted(() => {

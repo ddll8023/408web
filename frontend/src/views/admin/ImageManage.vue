@@ -1,10 +1,11 @@
+<!-- 图片资源管理页面：工具栏与资源表格支持窄屏操作。 -->
 <template>
-  <div class="max-w-[1400px] mx-auto p-4 md:p-6 min-h-[calc(100vh-60px)]">
+  <div class="mx-auto min-h-[var(--app-page-height)] max-w-[1400px] p-2 sm:p-4 md:p-6">
     <CustomCard>
       <template #header>
-        <div class="flex items-center justify-between">
+        <div class="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-between">
           <h2 class="m-0 text-xl text-[#333] font-semibold">图片资源管理</h2>
-          <div class="flex gap-2">
+          <div class="flex flex-wrap gap-2">
             <CustomButton type="primary" @click="loadImages" :loading="loading">
               <font-awesome-icon :icon="['fas', 'rotate']" class="mr-1" />
               刷新
@@ -36,7 +37,7 @@
             <img
               :src="getFullUrl(row.url)"
               :alt="`预览图片 ${row.filename || ''}`"
-              class="w-[100px] h-[100px] object-cover rounded cursor-pointer hover:opacity-80 transition-opacity"
+              class="h-16 w-16 cursor-pointer rounded object-cover transition-opacity hover:opacity-80 sm:h-[100px] sm:w-[100px]"
             />
           </button>
         </template>

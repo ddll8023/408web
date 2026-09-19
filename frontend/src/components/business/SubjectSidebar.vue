@@ -1,3 +1,4 @@
+<!-- 科目分类侧栏：桌面侧栏与移动端顶部折叠区共用。 -->
 <template>
   <!--
     科目侧边栏组件（重构版）
@@ -36,7 +37,7 @@
       </div>
     </div>
 
-    <div class="sidebar-scroll flex-1 py-3 overflow-y-auto custom-scrollbar">
+    <div class="sidebar-scroll scrollbar-stable flex-1 py-3 overflow-y-auto custom-scrollbar">
       <div class="subject-list px-2">
         <div
           v-for="sub in subjects"
@@ -294,7 +295,7 @@ const collapseAll = () => {
 }
 
 /* 响应式布局 - 移动端 */
-@media (max-width: 768px) {
+@media (max-width: 767px) {
   .sidebar-container {
     width: 100% !important;
     height: auto;
@@ -307,7 +308,8 @@ const collapseAll = () => {
   }
 
   .sidebar-scroll {
-    max-height: 300px;
+    max-height: 220px;
+    max-height: min(32dvh, 220px);
   }
 }
 </style>

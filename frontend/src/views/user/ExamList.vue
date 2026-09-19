@@ -1,7 +1,8 @@
+<!-- 年份真题阅读页面：移动端上下排列年份导航与题目内容。 -->
 <template>
-  <div class="exam-page-container h-[calc(100vh-60px)] overflow-hidden flex flex-col bg-[#FBF7F2]">
-    <!-- 主要内容区域：左侧年份导航 + 右侧内容 -->
-    <div class="flex-1 flex relative overflow-hidden">
+  <div class="exam-page-container app-viewport-page overflow-hidden flex flex-col bg-[#FBF7F2]">
+    <!-- 主要内容区域：窄屏上下排列，桌面端恢复左右分栏 -->
+    <div class="flex-1 flex flex-col md:flex-row relative overflow-hidden">
       <!-- 左侧年份导航栏 -->
       <YearNav
         :year-list="yearList"
@@ -14,18 +15,18 @@
       />
 
       <!-- 右侧内容区域 -->
-      <div class="flex-1 w-0 overflow-y-auto bg-[#FBF7F2]">
+      <div class="scrollbar-stable flex-1 w-full min-w-0 overflow-y-auto bg-[#FBF7F2] md:w-0">
         <!-- 使用 div + Tailwind 替代 el-card -->
-        <div class="min-h-[calc(100vh-60px-40px)] bg-[#FBF7F2]">
+        <div class="min-h-full bg-[#FBF7F2]">
           <!-- 头部区域 -->
-          <div class="flex items-center justify-between px-5 py-4 border-b border-[#E8DCC8]">
-            <div class="flex items-center gap-3 flex-1">
+          <div class="flex flex-col items-stretch gap-3 px-4 py-4 border-b border-[#E8DCC8] sm:flex-row sm:items-center sm:justify-between sm:px-5">
+            <div class="flex min-w-0 items-center gap-3 flex-1">
               <h2 class="m-0 text-[#333] font-semibold text-xl">{{ currentTitle }}</h2>
               <!-- 使用自定义 Tag 组件替代 el-tag -->
               <Tag v-if="displayTotal > 0" type="info">共 {{ displayTotal }} 题</Tag>
             </div>
             <!-- 年份视图：显示导出按钮和管理员创建按钮 -->
-            <div class="flex gap-2" v-if="examList.length > 0">
+            <div class="flex flex-wrap gap-2" v-if="examList.length > 0">
               <Dropdown trigger="click" @command="handleExportCommand">
                 <template #trigger>
                   <CustomButton
@@ -57,7 +58,7 @@
               </CustomButton>
             </div>
             <!-- 默认视图（空状态）：显示管理员创建按钮 -->
-            <div class="flex gap-2" v-else-if="isAdmin">
+            <div class="flex flex-wrap gap-2" v-else-if="isAdmin">
               <CustomButton
                 type="primary"
                 :icon="['fas', 'plus']"
@@ -69,7 +70,7 @@
           </div>
 
           <!-- 年份视图:显示所有题目 -->
-          <div v-if="examList.length > 0" class="w-full md:max-w-[80%] flex flex-col gap-6 px-5 py-4">
+          <div v-if="examList.length > 0" class="mx-auto flex w-full max-w-[1100px] flex-col gap-4 px-3 py-4 sm:gap-6 sm:px-5">
             <ExamEntryCard
               v-for="exam in examList"
               :key="exam.id"

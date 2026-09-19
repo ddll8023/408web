@@ -1,9 +1,10 @@
+<!-- 真题年份入口页面：年份卡片按可用宽度自动排列。 -->
 <template>
-  <div class="min-h-[calc(100vh-60px)] bg-[#FBF7F2] px-4 py-8 flex items-center justify-center">
+  <div class="flex min-h-[var(--app-page-height)] items-center justify-center bg-[#FBF7F2] px-4 py-6 sm:py-8">
     <div class="w-full max-w-[1200px]">
       <!-- 头部介绍 -->
       <div class="text-center py-8">
-        <h1 class="m-0 mb-6 text-[#333] font-semibold text-4xl">408考研真题</h1>
+        <h1 class="m-0 mb-4 text-3xl font-semibold text-[#333] sm:mb-6 sm:text-4xl">408考研真题</h1>
         <p class="m-0 text-[#666] text-base leading-relaxed max-w-[800px] mx-auto">
           收录408统考真题,包含数据结构、操作系统、计算机网络、计算机组成原理四大科目。
           提供完整题目和详细解答,助力考研备考。

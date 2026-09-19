@@ -1,3 +1,4 @@
+<!-- Markdown 编辑器：桌面端双栏预览，窄屏优先保留编辑区域。 -->
 <template>
   <div class="markdown-editor-split" :style="{ height: height }">
     <!-- 左侧：编辑区（纯编辑模式） -->
@@ -405,6 +406,7 @@ onUnmounted(() => {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+  scrollbar-gutter: stable;
   overflow-x: hidden;
   padding: 16px;
 }
@@ -516,5 +518,21 @@ onUnmounted(() => {
 :deep(.v-md-editor__preview-wrapper)::-webkit-scrollbar-thumb {
   background: #c1c1c1;
   border-radius: 4px;
+}
+
+/* 窄屏优先保留可编辑区域，避免编辑与预览各自只剩很窄的一列。 */
+@media (max-width: 768px) {
+  .editor-pane {
+    border-right: 0;
+  }
+
+  .preview-pane {
+    display: none;
+  }
+
+  :deep(.v-md-editor__toolbar) {
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+  }
 }
 </style>

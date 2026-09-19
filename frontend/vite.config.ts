@@ -2,9 +2,19 @@ import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import path from 'path'
 
+const backendProxy = {
+  '/api': {
+    target: 'http://localhost:7785',
+    changeOrigin: true,
+  },
+  '/uploads': {
+    target: 'http://localhost:7785',
+    changeOrigin: true,
+  },
+}
+
 /**
- * Vite配置文件
- * 配置路径别名、代理和 Tailwind/PostCSS 样式处理
+ * Vite 配置：开发服务器监听局域网地址，并将 API 与上传资源代理到后端。
  */
 export default defineConfig({
   plugins: [vue()],
@@ -25,15 +35,12 @@ export default defineConfig({
   
   // 开发服务器配置
   server: {
+    host: '0.0.0.0',
     port: 7784,
-    // API代理配置（开发环境）
-    proxy: {
-      '/api': {
-        target: 'http://localhost:7785',
-        changeOrigin: true,
-        // 不重写路径，保持/api前缀
-        rewrite: (path) => path
-      }
-    }
-  }
+    proxy: backendProxy,
+  },
+  preview: {
+    host: '0.0.0.0',
+    proxy: backendProxy,
+  },
 })

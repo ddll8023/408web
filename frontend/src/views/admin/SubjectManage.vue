@@ -1,8 +1,9 @@
+<!-- 科目管理页面：表格与编辑弹窗支持窄屏访问。 -->
 <template>
-  <div class="max-w-[1400px] mx-auto p-4 md:p-6 min-h-[calc(100vh-60px)]">
+  <div class="mx-auto min-h-[var(--app-page-height)] max-w-[1400px] p-2 sm:p-4 md:p-6">
     <CustomCard shadow>
       <template #header>
-        <div class="flex items-center justify-between">
+        <div class="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-between">
           <h2 class="text-xl text-gray-800 font-semibold">科目管理</h2>
           <CustomButton type="primary" @click="handleAdd">
             <font-awesome-icon :icon="['fas', 'plus']" class="mr-1.5" />

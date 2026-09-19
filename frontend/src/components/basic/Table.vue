@@ -1,6 +1,6 @@
 <!-- 基础表格组件：可选地提供当前页多选能力。 -->
 <template>
-  <div class="overflow-x-auto" :aria-busy="loading">
+  <div class="overflow-x-auto rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8B6F47]/40" :aria-busy="loading" role="region" aria-label="数据表格，可横向滚动" tabindex="0">
     <!-- 加载状态 -->
     <div v-if="loading" class="py-12">
       <slot name="loading">
@@ -42,7 +42,7 @@
               sizeClasses.th,
               column.align === 'center' ? 'text-center' : column.align === 'right' ? 'text-right' : 'text-left',
               column.sortable ? 'cursor-pointer select-none hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#8B6F47]' : '',
-              column.fixed ? 'sticky right-0 z-10 bg-white' : ''
+              column.fixed ? 'sticky right-0 z-10 bg-inherit shadow-[-8px_0_12px_-12px_rgba(0,0,0,0.35)]' : ''
             ]"
             :style="columnStyle(column)"
             @click="column.sortable ? handleSort(column) : null"
@@ -73,7 +73,7 @@
         <tr
           v-for="(row, index) in data"
           :key="getRowKey(row, index)"
-          class="border-b border-gray-100 hover:bg-gray-50 transition-colors"
+          class="border-b border-gray-100 bg-white hover:bg-gray-50 transition-colors"
           :class="{ 'even:bg-gray-50': stripe }"
         >
           <td
@@ -98,7 +98,7 @@
               sizeClasses.py,
               sizeClasses.td,
               column.align === 'center' ? 'text-center' : column.align === 'right' ? 'text-right' : 'text-left',
-              column.fixed ? 'sticky right-0 z-10 bg-white' : ''
+              column.fixed ? 'sticky right-0 z-10 bg-inherit shadow-[-8px_0_12px_-12px_rgba(0,0,0,0.35)]' : ''
             ]"
             :style="columnStyle(column)"
           >

@@ -23,7 +23,8 @@ fi
 
 echo "============================================"
 echo "  408Web 前端开发服务器"
-echo "  访问地址：http://localhost:$PORT"
+echo "  本机访问：http://localhost:$PORT"
+echo "  局域网访问：请使用本机局域网 IP:$PORT"
 echo "============================================"
 echo "Node.js 版本：$(node --version)"
 echo "按 Ctrl+C 停止服务"

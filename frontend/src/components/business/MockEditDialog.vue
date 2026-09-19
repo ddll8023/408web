@@ -1,10 +1,11 @@
+<!-- 模拟题编辑弹窗：表单在桌面与移动视口内自适应。 -->
 <template>
   <teleport to="body">
     <transition name="dialog-fade">
       <div
         v-show="dialogVisible"
         ref="dialogRef"
-        class="fixed inset-0 z-50 flex items-center justify-center p-4"
+        class="fixed inset-0 z-[1100] flex items-center justify-center p-2 sm:p-4"
         role="dialog"
         aria-modal="true"
         :aria-labelledby="dialogTitleId"
@@ -21,10 +22,10 @@
 
         <!-- 弹窗主体 -->
         <div
-          class="relative top-6 z-10 bg-white rounded-xl shadow-2xl overflow-hidden border border-gray-100 w-[1200px] min-w-[800px] max-w-[1600px] max-h-[calc(100vh-10vh-40px)] flex flex-col"
+          class="question-edit-dialog-panel relative z-10 flex w-[min(1200px,calc(100vw-16px))] min-w-0 max-w-[1600px] flex-col overflow-hidden rounded-xl border border-gray-100 bg-white shadow-2xl sm:w-[min(1200px,calc(100vw-32px))]"
         >
           <!-- 头部 -->
-          <header class="flex items-center justify-between px-6 py-4 bg-gradient-to-r from-[#FBF7F2] to-white border-b border-[#8B6F47]/10">
+          <header class="flex items-center justify-between border-b border-[#8B6F47]/10 bg-gradient-to-r from-[#FBF7F2] to-white px-4 py-3 sm:px-6 sm:py-4">
             <div class="flex items-center gap-3">
               <!-- 装饰图标 -->
               <span class="w-8 h-8 rounded-lg bg-[#8B6F47] flex items-center justify-center text-white shadow-sm">
@@ -45,7 +46,7 @@
           </header>
 
           <!-- 内容区 -->
-          <div ref="contentRef" class="flex-1 min-h-0 overflow-y-auto p-6">
+          <div ref="contentRef" class="scrollbar-stable min-h-0 flex-1 overflow-y-auto p-3 sm:p-6">
             <!-- JSON快速导入区域 -->
             <section class="mb-6">
               <!-- 折叠面板头部 -->
@@ -260,15 +261,15 @@
           </div>
 
           <!-- 底部 -->
-          <footer class="flex-shrink-0 px-6 py-4 bg-gradient-to-r from-gray-50 to-[#FBF7F2]/30 border-t border-gray-100 flex items-center justify-between">
+          <footer class="flex flex-shrink-0 flex-wrap items-center justify-end gap-3 border-t border-gray-100 bg-gradient-to-r from-gray-50 to-[#FBF7F2]/30 px-4 py-3 sm:justify-between sm:px-6 sm:py-4">
             <!-- 左侧提示 -->
-            <div class="text-xs text-gray-400 hidden sm:block">
+            <div class="hidden text-xs text-gray-400 sm:block">
               <font-awesome-icon :icon="['fas', 'info-circle']" class="mr-1" />
               按 <kbd class="px-1.5 py-0.5 bg-white border border-gray-200 rounded text-[10px] font-mono">Ctrl</kbd> + <kbd class="px-1.5 py-0.5 bg-white border border-gray-200 rounded text-[10px] font-mono">Enter</kbd> 快速提交
             </div>
 
             <!-- 右侧按钮 -->
-            <div class="flex items-center gap-3">
+            <div class="flex w-full items-center justify-end gap-2 sm:w-auto sm:gap-3">
               <CustomButton @click="handleCancel">取消</CustomButton>
               <CustomButton type="primary" :loading="saving" @click="handleSubmit">
                 <font-awesome-icon :icon="isEditMode ? ['fas', 'save'] : ['fas', 'plus']" />
@@ -711,5 +712,27 @@ onBeforeUnmount(() => {
 .slide-fade-leave-to {
   opacity: 0;
   transform: translateY(-5px);
+}
+
+.question-edit-dialog-panel {
+  max-height: calc(100vh - 16px);
+}
+
+@supports (height: 100dvh) {
+  .question-edit-dialog-panel {
+    max-height: calc(100dvh - 16px);
+  }
+}
+
+@media (min-width: 640px) {
+  .question-edit-dialog-panel {
+    max-height: calc(100vh - 32px);
+  }
+
+  @supports (height: 100dvh) {
+    .question-edit-dialog-panel {
+      max-height: calc(100dvh - 32px);
+    }
+  }
 }
 </style>

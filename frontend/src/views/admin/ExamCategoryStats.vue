@@ -1,5 +1,6 @@
+<!-- 真题分类统计页面：支持响应式筛选、分组和横向明细表。 -->
 <template>
-  <main class="min-h-[calc(100vh-60px)]">
+  <main class="min-h-[var(--app-page-height)]">
     <div class="stats-page mx-auto max-w-[1400px] px-4 py-6 md:px-6 md:py-8">
       <!-- 页面标题与操作 -->
       <header class="mb-6 flex flex-col gap-5 border-b border-[#8B6F47]/10 pb-6 lg:flex-row lg:items-end lg:justify-between">

@@ -1,6 +1,7 @@
+<!-- 模拟题分类阅读页面：移动端上下排列导航与题目内容。 -->
 <template>
-  <div class="h-[calc(100vh-60px)] overflow-hidden flex flex-col bg-[#FBF7F2]">
-    <div class="flex-1 flex relative overflow-hidden">
+  <div class="app-viewport-page overflow-hidden flex flex-col bg-[#FBF7F2]">
+    <div class="flex-1 flex flex-col md:flex-row relative overflow-hidden">
       <!-- 左侧科目导航栏 -->
       <SubjectSidebar
         v-model:is-collapsed="isNavCollapsed"
@@ -16,15 +17,15 @@
       />
 
       <!-- 右侧内容区域 -->
-      <div ref="contentScroller" class="flex-1 w-0 overflow-y-auto bg-[#FBF7F2]">
-        <div class="min-h-[calc(100vh-60px-40px)] bg-[#FBF7F2]">
+      <div ref="contentScroller" class="scrollbar-stable flex-1 w-full min-w-0 overflow-y-auto bg-[#FBF7F2] md:w-0">
+        <div class="min-h-full bg-[#FBF7F2]">
           <div class="p-4">
-            <div class="flex items-center justify-between">
-              <div class="flex items-center gap-3 flex-1">
+            <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div class="flex min-w-0 items-center gap-3 flex-1">
                 <h2 class="m-0 text-[#333] font-semibold text-xl">{{ currentTitle }}</h2>
                 <Tag v-if="displayTotal > 0" type="info">共 {{ displayTotal }} 题</Tag>
               </div>
-              <div class="flex gap-2" v-if="activeSubjectId">
+              <div class="flex flex-wrap gap-2" v-if="activeSubjectId">
                 <RadioGroup
                   v-model="filterQuestionType"
                   aria-label="题型筛选"
@@ -50,10 +51,10 @@
           <!-- 分类分组列表：标题显式区分模拟题、父子层级和题目数量 -->
           <div
             v-if="groupedQuestions.length > 0"
-            class="mt-6 w-full"
+            class="mx-auto mt-6 w-full"
             :class="outlineItems.length > 0
-              ? 'grid grid-cols-1 items-start gap-6 xl:grid-cols-[minmax(0,1fr)_230px]'
-              : 'flex flex-col gap-5 md:max-w-[80%]'"
+              ? 'grid max-w-[1400px] grid-cols-1 items-start gap-6 xl:grid-cols-[minmax(0,1fr)_230px]'
+              : 'flex max-w-[1100px] flex-col gap-5'"
           >
             <main class="min-w-0 flex flex-col gap-5">
               <section

@@ -11,8 +11,9 @@ import { getToken, removeToken } from '@/utils/token'
 import { toast } from '@/utils/toast'
 import { convertKeysToCamel } from '@/utils/convertKeys'
 
-// 创建axios实例
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:7785'
+// 未配置 API 地址时，浏览器通过前端同源代理请求；Node 测试环境保留本地后端默认值。
+const configuredApiBaseUrl = import.meta.env.VITE_API_BASE_URL?.trim()
+export const API_BASE_URL = configuredApiBaseUrl || (typeof window === 'undefined' ? 'http://localhost:7785' : '')
 
 const client = axios.create({
   baseURL: API_BASE_URL,

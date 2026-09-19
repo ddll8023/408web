@@ -60,7 +60,8 @@ if not errorlevel 1 (
 echo.
 echo ============================================
 echo   启动前端开发服务器...
-echo   访问地址: http://localhost:%PORT%
+echo   本机访问地址: http://localhost:%PORT%
+echo   局域网访问地址: http://^<本机局域网IP^>:%PORT%
 echo ============================================
 echo.
 echo [INFO] 按 Ctrl+C 停止服务

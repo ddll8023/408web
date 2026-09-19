@@ -32,19 +32,19 @@ export default {
         disabled: '#7f8c8d',
         'disabled-bg': '#f5f7fa',
       },
-      // 字体大小
+      // 项目专用字号，避免覆盖 Tailwind 的 text-base/text-xl 语义
       fontSize: {
-        small: '12px',
-        base: '14px',
-        medium: '16px',
-        large: '18px',
-        xl: '20px',
-        xxl: '28px',
+        'project-small': '12px',
+        'project-base': '14px',
+        'project-medium': '16px',
+        'project-large': '18px',
+        'project-xl': '20px',
+        'project-xxl': '28px',
       },
-      // 字重
+      // 项目专用字重，避免覆盖 Tailwind 的 font-medium/font-bold
       fontWeight: {
-        medium: '500',
-        bold: '600',
+        'project-medium': '500',
+        'project-bold': '600',
       },
       // 字体族
       fontFamily: {
@@ -59,12 +59,12 @@ export default {
         xl: '40px',
         gap: '12px',
       },
-      // 容器宽度
+      // 项目内容宽度，避免覆盖 Tailwind 的 max-w-sm/max-w-md 等默认值
       maxWidth: {
-        'sm': '450px',
-        'md': '900px',
-        'lg': '1200px',
-        'xl': '1400px',
+        'content-sm': '450px',
+        'content-md': '900px',
+        'content-lg': '1200px',
+        'content-xl': '1400px',
       },
       // 边框圆角
       borderRadius: {

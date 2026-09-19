@@ -1,5 +1,6 @@
+<!-- 用户中心页面：侧栏、收藏列表与弹窗按视口自适应。 -->
 <template>
-  <div class="min-h-[calc(100vh-60px)] pt-[60px] bg-[#FBF7F2] flex flex-col md:flex-row gap-4 px-4 pb-4">
+  <div class="min-h-[var(--app-page-height)] bg-[#FBF7F2] flex flex-col md:flex-row gap-4 px-4 py-4">
     <!-- 左侧边栏 -->
     <aside class="w-full md:w-[280px] flex-shrink-0">
       <!-- 个人信息卡片 -->
@@ -39,12 +40,12 @@
     <main class="flex-1 w-full min-w-0">
       <div v-if="activeMenu === 'favorites'" class="min-h-[600px] bg-white rounded-lg border border-gray-200">
         <!-- 收藏夹标题 -->
-        <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+        <div class="flex flex-col items-stretch gap-3 border-b border-gray-200 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
           <h2 class="flex items-center gap-2 text-[#333] text-xl m-0">
             <font-awesome-icon :icon="['fas', 'star']" class="text-[#8B6F47]" />
             我的收藏
           </h2>
-          <div class="flex gap-4">
+          <div class="flex flex-wrap gap-2 sm:gap-4">
             <CustomButton
               size="sm"
               type="primary"
@@ -67,19 +68,19 @@
         <div class="pt-4">
           <!-- 加载状态 -->
           <div v-if="loadingSubjects" class="flex items-center justify-center py-12" role="status" aria-live="polite">
-            <font-awesome-icon :icon="['fas', 'spinner']" class="fa-spin text-2xl text-accent" aria-hidden="true" />
+            <font-awesome-icon :icon="['fas', 'spinner']" class="fa-spin text-2xl text-[#8B6F47]" aria-hidden="true" />
             <span class="ml-3 text-gray-500">加载中...</span>
           </div>
 
           <!-- Tabs 标题栏 -->
-          <div v-else class="flex border-b border-gray-200 px-4" role="tablist" aria-label="收藏科目">
+          <div v-else class="flex overflow-x-auto border-b border-gray-200 px-2 sm:px-4" role="tablist" aria-label="收藏科目">
             <button
               v-for="subject in subjects"
               :key="subject.id"
               type="button"
               role="tab"
               :aria-selected="activeSubjectTab === subject.id"
-              class="px-6 py-3 text-base font-medium transition-colors relative"
+              class="relative shrink-0 whitespace-nowrap px-4 py-3 text-base font-medium transition-colors sm:px-6"
               :class="activeSubjectTab === subject.id
                 ? 'text-[#8B6F47] font-semibold'
                 : 'text-gray-500 hover:text-[#9d825a]'"
@@ -115,7 +116,7 @@
                       </button>
                       <button
                         type="button"
-                        class="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity duration-150 text-gray-400 hover:text-red-500 p-1"
+                        class="flex-shrink-0 p-1 text-gray-400 opacity-100 transition-colors hover:text-red-500 sm:opacity-0 sm:group-hover:opacity-100 sm:focus-visible:opacity-100"
                         :aria-label="`取消收藏 ${item.category}`"
                         @click="handleRemoveFavorite(item)"
                       >
@@ -143,14 +144,14 @@
     >
       <!-- 弹窗内 Tabs -->
       <!-- Tabs 标题栏 -->
-      <div class="flex border-b border-gray-200" role="tablist" aria-label="添加收藏科目">
+      <div class="flex overflow-x-auto border-b border-gray-200" role="tablist" aria-label="添加收藏科目">
         <button
           v-for="subject in subjects"
           :key="subject.id"
           type="button"
           role="tab"
           :aria-selected="activeAddSubject === subject.id"
-          class="px-6 py-3 text-base font-medium transition-colors relative"
+          class="relative shrink-0 whitespace-nowrap px-4 py-3 text-base font-medium transition-colors sm:px-6"
           :class="activeAddSubject === subject.id
             ? 'text-[#8B6F47] font-semibold'
             : 'text-gray-500 hover:text-[#9d825a]'"
@@ -165,15 +166,15 @@
       </div>
 
       <!-- Tab 内容区 -->
-      <div class="h-[400px] overflow-y-auto p-4">
+      <div class="scrollbar-stable h-[400px] overflow-y-auto p-4">
         <!-- 加载状态 -->
         <div v-if="loadingCategories" class="flex items-center justify-center py-12" role="status" aria-live="polite">
-          <font-awesome-icon :icon="['fas', 'spinner']" class="fa-spin text-2xl text-accent" aria-hidden="true" />
+          <font-awesome-icon :icon="['fas', 'spinner']" class="fa-spin text-2xl text-[#8B6F47]" aria-hidden="true" />
           <span class="ml-3 text-gray-500">加载中...</span>
         </div>
 
         <template v-else-if="categoryList && categoryList.length > 0">
-          <div class="grid grid-cols-2 gap-3">
+          <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <button
               v-for="category in categoryList"
               :key="category"

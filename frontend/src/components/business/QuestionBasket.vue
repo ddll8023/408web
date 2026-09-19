@@ -132,7 +132,7 @@ const handleWordCopied = (result: RichCopyResult, questionIds: number[]) => {
   top: 16px;
   display: flex;
   min-height: 420px;
-  max-height: calc(100vh - 108px);
+  max-height: calc(var(--app-page-height) - 48px);
   flex-direction: column;
   overflow: hidden;
   border: 1px solid #eadfd4;
@@ -216,6 +216,7 @@ const handleWordCopied = (result: RichCopyResult, questionIds: number[]) => {
 .question-basket__items {
   flex: 1;
   overflow-y: auto;
+  scrollbar-gutter: stable;
   padding: 9px;
 }
 

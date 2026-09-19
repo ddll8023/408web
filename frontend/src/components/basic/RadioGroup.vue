@@ -1,6 +1,7 @@
+<!-- 按钮式单选组：支持窄屏自动换行。 -->
 <template>
   <div
-    class="inline-flex rounded-lg overflow-hidden border border-[#8B6F47]/20 bg-[rgba(139,111,71,0.08)] p-0.5"
+    class="inline-flex max-w-full flex-wrap rounded-lg border border-[#8B6F47]/20 bg-[rgba(139,111,71,0.08)] p-0.5"
     role="radiogroup"
     :aria-label="ariaLabel || undefined"
   >

@@ -1,9 +1,9 @@
 <!-- 模拟题出题工作台：以章节树、题目卡片和出题篮组织临时出题。 -->
 <template>
-  <main class="compose-page mx-auto min-h-[calc(100vh-60px)] w-full min-w-0 px-4 py-6">
+  <main class="compose-page mx-auto min-h-[var(--app-page-height)] w-full min-w-0 px-2 py-4 sm:px-4 sm:py-6">
     <CustomCard shadow>
       <template #header>
-        <header class="flex items-center justify-between gap-4">
+        <header class="flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
           <h2 class="m-0 text-xl font-semibold text-[#333]">出题工作台</h2>
           <span v-if="filters.subjectId" class="text-sm text-gray-500">{{ currentSubjectName }}</span>
         </header>
@@ -869,7 +869,7 @@ watch(() => route.query.keyword, newKeyword => {
   position: sticky;
   top: 16px;
   min-width: 0;
-  max-height: calc(100vh - 112px);
+  max-height: calc(var(--app-page-height) - 52px);
   overflow: hidden;
   border-right: 1px solid var(--compose-line);
   padding: 5px 17px 5px 8px;
@@ -933,8 +933,9 @@ watch(() => route.query.keyword, newKeyword => {
 }
 
 .chapter-panel__tree {
-  max-height: calc(100vh - 230px);
+  max-height: calc(var(--app-page-height) - 170px);
   overflow-y: auto;
+  scrollbar-gutter: stable;
   padding: 2px 0 12px;
   scrollbar-gutter: stable;
 }
@@ -964,8 +965,9 @@ watch(() => route.query.keyword, newKeyword => {
 
 .question-content {
   min-width: 0;
-  max-height: calc(100vh - 112px);
+  max-height: calc(var(--app-page-height) - 52px);
   overflow-y: auto;
+  scrollbar-gutter: stable;
   padding: 5px 18px;
   scrollbar-gutter: stable;
 }

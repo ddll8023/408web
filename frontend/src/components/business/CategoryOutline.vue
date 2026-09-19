@@ -40,7 +40,7 @@
           <p class="mt-1 text-xs text-gray-500">点击跳转到对应题目区域</p>
         </div>
 
-        <nav class="max-h-[min(60vh,520px)] overflow-y-auto p-2" :aria-label="`${theme.label}分类大纲内容`">
+        <nav class="scrollbar-stable max-h-[min(60vh,520px)] overflow-y-auto p-2" :aria-label="`${theme.label}分类大纲内容`">
           <ol class="relative space-y-0.5">
             <li v-for="item in items" :key="item.anchorId" class="relative">
               <button

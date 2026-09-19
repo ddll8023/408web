@@ -1,5 +1,6 @@
+<!-- 用户登录页面：认证表单保持移动端安全边距。 -->
 <template>
-  <div class="min-h-screen bg-[#FBF7F2] flex items-center justify-center p-4">
+  <div class="flex min-h-screen min-h-[100dvh] items-center justify-center bg-[#FBF7F2] p-4">
     <!-- 使用 CustomCard 替代 el-card -->
     <CustomCard class="w-full max-w-md">
       <template #header>

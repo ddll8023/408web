@@ -1,7 +1,8 @@
+<!-- 响应式分页组件：窄屏允许分页控件自动换行。 -->
 <template>
-  <div class="flex items-center justify-end gap-2">
+  <div class="pagination flex max-w-full flex-wrap items-center justify-end gap-2">
     <!-- 总数显示 -->
-    <span v-if="showTotal" class="text-sm text-gray-600">
+    <span v-if="showTotal" class="pagination-total text-sm text-gray-600">
       共 {{ total }} 条
     </span>
 
@@ -59,7 +60,7 @@
     </button>
 
     <!-- 跳转输入框 -->
-    <div v-if="showJumper" class="flex items-center gap-1 ml-2">
+    <div v-if="showJumper" class="pagination-jumper flex items-center gap-1 ml-2">
       <span class="text-sm text-gray-600">到</span>
       <input
         v-model="jumpPage"
@@ -203,3 +204,21 @@ watch(() => props.currentPage, (val) => {
   jumpPage.value = val
 })
 </script>
+
+<style scoped>
+@media (max-width: 640px) {
+  .pagination {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .pagination-total {
+    width: 100%;
+    text-align: center;
+  }
+
+  .pagination-jumper {
+    margin-left: 0;
+  }
+}
+</style>

@@ -1,3 +1,4 @@
+<!-- 通用响应式弹窗：限制视口尺寸并统一焦点与滚动行为。 -->
 <template>
   <teleport to="body">
     <transition name="dialog-fade">
@@ -5,7 +6,7 @@
         ref="dialogRef"
         v-if="visible || !destroyOnClose"
         v-show="visible"
-        class="fixed inset-0 z-50 flex items-start justify-center w-full h-full m-0 p-0 border-0 bg-transparent"
+        class="fixed inset-0 z-[1100] flex items-start justify-center w-full h-full m-0 p-0 border-0 bg-transparent"
         :open="visible"
         role="dialog"
         aria-modal="true"
@@ -23,7 +24,7 @@
 
         <!-- 弹窗主体 -->
         <div
-          class="relative z-10 bg-white rounded-lg shadow-xl overflow-hidden"
+          class="dialog-container relative z-10 flex min-h-0 flex-col overflow-hidden rounded-lg bg-white shadow-xl"
           :class="containerClass"
           :style="containerStyle"
         >
@@ -43,9 +44,9 @@
           </div>
 
           <!-- 内容区 -->
-          <div class="overflow-y-auto px-6 py-4" :style="contentStyle" :aria-busy="loading">
+          <div class="dialog-content scrollbar-stable min-h-0 flex-1 overflow-y-auto px-6 py-4" :style="contentStyle" :aria-busy="loading">
             <div v-if="loading" class="flex items-center justify-center p-8" role="status" aria-live="polite">
-              <font-awesome-icon :icon="['fas', 'spinner']" class="fa-spin text-2xl text-accent" aria-hidden="true" />
+              <font-awesome-icon :icon="['fas', 'spinner']" class="fa-spin text-2xl text-[#8B6F47]" aria-hidden="true" />
               <span class="ml-3 text-gray-500">加载中...</span>
             </div>
             <slot v-else />
@@ -138,13 +139,14 @@ const containerClass = computed(() => {
 })
 
 const containerStyle = computed(() => ({
-  width: props.width,
-  maxWidth: props.maxWidth,
-  marginTop: props.top
+  width: `min(${props.width}, calc(100vw - 32px))`,
+  maxWidth: `min(${props.maxWidth}, calc(100vw - 32px))`,
+  maxHeight: 'calc(100dvh - 32px)',
+  marginTop: `min(${props.top}, 8dvh)`,
 }))
 
 const contentStyle = computed(() => ({
-  maxHeight: `calc(100vh - ${props.top} - 140px)`
+  maxHeight: 'none',
 }))
 
 // 关闭弹窗
@@ -253,6 +255,10 @@ dialog[open] {
   display: flex;
 }
 
+.dialog-container {
+  max-height: calc(100vh - 32px);
+}
+
 /* 过渡动画 */
 .dialog-fade-enter-active,
 .dialog-fade-leave-active {
@@ -272,5 +278,18 @@ dialog[open] {
 .dialog-fade-enter-from .bg-white,
 .dialog-fade-leave-to .bg-white {
   transform: scale(0.95);
+}
+
+@media (max-width: 640px) {
+  .dialog-container {
+    border-radius: 12px;
+  }
+
+  .dialog-container > :first-child,
+  .dialog-content,
+  .dialog-container > :last-child {
+    padding-right: 16px;
+    padding-left: 16px;
+  }
 }
 </style>

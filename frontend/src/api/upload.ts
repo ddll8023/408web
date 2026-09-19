@@ -30,12 +30,16 @@ export const getImageUrl = (imagePath: string) => {
   if (!value) return ''
 
   const baseUrl = API_BASE_URL.replace(/\/+$/, '')
+  const documentOrigin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:7785'
   try {
-    const parsed = new URL(value, `${baseUrl}/`)
+    const parsed = new URL(value, baseUrl ? `${baseUrl}/` : documentOrigin)
     if (!parsed.pathname.startsWith(IMAGE_PATH_PREFIX)) {
       return value
     }
-    return `${baseUrl}${parsed.pathname}${parsed.search}${parsed.hash}`
+
+    // 开发环境使用前端同源代理；显式配置后端地址时保留绝对 URL。
+    const imageBaseUrl = baseUrl || ''
+    return `${imageBaseUrl}${parsed.pathname}${parsed.search}${parsed.hash}`
   } catch {
     return value
   }
