@@ -75,12 +75,12 @@
 ├── doc/                      # 项目结构、模块与数据库设计文档
 │   ├── 项目结构文档.md
 │   ├── 模块说明文档.md
-│   └── 数据库设计.md
+│   ├── 数据库设计.md
+│   └── 分类标签清单.md
 │
 ├── backend-fastapi/data/     # SQLite数据库目录（运行时）
 ├── backend-fastapi/uploads/  # 上传文件目录（运行时）
-├── backend-fastapi/logs/     # 后端日志目录（运行时）
-└── 规范文档/                 # 项目开发规范文档
+└── backend-fastapi/logs/     # 后端日志目录（运行时）
 ```
 
 ## 功能模块
@@ -163,7 +163,11 @@ npm install
 npm run dev
 ```
 
-前端服务将在 `http://localhost:7784` 启动
+前端开发服务器监听 `0.0.0.0:7784`：
+
+- 本机访问：`http://localhost:7784`
+- 同一局域网访问：`http://<本机局域网IP>:7784`
+- 未配置 `VITE_API_BASE_URL` 时，开发服务器会将 `/api` 和 `/uploads` 同源代理到后端 `7785` 端口，局域网设备无需把 `localhost` 当作后端地址。
 
 ### 前端验证与构建
 
@@ -176,17 +180,17 @@ npm run type-check
 # API、业务数据和基础组件回归测试
 npm test
 
-# 类型检查后生成 dist/
+# 类型检查后生成 dist/，dist/ 预览服务同样监听 0.0.0.0 并代理 /api 与 /uploads
 npm run build
 ```
 
 应用源码使用 TypeScript，Vue 脚本使用 `lang="ts"`；`strict: true`、`allowJs: false`。PostCSS/Tailwind 使用独立的 JavaScript 工具配置，Node 测试脚本使用 `.mjs`；自动化测试使用模拟网络和自定义组件 renderer，不等同于真实浏览器全流程验证。
 
-前端规范、项目结构、模块边界和数据库设计分别见 [`规范文档/前端规范文档.md`](./规范文档/前端规范文档.md)、[`doc/项目结构文档.md`](./doc/项目结构文档.md)、[`doc/模块说明文档.md`](./doc/模块说明文档.md) 与 [`doc/数据库设计.md`](./doc/数据库设计.md)。
+项目结构、模块边界、数据库设计与分类标签清单分别见 [`doc/项目结构文档.md`](./doc/项目结构文档.md)、[`doc/模块说明文档.md`](./doc/模块说明文档.md)、[`doc/数据库设计.md`](./doc/数据库设计.md) 与 [`doc/分类标签清单.md`](./doc/分类标签清单.md)。
 
 ### 4. 访问应用
 
-打开浏览器访问 `http://localhost:7784`
+打开浏览器访问 `http://localhost:7784`；同一局域网的其他设备访问 `http://<本机局域网IP>:7784`。
 
 ## 主要 API 示例
 
@@ -251,9 +255,12 @@ SERVER_HOST=0.0.0.0
 SERVER_PORT=7785
 API_PREFIX=/api
 
-# CORS配置
+# CORS配置：仅当前端通过 VITE_API_BASE_URL 直连后端时需要；
+# 开发服务器走同源代理时无需配置局域网来源
 CORS_ORIGINS=http://localhost:7784
 ```
+
+前端可用 `frontend/.env` 中的 `VITE_API_BASE_URL` 覆盖默认的同源代理行为：不设置时请求相对路径 `/api`，由开发服务器代理到后端；设置为完整后端地址（如 `http://192.168.1.10:7785`）时直连后端，此时需同步调整 `CORS_ORIGINS`。
 
 ### 环境变量
 
@@ -281,11 +288,11 @@ JWT_ALGORITHM=HS256
 
 ## 开发规范
 
-本项目遵循以下开发规范：
+本项目遵循以下项目文档：
 
-- [前端规范文档](./规范文档/前端规范文档.md)
-- [后端规范文档](./规范文档/后端规范文档.md)
+- [项目结构文档](./doc/项目结构文档.md)
 - [模块说明文档](./doc/模块说明文档.md)
+- [数据库设计](./doc/数据库设计.md)
 
 ## License
 
