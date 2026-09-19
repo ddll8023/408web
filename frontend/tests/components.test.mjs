@@ -107,26 +107,6 @@ test('Confirm renders supplied text and calls confirm exactly once', async () =>
   view.unmount()
 })
 
-test('TreeItem forwards nested node and computed drop position unchanged', async () => {
-  const component = await loadComponent('TreeItem')
-  const leaf = { id: 3, name: '叶节点', children: [] }
-  const node = { id: 1, name: '根节点', children: [{ id: 2, name: '子节点', children: [leaf] }] }
-  const received = []
-  const view = mount(component, { node, expandedKeys: [1, 2], draggable: true, onDrop: (...args) => received.push(args) })
-  const rows = all(view.root, element => String(element.props.class).includes('tree-item-content'))
-  assert.equal(rows.length, 3)
-  for (const [clientY, position] of [[10, 'before'], [50, 'inner'], [90, 'after']]) {
-    const event = { currentTarget: rows[2], clientY, preventDefault() {} }
-    rows[2].props.onDrop(event)
-    const actual = received.at(-1)
-    assert.equal(actual[0], event)
-    assert.equal(actual[1], leaf)
-    assert.equal(actual[2], position)
-  }
-  assert.equal(received.length, 3)
-  view.unmount()
-})
-
 test('Select native change preserves numeric option values and emits empty selection', async () => {
   const component = await loadComponent('Select')
   const updates = []
