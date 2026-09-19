@@ -58,16 +58,15 @@ class GlobalCorsMiddleware(BaseHTTPMiddleware):
         allowed_origins = settings.cors.allowed_origins
         if origin in allowed_origins:
             response.headers["Access-Control-Allow-Origin"] = origin
+            # 仅在使用具体来源时允许携带凭证
+            response.headers["Access-Control-Allow-Credentials"] = "true"
         elif not origin:
             # 如果没有Origin头（非浏览器请求），使用通配符
             response.headers["Access-Control-Allow-Origin"] = "*"
-        else:
+        elif "Access-Control-Allow-Origin" in response.headers:
             # 未授权来源不返回允许的 Origin。
-            response.headers.pop("Access-Control-Allow-Origin", None)
-
-        # 允许携带凭证（仅当使用具体来源时）
-        if response.headers.get("Access-Control-Allow-Origin") != "*":
-            response.headers["Access-Control-Allow-Credentials"] = "true"
+            # Starlette 的 MutableHeaders 没有 pop 方法，只能先判断再删除。
+            del response.headers["Access-Control-Allow-Origin"]
 
         # 允许的请求方法
         response.headers["Access-Control-Allow-Methods"] = "POST, OPTIONS"
