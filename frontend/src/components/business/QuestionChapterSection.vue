@@ -155,7 +155,7 @@ const handleQuestionStatusToggle = (question: QuestionRow) => {
 
 .question-chapter-section__selected {
   border-radius: 999px;
-  background: rgba(139, 111, 71, 0.12);
+  background: color-mix(in srgb, var(--brand-accent) 12%, transparent);
   padding: 3px 8px;
   color: #8b6f47;
   font-weight: 700;

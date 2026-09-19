@@ -292,6 +292,16 @@ const wordEnglishFontStyles = {
   msoBidiFontFamily: '"Times New Roman"',
 }
 
+/**
+ * Word 富文本不接受 CSS 变量，导出时必须落成字面色值；
+ * 这里在导出时从语义色令牌解析一次，保持 tailwind.css 的 :root 为唯一色值来源。
+ */
+const resolveCssColor = (variable: string, fallback: string) => {
+  if (typeof window === 'undefined' || typeof window.getComputedStyle !== 'function') return fallback
+  const value = window.getComputedStyle(document.documentElement).getPropertyValue(variable).trim()
+  return value || fallback
+}
+
 /** 为 Word 文本运行显式指定中西文字体，避免 Word 使用当前文档的默认字体。 */
 const applyWordCharacterFonts = (root: HTMLElement) => {
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT)
@@ -901,7 +911,7 @@ const getClipboardContent = async (): Promise<RichCopyContent> => {
     maxWidth: '760px',
     padding: '0',
     background: '#fff',
-    color: '#333',
+    color: resolveCssColor('--brand-ink', '#333'),
     fontSize: '9.5pt',
     lineHeight: wordLineHeight,
   })
@@ -960,7 +970,7 @@ defineExpose({ capture, getClipboardContent })
   padding: 32px;
   overflow: visible;
   background: #fff;
-  color: #333;
+  color: var(--brand-ink);
   text-align: left;
   white-space: normal;
   font-family: Arial, "Microsoft YaHei", "PingFang SC", sans-serif;
@@ -993,7 +1003,7 @@ defineExpose({ capture, getClipboardContent })
 
 .question-image-renderer__meta span {
   padding: 2px 8px;
-  border: 1px solid rgba(139, 111, 71, 0.25);
+  border: 1px solid color-mix(in srgb, var(--brand-accent) 25%, transparent);
   border-radius: 999px;
   flex: 0 0 auto;
   white-space: nowrap;

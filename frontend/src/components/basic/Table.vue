@@ -1,11 +1,11 @@
 <!-- 基础表格组件：可选地提供当前页多选能力。 -->
 <template>
-  <div class="overflow-x-auto rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8B6F47]/40" :aria-busy="loading" role="region" aria-label="数据表格，可横向滚动" tabindex="0">
+  <div class="overflow-x-auto rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40" :aria-busy="loading" role="region" aria-label="数据表格，可横向滚动" tabindex="0">
     <!-- 加载状态 -->
     <div v-if="loading" class="py-12">
       <slot name="loading">
         <div class="flex items-center justify-center" role="status" aria-live="polite">
-          <font-awesome-icon :icon="['fas', 'spinner']" class="fa-spin text-2xl text-[#8B6F47]" aria-hidden="true" />
+          <font-awesome-icon :icon="['fas', 'spinner']" class="fa-spin text-2xl text-accent" aria-hidden="true" />
           <span class="ml-3 text-gray-600">加载中...</span>
         </div>
       </slot>
@@ -23,7 +23,7 @@
             <input
               ref="headerCheckboxRef"
               type="checkbox"
-              class="h-4 w-4 cursor-pointer rounded border-gray-300 text-[#8B6F47] focus:ring-2 focus:ring-[#8B6F47] focus:ring-offset-0"
+              class="h-4 w-4 cursor-pointer rounded border-gray-300 text-accent focus:ring-2 focus:ring-accent focus:ring-offset-0"
               :checked="allRowsSelected"
               :aria-checked="someRowsSelected ? 'mixed' : allRowsSelected"
               aria-label="选择当前页题目"
@@ -41,7 +41,7 @@
             :class="[
               sizeClasses.th,
               column.align === 'center' ? 'text-center' : column.align === 'right' ? 'text-right' : 'text-left',
-              column.sortable ? 'cursor-pointer select-none hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#8B6F47]' : '',
+              column.sortable ? 'cursor-pointer select-none hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent' : '',
               column.fixed ? 'sticky right-0 z-10 bg-inherit shadow-[-8px_0_12px_-12px_rgba(0,0,0,0.35)]' : ''
             ]"
             :style="columnStyle(column)"
@@ -55,7 +55,7 @@
                 <font-awesome-icon
                   v-if="sortConfig.prop === column.prop"
                   :icon="sortConfig.order === 'ascending' ? ['fas', 'sort-up'] : ['fas', 'sort-down']"
-                  class="text-xs text-[#8B6F47]"
+                  class="text-xs text-accent"
                   aria-hidden="true"
                 />
                 <font-awesome-icon
@@ -82,7 +82,7 @@
           >
             <input
               type="checkbox"
-              class="h-4 w-4 cursor-pointer rounded border-gray-300 text-[#8B6F47] focus:ring-2 focus:ring-[#8B6F47] focus:ring-offset-0"
+              class="h-4 w-4 cursor-pointer rounded border-gray-300 text-accent focus:ring-2 focus:ring-accent focus:ring-offset-0"
               :checked="isRowSelected(row, index)"
               :disabled="!rowSelectable(row, index)"
               :aria-label="`选择第 ${index + 1} 行题目`"

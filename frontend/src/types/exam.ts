@@ -1,3 +1,6 @@
+/**
+ * 真题领域类型：定义真题实体、查询参数、导航索引与年份分组，以及分类统计结构。
+ */
 import type { Difficulty, QuestionCreateFields, QuestionOptions, QuestionType, QuestionUpdateFields } from './question'
 
 /** 真题（对应 ExamResponse，已转驼峰） */
@@ -58,6 +61,15 @@ export interface ExamNavItem {
   questionNumber?: number | null
   title?: string | null
   category?: string[] | null
+}
+
+/** 真题导航中的题目项（年份由所属分组提供，接口返回时带有 year 字段） */
+export type ExamNavQuestion = Omit<ExamNavItem, 'year'>
+
+/** 真题导航按年份聚合后的分组（题目项不含年份，由分组字段提供） */
+export interface ExamNavYear {
+  year: number
+  exams: ExamNavQuestion[]
 }
 
 /** 真题分类统计项（对应 ExamCategoryStatItem） */

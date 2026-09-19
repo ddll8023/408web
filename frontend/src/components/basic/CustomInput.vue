@@ -169,7 +169,7 @@ const inputClasses = computed(() => {
   // 状态样式
   const stateClasses = props.error
     ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20'
-    : 'border-gray-300 focus:border-[#8B6F47] focus:ring-[#8B6F47]/20'
+    : 'border-gray-300 focus:border-accent focus:ring-accent/20'
 
   const disabledClasses = props.disabled
     ? 'bg-gray-100 cursor-not-allowed opacity-60'

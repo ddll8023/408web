@@ -3,7 +3,7 @@
   <div class="exam-item-header flex items-center justify-between mb-6 pb-4 border-b border-black/[0.03]">
     <div class="flex-1">
       <h3 class="question-title text-lg font-semibold text-gray-800 flex items-center gap-3 m-0">
-        <span class="text-[#8B6F47] font-mono">{{ exam.year }}年 第 {{ exam.questionNumber }} 题</span>
+        <span class="text-accent font-mono">{{ exam.year }}年 第 {{ exam.questionNumber }} 题</span>
       </h3>
       <div class="flex gap-2 flex-wrap mt-2">
         <Tag :type="exam.questionType === 'CHOICE' ? 'success' : 'primary'">

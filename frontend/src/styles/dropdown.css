@@ -7,13 +7,13 @@
   --dropdown-surface-muted: #f8f4ef;
   --dropdown-border: #e6ddd3;
   --dropdown-border-hover: #cbb89f;
-  --dropdown-accent: #8b6f47;
-  --dropdown-accent-soft: rgba(139, 111, 71, 0.1);
+  --dropdown-accent: var(--brand-accent);
+  --dropdown-accent-soft: color-mix(in srgb, var(--brand-accent) 10%, transparent);
   --dropdown-option-hover: #f7f3ee;
   --dropdown-text: #374151;
   --dropdown-muted: #9ca3af;
   --dropdown-shadow: 0 14px 32px rgba(76, 56, 34, 0.14), 0 2px 6px rgba(76, 56, 34, 0.06);
-  --dropdown-focus-ring: 0 0 0 3px rgba(139, 111, 71, 0.14);
+  --dropdown-focus-ring: 0 0 0 3px color-mix(in srgb, var(--brand-accent) 14%, transparent);
   --dropdown-trigger-radius: 10px;
   --dropdown-panel-radius: 12px;
   --dropdown-option-radius: 8px;
@@ -135,7 +135,7 @@
 }
 
 .dropdown-option:focus-visible {
-  outline: 2px solid rgba(139, 111, 71, 0.45);
+  outline: 2px solid color-mix(in srgb, var(--brand-accent) 45%, transparent);
   outline-offset: -2px;
 }
 
@@ -163,7 +163,7 @@
 
 .dropdown-filter:focus {
   border-color: var(--dropdown-accent);
-  box-shadow: 0 0 0 2px rgba(139, 111, 71, 0.1);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--brand-accent) 10%, transparent);
 }
 
 .dropdown-panel__header {
@@ -215,7 +215,7 @@
   align-items: center;
   gap: 4px;
   padding: 2px 8px;
-  border: 1px solid rgba(139, 111, 71, 0.2);
+  border: 1px solid color-mix(in srgb, var(--brand-accent) 20%, transparent);
   border-radius: 6px;
   background-color: var(--dropdown-accent-soft);
   color: var(--dropdown-accent);
@@ -260,8 +260,8 @@
 
 .dropdown-wheel-highlight {
   height: 100%;
-  border-top: 1px solid rgba(139, 111, 71, 0.3);
-  border-bottom: 1px solid rgba(139, 111, 71, 0.3);
+  border-top: 1px solid color-mix(in srgb, var(--brand-accent) 30%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--brand-accent) 30%, transparent);
   border-radius: 6px;
   background-color: var(--dropdown-accent-soft);
 }
@@ -289,7 +289,7 @@
 }
 
 .dropdown-menu .dropdown-item:focus-visible {
-  outline: 2px solid rgba(139, 111, 71, 0.45);
+  outline: 2px solid color-mix(in srgb, var(--brand-accent) 45%, transparent);
   outline-offset: -2px;
 }
 

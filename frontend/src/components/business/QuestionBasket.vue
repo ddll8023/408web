@@ -159,7 +159,7 @@ const handleWordCopied = (result: RichCopyResult, questionIds: number[]) => {
 
 .question-basket__title {
   margin: 0;
-  color: #333;
+  color: var(--brand-ink);
   font-size: 18px;
   font-weight: 750;
 }
@@ -184,7 +184,7 @@ const handleWordCopied = (result: RichCopyResult, questionIds: number[]) => {
   justify-content: center;
   flex-direction: column;
   padding: 32px 20px;
-  color: #999;
+  color: var(--brand-ink-mute);
   text-align: center;
 }
 
@@ -240,7 +240,7 @@ const handleWordCopied = (result: RichCopyResult, questionIds: number[]) => {
 .question-basket__item-title {
   min-width: 0;
   overflow: hidden;
-  color: #666;
+  color: var(--brand-ink-soft);
   font-size: 12px;
   line-height: 1.4;
   text-overflow: ellipsis;
@@ -267,7 +267,7 @@ const handleWordCopied = (result: RichCopyResult, questionIds: number[]) => {
 }
 
 .question-basket__icon-button:hover:not(:disabled) {
-  background: rgba(139, 111, 71, 0.1);
+  background: color-mix(in srgb, var(--brand-accent) 10%, transparent);
   color: #8b6f47;
 }
 

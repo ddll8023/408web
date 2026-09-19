@@ -201,7 +201,7 @@ const itemClasses = computed(() => {
   const classes = []
 
   if (isActive.value) {
-    classes.push('bg-[rgba(139,111,71,0.08)]')
+    classes.push('bg-accent/8')
   } else if (isHovered.value) {
     classes.push('bg-black/[0.03]')
   }
@@ -218,7 +218,7 @@ const itemClasses = computed(() => {
 // 图标包装器类名
 const iconWrapperClasses = computed(() => {
   if (isActive.value || (hasChildren.value && isExpanded.value)) {
-    return 'bg-[rgba(139,111,71,0.1)] text-[#8B6F47]'
+    return 'bg-accent/10 text-accent'
   }
   return 'text-gray-400 hover:bg-black/5'
 })
@@ -226,7 +226,7 @@ const iconWrapperClasses = computed(() => {
 // 图标类名
 const iconClasses = computed(() => {
   if (isExpanded.value) {
-    return 'rotate-90 text-[#8B6F47]'
+    return 'rotate-90 text-accent'
   }
   return ''
 })
@@ -236,12 +236,12 @@ const dotClasses = computed(() => {
   const base = 'dot-indicator'
   if (props.level > 0) {
     if (isActive.value) {
-      return `${base} w-1 h-1 bg-[#8B6F47] opacity-100 scale-125`
+      return `${base} w-1 h-1 bg-accent opacity-100 scale-125`
     }
     return `${base} w-1 h-1 bg-gray-400 opacity-50`
   }
   if (isActive.value) {
-    return `${base} w-1.5 h-1.5 bg-[#8B6F47] opacity-100 scale-110`
+    return `${base} w-1.5 h-1.5 bg-accent opacity-100 scale-110`
   }
   return `${base} w-1.5 h-1.5 bg-gray-400 opacity-60`
 })
@@ -249,7 +249,7 @@ const dotClasses = computed(() => {
 // 标签类名
 const labelClasses = computed(() => {
   if (isActive.value) {
-    return 'text-[#8B6F47] font-medium'
+    return 'text-accent font-medium'
   }
   return ''
 })
@@ -257,7 +257,7 @@ const labelClasses = computed(() => {
 // 数量标签类名
 const countClasses = computed(() => {
   if (isActive.value) {
-    return 'bg-[rgba(139,111,71,0.15)] text-[#8B6F47]'
+    return 'bg-accent/15 text-accent'
   }
   return 'bg-black/5 text-gray-400'
 })
@@ -351,9 +351,9 @@ const leave = (el: Element, done: () => void) => {
 <style scoped>
 /* 主题色变量 */
 .category-tree-item {
-  --theme-color: #8B6F47;
-  --theme-color-light: rgba(139, 111, 71, 0.08);
-  --theme-color-lighter: rgba(139, 111, 71, 0.15);
+  --theme-color: var(--brand-accent);
+  --theme-color-light: color-mix(in srgb, var(--brand-accent) 8%, transparent);
+  --theme-color-lighter: color-mix(in srgb, var(--brand-accent) 15%, transparent);
 }
 
 /* 根节点特殊样式 */
@@ -409,8 +409,8 @@ const leave = (el: Element, done: () => void) => {
   background: linear-gradient(
     to bottom,
     transparent,
-    rgba(139, 111, 71, 0.15) 10%,
-    rgba(139, 111, 71, 0.15) 90%,
+    color-mix(in srgb, var(--brand-accent) 15%, transparent) 10%,
+    color-mix(in srgb, var(--brand-accent) 15%, transparent) 90%,
     transparent
   );
 }

@@ -1,15 +1,15 @@
 <!-- 用户中心页面：侧栏、收藏列表与弹窗按视口自适应。 -->
 <template>
-  <div class="min-h-[var(--app-page-height)] bg-[#FBF7F2] flex flex-col md:flex-row gap-4 px-4 py-4">
+  <div class="min-h-[var(--app-page-height)] bg-surface flex flex-col md:flex-row gap-4 px-4 py-4">
     <!-- 左侧边栏 -->
     <aside class="w-full md:w-[280px] flex-shrink-0">
       <!-- 个人信息卡片 -->
       <div class="mb-4 text-center bg-white rounded-lg border border-gray-200 p-6">
-        <div class="flex justify-center items-center w-20 h-20 mx-auto mb-4 rounded-full bg-[rgba(139,111,71,0.1)]">
+        <div class="flex justify-center items-center w-20 h-20 mx-auto mb-4 rounded-full bg-accent/10">
           <font-awesome-icon :icon="['fas', 'user']" class="text-5xl text-[#8B7355]" />
         </div>
         <div>
-          <h3 class="text-[#333] text-lg mb-2">{{ authStore.userInfo?.username }}</h3>
+          <h3 class="text-ink text-lg mb-2">{{ authStore.userInfo?.username }}</h3>
           <span class="inline-flex items-center px-2.5 py-0.5 rounded text-xs font-medium"
             :class="roleTagType === 'danger' ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800'">
             {{ roleText }}
@@ -23,8 +23,8 @@
           type="button"
           class="w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200"
           :class="activeMenu === 'favorites'
-            ? 'bg-[rgba(139,111,71,0.1)] text-[#8B6F47]'
-            : 'bg-white text-gray-700 hover:bg-[rgba(139,111,71,0.05)]'"
+            ? 'bg-accent/10 text-accent'
+            : 'bg-white text-gray-700 hover:bg-accent/5'"
           @click="handleMenuSelect('favorites')"
         >
           <font-awesome-icon :icon="['fas', 'star']" />
@@ -41,8 +41,8 @@
       <div v-if="activeMenu === 'favorites'" class="min-h-[600px] bg-white rounded-lg border border-gray-200">
         <!-- 收藏夹标题 -->
         <div class="flex flex-col items-stretch gap-3 border-b border-gray-200 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
-          <h2 class="flex items-center gap-2 text-[#333] text-xl m-0">
-            <font-awesome-icon :icon="['fas', 'star']" class="text-[#8B6F47]" />
+          <h2 class="flex items-center gap-2 text-ink text-xl m-0">
+            <font-awesome-icon :icon="['fas', 'star']" class="text-accent" />
             我的收藏
           </h2>
           <div class="flex flex-wrap gap-2 sm:gap-4">
@@ -68,7 +68,7 @@
         <div class="pt-4">
           <!-- 加载状态 -->
           <div v-if="loadingSubjects" class="flex items-center justify-center py-12" role="status" aria-live="polite">
-            <font-awesome-icon :icon="['fas', 'spinner']" class="fa-spin text-2xl text-[#8B6F47]" aria-hidden="true" />
+            <font-awesome-icon :icon="['fas', 'spinner']" class="fa-spin text-2xl text-accent" aria-hidden="true" />
             <span class="ml-3 text-gray-500">加载中...</span>
           </div>
 
@@ -82,14 +82,14 @@
               :aria-selected="activeSubjectTab === subject.id"
               class="relative shrink-0 whitespace-nowrap px-4 py-3 text-base font-medium transition-colors sm:px-6"
               :class="activeSubjectTab === subject.id
-                ? 'text-[#8B6F47] font-semibold'
+                ? 'text-accent font-semibold'
                 : 'text-gray-500 hover:text-[#9d825a]'"
               @click="activeSubjectTab = subject.id"
             >
               {{ subject.name }}
               <div
                 v-if="activeSubjectTab === subject.id"
-                class="absolute bottom-0 left-0 w-full h-0.5 bg-[#8B6F47]"
+                class="absolute bottom-0 left-0 w-full h-0.5 bg-accent"
               />
             </button>
           </div>
@@ -103,7 +103,7 @@
                     <div
                       v-for="item in getFavoritesForSubject(subject.id)"
                       :key="item.id"
-                      class="flex items-center justify-between p-4 bg-white border border-[rgba(139,111,71,0.2)] rounded transition-all duration-300 hover:border-[#8B6F47] hover:shadow-[0_2px_4px_rgba(0,0,0,0.08)] group"
+                      class="flex items-center justify-between p-4 bg-white border border-accent/20 rounded transition-all duration-300 hover:border-accent hover:shadow-[0_2px_4px_rgba(0,0,0,0.08)] group"
                     >
                       <button
                         type="button"
@@ -111,8 +111,8 @@
                         :aria-label="`打开收藏分类 ${item.category}`"
                         @click="handleCategoryClick(item)"
                       >
-                        <font-awesome-icon :icon="['fas', 'folder']" class="text-[#8B6F47] flex-shrink-0" />
-                        <span class="text-[#333] text-sm truncate">{{ item.category }}</span>
+                        <font-awesome-icon :icon="['fas', 'folder']" class="text-accent flex-shrink-0" />
+                        <span class="text-ink text-sm truncate">{{ item.category }}</span>
                       </button>
                       <button
                         type="button"
@@ -153,14 +153,14 @@
           :aria-selected="activeAddSubject === subject.id"
           class="relative shrink-0 whitespace-nowrap px-4 py-3 text-base font-medium transition-colors sm:px-6"
           :class="activeAddSubject === subject.id
-            ? 'text-[#8B6F47] font-semibold'
+            ? 'text-accent font-semibold'
             : 'text-gray-500 hover:text-[#9d825a]'"
           @click="handleAddSubjectChange(subject.id)"
         >
           {{ subject.name }}
           <div
             v-if="activeAddSubject === subject.id"
-            class="absolute bottom-0 left-0 w-full h-0.5 bg-[#8B6F47]"
+            class="absolute bottom-0 left-0 w-full h-0.5 bg-accent"
           />
         </button>
       </div>
@@ -169,7 +169,7 @@
       <div class="scrollbar-stable h-[400px] overflow-y-auto p-4">
         <!-- 加载状态 -->
         <div v-if="loadingCategories" class="flex items-center justify-center py-12" role="status" aria-live="polite">
-          <font-awesome-icon :icon="['fas', 'spinner']" class="fa-spin text-2xl text-[#8B6F47]" aria-hidden="true" />
+          <font-awesome-icon :icon="['fas', 'spinner']" class="fa-spin text-2xl text-accent" aria-hidden="true" />
           <span class="ml-3 text-gray-500">加载中...</span>
         </div>
 
@@ -179,18 +179,18 @@
               v-for="category in categoryList"
               :key="category"
               type="button"
-              class="flex items-center justify-between p-3 bg-white border border-[#dfe2e5] rounded cursor-pointer transition-all duration-200 hover:border-[#8B6F47] hover:bg-[rgba(139,111,71,0.05)]"
+              class="flex items-center justify-between p-3 bg-white border border-[#dfe2e5] rounded cursor-pointer transition-all duration-200 hover:border-accent hover:bg-accent/5"
               :class="{ 'bg-[rgba(103,194,58,0.1)] border-[#67c23a]': isFavorite(activeAddSubject ?? 0, category) }"
               :aria-pressed="isFavorite(activeAddSubject ?? 0, category)"
               @click="toggleCategoryFavorite(category, activeAddSubject)"
             >
               <span class="text-sm truncate flex-1 mr-2 text-left overflow-hidden text-ellipsis whitespace-nowrap"
-                :class="isFavorite(activeAddSubject ?? 0, category) ? 'text-[#67c23a]' : 'text-[#666]'">
+                :class="isFavorite(activeAddSubject ?? 0, category) ? 'text-[#67c23a]' : 'text-ink-soft'">
                 {{ category }}
               </span>
               <font-awesome-icon
                 class="text-base transition-all duration-200"
-                :class="isFavorite(activeAddSubject ?? 0, category) ? 'text-[#67c23a]' : 'text-[#666]'"
+                :class="isFavorite(activeAddSubject ?? 0, category) ? 'text-[#67c23a]' : 'text-ink-soft'"
                 :icon="isFavorite(activeAddSubject ?? 0, category) ? ['fas', 'check'] : ['fas', 'plus']"
               />
             </button>

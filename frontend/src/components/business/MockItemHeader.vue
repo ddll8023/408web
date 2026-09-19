@@ -5,7 +5,7 @@
       <h3 v-if="mock.questionNumber || mock.title" class="question-title text-lg font-semibold text-gray-800 flex items-center gap-3 m-0">
         <span v-if="mock.title">{{ mock.title }}</span>
         <span v-if="mock.questionNumber && mock.title" class="title-separator text-gray-400 font-normal">·</span>
-        <span v-if="mock.questionNumber" class="question-number text-[#8B6F47] font-mono">第{{ mock.questionNumber }}题</span>
+        <span v-if="mock.questionNumber" class="question-number text-accent font-mono">第{{ mock.questionNumber }}题</span>
       </h3>
       <div class="flex gap-2 flex-wrap mt-2">
         <Tag :type="mock.questionType === 'CHOICE' ? 'success' : 'primary'">

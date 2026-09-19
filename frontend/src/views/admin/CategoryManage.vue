@@ -5,13 +5,13 @@
 <template>
   <div class="category-manage-page mx-auto max-w-[1400px] overflow-hidden px-4 py-5 sm:px-6 sm:py-8">
     <!-- 页面标题栏 -->
-    <div class="category-manage-header mb-6 flex flex-col items-stretch gap-4 border-b-2 border-[rgba(139,111,71,0.1)] pb-5 lg:mb-8 lg:flex-row lg:items-center lg:justify-between lg:pb-6">
+    <div class="category-manage-header mb-6 flex flex-col items-stretch gap-4 border-b-2 border-accent/10 pb-5 lg:mb-8 lg:flex-row lg:items-center lg:justify-between lg:pb-6">
       <div class="flex flex-col gap-1">
-        <h1 class="m-0 text-[1.75rem] font-semibold text-[#8B6F47] flex items-center">
-          <span class="inline-block w-1.5 h-7 bg-gradient-to-b from-[#8B6F47] to-[#a88a5f] mr-4 rounded-sm"></span>
+        <h1 class="m-0 text-[1.75rem] font-semibold text-accent flex items-center">
+          <span class="inline-block w-1.5 h-7 bg-gradient-to-b from-accent to-[#a88a5f] mr-4 rounded-sm"></span>
           分类标签管理
         </h1>
-        <span class="text-xs text-[#999] ml-[calc(5px+16px)]">管理各科目的题目分类层级结构</span>
+        <span class="text-xs text-ink-mute ml-[calc(5px+16px)]">管理各科目的题目分类层级结构</span>
       </div>
       <div class="category-manage-actions flex flex-wrap items-center gap-2 sm:gap-3 lg:gap-6">
         <!-- 题目类型切换 -->
@@ -39,8 +39,8 @@
       <!-- 左侧筛选栏 -->
       <aside class="category-manage-sidebar sticky top-4 w-64 flex-shrink-0">
         <!-- 科目筛选列表 -->
-        <div class="bg-white rounded-xl p-6 shadow-sm border border-[rgba(139,111,71,0.08)] mb-6">
-          <h3 class="m-0 mb-4 text-sm font-semibold text-[#8B6F47] flex items-center gap-2 pb-3 border-b border-[rgba(139,111,71,0.1)]">
+        <div class="bg-white rounded-xl p-6 shadow-sm border border-accent/8 mb-6">
+          <h3 class="m-0 mb-4 text-sm font-semibold text-accent flex items-center gap-2 pb-3 border-b border-accent/10">
             <font-awesome-icon :icon="['fas', 'folder']" class="text-base" />
             科目筛选
           </h3>
@@ -51,23 +51,23 @@
               :key="stat.id"
               type="button"
               class="flex w-full items-center justify-between border-0 bg-transparent px-3 py-2.5 text-left rounded-lg cursor-pointer transition-all duration-200"
-              :class="[filterSubjectId === stat.id ? 'bg-gradient-to-r from-[rgba(139,111,71,0.12)] to-[rgba(139,111,71,0.06)]' : 'hover:bg-[rgba(139,111,71,0.06)]', { 'pointer-events-none opacity-60': moveSaving }]"
+              :class="[filterSubjectId === stat.id ? 'bg-gradient-to-r from-accent/12 to-accent/6' : 'hover:bg-accent/6', { 'pointer-events-none opacity-60': moveSaving }]"
               :aria-disabled="moveSaving"
               @click="handleStatClick(stat.id)"
               @keydown.enter.prevent="handleStatClick(stat.id)"
               @keydown.space.prevent="handleStatClick(stat.id)"
             >
               <div class="flex items-center gap-2.5 min-w-0">
-                <div class="w-7 h-7 flex items-center justify-center rounded-md bg-[rgba(139,111,71,0.08)] text-[#999] text-sm transition-all duration-200 flex-shrink-0" :class="{ '!bg-[rgba(139,111,71,0.15)] !text-[#8B6F47]': filterSubjectId === stat.id }">
+                <div class="w-7 h-7 flex items-center justify-center rounded-md bg-accent/8 text-ink-mute text-sm transition-all duration-200 flex-shrink-0" :class="{ '!bg-accent/15 !text-accent': filterSubjectId === stat.id }">
                   <font-awesome-icon :icon="['fas', 'folder']" />
                 </div>
-                <span class="text-sm text-[#333] whitespace-nowrap overflow-hidden text-ellipsis transition-all duration-200" :class="{ '!text-[#8B6F47] !font-semibold': filterSubjectId === stat.id }">{{ stat.name }}</span>
+                <span class="text-sm text-ink whitespace-nowrap overflow-hidden text-ellipsis transition-all duration-200" :class="{ '!text-accent !font-semibold': filterSubjectId === stat.id }">{{ stat.name }}</span>
                 <CustomTooltip v-if="stat.enabledCount < stat.count" :content="`${stat.count - stat.enabledCount} 个分类已禁用`" placement="top">
                   <font-awesome-icon :icon="['fas', 'exclamation-triangle']" class="text-[#e6a23c] text-sm ml-1" />
                 </CustomTooltip>
               </div>
               <!-- 显示题目引用数量 -->
-              <span class="min-w-[36px] px-2 py-0.5 text-xs font-semibold text-center rounded-[10px] bg-[rgba(139,111,71,0.1)] text-[#8B6F47]" :class="{ '!bg-[#8B6F47] !text-white': filterSubjectId === stat.id }">
+              <span class="min-w-[36px] px-2 py-0.5 text-xs font-semibold text-center rounded-[10px] bg-accent/10 text-accent" :class="{ '!bg-accent !text-white': filterSubjectId === stat.id }">
                 {{ stat.questionCount }}
               </span>
             </button>
@@ -88,11 +88,11 @@
         <!-- 背景层次增强 -->
         <div class="absolute inset-0 -z-10 overflow-hidden pointer-events-none">
           <!-- 右上角暖色光晕 -->
-          <div class="absolute top-0 right-0 w-[600px] h-[600px] bg-gradient-to-br from-[rgba(139,111,71,0.08)] to-transparent rounded-full blur-3xl transform translate-x-1/3 -translate-y-1/3"></div>
+          <div class="absolute top-0 right-0 w-[600px] h-[600px] bg-gradient-to-br from-accent/8 to-transparent rounded-full blur-3xl transform translate-x-1/3 -translate-y-1/3"></div>
           <!-- 左下角冷色光晕 -->
           <div class="absolute bottom-0 left-0 w-[400px] h-[400px] bg-gradient-to-tr from-[rgba(64,158,255,0.05)] to-transparent rounded-full blur-3xl transform -translate-x-1/3 translate-y-1/3"></div>
           <!-- 几何网格纹理 -->
-          <div class="absolute inset-0 opacity-[0.03]" style="background-image: radial-gradient(#8B6F47 1px, transparent 1px); background-size: 24px 24px;"></div>
+          <div class="absolute inset-0 opacity-[0.03]" style="background-image: radial-gradient(var(--brand-accent) 1px, transparent 1px); background-size: 24px 24px;"></div>
         </div>
 
         <div v-if="categoryLoadError" class="mb-3 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700" role="alert">
@@ -140,7 +140,7 @@
               </div>
 
               <!-- 视图工具栏 -->
-              <div class="flex gap-2 pb-3 mb-2 border-b border-[rgba(139,111,71,0.1)]">
+              <div class="flex gap-2 pb-3 mb-2 border-b border-accent/10">
                 <CustomButton type="text" size="sm" @click="expandAllTree">
                   <font-awesome-icon :icon="['fas', 'chevron-down']" class="mr-1" />
                   全部展开
@@ -288,7 +288,7 @@
         <div v-if="!loading && !categoryLoadError && treeCategories.length === 0 && !(questionType === 'mock' && unmappedMockCategories.length > 0)" class="
           relative flex flex-col items-center justify-center py-20
           bg-white/40 backdrop-blur-sm empty-in
-          rounded-2xl border border-dashed border-[rgba(139,111,71,0.15)]
+          rounded-2xl border border-dashed border-accent/15
         ">
           <CustomEmpty description="暂无分类数据" />
         </div>
@@ -306,20 +306,20 @@
         <!-- 基本信息组 -->
         <div class="
           relative p-5
-          bg-gradient-to-br from-white/80 to-[rgba(139,111,71,0.02)]
+          bg-gradient-to-br from-white/80 to-accent/2
           backdrop-blur-sm
           rounded-xl
           border border-white/50
-          shadow-[0_2px_16px_rgba(139,111,71,0.06)]
+          shadow-[0_2px_16px_color-mix(in srgb, var(--brand-accent) 6%, transparent)]
           before:absolute before:inset-0 before:rounded-xl before:p-px
           before:bg-gradient-to-br before:from-white/60 before:to-transparent before:-z-10
         ">
           <!-- 分组标题 -->
-          <div class="flex items-center gap-2 mb-5 pb-4 border-b border-dashed border-[rgba(139,111,71,0.12)]">
-            <div class="w-7 h-7 flex items-center justify-center bg-gradient-to-br from-[#8B6F47] to-[#968657] text-white rounded-lg shadow-md">
+          <div class="flex items-center gap-2 mb-5 pb-4 border-b border-dashed border-accent/12">
+            <div class="w-7 h-7 flex items-center justify-center bg-gradient-to-br from-accent to-[#968657] text-white rounded-lg shadow-md">
               <font-awesome-icon :icon="['fas', 'folder-plus']" class="text-sm" />
             </div>
-            <span class="text-base font-semibold text-[#8B6F47]">基本信息</span>
+            <span class="text-base font-semibold text-accent">基本信息</span>
           </div>
 
           <!-- 第一行：所属科目 + 父分类 -->
@@ -337,7 +337,7 @@
                 :disabled="dialogMode === 'edit'"
                 @change="handleSubjectChange"
               />
-              <p class="text-xs text-[#999] mt-1.5" v-if="dialogMode === 'edit'">所属科目创建后不可修改</p>
+              <p class="text-xs text-ink-mute mt-1.5" v-if="dialogMode === 'edit'">所属科目创建后不可修改</p>
             </div>
             <div>
               <label for="category-parent" class="flex items-center gap-1.5 text-sm font-medium text-gray-700 mb-2">
@@ -350,7 +350,7 @@
                 placeholder="无（顶级分类）"
                 :disabled="!form.subjectId || parentLoading"
               />
-              <p class="text-xs text-[#999] mt-1.5">{{ parentLoading ? '正在加载父分类…' : '支持多级分类；移动父分类时，其子分类一起移动。' }}</p>
+              <p class="text-xs text-ink-mute mt-1.5">{{ parentLoading ? '正在加载父分类…' : '支持多级分类；移动父分类时，其子分类一起移动。' }}</p>
             </div>
           </div>
 
@@ -367,7 +367,7 @@
               >
                 {{ dialogMode === 'edit' ? form.code : '保存后自动生成' }}
               </div>
-              <p class="text-xs text-[#999] mt-1.5">系统按科目、层级、编号和拼音首字母生成，无需手动填写。</p>
+              <p class="text-xs text-ink-mute mt-1.5">系统按科目、层级、编号和拼音首字母生成，无需手动填写。</p>
             </div>
             <CustomInput
               v-model="form.name"
@@ -382,20 +382,20 @@
         <!-- 排序与状态组 -->
         <div class="
           relative p-5
-          bg-gradient-to-br from-white/80 to-[rgba(139,111,71,0.02)]
+          bg-gradient-to-br from-white/80 to-accent/2
           backdrop-blur-sm
           rounded-xl
           border border-white/50
-          shadow-[0_2px_16px_rgba(139,111,71,0.06)]
+          shadow-[0_2px_16px_color-mix(in srgb, var(--brand-accent) 6%, transparent)]
           before:absolute before:inset-0 before:rounded-xl before:p-px
           before:bg-gradient-to-br before:from-white/60 before:to-transparent before:-z-10
         ">
           <!-- 分组标题 -->
-          <div class="flex items-center gap-2 mb-5 pb-4 border-b border-dashed border-[rgba(139,111,71,0.12)]">
+          <div class="flex items-center gap-2 mb-5 pb-4 border-b border-dashed border-accent/12">
             <div class="w-7 h-7 flex items-center justify-center bg-gradient-to-br from-[#73d13d] to-[#52c41a] text-white rounded-lg shadow-md">
               <font-awesome-icon :icon="['fas', 'sliders-h']" class="text-sm" />
             </div>
-            <span class="text-base font-semibold text-[#8B6F47]">排序与状态</span>
+            <span class="text-base font-semibold text-accent">排序与状态</span>
           </div>
 
           <!-- 排序 + 启用状态 -->
@@ -408,11 +408,11 @@
                 :min="0"
                 :max="9999"
               />
-              <span class="text-xs text-[#999]">数字越小越靠前</span>
+              <span class="text-xs text-ink-mute">数字越小越靠前</span>
             </div>
-            <div class="flex items-center gap-3 px-4 py-2.5 bg-[rgba(139,111,71,0.04)] rounded-xl">
+            <div class="flex items-center gap-3 px-4 py-2.5 bg-accent/4 rounded-xl">
               <CustomSwitch id="category-enabled" v-model="form.enabled" aria-label="是否启用分类" />
-              <span class="text-sm font-medium" :class="form.enabled ? 'text-[#52c41a]' : 'text-[#999]'">
+              <span class="text-sm font-medium" :class="form.enabled ? 'text-[#52c41a]' : 'text-ink-mute'">
                 {{ form.enabled ? '已启用' : '已禁用' }}
               </span>
             </div>
@@ -422,20 +422,20 @@
         <!-- 详细信息组 -->
         <div class="
           relative p-5
-          bg-gradient-to-br from-white/80 to-[rgba(139,111,71,0.02)]
+          bg-gradient-to-br from-white/80 to-accent/2
           backdrop-blur-sm
           rounded-xl
           border border-white/50
-          shadow-[0_2px_16px_rgba(139,111,71,0.06)]
+          shadow-[0_2px_16px_color-mix(in srgb, var(--brand-accent) 6%, transparent)]
           before:absolute before:inset-0 before:rounded-xl before:p-px
           before:bg-gradient-to-br before:from-white/60 before:to-transparent before:-z-10
         ">
           <!-- 分组标题 -->
-          <div class="flex items-center gap-2 mb-4 pb-4 border-b border-dashed border-[rgba(139,111,71,0.12)]">
+          <div class="flex items-center gap-2 mb-4 pb-4 border-b border-dashed border-accent/12">
             <div class="w-7 h-7 flex items-center justify-center bg-gradient-to-br from-[#40a9ff] to-[#1890ff] text-white rounded-lg shadow-md">
               <font-awesome-icon :icon="['fas', 'align-left']" class="text-sm" />
             </div>
-            <span class="text-base font-semibold text-[#8B6F47]">详细信息</span>
+            <span class="text-base font-semibold text-accent">详细信息</span>
           </div>
 
           <!-- 分类描述 -->
@@ -447,9 +447,9 @@
               v-model="form.description"
               class="
                 w-full px-4 py-3
-                border border-[rgba(139,111,71,0.15)] rounded-xl
+                border border-accent/15 rounded-xl
                 bg-white/80 backdrop-blur-sm
-                focus:outline-none focus:border-[#8B6F47] focus:ring-2 focus:ring-[#8B6F47]/15
+                focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/15
                 transition-all duration-200
                 resize-none
               "
@@ -458,7 +458,7 @@
               :maxlength="255"
             ></textarea>
             <div class="flex justify-end mt-2">
-              <span class="text-xs px-2 py-0.5 rounded-full bg-[rgba(139,111,71,0.08)] text-[#8B6F47]">
+              <span class="text-xs px-2 py-0.5 rounded-full bg-accent/8 text-accent">
                 {{ form.description?.length || 0 }} / 255
               </span>
             </div>
@@ -1320,12 +1320,12 @@ onBeforeUnmount(() => {
   background: linear-gradient(
     to bottom right,
     rgba(255, 255, 255, 0.9),
-    rgba(139, 111, 71, 0.006)
+    color-mix(in srgb, var(--brand-accent) 0.6%, transparent)
   );
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
   box-shadow:
-    0 2px 16px rgba(139, 111, 71, 0.06),
+    0 2px 16px color-mix(in srgb, var(--brand-accent) 6%, transparent),
     inset 0 1px 0 rgba(255, 255, 255, 0.8);
 }
 
@@ -1381,7 +1381,7 @@ onBeforeUnmount(() => {
 
 .root-drop-zone {
   padding: 8px 12px;
-  border: 1px dashed rgba(139, 111, 71, 0.35);
+  border: 1px dashed color-mix(in srgb, var(--brand-accent) 35%, transparent);
   border-radius: 8px;
   text-align: center;
   color: #8b6f47;
@@ -1514,7 +1514,7 @@ onBeforeUnmount(() => {
 }
 
 .outline-toggle:hover {
-  background: rgba(139, 111, 71, 0.1);
+  background: color-mix(in srgb, var(--brand-accent) 10%, transparent);
 }
 
 .outline-toggle.is-expanded {
@@ -1546,7 +1546,7 @@ onBeforeUnmount(() => {
   height: 26px;
   flex-shrink: 0;
   border-radius: 8px;
-  background: linear-gradient(135deg, rgba(139, 111, 71, 0.12), rgba(139, 111, 71, 0.05));
+  background: linear-gradient(135deg, color-mix(in srgb, var(--brand-accent) 12%, transparent), color-mix(in srgb, var(--brand-accent) 5%, transparent));
   color: #8b6f47;
   font-size: 11px;
   transition: transform 0.2s ease;
@@ -1560,7 +1560,7 @@ onBeforeUnmount(() => {
 .outline-name {
   min-width: 0;
   font-size: 14px;
-  color: #333;
+  color: var(--brand-ink);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1571,7 +1571,7 @@ onBeforeUnmount(() => {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 12px;
   color: #a89880;
-  border: 1px solid rgba(139, 111, 71, 0.18);
+  border: 1px solid color-mix(in srgb, var(--brand-accent) 18%, transparent);
   padding: 1px 6px;
   border-radius: 4px;
 }
@@ -1581,7 +1581,7 @@ onBeforeUnmount(() => {
   font-size: 12px;
   font-weight: 500;
   color: #8b6f47;
-  background: rgba(139, 111, 71, 0.12);
+  background: color-mix(in srgb, var(--brand-accent) 12%, transparent);
   padding: 2px 8px;
   border-radius: 10px;
 }
@@ -1609,7 +1609,7 @@ onBeforeUnmount(() => {
   border: none;
   border-radius: 8px;
   background: transparent;
-  color: #999;
+  color: var(--brand-ink-mute);
   font-size: 12px;
   cursor: pointer;
   transition: background-color 0.2s ease, color 0.2s ease;
@@ -1617,7 +1617,7 @@ onBeforeUnmount(() => {
 
 .outline-action-btn:hover {
   color: #8b6f47;
-  background: rgba(139, 111, 71, 0.1);
+  background: color-mix(in srgb, var(--brand-accent) 10%, transparent);
 }
 
 @media (max-width: 1023px), (pointer: coarse) {
@@ -1652,12 +1652,12 @@ onBeforeUnmount(() => {
 }
 
 .content-scroll::-webkit-scrollbar-thumb {
-  background-color: rgba(139, 111, 71, 0.15);
+  background-color: color-mix(in srgb, var(--brand-accent) 15%, transparent);
   border-radius: 3px;
 }
 
 .content-scroll::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(139, 111, 71, 0.3);
+  background-color: color-mix(in srgb, var(--brand-accent) 30%, transparent);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1671,11 +1671,11 @@ onBeforeUnmount(() => {
 .skeleton-shimmer {
   background: linear-gradient(
     90deg,
-    rgba(139, 111, 71, 0.06) 0%,
-    rgba(139, 111, 71, 0.12) 35%,
-    rgba(139, 111, 71, 0.18) 50%,
-    rgba(139, 111, 71, 0.12) 65%,
-    rgba(139, 111, 71, 0.06) 100%
+    color-mix(in srgb, var(--brand-accent) 6%, transparent) 0%,
+    color-mix(in srgb, var(--brand-accent) 12%, transparent) 35%,
+    color-mix(in srgb, var(--brand-accent) 18%, transparent) 50%,
+    color-mix(in srgb, var(--brand-accent) 12%, transparent) 65%,
+    color-mix(in srgb, var(--brand-accent) 6%, transparent) 100%
   );
   background-size: 200% 100%;
   animation: shimmer 1.8s ease-in-out infinite;

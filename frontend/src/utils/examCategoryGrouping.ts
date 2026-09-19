@@ -1,3 +1,6 @@
+/**
+ * 分类树查询与分组工具：按分类树顺序把题目分组，并为内容区生成跳转锚点。
+ */
 import type { CategoryTreeNode, ExamQuestion, MockQuestion } from '@/types'
 
 /** 分类分组后的题目集合。 */
@@ -99,6 +102,22 @@ export const findCategoryNode = (
     if (child) return child
   }
   return undefined
+}
+
+/**
+ * 查找分类名称对应的节点路径（根 → 目标），用于自动展开侧栏中的祖先分类。
+ * 名称未命中时返回空数组，调用方不应据此改写展开状态。
+ */
+export const findCategoryPath = (
+  categories: readonly CategoryTreeNode[],
+  categoryName: string,
+): CategoryTreeNode[] => {
+  for (const category of categories) {
+    if (category.name === categoryName) return [category]
+    const childPath = findCategoryPath(category.children, categoryName)
+    if (childPath.length > 0) return [category, ...childPath]
+  }
+  return []
 }
 
 const getSelectedScope = (

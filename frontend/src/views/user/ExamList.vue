@@ -1,10 +1,11 @@
-<!-- 年份真题阅读页面：移动端上下排列年份导航与题目内容。 -->
+<!-- 年份真题阅读页面：窄屏使用吸顶目录入口与底部目录抽屉，桌面端保留年份侧栏。 -->
 <template>
-  <div class="exam-page-container app-viewport-page overflow-hidden flex flex-col bg-[#FBF7F2]">
+  <div class="exam-page-container app-viewport-page overflow-hidden flex flex-col bg-surface">
     <!-- 主要内容区域：窄屏上下排列，桌面端恢复左右分栏 -->
     <div class="flex-1 flex flex-col md:flex-row relative overflow-hidden">
-      <!-- 左侧年份导航栏 -->
+      <!-- 左侧年份导航栏（窄屏自动隐藏） -->
       <YearNav
+        v-model:expanded-years="expandedYears"
         :year-list="yearList"
         :active-year="activeYear"
         :active-exam-id="activeExamId"
@@ -15,13 +16,34 @@
       />
 
       <!-- 右侧内容区域 -->
-      <div class="scrollbar-stable flex-1 w-full min-w-0 overflow-y-auto bg-[#FBF7F2] md:w-0">
+      <div class="scrollbar-stable flex-1 w-full min-w-0 overflow-y-auto bg-surface md:w-0">
+        <!-- 窄屏目录入口与抽屉 -->
+        <MobileQuestionNav
+          v-model:visible="navSheetVisible"
+          :title="currentTitle"
+          :count="displayTotal"
+          kind="exam"
+        >
+          <template #nav>
+            <YearNavList
+              v-model:expanded-years="expandedYears"
+              :year-list="yearList"
+              :active-year="activeYear"
+              :active-exam-id="activeExamId"
+              :loading="loadingYearList"
+              auto-scroll-active
+              @year-select="handleYearSelect"
+              @exam-select="handleNavSheetExamSelect"
+            />
+          </template>
+        </MobileQuestionNav>
+
         <!-- 使用 div + Tailwind 替代 el-card -->
-        <div class="min-h-full bg-[#FBF7F2]">
-          <!-- 头部区域 -->
-          <div class="flex flex-col items-stretch gap-3 px-4 py-4 border-b border-[#E8DCC8] sm:flex-row sm:items-center sm:justify-between sm:px-5">
-            <div class="flex min-w-0 items-center gap-3 flex-1">
-              <h2 class="m-0 text-[#333] font-semibold text-xl">{{ currentTitle }}</h2>
+        <div class="min-h-full bg-surface">
+          <!-- 头部区域：窄屏标题已上移到目录入口，只保留导出与创建操作 -->
+          <div class="flex flex-col items-stretch gap-3 px-4 py-4 border-b border-line sm:flex-row sm:items-center sm:justify-between sm:px-5">
+            <div class="hidden min-w-0 flex-1 items-center gap-3 md:flex">
+              <h2 class="m-0 text-ink font-semibold text-xl">{{ currentTitle }}</h2>
               <!-- 使用自定义 Tag 组件替代 el-tag -->
               <Tag v-if="displayTotal > 0" type="info">共 {{ displayTotal }} 题</Tag>
             </div>
@@ -87,17 +109,17 @@
           </div>
 
           <!-- 默认提示 -->
-          <div v-else-if="!loading" class="mt-2 p-4 bg-gradient-to-br from-[#FBF7F2] to-[#F5EFE6] rounded border-2 border-[#E8DCC8] min-h-[300px] mx-5 my-4">
+          <div v-else-if="!loading" class="mt-2 p-4 bg-gradient-to-br from-surface to-[#F5EFE6] rounded border-2 border-line min-h-[300px] mx-5 my-4">
             <div class="flex items-center gap-2 mb-2">
-              <font-awesome-icon :icon="['fas', 'book']" class="text-[#8B6F47] text-lg" />
-              <h3 class="m-0 text-[#333] font-semibold text-lg">408历年真题</h3>
+              <font-awesome-icon :icon="['fas', 'book']" class="text-accent text-lg" />
+              <h3 class="m-0 text-ink font-semibold text-lg">408历年真题</h3>
             </div>
             <!-- 使用 div + border 替代 el-divider -->
-            <div class="border-t border-[#E8DCC8] my-3"></div>
+            <div class="border-t border-line my-3"></div>
             <div class="py-4">
-              <p class="m-0 leading-relaxed text-sm text-[#333] text-justify indent-2em">这里收录了408考研的历年真题，包括数据结构、操作系统、计算机网络和计算机组成原理四大科目。</p>
+              <p class="m-0 leading-relaxed text-sm text-ink text-justify indent-2em">这里收录了408考研的历年真题，包括数据结构、操作系统、计算机网络和计算机组成原理四大科目。</p>
             </div>
-            <div class="flex items-center gap-1.5 p-2 mt-4 bg-white/60 rounded text-[#666] text-xs">
+            <div class="flex items-center gap-1.5 p-2 mt-4 bg-white/60 rounded text-ink-soft text-xs">
               <font-awesome-icon :icon="['fas', 'arrow-right']" class="text-xs" />
               请选择左侧年份查看真题内容
             </div>
@@ -116,7 +138,7 @@
 </template>
 
 <script setup lang="ts">
-import type { ExamQuestion, Subject, CategoryTreeNode, ExamNavItem } from "@/types"
+import type { ExamNavQuestion, ExamNavYear, ExamQuestion, Subject, CategoryTreeNode } from "@/types"
 import { queryString } from "@/utils/storage"
 import { parseQuestionOptions } from "@/utils/questionOptions"
 import { errorMessage } from "@/utils/errors"
@@ -142,6 +164,8 @@ import Dropdown from '@/components/basic/Dropdown.vue'
 import DropdownItem from '@/components/basic/DropdownItem.vue'
 import Tag from '@/components/basic/Tag.vue'
 import YearNav from '@/components/business/YearNav.vue'
+import YearNavList from '@/components/business/YearNavList.vue'
+import MobileQuestionNav from '@/components/business/MobileQuestionNav.vue'
 import ExamEntryCard from '@/components/business/ExamEntryCard.vue'
 import ExamEditDialog from '@/components/business/ExamEditDialog.vue'
 
@@ -151,11 +175,17 @@ const authStore = useAuthStore()
 // 计算是否为管理员
 const isAdmin = computed(() => authStore.isAdmin())
 
-// 年份树数据
-type NavQuestion = Omit<ExamNavItem, "year">
-type NavYear = {year: number; exams: NavQuestion[]}
+// 年份树数据：类型与年份导航列表组件共用
+type NavQuestion = ExamNavQuestion
+type NavYear = ExamNavYear
 const yearList = ref<NavYear[]>([])
 const loadingYearList = ref(false)
+
+// 窄屏目录抽屉开关
+const navSheetVisible = ref(false)
+
+// 年份展开状态：桌面侧栏与窄屏抽屉共用同一份状态
+const expandedYears = ref<number[]>([])
 
 // 当前分类（来自路由查询参数）
 const activeCategory = ref(queryString(route.query.category))
@@ -602,6 +632,15 @@ const handleExamSelect = (exam: NavQuestion) => {
     }
     activeExamId.value = exam.id
   }
+}
+
+/**
+ * 抽屉内选择题目：先收起抽屉再滚动到对应题目
+ * 年份行仍保留原处理函数，便于在抽屉内继续展开该年份的题号
+ */
+const handleNavSheetExamSelect = (exam: NavQuestion) => {
+  navSheetVisible.value = false
+  handleExamSelect(exam)
 }
 
 /**

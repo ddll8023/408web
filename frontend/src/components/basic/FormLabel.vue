@@ -92,8 +92,8 @@ const props = defineProps({
 // 标签颜色映射
 const labelColor = computed(() => {
   const colors: Record<string, string> = {
-    default: 'text-[#333]',
-    primary: 'text-[#8B6F47]',
+    default: 'text-ink',
+    primary: 'text-accent',
     success: 'text-green-600',
     warning: 'text-orange-500',
     danger: 'text-red-500'

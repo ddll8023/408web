@@ -24,6 +24,50 @@
   --app-page-height: calc(100vh - var(--app-nav-height));
 }
 
+/*
+ * 语义色令牌：项目品牌色与中性色的唯一来源。
+ * Tailwind 侧在 tailwind.config.js 里将同名颜色映射到这些变量，
+ * 组件类名用 accent / surface / ink 等工具类，scoped CSS 直接 var() 引用；
+ * 修色时只改这里一处。
+ */
+:root {
+  --brand-accent: #8B6F47;
+  --brand-accent-hover: #7A5F3E;
+  --brand-accent-deep: #6B5537;
+  --brand-surface: #FBF7F2;
+  --brand-line: #E8DCC8;
+  --brand-ink: #333;
+  --brand-ink-soft: #666;
+  --brand-ink-mute: #999;
+}
+
+/*
+ * 内容主题色：真题（蓝）与模拟题（绿）的分组标题、大纲和目录入口共用。
+ * 按角色命名，改主题色时整组一起替换。
+ */
+:root {
+  --theme-exam-accent: #56738A;
+  --theme-exam-strong: #486B84;
+  --theme-exam-icon-fg: #49677F;
+  --theme-exam-icon-bg: #DCE8F0;
+  --theme-exam-surface: #EEF4F8;
+  --theme-exam-surface-soft: #E7EFF4;
+  --theme-exam-surface-badge: #DFECF3;
+  --theme-exam-border: #C9D8E2;
+  --theme-exam-subtitle: #6B7E8D;
+  --theme-exam-soft-fg: #607888;
+
+  --theme-mock-accent: #3F8576;
+  --theme-mock-strong: #347465;
+  --theme-mock-icon-bg: #DCEEE8;
+  --theme-mock-surface: #EFF7F4;
+  --theme-mock-surface-soft: #E4F1EC;
+  --theme-mock-surface-badge: #DDEFE9;
+  --theme-mock-border: #CBE1D9;
+  --theme-mock-subtitle: #668A80;
+  --theme-mock-soft-fg: #4B8276;
+}
+
 @supports (height: 100dvh) {
   :root {
     --app-page-height: calc(100dvh - var(--app-nav-height));
@@ -41,8 +85,8 @@ body {
   min-height: 100%;
   font-family: 'Helvetica Neue', Helvetica, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', Arial, sans-serif;
   font-size: 14px;
-  color: #333;
-  background-color: #FBF7F2;
+  color: var(--brand-ink);
+  background-color: var(--brand-surface);
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -98,15 +142,15 @@ body {
 
 /* 文本颜色工具类 */
 .text-primary {
-  color: #333;
+  color: var(--brand-ink);
 }
 
 .text-regular {
-  color: #666;
+  color: var(--brand-ink-soft);
 }
 
 .text-secondary {
-  color: #999;
+  color: var(--brand-ink-mute);
 }
 
 /* Flex布局工具类 */

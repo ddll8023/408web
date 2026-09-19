@@ -4,7 +4,7 @@
     <CustomCard shadow>
       <template #header>
         <header class="flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
-          <h2 class="m-0 text-xl font-semibold text-[#333]">出题工作台</h2>
+          <h2 class="m-0 text-xl font-semibold text-ink">出题工作台</h2>
           <span v-if="filters.subjectId" class="text-sm text-gray-500">{{ currentSubjectName }}</span>
         </header>
       </template>
@@ -82,7 +82,7 @@
 
       <div v-if="listError && mockQuestions.length === 0" class="compose-error" role="alert">
         <span>{{ listError }}</span>
-        <CustomButton size="sm" type="text" :disabled="listLoading" @click="loadMockList">重试</CustomButton>
+        <CustomButton size="sm" type="text" :disabled="listLoading" @click="() => loadMockList()">重试</CustomButton>
       </div>
 
       <section class="compose-workspace">
@@ -203,7 +203,7 @@
     </CustomCard>
 
     <BackTop :right="32" :bottom="32">
-      <div class="flex h-10 w-10 items-center justify-center rounded-full bg-[#8B6F47] text-white shadow-lg transition-transform hover:scale-110">
+      <div class="flex h-10 w-10 items-center justify-center rounded-full bg-accent text-white shadow-lg transition-transform hover:scale-110">
         <font-awesome-icon :icon="['fas', 'arrow-up']" />
       </div>
     </BackTop>
@@ -915,8 +915,8 @@ watch(() => route.query.keyword, newKeyword => {
 
 .chapter-panel__all:hover,
 .chapter-panel__all--active {
-  border-color: rgba(139, 111, 71, 0.18);
-  background: rgba(139, 111, 71, 0.08);
+  border-color: color-mix(in srgb, var(--brand-accent) 18%, transparent);
+  background: color-mix(in srgb, var(--brand-accent) 8%, transparent);
   color: #704f2d;
 }
 
@@ -927,7 +927,7 @@ watch(() => route.query.keyword, newKeyword => {
   align-items: center;
   justify-content: center;
   border-radius: 6px;
-  background: rgba(139, 111, 71, 0.12);
+  background: color-mix(in srgb, var(--brand-accent) 12%, transparent);
   color: #8b6f47;
   font-size: 16px;
 }

@@ -399,7 +399,7 @@ onUnmounted(() => {
   border-bottom: 1px solid #dfe2e5;
   font-size: 14px;
   font-weight: 500;
-  color: #333;
+  color: var(--brand-ink);
 }
 
 .preview-content {

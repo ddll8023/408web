@@ -1,6 +1,7 @@
+<!-- 分类大纲：展示当前父分类范围内的题目分组，支撑页内跳转；窄屏隐藏，改由目录抽屉提供同能力。 -->
 <template>
   <aside
-    class="order-first self-start xl:order-none xl:sticky xl:top-4"
+    class="order-first max-md:hidden self-start xl:order-none xl:sticky xl:top-4"
     :aria-label="`${theme.label}分类大纲`"
   >
     <button
@@ -45,7 +46,7 @@
             <li v-for="item in items" :key="item.anchorId" class="relative">
               <button
                 type="button"
-                class="group relative flex min-h-9 w-full items-center gap-2 rounded-lg pr-2 text-left text-sm transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8B6F47]"
+                class="group relative flex min-h-9 w-full items-center gap-2 rounded-lg pr-2 text-left text-sm transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
                 :class="[
                   activeId === item.anchorId ? theme.active : 'text-gray-600 hover:bg-black/[0.04]',
                   item.depth === 0 ? 'font-medium' : 'font-normal'
@@ -98,25 +99,25 @@ const theme = computed(() => {
   if (props.kind === 'exam') {
     return {
       label: '真题',
-      border: 'border-[#C9D8E2]',
-      headerSurface: 'bg-[#EEF4F8]',
-      icon: 'text-[#56738A]',
-      accent: 'bg-[#56738A]',
-      dot: 'bg-[#56738A]',
-      active: 'bg-[#EEF4F8] text-[#486B84]',
-      count: 'text-[#486B84]',
+      border: 'border-exam-border',
+      headerSurface: 'bg-exam-surface',
+      icon: 'text-exam-accent',
+      accent: 'bg-exam-accent',
+      dot: 'bg-exam-accent',
+      active: 'bg-exam-surface text-exam-strong',
+      count: 'text-exam-strong',
     }
   }
 
   return {
     label: '模拟题',
-    border: 'border-[#CBE1D9]',
-    headerSurface: 'bg-[#EFF7F4]',
-    icon: 'text-[#3F8576]',
-    accent: 'bg-[#3F8576]',
-    dot: 'bg-[#3F8576]',
-    active: 'bg-[#EFF7F4] text-[#347465]',
-    count: 'text-[#347465]',
+    border: 'border-mock-border',
+    headerSurface: 'bg-mock-surface',
+    icon: 'text-mock-accent',
+    accent: 'bg-mock-accent',
+    dot: 'bg-mock-accent',
+    active: 'bg-mock-surface text-mock-strong',
+    count: 'text-mock-strong',
   }
 })
 

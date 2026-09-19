@@ -3,7 +3,7 @@
     <!-- 减少按钮 -->
     <button
       type="button"
-      class="w-8 h-[42px] flex items-center justify-center rounded-md border border-gray-200 bg-white text-gray-500 hover:border-[#8B6F47] hover:text-[#8B6F47] transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:border-gray-200 disabled:hover:text-gray-500"
+      class="w-8 h-[42px] flex items-center justify-center rounded-md border border-gray-200 bg-white text-gray-500 hover:border-accent hover:text-accent transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:border-gray-200 disabled:hover:text-gray-500"
       :disabled="disabled || modelValue <= min"
       aria-label="减少数值"
       @click="decrement"
@@ -18,7 +18,7 @@
       :id="id || undefined"
       :step="step"
       :aria-label="id ? undefined : '数值'"
-      class="w-16 h-[42px] text-center text-sm border border-gray-200 rounded-md bg-white focus:outline-none focus:border-[#8B6F47] focus:ring-2 focus:ring-[#8B6F47]/20 transition-all duration-200 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
+      class="w-16 h-[42px] text-center text-sm border border-gray-200 rounded-md bg-white focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 transition-all duration-200 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
       :value="modelValue"
       :min="min"
       :max="max"
@@ -33,7 +33,7 @@
     <!-- 增加按钮 -->
     <button
       type="button"
-      class="w-8 h-[42px] flex items-center justify-center rounded-md border border-gray-200 bg-white text-gray-500 hover:border-[#8B6F47] hover:text-[#8B6F47] transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:border-gray-200 disabled:hover:text-gray-500"
+      class="w-8 h-[42px] flex items-center justify-center rounded-md border border-gray-200 bg-white text-gray-500 hover:border-accent hover:text-accent transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:border-gray-200 disabled:hover:text-gray-500"
       :disabled="disabled || modelValue >= max"
       aria-label="增加数值"
       @click="increment"

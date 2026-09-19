@@ -15,7 +15,7 @@
         <div
           v-for="(value, key) in parsedOptions"
           :key="key"
-          class="exam-question-card__option-row flex items-center gap-1.5 py-1 px-2 min-h-[44px] border border-gray-200 border-l-[3px] border-l-[rgba(139,111,71,0.1)] rounded bg-white transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8B6F47]"
+          class="exam-question-card__option-row flex items-center gap-1.5 py-1 px-2 min-h-[44px] border border-gray-200 border-l-[3px] border-l-accent/10 rounded bg-white transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
           :class="{
             'exam-question-card__option-row--correct': showAnswer && correctOptionKeys.includes(key),
             'exam-question-card__option-row--selected-correct': showAnswer && selectedOption === key && correctOptionKeys.includes(key),
@@ -32,7 +32,7 @@
           @keydown.enter.prevent="handleOptionClick(key)"
           @keydown.space.prevent="handleOptionClick(key)"
         >
-          <span class="exam-question-card__option-letter flex-shrink-0 w-[22px] h-[22px] flex items-center justify-center border-[1.5px] border-[#8B6F47] text-[#8B6F47] rounded-full font-semibold text-xs leading-none bg-white transition-all duration-150">{{ key }}</span>
+          <span class="exam-question-card__option-letter flex-shrink-0 w-[22px] h-[22px] flex items-center justify-center border-[1.5px] border-accent text-accent rounded-full font-semibold text-xs leading-none bg-white transition-all duration-150">{{ key }}</span>
           <div class="exam-question-card__option-body flex-1 min-w-0 leading-[1.4] overflow-hidden flex items-center">
             <MarkdownViewer
               :content="String(value)"
@@ -45,9 +45,9 @@
     </div>
 
     <!-- 答案卡片（米色主题卡片） -->
-    <div v-if="exam?.answer" class="answer-card bg-[rgba(251,247,242,0.5)] border border-[rgba(139,111,71,0.2)] border-l-4 border-l-[#8B6F47] rounded p-4 shadow-[0_2px_4px_rgba(0,0,0,0.08)] transition-all duration-300">
+    <div v-if="exam?.answer" class="answer-card bg-surface/50 border border-accent/20 border-l-4 border-l-accent rounded p-4 shadow-[0_2px_4px_rgba(0,0,0,0.08)] transition-all duration-300">
       <div class="answer-header flex items-center gap-2 mb-4">
-        <font-awesome-icon :icon="['fas', 'check']" class="text-lg text-[#8B6F47]" />
+        <font-awesome-icon :icon="['fas', 'check']" class="text-lg text-accent" />
         <span class="text-sm font-medium text-gray-800">{{ exam?.questionType === 'CHOICE' ? '正确答案' : '参考答案' }}</span>
         <CustomButton
           v-if="showToggle"
@@ -390,8 +390,8 @@ const correctOptionKeys = computed(() => {
 
 .exam-question-card__option-row:hover {
   border-color: #e5e7eb;
-  border-left-color: #8B6F47;
-  background-color: rgba(139, 111, 71, 0.1);
+  border-left-color: var(--brand-accent);
+  background-color: color-mix(in srgb, var(--brand-accent) 10%, transparent);
 }
 
 /* 可点击状态（答案未显示时） */
@@ -400,30 +400,30 @@ const correctOptionKeys = computed(() => {
 }
 
 .exam-question-card__option-row--clickable:hover {
-  border-left-color: #8B6F47;
-  background-color: rgba(139, 111, 71, 0.1);
+  border-left-color: var(--brand-accent);
+  background-color: color-mix(in srgb, var(--brand-accent) 10%, transparent);
 }
 
 .exam-question-card__option-row--clickable:hover .exam-question-card__option-letter {
-  background-color: #8B6F47;
+  background-color: var(--brand-accent);
   color: #fff;
-  border-color: #8B6F47;
+  border-color: var(--brand-accent);
 }
 
 .exam-question-card__option-row--clickable:active {
-  background-color: rgba(139, 111, 71, 0.15);
+  background-color: color-mix(in srgb, var(--brand-accent) 15%, transparent);
 }
 
 /* 用户选中的选项（答案未显示时的视觉反馈） */
 .exam-question-card__option-row--selected {
-  border-color: rgba(251, 247, 242, 0.3);
-  border-left-color: #FBF7F2;
+  border-color: color-mix(in srgb, var(--brand-surface) 30%, transparent);
+  border-left-color: var(--brand-surface);
   background-color: #eff6ff;
 }
 
 .exam-question-card__option-row--selected .exam-question-card__option-letter {
-  border-color: #FBF7F2;
-  color: #FBF7F2;
+  border-color: var(--brand-surface);
+  color: var(--brand-surface);
   background-color: #eff6ff;
 }
 
@@ -476,7 +476,7 @@ const correctOptionKeys = computed(() => {
 
 .exam-question-card__option-text {
   white-space: pre-line;
-  color: #333;
+  color: var(--brand-ink);
   font-size: 14px;
   margin: 0;
 }

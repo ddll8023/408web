@@ -88,27 +88,27 @@ const theme = computed(() => {
   if (props.kind === 'exam') {
     return {
       label: '真题',
-      surface: props.depth === 0 ? 'bg-[#EEF4F8]' : 'bg-white/90',
-      border: 'border-[#C9D8E2]',
-      accent: 'bg-[#56738A]',
-      iconSurface: 'bg-[#DCE8F0] text-[#49677F]',
-      eyebrow: 'text-[#56738A]',
-      childLabel: 'bg-[#E7EFF4] text-[#607888]',
-      subtitle: 'text-[#6B7E8D]',
-      badge: 'bg-[#DFECF3] text-[#486B84]',
+      surface: props.depth === 0 ? 'bg-exam-surface' : 'bg-white/90',
+      border: 'border-exam-border',
+      accent: 'bg-exam-accent',
+      iconSurface: 'bg-exam-icon-bg text-exam-icon-fg',
+      eyebrow: 'text-exam-accent',
+      childLabel: 'bg-exam-surface-soft text-exam-soft-fg',
+      subtitle: 'text-exam-subtitle',
+      badge: 'bg-exam-surface-badge text-exam-strong',
     }
   }
 
   return {
     label: '模拟题',
-    surface: props.depth === 0 ? 'bg-[#EFF7F4]' : 'bg-white/90',
-    border: 'border-[#CBE1D9]',
-    accent: 'bg-[#3F8576]',
-    iconSurface: 'bg-[#DCEEE8] text-[#347465]',
-    eyebrow: 'text-[#3F8576]',
-    childLabel: 'bg-[#E4F1EC] text-[#4B8276]',
-    subtitle: 'text-[#668A80]',
-    badge: 'bg-[#DDEFE9] text-[#347465]',
+    surface: props.depth === 0 ? 'bg-mock-surface' : 'bg-white/90',
+    border: 'border-mock-border',
+    accent: 'bg-mock-accent',
+    iconSurface: 'bg-mock-icon-bg text-mock-strong',
+    eyebrow: 'text-mock-accent',
+    childLabel: 'bg-mock-surface-soft text-mock-soft-fg',
+    subtitle: 'text-mock-subtitle',
+    badge: 'bg-mock-surface-badge text-mock-strong',
   }
 })
 </script>

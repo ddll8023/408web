@@ -1,5 +1,6 @@
+<!-- 真题卡片：组合题目头部与题目正文，预留窄屏吸顶导航的锚点偏移。 -->
 <template>
-  <div class="exam-entry-card bg-white rounded-lg border border-gray-300 p-4 md:p-6 scroll-mt-8 transition-all hover:shadow-md hover:border-[rgba(139,111,71,0.3)]">
+  <div class="exam-entry-card bg-white rounded-lg border border-gray-300 p-4 md:p-6 scroll-mt-14 md:scroll-mt-8 transition-all hover:shadow-md hover:border-accent/30">
     <!-- 题目头部：包含题号、元数据、操作按钮 -->
     <ExamItemHeader
       :exam="exam"
@@ -80,17 +81,17 @@ defineEmits<{ copy: [command: string]; edit: [question: ExamQuestion]; delete: [
 /* 从管理页面"查看"按钮跳转过来时的高亮效果 */
 .exam-entry-card:global(.highlight-card) {
   animation: highlightPulse 2s ease-out;
-  border-color: #8B6F47;
-  box-shadow: 0 0 20px rgba(139, 111, 71, 0.3);
+  border-color: var(--brand-accent);
+  box-shadow: 0 0 20px color-mix(in srgb, var(--brand-accent) 30%, transparent);
 }
 
 /* 高亮脉冲动画 */
 @keyframes highlightPulse {
   0%, 100% {
-    box-shadow: 0 0 20px rgba(139, 111, 71, 0.3);
+    box-shadow: 0 0 20px color-mix(in srgb, var(--brand-accent) 30%, transparent);
   }
   50% {
-    box-shadow: 0 0 30px rgba(139, 111, 71, 0.5);
+    box-shadow: 0 0 30px color-mix(in srgb, var(--brand-accent) 50%, transparent);
   }
 }
 </style>

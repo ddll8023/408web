@@ -4,7 +4,7 @@
     <CustomCard>
       <template #header>
         <div class="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <h2 class="m-0 text-xl text-[#333] font-semibold">图片资源管理</h2>
+          <h2 class="m-0 text-xl text-ink font-semibold">图片资源管理</h2>
           <div class="flex flex-wrap gap-2">
             <CustomButton type="primary" @click="loadImages" :loading="loading">
               <font-awesome-icon :icon="['fas', 'rotate']" class="mr-1" />
@@ -31,7 +31,7 @@
           <button
             v-if="row.url"
             type="button"
-            class="rounded border-0 bg-transparent p-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8B6F47]"
+            class="rounded border-0 bg-transparent p-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
             @click="openPreview(row.url)"
           >
             <img

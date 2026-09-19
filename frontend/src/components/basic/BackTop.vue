@@ -4,7 +4,7 @@
       ref="buttonRef"
       v-show="visible"
       type="button"
-      class="fixed z-50 w-10 h-10 rounded-full bg-[#8B6F47] flex items-center justify-center text-white shadow-[0_4px_12px_rgba(0,0,0,0.25)] transition-opacity hover:bg-[#7A5F3E] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#8B6F47] focus-visible:ring-offset-2"
+      class="fixed z-50 w-10 h-10 rounded-full bg-accent flex items-center justify-center text-white shadow-[0_4px_12px_rgba(0,0,0,0.25)] transition-opacity hover:bg-accent-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2"
       :style="{
         right: `calc(${right}px + env(safe-area-inset-right, 0px))`,
         bottom: `calc(${bottom}px + env(safe-area-inset-bottom, 0px))`
@@ -58,7 +58,9 @@ const findScrollTarget = (): Window | HTMLElement => {
 }
 
 const handleScroll = () => {
-  const scrollTop = scrollTarget === window ? window.scrollY : scrollTarget.scrollTop
+  // 用 instanceof 判断容器类型：可变变量的联合类型无法通过 === window 收窄
+  const target = scrollTarget
+  const scrollTop = target instanceof HTMLElement ? target.scrollTop : window.scrollY
   visible.value = scrollTop > props.visibilityHeight
 }
 

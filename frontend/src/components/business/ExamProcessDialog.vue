@@ -16,7 +16,7 @@
       </div>
     </div>
 
-    <div v-else-if="props.images.length === 0" class="flex min-h-[220px] flex-col items-center justify-center gap-3 rounded-lg border-2 border-dashed border-[#E8DCC8] bg-[#FBF7F2] px-6 py-10 text-center text-sm text-gray-500">
+    <div v-else-if="props.images.length === 0" class="flex min-h-[220px] flex-col items-center justify-center gap-3 rounded-lg border-2 border-dashed border-line bg-surface px-6 py-10 text-center text-sm text-gray-500">
       <font-awesome-icon :icon="['fas', 'eye']" class="text-2xl text-[#B79B75]" aria-hidden="true" />
       <p class="m-0">暂时没有过程图片</p>
       <span v-if="props.isAdmin" class="text-xs text-gray-400">可通过“过程 → 上传图片”添加讲解图片</span>
@@ -30,15 +30,15 @@
       <figure
         v-for="(image, index) in props.images"
         :key="image.id"
-        class="overflow-hidden rounded-xl border border-[#E8DCC8] bg-[#FBF7F2]"
+        class="overflow-hidden rounded-xl border border-line bg-surface"
       >
-        <figcaption class="flex flex-wrap items-center justify-between gap-3 border-b border-[#E8DCC8] px-4 py-3">
+        <figcaption class="flex flex-wrap items-center justify-between gap-3 border-b border-line px-4 py-3">
           <span class="text-sm font-medium text-[#6F5638]">第 {{ index + 1 }} / {{ props.images.length }} 张</span>
 
           <div v-if="props.isAdmin" class="flex items-center gap-1">
             <button
               type="button"
-              class="inline-flex h-8 w-8 items-center justify-center rounded-md border border-[#DCCBB5] bg-white text-[#8B6F47] transition-colors hover:bg-[#F5EFE6] focus:outline-none focus:ring-2 focus:ring-[#8B6F47] disabled:cursor-not-allowed disabled:opacity-40"
+              class="inline-flex h-8 w-8 items-center justify-center rounded-md border border-[#DCCBB5] bg-white text-accent transition-colors hover:bg-[#F5EFE6] focus:outline-none focus:ring-2 focus:ring-accent disabled:cursor-not-allowed disabled:opacity-40"
               :disabled="props.saving || props.deletingImageId !== null || index === 0"
               :aria-label="`过程图片第 ${index + 1} 张上移`"
               @click="moveImage(index, -1)"
@@ -47,7 +47,7 @@
             </button>
             <button
               type="button"
-              class="inline-flex h-8 w-8 items-center justify-center rounded-md border border-[#DCCBB5] bg-white text-[#8B6F47] transition-colors hover:bg-[#F5EFE6] focus:outline-none focus:ring-2 focus:ring-[#8B6F47] disabled:cursor-not-allowed disabled:opacity-40"
+              class="inline-flex h-8 w-8 items-center justify-center rounded-md border border-[#DCCBB5] bg-white text-accent transition-colors hover:bg-[#F5EFE6] focus:outline-none focus:ring-2 focus:ring-accent disabled:cursor-not-allowed disabled:opacity-40"
               :disabled="props.saving || props.deletingImageId !== null || index === props.images.length - 1"
               :aria-label="`过程图片第 ${index + 1} 张下移`"
               @click="moveImage(index, 1)"

@@ -1,7 +1,7 @@
 <!-- 按钮式单选组：支持窄屏自动换行。 -->
 <template>
   <div
-    class="inline-flex max-w-full flex-wrap rounded-lg border border-[#8B6F47]/20 bg-[rgba(139,111,71,0.08)] p-0.5"
+    class="inline-flex max-w-full flex-wrap rounded-lg border border-accent/20 bg-accent/8 p-0.5"
     role="radiogroup"
     :aria-label="ariaLabel || undefined"
   >
@@ -15,8 +15,8 @@
       class="px-4 py-1.5 text-sm font-medium rounded-md transition-all duration-200"
       :class="[
         modelValue === option.value
-          ? 'bg-[#6B5537] text-white shadow-sm'
-          : 'text-[#6B5537] hover:bg-[#8B6F47]/10'
+          ? 'bg-accent-deep text-white shadow-sm'
+          : 'text-accent-deep hover:bg-accent/10'
       ]"
       @click="handleClick(option)"
     >
@@ -90,7 +90,7 @@ button {
 }
 
 button:focus-visible {
-  outline: 2px solid #8B6F47;
+  outline: 2px solid var(--brand-accent);
   outline-offset: 2px;
 }
 

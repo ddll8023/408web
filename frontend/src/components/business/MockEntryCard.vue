@@ -1,5 +1,5 @@
+<!-- 模拟题卡片：组合题目头部与题目正文，预留窄屏吸顶导航的锚点偏移，与 ExamEntryCard 保持样式一致。 -->
 <template>
-  <!-- 模拟题卡片组件：与 ExamEntryCard 保持样式一致 -->
   <div class="mock-entry-card
     bg-white
     border border-gray-200
@@ -8,7 +8,8 @@
     p-4 sm:p-6
     hover:shadow-md
     transition-all duration-300
-    scroll-mt-8
+    scroll-mt-14
+    md:scroll-mt-8
   ">
     <!-- 题目头部 -->
     <MockItemHeader
@@ -88,16 +89,16 @@ defineEmits<{ copy: [command: string]; edit: [question: MockQuestion]; delete: [
 /* 高亮效果（从管理页面跳转时） - 需要保留全局选择器样式 */
 .mock-entry-card:global(.highlight-card) {
   animation: highlightPulse 2s ease-out;
-  border-color: #8B6F47;
-  box-shadow: 0 0 20px rgba(139, 111, 71, 0.3);
+  border-color: var(--brand-accent);
+  box-shadow: 0 0 20px color-mix(in srgb, var(--brand-accent) 30%, transparent);
 }
 
 @keyframes highlightPulse {
   0%, 100% {
-    box-shadow: 0 0 20px rgba(139, 111, 71, 0.3);
+    box-shadow: 0 0 20px color-mix(in srgb, var(--brand-accent) 30%, transparent);
   }
   50% {
-    box-shadow: 0 0 30px rgba(139, 111, 71, 0.5);
+    box-shadow: 0 0 30px color-mix(in srgb, var(--brand-accent) 50%, transparent);
   }
 }
 

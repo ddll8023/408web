@@ -8,7 +8,7 @@
       <input
         :checked="selected"
         type="checkbox"
-        class="h-4 w-4 cursor-pointer rounded border-gray-300 text-[#8B6F47] focus:ring-2 focus:ring-[#8B6F47] focus:ring-offset-0"
+        class="h-4 w-4 cursor-pointer rounded border-gray-300 text-accent focus:ring-2 focus:ring-accent focus:ring-offset-0"
         :aria-label="`选择${displayTitle}`"
         @change="handleSelectionChange"
       >
@@ -160,8 +160,8 @@ const handlePreview = () => {
 }
 
 .question-card--selected {
-  border-color: rgba(139, 111, 71, 0.45);
-  background: rgba(251, 247, 242, 0.8);
+  border-color: color-mix(in srgb, var(--brand-accent) 45%, transparent);
+  background: color-mix(in srgb, var(--brand-surface) 80%, transparent);
 }
 
 .question-card--selected::before {
@@ -198,7 +198,7 @@ const handlePreview = () => {
 }
 
 .question-card__title:focus-visible {
-  outline: 2px solid rgba(139, 111, 71, 0.6);
+  outline: 2px solid color-mix(in srgb, var(--brand-accent) 60%, transparent);
   outline-offset: 3px;
 }
 
@@ -223,7 +223,7 @@ const handlePreview = () => {
 
 .question-card__category {
   border-radius: 999px;
-  background: rgba(139, 111, 71, 0.08);
+  background: color-mix(in srgb, var(--brand-accent) 8%, transparent);
   padding: 2px 7px;
   color: #8b6f47;
 }

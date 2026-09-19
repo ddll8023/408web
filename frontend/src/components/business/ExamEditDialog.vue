@@ -25,19 +25,19 @@
           class="question-edit-dialog-panel relative z-10 flex w-[min(1200px,calc(100vw-16px))] min-w-0 max-w-[1600px] flex-col overflow-hidden rounded-xl border border-gray-100 bg-white shadow-2xl sm:w-[min(1200px,calc(100vw-32px))]"
         >
           <!-- 头部 -->
-          <header class="flex items-center justify-between border-b border-[#8B6F47]/10 bg-gradient-to-r from-[#FBF7F2] to-white px-4 py-3 sm:px-6 sm:py-4">
+          <header class="flex items-center justify-between border-b border-accent/10 bg-gradient-to-r from-surface to-white px-4 py-3 sm:px-6 sm:py-4">
             <div class="flex items-center gap-3">
               <!-- 装饰图标 -->
-              <span class="w-8 h-8 rounded-lg bg-[#8B6F47] flex items-center justify-center text-white shadow-sm">
+              <span class="w-8 h-8 rounded-lg bg-accent flex items-center justify-center text-white shadow-sm">
                 <font-awesome-icon :icon="['fas', 'graduation-cap']" />
               </span>
-              <h3 :id="dialogTitleId" class="text-lg font-bold text-[#333] tracking-wide">
+              <h3 :id="dialogTitleId" class="text-lg font-bold text-ink tracking-wide">
                 {{ isEditMode ? '编辑真题' : '新增真题' }}
               </h3>
             </div>
             <button
               type="button"
-              class="p-2 text-gray-400 hover:text-[#8B6F47] hover:bg-[#8B6F47]/5 rounded-lg transition-all duration-200"
+              class="p-2 text-gray-400 hover:text-accent hover:bg-accent/5 rounded-lg transition-all duration-200"
               @click="handleCancel"
               aria-label="关闭"
             >
@@ -51,19 +51,19 @@
         <section class="mb-6">
           <!-- 折叠面板头部 -->
           <button
-            class="group flex items-center justify-between px-5 py-3.5 bg-gradient-to-r from-[#FBF7F2]/80 to-transparent border-l-4 border-[#8B6F47] rounded-r-lg cursor-pointer hover:from-[#FBF7F2] hover:shadow-sm transition-all duration-200"
+            class="group flex items-center justify-between px-5 py-3.5 bg-gradient-to-r from-surface/80 to-transparent border-l-4 border-accent rounded-r-lg cursor-pointer hover:from-surface hover:shadow-sm transition-all duration-200"
             type="button"
             :aria-expanded="jsonImportVisible"
             :aria-controls="jsonImportPanelId"
             @click="toggleJsonImport"
           >
             <span class="flex items-center gap-3">
-                            <font-awesome-icon :icon="['fas', 'code']" class="text-[#8B6F47]" />
-              <span class="font-semibold text-[#333]">从 JSON 格式导入</span>
-              <span class="text-xs text-[#8B6F47]/60 bg-[#8B6F47]/10 px-2 py-0.5 rounded-full">批量录入</span>
+                            <font-awesome-icon :icon="['fas', 'code']" class="text-accent" />
+              <span class="font-semibold text-ink">从 JSON 格式导入</span>
+              <span class="text-xs text-accent/60 bg-accent/10 px-2 py-0.5 rounded-full">批量录入</span>
             </span>
             <font-awesome-icon
-              class="text-[#8B6F47]/60 group-hover:text-[#8B6F47] transition-transform duration-300"
+              class="text-accent/60 group-hover:text-accent transition-transform duration-300"
               :icon="jsonImportVisible ? ['fas', 'chevron-up'] : ['fas', 'chevron-down']"
             />
           </button>
@@ -72,16 +72,16 @@
           <transition name="slide-fade">
             <div v-show="jsonImportVisible" :id="jsonImportPanelId" class="mt-3 p-5 bg-white border border-gray-100 rounded-xl shadow-sm">
               <!-- 提示信息卡片 -->
-              <div class="flex items-start gap-3 p-4 mb-4 bg-[#FBF7F2] rounded-lg border border-[#8B6F47]/10">
-                                <font-awesome-icon :icon="['fas', 'info-circle']" class="text-[#8B6F47] mt-0.5" />
-                <div class="text-sm text-[#666]">
+              <div class="flex items-start gap-3 p-4 mb-4 bg-surface rounded-lg border border-accent/10">
+                                <font-awesome-icon :icon="['fas', 'info-circle']" class="text-accent mt-0.5" />
+                <div class="text-sm text-ink-soft">
                   粘贴单个题目的JSON数据，点击"解析并填充"后自动填充到下方表单。
-                  <a href="#" class="text-[#8B6F47] hover:text-[#a88559] ml-2 underline underline-offset-2" @click.prevent="showJsonExample('exam')">查看格式示例</a>
+                  <a href="#" class="text-accent hover:text-accent-hover ml-2 underline underline-offset-2" @click.prevent="showJsonExample('exam')">查看格式示例</a>
                 </div>
               </div>
               <textarea
                 v-model="jsonInput"
-                class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#8B6F47]/30 focus:border-[#8B6F47] bg-gray-50/50 font-mono text-sm transition-all duration-200"
+                class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent bg-gray-50/50 font-mono text-sm transition-all duration-200"
                 rows="5"
                 placeholder="粘贴JSON数据..."
               ></textarea>
@@ -113,16 +113,16 @@
           <div v-if="loading" class="absolute inset-0 bg-white/90 backdrop-blur-sm flex items-center justify-center z-50">
             <div class="flex flex-col items-center gap-4">
               <div class="relative">
-                                <font-awesome-icon :icon="['fas', 'spinner']" class="fa-spin text-3xl text-[#8B6F47]" />
-                <div class="absolute inset-0 bg-[#8B6F47]/20 rounded-full animate-ping"></div>
+                                <font-awesome-icon :icon="['fas', 'spinner']" class="fa-spin text-3xl text-accent" />
+                <div class="absolute inset-0 bg-accent/20 rounded-full animate-ping"></div>
               </div>
-              <span class="text-sm text-[#666] font-medium">正在加载...</span>
+              <span class="text-sm text-ink-soft font-medium">正在加载...</span>
             </div>
           </div>
 
           <!-- 基础信息分组 -->
           <div class="mb-6">
-            <h4 class="flex items-center gap-2 text-sm font-semibold text-[#8B6F47] uppercase tracking-wider mb-4">
+            <h4 class="flex items-center gap-2 text-sm font-semibold text-accent uppercase tracking-wider mb-4">
                             <font-awesome-icon :icon="['fas', 'cog']" />
               基础信息
             </h4>
@@ -165,7 +165,7 @@
                   type="number"
                   min="1"
                   step="1"
-                  class="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg text-gray-700 text-sm focus:outline-none focus:ring-2 focus:ring-[#8B6F47]/30 focus:border-[#8B6F47] transition-all duration-200"
+                  class="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg text-gray-700 text-sm focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent transition-all duration-200"
                   placeholder="请输入题号（可选）"
                 />
               </div>
@@ -181,7 +181,7 @@
                 v-model="form.title"
                 type="text"
                 maxlength="200"
-                class="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg text-gray-700 text-sm focus:outline-none focus:ring-2 focus:ring-[#8B6F47]/30 focus:border-[#8B6F47] transition-all duration-200"
+                class="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg text-gray-700 text-sm focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent transition-all duration-200"
                 placeholder="请输入题目标题（可选，最多200字符）"
               />
               <div class="text-right text-xs text-gray-400 mt-1.5">{{ form.title?.length || 0 }}/200</div>
@@ -212,7 +212,7 @@
           <!-- 选择题表单 -->
           <template v-if="form.questionType === 'CHOICE'">
             <div class="mb-6">
-              <h4 class="flex items-center gap-2 text-sm font-semibold text-[#8B6F47] uppercase tracking-wider mb-4">
+              <h4 class="flex items-center gap-2 text-sm font-semibold text-accent uppercase tracking-wider mb-4">
                                 <font-awesome-icon :icon="['fas', 'list-ol']" />
                 选择题内容
               </h4>
@@ -246,7 +246,7 @@
           <!-- 主观题表单 -->
           <template v-else>
             <div class="mb-6">
-              <h4 class="flex items-center gap-2 text-sm font-semibold text-[#8B6F47] uppercase tracking-wider mb-4">
+              <h4 class="flex items-center gap-2 text-sm font-semibold text-accent uppercase tracking-wider mb-4">
                                 <font-awesome-icon :icon="['fas', 'pencil']" />
                 主观题内容
               </h4>
@@ -264,7 +264,7 @@
       </div>
 
       <!-- 底部 -->
-      <footer class="flex flex-shrink-0 flex-wrap items-center justify-end gap-3 border-t border-gray-100 bg-gradient-to-r from-gray-50 to-[#FBF7F2]/30 px-4 py-3 sm:justify-between sm:px-6 sm:py-4">
+      <footer class="flex flex-shrink-0 flex-wrap items-center justify-end gap-3 border-t border-gray-100 bg-gradient-to-r from-gray-50 to-surface/30 px-4 py-3 sm:justify-between sm:px-6 sm:py-4">
         <!-- 左侧提示 -->
         <div class="hidden text-xs text-gray-400 sm:block">
           <font-awesome-icon :icon="['fas', 'info-circle']" class="mr-1" />

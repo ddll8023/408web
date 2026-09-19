@@ -251,7 +251,7 @@ watch(() => route.fullPath, closeMobileMenu)
   height: var(--app-nav-height);
   padding-top: env(safe-area-inset-top);
   border-bottom: 1px solid rgba(0, 0, 0, 0.08);
-  background: rgba(251, 247, 242, 0.92);
+  background: color-mix(in srgb, var(--brand-surface) 92%, transparent);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   backdrop-filter: blur(12px);
 }
@@ -283,7 +283,7 @@ watch(() => route.fullPath, closeMobileMenu)
 }
 
 .search-container:focus-within {
-  box-shadow: 0 0 0 3px rgba(139, 111, 71, 0.12);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand-accent) 12%, transparent);
 }
 
 .search-type-select {
@@ -347,7 +347,7 @@ watch(() => route.fullPath, closeMobileMenu)
 }
 
 .search-btn:hover {
-  background: rgba(139, 111, 71, 0.1);
+  background: color-mix(in srgb, var(--brand-accent) 10%, transparent);
 }
 
 .search-btn:focus-visible,
@@ -381,7 +381,7 @@ watch(() => route.fullPath, closeMobileMenu)
 
 .nav-link:not(.disabled):hover,
 .nav-link.router-link-active:not(.disabled) {
-  background: rgba(139, 111, 71, 0.1);
+  background: color-mix(in srgb, var(--brand-accent) 10%, transparent);
   color: #6b5537;
 }
 
@@ -411,7 +411,7 @@ watch(() => route.fullPath, closeMobileMenu)
 }
 
 .username:hover {
-  background: rgba(139, 111, 71, 0.08);
+  background: color-mix(in srgb, var(--brand-accent) 8%, transparent);
   color: #8b6f47;
 }
 
@@ -461,7 +461,7 @@ watch(() => route.fullPath, closeMobileMenu)
     width: 42px;
     height: 42px;
     border-radius: 10px;
-    background: rgba(139, 111, 71, 0.08);
+    background: color-mix(in srgb, var(--brand-accent) 8%, transparent);
     font-size: 18px;
   }
 
@@ -478,7 +478,7 @@ watch(() => route.fullPath, closeMobileMenu)
     overflow-y: auto;
     overscroll-behavior: contain;
     padding: 16px max(16px, env(safe-area-inset-right)) max(24px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
-    border-top: 1px solid rgba(139, 111, 71, 0.12);
+    border-top: 1px solid color-mix(in srgb, var(--brand-accent) 12%, transparent);
     background: #fbf7f2;
   }
 
@@ -512,7 +512,7 @@ watch(() => route.fullPath, closeMobileMenu)
 
   .mobile-search-input:focus {
     border-color: #8b6f47;
-    box-shadow: 0 0 0 3px rgba(139, 111, 71, 0.12);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand-accent) 12%, transparent);
   }
 
   .mobile-search-button {
@@ -538,7 +538,7 @@ watch(() => route.fullPath, closeMobileMenu)
     align-items: center;
     justify-content: center;
     padding: 10px 12px;
-    border: 1px solid rgba(139, 111, 71, 0.14);
+    border: 1px solid color-mix(in srgb, var(--brand-accent) 14%, transparent);
     border-radius: 10px;
     background: #fff;
     color: #374151;
@@ -546,8 +546,8 @@ watch(() => route.fullPath, closeMobileMenu)
   }
 
   .mobile-link.router-link-active {
-    border-color: rgba(139, 111, 71, 0.35);
-    background: rgba(139, 111, 71, 0.1);
+    border-color: color-mix(in srgb, var(--brand-accent) 35%, transparent);
+    background: color-mix(in srgb, var(--brand-accent) 10%, transparent);
     color: #6b5537;
     font-weight: 600;
   }
@@ -560,7 +560,7 @@ watch(() => route.fullPath, closeMobileMenu)
     max-width: 720px;
     margin: 20px auto 0;
     padding-top: 16px;
-    border-top: 1px solid rgba(139, 111, 71, 0.12);
+    border-top: 1px solid color-mix(in srgb, var(--brand-accent) 12%, transparent);
   }
 
   .mobile-manage h2 {
@@ -588,7 +588,7 @@ watch(() => route.fullPath, closeMobileMenu)
     gap: 8px;
     margin: 20px auto 0;
     padding-top: 16px;
-    border-top: 1px solid rgba(139, 111, 71, 0.12);
+    border-top: 1px solid color-mix(in srgb, var(--brand-accent) 12%, transparent);
   }
 }
 

@@ -3,6 +3,7 @@
  * 使用后端分页接口分段加载数据，页面不展示传统分页条，并保留请求竞态保护。
  */
 import { computed, ref } from 'vue'
+import type { Ref } from 'vue'
 import type { ApiResponse, Paginated } from '@/types'
 
 interface Options<T> {
@@ -16,7 +17,8 @@ export function useInfiniteQuestionList<T>(
 ) {
   const pageSize = options.pageSize || 50
   const getItemKey = options.getItemKey
-  const items = ref<T[]>([])
+  // 泛型元素类型在 ref 解包后不再等价于 T[]，这里保留调用方声明的元素类型
+  const items = ref([]) as Ref<T[]>
   const total = ref(0)
   const currentPage = ref(0)
   const totalPages = ref(0)

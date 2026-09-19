@@ -75,7 +75,7 @@ const props = defineProps({
 const emit = defineEmits<{ click: [event: MouseEvent] }>()
 
 // 基础样式 - 简洁字符串，包含默认尺寸和focus ring
-const baseClasses = 'inline-flex items-center justify-center gap-2 font-medium rounded-md transition-all duration-200 whitespace-nowrap focus:outline-none focus:ring-2 focus:ring-[#8B6F47] focus:ring-offset-2 px-4 py-2.5 text-sm'
+const baseClasses = 'inline-flex items-center justify-center gap-2 font-medium rounded-md transition-all duration-200 whitespace-nowrap focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 px-4 py-2.5 text-sm'
 
 // 尺寸样式 - 覆盖基础样式中的尺寸
 const sizeClasses: Record<string, string> = {
@@ -87,11 +87,11 @@ const sizeClasses: Record<string, string> = {
 // 变体样式 - 使用项目中一致的颜色
 const variantClasses: Record<string, string> = {
   default: 'border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 hover:border-gray-400 hover:cursor-pointer',
-  primary: 'border border-transparent bg-[#8B6F47] text-white hover:bg-[#a88559] hover:cursor-pointer',
+  primary: 'border border-transparent bg-accent text-white hover:bg-accent-hover hover:cursor-pointer',
   success: 'border border-transparent bg-green-600 text-white hover:bg-green-500 hover:cursor-pointer',
   danger: 'border border-transparent bg-red-600 text-white hover:bg-red-500 hover:cursor-pointer',
   warning: 'border border-transparent bg-orange-500 text-white hover:bg-orange-400 hover:cursor-pointer',
-  text: 'border-transparent bg-transparent text-[#8B6F47] hover:bg-[rgba(139,111,71,0.1)] hover:cursor-pointer',
+  text: 'border-transparent bg-transparent text-accent hover:bg-accent/10 hover:cursor-pointer',
   'text-primary': 'border-transparent bg-transparent text-blue-500 hover:bg-blue-50 hover:cursor-pointer',
   'text-danger': 'border-transparent bg-transparent text-red-500 hover:bg-red-50 hover:cursor-pointer',
   'text-warning': 'border-transparent bg-transparent text-orange-500 hover:bg-orange-50 hover:cursor-pointer'

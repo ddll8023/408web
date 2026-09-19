@@ -1,114 +1,68 @@
-<!-- 年份导航：桌面侧栏与移动端顶部折叠区共用。 -->
+<!-- 年份导航侧栏：桌面端展示年份与题号，移动端由目录抽屉替代。 -->
 <template>
-  <div class="year-nav-container w-[280px] h-full bg-[#FBF7F2] border-r border-black/[0.05] flex flex-col transition-all duration-300 flex-shrink-0 z-10" :class="{ collapsed: isCollapsed }" role="navigation" aria-label="年份导航">
+  <div
+    class="year-nav-container w-[280px] h-full bg-surface border-r border-black/[0.05] flex flex-col transition-all duration-300 flex-shrink-0 z-10"
+    :class="{ collapsed: isCollapsed }"
+    role="navigation"
+    aria-label="年份导航"
+  >
     <!-- 顶部标题栏 -->
     <div class="year-nav-header h-14 flex items-center justify-between px-4 border-b border-black/[0.05] flex-shrink-0 gap-2">
       <button
         type="button"
-        class="toggle-btn w-8 h-8 flex items-center justify-center rounded-md border-0 bg-transparent cursor-pointer text-[#8B6F47] transition-all duration-200 flex-shrink-0 hover:bg-black/[0.05]"
+        class="toggle-btn w-8 h-8 flex items-center justify-center rounded-md border-0 bg-transparent cursor-pointer text-accent transition-all duration-200 flex-shrink-0 hover:bg-black/[0.05]"
         :aria-label="isCollapsed ? '展开年份导航' : '折叠年份导航'"
         @click="toggleCollapse"
       >
-        <font-awesome-icon :icon="isCollapsed ? 'angle-right' : 'angle-left'" class="text-lg" aria-hidden="true" />
+        <font-awesome-icon :icon="['fas', isCollapsed ? 'angle-right' : 'angle-left']" class="text-lg" aria-hidden="true" />
       </button>
       <transition name="fade">
-        <span class="header-title font-semibold text-base text-[#8B6F47] whitespace-nowrap overflow-hidden flex-1" v-if="!isCollapsed">年份导航</span>
+        <span v-if="!isCollapsed" class="header-title font-semibold text-base text-accent whitespace-nowrap overflow-hidden flex-1">年份导航</span>
       </transition>
       <div class="header-actions flex items-center gap-2 flex-shrink-0">
-        <button type="button" class="collapse-all-btn flex items-center gap-1 px-2 py-1 rounded border-0 bg-transparent cursor-pointer text-gray-400 text-[13px] transition-all duration-200 whitespace-nowrap hover:bg-black/[0.05] hover:text-[#8B6F47]" @click="collapseAll" v-if="!isCollapsed">
-          <font-awesome-icon icon="compress" class="text-sm" aria-hidden="true" />
+        <button
+          v-if="!isCollapsed"
+          type="button"
+          class="collapse-all-btn flex items-center gap-1 px-2 py-1 rounded border-0 bg-transparent cursor-pointer text-gray-400 text-[13px] transition-all duration-200 whitespace-nowrap hover:bg-black/[0.05] hover:text-accent"
+          @click="collapseAll"
+        >
+          <font-awesome-icon :icon="['fas', 'compress']" class="text-sm" aria-hidden="true" />
           <span>全部折叠</span>
         </button>
       </div>
     </div>
 
     <!-- 年份列表 -->
-    <div class="year-list-scroll scrollbar-stable flex-1 overflow-y-auto px-2 py-3" v-show="!isCollapsed">
-      <!-- 加载状态 -->
-      <div v-if="loading" class="flex items-center justify-center h-32" role="status" aria-live="polite">
-        <font-awesome-icon icon="spinner" class="fa-spin text-[#8B6F47] text-xl" aria-hidden="true" />
-      </div>
-      <!-- 实际内容 -->
-      <template v-else>
-        <div
-          v-for="yearData in yearList"
-          :key="yearData.year"
-          class="year-group mb-1"
-        >
-          <!-- 年份标题 -->
-          <div
-            class="year-title-item px-2 mb-0.5 rounded-lg cursor-pointer transition-all duration-200"
-            :class="{ active: activeYear === yearData.year }"
-          >
-            <div class="title-content flex items-center h-11 px-2 w-full">
-              <button
-                type="button"
-                class="icon-area flex items-center justify-center w-6 h-6 mr-1 rounded border-0 bg-transparent p-0 transition-colors duration-200 hover:bg-black/[0.05]"
-                :aria-label="(expandedYears.includes(yearData.year) ? '收起 ' : '展开 ') + yearData.year + '年题目'"
-                :aria-expanded="expandedYears.includes(yearData.year)"
-                @click="toggleYear(yearData.year)"
-              >
-                <font-awesome-icon icon="chevron-right" class="expand-icon text-sm transition-transform duration-300 text-gray-400" :class="{ 'is-expanded': expandedYears.includes(yearData.year) }" aria-hidden="true" />
-              </button>
-              <button
-                type="button"
-                class="year-text flex-1 border-0 bg-transparent text-left text-[15px] text-gray-800"
-                :aria-current="activeYear === yearData.year ? 'page' : undefined"
-                @click="handleYearClick(yearData.year)"
-              >{{ yearData.year }}年</button>
-              <span class="count-badge text-xs text-gray-400 bg-black/[0.05] px-1.5 py-0.5 rounded-full">{{ yearData.exams.length }}</span>
-            </div>
-          </div>
-
-          <!-- 题目列表 -->
-          <Transition name="expand">
-            <div
-              v-if="expandedYears.includes(yearData.year)"
-              class="exam-sub-list mt-0.5 pb-1"
-            >
-              <button
-                type="button"
-                v-for="exam in yearData.exams"
-                :key="exam.id"
-                class="exam-sub-item flex items-center h-9 w-full px-3 pl-9 mb-0.5 rounded-md border-0 bg-transparent cursor-pointer text-left text-gray-500 text-[13px] transition-all duration-200"
-                :class="{ active: activeExamId === exam.id }"
-                :aria-current="activeExamId === exam.id ? 'page' : undefined"
-                @click="handleExamClick(exam)"
-              >
-                <font-awesome-icon icon="file-lines" class="exam-icon mr-2 text-sm opacity-70" aria-hidden="true" />
-                <span class="exam-title flex-1 whitespace-nowrap overflow-hidden text-ellipsis">{{ getExamDisplayText(exam) }}</span>
-              </button>
-            </div>
-          </Transition>
-        </div>
-
-        <!-- 空状态提示 -->
-        <div v-if="yearList.length === 0" class="empty-state flex flex-col items-center justify-center gap-2 p-8 text-gray-400 text-xs">
-          <font-awesome-icon icon="triangle-exclamation" class="text-lg text-orange-400" />
-          <span>暂无真题数据</span>
-        </div>
-      </template>
+    <div v-show="!isCollapsed" class="year-list-scroll scrollbar-stable flex-1 overflow-y-auto px-2 py-3">
+      <YearNavList
+        :year-list="yearList"
+        :active-year="activeYear"
+        :active-exam-id="activeExamId"
+        :expanded-years="expandedYears"
+        :loading="loading"
+        @update:expanded-years="(years) => emit('update:expandedYears', years)"
+        @year-select="(year) => emit('year-select', year)"
+        @exam-select="(exam) => emit('exam-select', exam)"
+      />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 /**
- * YearNav 年份导航栏
- * 功能描述：展示可展开/折叠的年份导航，支持题目选择
- * 依赖组件：无
+ * 年份导航侧栏
+ * 桌面端外壳：标题栏、折叠交互和滚动容器；列表渲染与展开状态交给 YearNavList，
+ * 使移动端目录抽屉可以复用同一份数据和展开状态
  */
-
-// 1. Vue 官方 API
 import type { PropType } from 'vue'
-import type { ExamNavItem } from '@/types'
-type NavQuestion = Omit<ExamNavItem, 'year'>
-import { ref, watch } from 'vue'
+import type { ExamNavQuestion, ExamNavYear } from '@/types'
+import { ref } from 'vue'
+import YearNavList from './YearNavList.vue'
 
-const props = defineProps({
-  // 年份数据，格式：[{ year: 2024, exams: [{ id, title, questionNumber, category }] }]
+defineProps({
+  // 年份数据，按年份从新到旧排列
   yearList: {
-    type: Array as PropType<{ year: number; exams: NavQuestion[] }[]>,
+    type: Array as PropType<ExamNavYear[]>,
     default: () => []
   },
   // 当前激活的年份
@@ -116,7 +70,7 @@ const props = defineProps({
     type: Number as PropType<number | null>,
     default: null
   },
-  // 当前激活的题目ID
+  // 当前激活的题目 ID
   activeExamId: {
     type: [Number, String] as PropType<number | string | null>,
     default: null
@@ -125,16 +79,23 @@ const props = defineProps({
   loading: {
     type: Boolean,
     default: false
+  },
+  // 已展开的年份
+  expandedYears: {
+    type: Array as PropType<number[]>,
+    default: () => []
   }
 })
 
-const emit = defineEmits<{ 'exam-select': [exam: NavQuestion]; 'year-select': [year: number]; 'collapse-change': [collapsed: boolean] }>()
+const emit = defineEmits<{
+  'exam-select': [exam: ExamNavQuestion]
+  'year-select': [year: number]
+  'collapse-change': [collapsed: boolean]
+  'update:expandedYears': [years: number[]]
+}>()
 
 // 导航栏是否折叠
 const isCollapsed = ref(false)
-
-// 展开的年份列表
-const expandedYears = ref<number[]>([])
 
 /**
  * 切换导航栏折叠状态
@@ -145,73 +106,11 @@ const toggleCollapse = () => {
 }
 
 /**
- * 切换年份展开/折叠
- */
-const toggleYear = (year: number) => {
-  const index = expandedYears.value.indexOf(year)
-  if (index > -1) {
-    expandedYears.value.splice(index, 1)
-  } else {
-    expandedYears.value.push(year)
-  }
-}
-
-/**
- * 处理年份点击
- */
-const handleYearClick = (year: number) => {
-  emit('year-select', year)
-}
-
-/**
- * 处理题目点击
- */
-const handleExamClick = (exam: NavQuestion) => {
-  emit('exam-select', exam)
-}
-
-/**
- * 获取题目显示文本
- */
-const getExamDisplayText = (exam: NavQuestion) => {
-  // 优先显示标题
-  if (exam.title) {
-    return exam.title
-  }
-  // 其次显示题号
-  if (exam.questionNumber) {
-    return `第 ${exam.questionNumber} 题`
-  }
-  // 最后显示分类
-  return exam.category || '真题'
-}
-
-/**
  * 全部折叠：折叠所有展开的年份
  */
 const collapseAll = () => {
-  expandedYears.value = []
+  emit('update:expandedYears', [])
 }
-
-// 监听激活题目变化，自动展开包含该题目的年份
-watch(() => props.activeExamId, (newId) => {
-  if (!newId) return
-  
-  // 查找包含当前激活题目的年份并展开
-  props.yearList.forEach(yearData => {
-    const hasActiveExam = yearData.exams.some(exam => exam.id === newId)
-    if (hasActiveExam && !expandedYears.value.includes(yearData.year)) {
-      expandedYears.value.push(yearData.year)
-    }
-  })
-}, { immediate: true })
-
-// 监听激活年份变化
-watch(() => props.activeYear, (newYear) => {
-  if (newYear && !expandedYears.value.includes(newYear)) {
-    expandedYears.value.push(newYear)
-  }
-}, { immediate: true })
 </script>
 
 <style scoped>
@@ -219,8 +118,6 @@ watch(() => props.activeYear, (newYear) => {
  * 年份导航栏组件样式
  * 使用纯CSS样式，兼容Tailwind CSS 4
  */
-
-/* 导航栏容器 - 使用Tailwind类名在template中已实现 */
 
 .year-nav-container.collapsed {
   width: 56px;
@@ -235,17 +132,8 @@ watch(() => props.activeYear, (newYear) => {
   margin: 0;
 }
 
-/* 年份导航头部 - 使用Tailwind类名在template中已实现 */
-
-/* 折叠按钮 - 使用Tailwind类名在template中已实现 */
-
-/* 全部折叠按钮 - 使用Tailwind类名在template中已实现 */
-
-/* 年份列表滚动容器 - 使用Tailwind类名在template中已实现 */
-
-/* 自定义滚动条 */
+/* 年份列表滚动容器：预留滚动条槽位，展开年份时不改变内容可用宽度 */
 .year-list-scroll {
-  /* 预留滚动条槽位，展开年份时不改变内容可用宽度 */
   scrollbar-gutter: stable;
 }
 
@@ -267,53 +155,6 @@ watch(() => props.activeYear, (newYear) => {
   background-color: transparent;
 }
 
-/* 年份标题项 - 使用Tailwind类名在template中已实现 */
-
-/* 展开图标旋转 */
-.year-title-item .expand-icon.is-expanded {
-  transform: rotate(90deg);
-}
-
-/* 年份激活状态 */
-.year-title-item.active {
-  background-color: rgba(139, 111, 71, 0.08);
-}
-
-.year-title-item.active .year-text,
-.year-title-item.active .count-badge,
-.year-title-item.active .expand-icon {
-  color: #8B6F47;
-  font-weight: 600;
-}
-
-/* 题目列表 - 使用Tailwind类名在template中已实现 */
-
-/* 题目项激活状态 */
-.exam-sub-item.active {
-  background-color: transparent;
-  color: #8B6F47;
-  font-weight: 500;
-  position: relative;
-}
-
-.exam-sub-item.active .exam-icon {
-  color: #8B6F47;
-  opacity: 1;
-}
-
-/* 左侧指示条 */
-.exam-sub-item.active::before {
-  content: '';
-  position: absolute;
-  left: 24px;
-  height: 14px;
-  width: 2px;
-  background-color: #8B6F47;
-  border-radius: 1px;
-}
-
-/* 空状态 - 使用Tailwind类名在template中已实现 */
-
 /* 淡入淡出动画 */
 .fade-enter-active,
 .fade-leave-active {
@@ -325,41 +166,10 @@ watch(() => props.activeYear, (newYear) => {
   opacity: 0;
 }
 
-/* 展开/折叠动画 */
-.expand-enter-active,
-.expand-leave-active {
-  transition: all 0.3s ease;
-  overflow: hidden;
-}
-
-.expand-enter-from,
-.expand-leave-to {
-  opacity: 0;
-  max-height: 0;
-}
-
-.expand-enter-to,
-.expand-leave-from {
-  opacity: 1;
-  max-height: 500px;
-}
-
-/* 响应式布局 */
+/* 移动端改用顶部导航入口 + 底部目录抽屉，侧栏整体隐藏 */
 @media (max-width: 767px) {
   .year-nav-container {
-    width: 100%;
-    height: auto;
-    border-right: none;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-  }
-
-  .year-nav-container.collapsed {
-    width: 100%;
-  }
-
-  .year-nav-container .year-list-scroll {
-    max-height: 220px;
-    max-height: min(32dvh, 220px);
+    display: none;
   }
 }
 </style>

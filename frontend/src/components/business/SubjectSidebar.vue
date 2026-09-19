@@ -1,13 +1,7 @@
-<!-- 科目分类侧栏：桌面侧栏与移动端顶部折叠区共用。 -->
+<!-- 科目分类侧栏：桌面端展示科目与分类树，移动端由目录抽屉替代。 -->
 <template>
-  <!--
-    科目侧边栏组件（重构版）
-    功能：展示科目列表和多级分类树
-    遵循KISS原则：使用递归组件简化多级分类渲染
-    遵循SOLID原则：分类树渲染逻辑委托给 CategoryTreeItem 组件
-  -->
   <aside
-    class="sidebar-container flex flex-col flex-shrink-0 h-full border-r border-black/5 transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] bg-[#FBF7F2]"
+    class="sidebar-container flex flex-col flex-shrink-0 h-full border-r border-black/5 transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] bg-surface"
     aria-label="科目导航"
     :class="{ 'w-16': isCollapsed, 'w-[260px]': !isCollapsed }"
   >
@@ -17,11 +11,11 @@
       </transition>
       <div class="header-actions flex items-center gap-2 flex-shrink-0">
         <button
+          v-if="!isCollapsed"
           class="collapse-all-btn flex items-center gap-1 rounded border-0 bg-transparent px-2 py-1 cursor-pointer text-gray-400 text-xs transition-all whitespace-nowrap"
           type="button"
           aria-label="全部折叠科目分类"
           @click="collapseAll"
-          v-if="!isCollapsed"
         >
           <font-awesome-icon :icon="['fas', 'chevron-down']" class="text-sm" aria-hidden="true" />
           <span>全部折叠</span>
@@ -38,103 +32,32 @@
     </div>
 
     <div class="sidebar-scroll scrollbar-stable flex-1 py-3 overflow-y-auto custom-scrollbar">
-      <div class="subject-list px-2">
-        <div
-          v-for="sub in subjects"
-          :key="sub.id"
-          class="subject-group mb-1"
-        >
-          <button
-            class="subject-item w-full mx-0 mb-0.5 rounded-lg border-0 bg-transparent text-left cursor-pointer transition-all duration-200 px-2 py-0"
-            type="button"
-            :aria-label="sub.name"
-            :aria-expanded="!isCollapsed && expandedSubjectId === sub.id"
-            :aria-controls="`subject-categories-${sub.id}`"
-            :class="{
-              'active bg-[rgba(139,111,71,0.08)]': activeSubjectId === sub.id,
-              'hover:bg-black/3': activeSubjectId !== sub.id
-            }"
-            @click="onSubjectSelect(sub)"
-          >
-            <span class="item-content flex items-center h-11 px-2 w-full">
-              <span class="icon-area flex items-center justify-center w-6 h-6 mr-1 rounded transition-colors duration-200">
-                  <font-awesome-icon
-                    :icon="['fas', expandedSubjectId === sub.id ? 'chevron-down' : 'chevron-right']"
-                    class="expand-icon text-sm text-gray-400 transition-transform duration-300 ease"
-                    :class="{ 'rotate-90': expandedSubjectId === sub.id }"
-                    aria-hidden="true"
-                />
-              </span>
-              <transition name="fade" mode="out-in">
-                <span v-if="!isCollapsed" class="item-label flex-1 text-base font-medium text-gray-900 whitespace-nowrap overflow-hidden text-ellipsis">{{ sub.name }}</span>
-              </transition>
-              <transition name="fade" mode="out-in">
-                <span v-if="!isCollapsed && (sub.questionCount ?? 0) > 0" class="count-badge text-xs text-gray-400 bg-black/5 px-1.5 py-0.5 rounded-full ml-auto">
-                  {{ sub.questionCount }}
-                </span>
-              </transition>
-            </span>
-          </button>
-
-          <!-- 多级分类树 -->
-          <Transition name="collapse">
-            <div
-              v-if="getCategoryTree(sub.id).length > 0 && !isCollapsed && expandedSubjectId === sub.id"
-              :id="`subject-categories-${sub.id}`"
-              class="category-list py-0.5 px-0 mt-0.5"
-              role="tree"
-              :aria-label="`${sub.name}分类`"
-            >
-              <CategoryTreeItem
-                v-for="cat in getCategoryTree(sub.id)"
-                :key="cat.id"
-                :category="cat"
-                :level="0"
-                :active-category="activeSubjectId === sub.id ? filterCategory : ''"
-                :expanded-ids="expandedCategoryIds"
-                :base-indent="38"
-                :indent-step="14"
-                @select="(catName) => onCategorySelect(sub, catName)"
-                @toggle-expand="toggleCategoryExpand"
-              />
-            </div>
-          </Transition>
-        </div>
-        <div v-if="!loading && subjects.length === 0" class="flex flex-col items-center justify-center py-8 text-gray-400">
-          <font-awesome-icon :icon="['fas', 'folder-open']" class="text-3xl mb-2" />
-          <span class="text-sm">暂无科目</span>
-        </div>
-      </div>
+      <SubjectNavList
+        :subjects="subjects"
+        :subject-categories="subjectCategories"
+        :active-subject-id="activeSubjectId"
+        :expanded-subject-id="expandedSubjectId"
+        :filter-category="filterCategory"
+        :expanded-ids="expandedIds"
+        :loading="loading"
+        :collapsed="isCollapsed"
+        @update:expanded-ids="(ids) => emit('update:expandedIds', ids)"
+        @select-subject="(subject) => emit('select-subject', subject)"
+        @select-category="(selection) => emit('select-category', selection)"
+      />
     </div>
   </aside>
 </template>
 
 <script setup lang="ts">
 /**
- * 科目侧边栏组件
- * 功能：展示科目列表和多级分类树，支持展开/折叠和分类筛选
- * 遵循KISS原则：简洁的状态管理
- * 遵循SOLID原则：分类树渲染委托给 CategoryTreeItem 组件
+ * 科目分类侧栏
+ * 桌面端外壳：标题栏、折叠交互和滚动容器；列表渲染与分类展开状态交给 SubjectNavList，
+ * 使移动端目录抽屉可以复用同一份数据和展开状态
  */
-// 1. Vue 官方 API
 import type { PropType } from 'vue'
-import type { Subject, CategoryTreeNode } from '@/types'
-import { ref } from 'vue'
-
-// 2. 子组件
-import CategoryTreeItem from './CategoryTreeItem.vue'
-
-// 3. Font Awesome 图标
-import {
-  faChevronRight,
-  faChevronDown,
-  faAngleLeft,
-  faAngleRight,
-  faFolderOpen
-} from '@fortawesome/free-solid-svg-icons'
-
-// 已展开的分类ID数组（支持多级分类同时展开）
-const expandedCategoryIds = ref<number[]>([])
+import type { CategoryTreeNode, Subject } from '@/types'
+import SubjectNavList from './SubjectNavList.vue'
 
 const props = defineProps({
   // 侧边栏是否折叠
@@ -147,12 +70,12 @@ const props = defineProps({
     type: Array as PropType<Subject[]>,
     default: () => []
   },
-  // 当前激活的科目ID
+  // 当前激活的科目 ID
   activeSubjectId: {
     type: [String, Number] as PropType<string | number | null>,
     default: null
   },
-  // 当前展开的科目ID
+  // 当前展开的科目 ID
   expandedSubjectId: {
     type: [String, Number] as PropType<string | number | null>,
     default: null
@@ -167,6 +90,11 @@ const props = defineProps({
     type: String,
     default: ''
   },
+  // 已展开的分类 ID
+  expandedIds: {
+    type: Array as PropType<number[]>,
+    default: () => []
+  },
   // 加载状态
   loading: {
     type: Boolean,
@@ -174,7 +102,13 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits<{ 'update:isCollapsed': [value: boolean]; 'select-subject': [subject: Subject]; 'toggle-expand': [subject: Subject | null]; 'select-category': [selection: { subject: Subject; category: string }] }>()
+const emit = defineEmits<{
+  'update:isCollapsed': [value: boolean]
+  'update:expandedIds': [ids: number[]]
+  'select-subject': [subject: Subject]
+  'toggle-expand': [subject: Subject | null]
+  'select-category': [selection: { subject: Subject; category: string }]
+}>()
 
 /**
  * 切换侧边栏折叠状态
@@ -184,53 +118,10 @@ const toggleCollapse = () => {
 }
 
 /**
- * 选中科目
- */
-const onSubjectSelect = (sub: Subject) => {
-  emit('select-subject', sub)
-}
-
-/**
- * 切换科目展开状态
- */
-const onToggleExpand = (sub: Subject) => {
-  emit('toggle-expand', sub)
-}
-
-/**
- * 选中分类
- */
-const onCategorySelect = (sub: Subject, cat: string) => {
-  emit('select-category', { subject: sub, category: cat })
-}
-
-/**
- * 切换分类展开状态（支持多级分类）
- * 使用数组管理展开状态，允许多个分类同时展开
- */
-const toggleCategoryExpand = (categoryId: number) => {
-  const index = expandedCategoryIds.value.indexOf(categoryId)
-  if (index > -1) {
-    expandedCategoryIds.value.splice(index, 1)
-  } else {
-    expandedCategoryIds.value.push(categoryId)
-  }
-}
-
-/** 获取当前科目的分类树。 */
-const getCategoryTree = (subjectId: number) => {
-  const cats = props.subjectCategories[subjectId]
-  if (!cats || !Array.isArray(cats)) return []
-  return cats
-}
-
-/**
- * 全部折叠：折叠所有展开的科目和分类
+ * 全部折叠：折叠所有科目并收起已展开的分类，由父组件同步状态
  */
 const collapseAll = () => {
-  // 清空所有展开的分类ID
-  expandedCategoryIds.value = []
-  // 通知父组件折叠所有科目
+  emit('update:expandedIds', [])
   emit('toggle-expand', null)
 }
 </script>
@@ -247,33 +138,8 @@ const collapseAll = () => {
   opacity: 0;
 }
 
-/* 折叠展开动画 */
-.collapse-enter-active,
-.collapse-leave-active {
-  transition: all 0.3s ease;
-  overflow: hidden;
-}
-
-.collapse-enter-from,
-.collapse-leave-to {
-  opacity: 0;
-  max-height: 0;
-}
-
-.collapse-enter-to,
-.collapse-leave-from {
-  opacity: 1;
-  max-height: 500px;
-}
-
-/* 旋转动画类 */
-.rotate-90 {
-  transform: rotate(90deg);
-}
-
-/* 自定义滚动条 */
+/* 自定义滚动条：预留滚动条槽位，展开分类时不改变内容可用宽度 */
 .sidebar-scroll {
-  /* 预留滚动条槽位，展开分类时不改变内容可用宽度 */
   scrollbar-gutter: stable;
 }
 
@@ -294,22 +160,10 @@ const collapseAll = () => {
   background-color: rgba(0, 0, 0, 0.2);
 }
 
-/* 响应式布局 - 移动端 */
+/* 移动端改用顶部导航入口 + 底部目录抽屉，侧栏整体隐藏 */
 @media (max-width: 767px) {
   .sidebar-container {
-    width: 100% !important;
-    height: auto;
-    border-right: none;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-  }
-
-  .sidebar-container.collapsed {
-    width: 100% !important;
-  }
-
-  .sidebar-scroll {
-    max-height: 220px;
-    max-height: min(32dvh, 220px);
+    display: none;
   }
 }
 </style>

@@ -35,7 +35,7 @@
               <button
                 v-if="!disabled"
                 type="button"
-                class="ml-0.5 flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-full text-[#8B6F47]/70 transition-colors hover:bg-[#8B6F47]/20 hover:text-[#8B6F47]"
+                class="ml-0.5 flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-full text-accent/70 transition-colors hover:bg-accent/20 hover:text-accent"
                 aria-label="移除分类"
                 @click.stop="removeTag(item.value)"
               >
@@ -61,7 +61,7 @@
         <button
           v-if="!disabled && selectedItems.length > 0"
           type="button"
-          class="flex h-6 w-6 items-center justify-center rounded-full text-gray-400 transition-colors hover:bg-[#8B6F47]/10 hover:text-[#8B6F47] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8B6F47]/30"
+          class="flex h-6 w-6 items-center justify-center rounded-full text-gray-400 transition-colors hover:bg-accent/10 hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30"
           aria-label="清空分类"
           title="清空分类"
           @click.stop="clearAll"
@@ -70,7 +70,7 @@
         </button>
         <font-awesome-icon
           class="text-gray-400 transition-transform duration-300"
-          :class="dropdownVisible ? 'text-[#8B6F47] rotate-180' : ''"
+          :class="dropdownVisible ? 'text-accent rotate-180' : ''"
           :icon="['fas', 'chevron-down']"
         />
       </div>
@@ -124,7 +124,7 @@
                 <button
                   v-if="row.item.children.length > 0"
                   type="button"
-                  class="w-6 h-6 flex-shrink-0 flex items-center justify-center rounded-md text-gray-400 hover:text-[#8B6F47] hover:bg-[#8B6F47]/10 transition-all duration-150"
+                  class="w-6 h-6 flex-shrink-0 flex items-center justify-center rounded-md text-gray-400 hover:text-accent hover:bg-accent/10 transition-all duration-150"
                   :aria-label="`${expandedKeys.includes(row.item.value) ? '收起' : '展开'} ${row.item.label}`"
                   @click.stop="toggleExpand(row.item.value)"
                 >
@@ -149,7 +149,7 @@
                     class="sr-only"
                   />
                   <div
-                    class="dropdown-checkbox group-hover:border-[#8B6F47]"
+                    class="dropdown-checkbox group-hover:border-accent"
                     :class="{ 'dropdown-checkbox--selected': isSelected(row.item.value) }"
                   >
                     <font-awesome-icon
@@ -167,10 +167,10 @@
                   :title="row.item.label"
                   :class="[
                     isSelected(row.item.value)
-                      ? 'text-[#8B6F47] font-medium'
+                      ? 'text-accent font-medium'
                       : row.level > 0
-                        ? 'text-gray-600 group-hover:text-[#8B6F47]'
-                        : 'text-gray-700 group-hover:text-[#8B6F47]'
+                        ? 'text-gray-600 group-hover:text-accent'
+                        : 'text-gray-700 group-hover:text-accent'
                   ]"
                   @click.stop="handleItemClick(row.item)"
                 >
@@ -183,7 +183,7 @@
                   class="px-2 py-0.5 text-xs rounded-full transition-colors duration-150"
                   :class="[
                     multiple && getSelectedCount(row.item) > 0
-                      ? 'bg-[#8B6F47]/10 text-[#8B6F47] font-medium'
+                      ? 'bg-accent/10 text-accent font-medium'
                       : 'bg-gray-100 text-gray-400'
                   ]"
                 >
@@ -199,7 +199,7 @@
                 <font-awesome-icon
                   v-if="row.item.selectable && isSelected(row.item.value) && (multiple ? row.item.children.length === 0 : true)"
                   :icon="['fas', 'check-circle']"
-                  class="text-[#8B6F47] text-xs"
+                  class="text-accent text-xs"
                 />
               </div>
             </transition-group>
@@ -213,7 +213,7 @@
             </span>
             <button
               type="button"
-              class="text-xs text-[#8B6F47] hover:text-[#6B5537] font-medium transition-colors"
+              class="text-xs text-accent hover:text-accent-deep font-medium transition-colors"
               @click.stop="dropdownVisible = false"
             >
               确定 <font-awesome-icon :icon="['fas', 'arrow-right']" class="ml-1" />
@@ -233,7 +233,7 @@ import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 /**
  * 多选级联选择器组件
  * 功能：支持单选/多选、树形层级、搜索过滤
- * 设计：精致学术风，使用项目主题色 #8B6F47
+ * 设计：精致学术风，使用项目品牌色（--brand-accent）
  */
 const props = defineProps({
   modelValue: {

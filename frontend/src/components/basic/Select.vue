@@ -45,7 +45,7 @@
         <button
           v-if="clearable && hasValue && !disabled"
           type="button"
-          class="text-gray-400 hover:text-gray-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8B6F47]/30 rounded"
+          class="text-gray-400 hover:text-gray-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30 rounded"
           aria-label="清除选择"
           @click.stop="handleClear"
           @keydown.stop
@@ -131,7 +131,7 @@
               <!-- 选中标记 -->
               <span
                 v-if="option.value === modelValue"
-                class="text-[#8B6F47]"
+                class="text-accent"
               >
                 <font-awesome-icon :icon="['fas', 'check']" class="text-xs" />
               </span>

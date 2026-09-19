@@ -469,13 +469,13 @@ onBeforeUnmount(() => {
 
 .markdown-viewer :deep(.markdown-media-frame:hover),
 .markdown-viewer :deep(.markdown-media-frame:focus-within) {
-  outline: 1px dashed rgba(139, 111, 71, 0.45);
+  outline: 1px dashed color-mix(in srgb, var(--brand-accent) 45%, transparent);
   outline-offset: 2px;
 }
 
 .markdown-viewer :deep(.markdown-media-frame.is-resizing) {
   outline-style: solid;
-  outline-color: rgba(139, 111, 71, 0.8);
+  outline-color: color-mix(in srgb, var(--brand-accent) 80%, transparent);
 }
 
 .markdown-viewer :deep(.markdown-media-size-tip) {
@@ -536,7 +536,7 @@ onBeforeUnmount(() => {
   bottom: 3px;
   width: 20px;
   height: 20px;
-  border: 1px solid rgba(139, 111, 71, 0.35);
+  border: 1px solid color-mix(in srgb, var(--brand-accent) 35%, transparent);
   border-radius: 9999px;
   background-color: rgb(255 255 255 / 0.92);
   color: #8b6f47;
@@ -590,7 +590,7 @@ onBeforeUnmount(() => {
 /* 触屏没有悬停状态，直接常显入口 */
 @media (pointer: coarse) {
   .markdown-viewer :deep(.markdown-media-frame) {
-    outline: 1px dashed rgba(139, 111, 71, 0.3);
+    outline: 1px dashed color-mix(in srgb, var(--brand-accent) 30%, transparent);
     outline-offset: 2px;
   }
 

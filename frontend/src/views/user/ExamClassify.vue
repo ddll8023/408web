@@ -1,10 +1,11 @@
-<!-- 真题分类阅读页面：移动端上下排列导航与题目内容。 -->
+<!-- 真题分类阅读页面：窄屏使用吸顶目录入口与底部目录抽屉，桌面端保留科目侧栏。 -->
 <template>
-  <div class="app-viewport-page overflow-hidden flex flex-col bg-[#FBF7F2]">
+  <div class="app-viewport-page overflow-hidden flex flex-col bg-surface">
     <div class="flex-1 flex flex-col md:flex-row relative overflow-hidden">
-      <!-- 左侧科目导航栏 -->
+      <!-- 左侧科目导航栏（窄屏自动隐藏） -->
       <SubjectSidebar
         v-model:is-collapsed="isNavCollapsed"
+        v-model:expanded-ids="expandedCategoryIds"
         :subjects="subjects"
         :active-subject-id="activeSubjectId"
         :expanded-subject-id="expandedSubjectId"
@@ -17,12 +18,38 @@
       />
 
       <!-- 右侧内容区域 -->
-      <div ref="contentScroller" class="scrollbar-stable flex-1 w-full min-w-0 overflow-y-auto bg-[#FBF7F2] md:w-0">
-        <div class="min-h-full bg-[#FBF7F2]">
+      <div ref="contentScroller" class="scrollbar-stable flex-1 w-full min-w-0 overflow-y-auto bg-surface md:w-0">
+        <!-- 窄屏目录入口与抽屉 -->
+        <MobileQuestionNav
+          v-model:visible="navSheetVisible"
+          :title="currentTitle"
+          :count="displayTotal"
+          :outline-items="outlineItems"
+          :active-outline-id="activeOutlineId"
+          kind="exam"
+          @outline-jump="handleNavSheetOutlineJump"
+        >
+          <template #nav>
+            <SubjectNavList
+              v-model:expanded-ids="expandedCategoryIds"
+              :subjects="subjects"
+              :subject-categories="subjectCategories"
+              :active-subject-id="activeSubjectId"
+              :expanded-subject-id="expandedSubjectId"
+              :filter-category="filterCategory"
+              :loading="loadingSubjects"
+              auto-scroll-active
+              @select-subject="handleSubjectSelect"
+              @select-category="handleNavSheetCategorySelect"
+            />
+          </template>
+        </MobileQuestionNav>
+
+        <div class="min-h-full bg-surface">
           <div class="p-4">
             <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-              <div class="flex min-w-0 items-center gap-3">
-                <h2 class="m-0 min-w-0 text-[#333] font-semibold text-xl">{{ currentTitle }}</h2>
+              <div class="hidden min-w-0 items-center gap-3 md:flex">
+                <h2 class="m-0 min-w-0 text-ink font-semibold text-xl">{{ currentTitle }}</h2>
                 <Tag v-if="displayTotal > 0" type="info" size="sm">共 {{ displayTotal }} 题</Tag>
               </div>
               <div class="flex w-full flex-wrap items-center justify-end gap-2 lg:w-auto" v-if="activeSubjectId">
@@ -56,7 +83,7 @@
 
             <!-- 加载状态 -->
             <div v-if="questionsLoading" class="flex justify-center py-8" role="status" aria-live="polite">
-              <font-awesome-icon :icon="['fas', 'spinner']" class="fa-spin text-[#8B6F47] text-2xl" aria-hidden="true" />
+              <font-awesome-icon :icon="['fas', 'spinner']" class="fa-spin text-accent text-2xl" aria-hidden="true" />
             </div>
 
             <div v-if="subjectsLoadError" class="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700" role="alert">
@@ -82,7 +109,7 @@
                   v-for="group in groupedQuestions"
                   :id="getCategorySectionId('exam', group.categoryId, group.category)"
                   :key="group.categoryId ?? group.category"
-                  class="category-question-section scroll-mt-4"
+                  class="category-question-section scroll-mt-14 md:scroll-mt-4"
                   :class="group.depth > 0 ? 'ml-3 md:ml-6' : ''"
                 >
                   <CategorySectionHeader
@@ -180,6 +207,8 @@ import RadioGroup from '@/components/basic/RadioGroup.vue'
 import Empty from '@/components/basic/Empty.vue'
 import BackTop from '@/components/basic/BackTop.vue'
 import SubjectSidebar from '@/components/business/SubjectSidebar.vue'
+import SubjectNavList from '@/components/business/SubjectNavList.vue'
+import MobileQuestionNav from '@/components/business/MobileQuestionNav.vue'
 import CategoryOutline from '@/components/business/CategoryOutline.vue'
 import CategorySectionHeader from '@/components/business/CategorySectionHeader.vue'
 import ExamEntryCard from '@/components/business/ExamEntryCard.vue'
@@ -197,6 +226,10 @@ const RETURN_SCROLL_KEY = 'exam-return-position'
 
 // UI State
 const isNavCollapsed = ref(false)
+// 窄屏目录抽屉开关
+const navSheetVisible = ref(false)
+// 分类展开状态：桌面侧栏与窄屏抽屉共用同一份状态
+const expandedCategoryIds = ref<number[]>([])
 const loadingSubjects = ref(false)
 const questionsLoading = ref(false)
 const subjectsLoadError = ref('')
@@ -535,6 +568,23 @@ const handleCategorySelect = (subject: Subject, category: string) => {
   showAnswers.value = {}
 
   loadQuestions(true)
+}
+
+/**
+ * 抽屉内选择分类：先收起抽屉再加载该分类题目
+ * 科目行仍保留原处理函数，便于在抽屉内继续展开分类树
+ */
+const handleNavSheetCategorySelect = (selection: { subject: Subject; category: string }) => {
+  navSheetVisible.value = false
+  handleCategorySelect(selection.subject, selection.category)
+}
+
+/**
+ * 抽屉内选择分组锚点：先收起抽屉再滚到对应分组
+ */
+const handleNavSheetOutlineJump = (anchorId: string) => {
+  navSheetVisible.value = false
+  scrollToCategory(anchorId)
 }
 
 

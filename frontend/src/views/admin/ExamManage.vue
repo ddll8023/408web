@@ -4,7 +4,7 @@
     <CustomCard shadow>
       <template #header>
         <header class="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <h2 class="m-0 text-xl text-[#333] font-semibold">真题管理</h2>
+          <h2 class="m-0 text-xl text-ink font-semibold">真题管理</h2>
           <div class="flex gap-2">
             <CustomButton type="primary" @click="handleAdd">
               <font-awesome-icon :icon="['fas', 'plus']" class="mr-1.5" />
@@ -78,7 +78,7 @@
               <input
                 v-model="filters.noCategory"
                 type="checkbox"
-                class="w-4 h-4 rounded border-gray-300 text-[#8B6F47] focus:ring-[#8B6F47] focus:ring-2 focus:ring-offset-0 transition-colors cursor-pointer"
+                class="w-4 h-4 rounded border-gray-300 text-accent focus:ring-accent focus:ring-2 focus:ring-offset-0 transition-colors cursor-pointer"
               />
               <span class="text-sm text-gray-700">仅显示无分类</span>
             </label>
@@ -137,7 +137,7 @@
           <template #title="{ row }">
             <button
               type="button"
-              class="cursor-pointer border-0 bg-transparent p-0 text-left hover:text-[#8B6F47] transition-colors line-clamp-2"
+              class="cursor-pointer border-0 bg-transparent p-0 text-left hover:text-accent transition-colors line-clamp-2"
               @click="handleView(row)"
               :title="row.title ?? ''"
             >
@@ -219,7 +219,7 @@
 
     <!-- 返回顶部 -->
     <BackTop :right="32" :bottom="32">
-      <div class="w-10 h-10 rounded-full bg-[#8B6F47] flex items-center justify-center text-white shadow-lg transition-transform hover:scale-110">
+      <div class="w-10 h-10 rounded-full bg-accent flex items-center justify-center text-white shadow-lg transition-transform hover:scale-110">
         <font-awesome-icon :icon="['fas', 'arrow-up']" />
       </div>
     </BackTop>

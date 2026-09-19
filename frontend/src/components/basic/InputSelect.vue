@@ -38,7 +38,7 @@
         <button
           v-if="modelValue !== '' && modelValue !== null && modelValue !== undefined && clearable"
           type="button"
-          class="rounded text-gray-400 transition-colors hover:text-gray-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8B6F47]/30"
+          class="rounded text-gray-400 transition-colors hover:text-gray-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30"
           aria-label="清除选择"
           @click.stop="handleClear"
         >
@@ -46,7 +46,7 @@
         </button>
         <span
           class="flex items-center text-gray-400 transition-transform duration-200"
-          :class="{ 'rotate-180 text-[#8B6F47]': visible }"
+          :class="{ 'rotate-180 text-accent': visible }"
         >
           <font-awesome-icon :icon="['fas', 'chevron-down']" class="text-xs" aria-hidden="true" />
         </span>
@@ -83,7 +83,7 @@
               <font-awesome-icon
                 v-if="isSelected(item)"
                 :icon="['fas', 'check']"
-                class="flex-shrink-0 text-xs text-[#8B6F47]"
+                class="flex-shrink-0 text-xs text-accent"
                 aria-hidden="true"
               />
             </li>

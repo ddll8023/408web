@@ -1,12 +1,12 @@
 <!-- 用户登录页面：认证表单保持移动端安全边距。 -->
 <template>
-  <div class="flex min-h-screen min-h-[100dvh] items-center justify-center bg-[#FBF7F2] p-4">
+  <div class="auth-viewport flex items-center justify-center bg-surface p-4">
     <!-- 使用 CustomCard 替代 el-card -->
     <CustomCard class="w-full max-w-md">
       <template #header>
         <div class="text-center">
-          <h2 class="text-xl font-semibold text-[#333] mb-2">用户登录</h2>
-          <span class="text-[#666] text-sm">408真题网站</span>
+          <h2 class="text-xl font-semibold text-ink mb-2">用户登录</h2>
+          <span class="text-ink-soft text-sm">408真题网站</span>
         </div>
       </template>
 
@@ -167,3 +167,16 @@ const goToRegister = () => {
   router.push('/register')
 }
 </script>
+
+<style scoped>
+/* 认证页高度：与全站约定一致，支持 dvh 时按动态视口居中，避免移动端地址栏收起后被裁切 */
+.auth-viewport {
+  min-height: 100vh;
+}
+
+@supports (min-height: 100dvh) {
+  .auth-viewport {
+    min-height: 100dvh;
+  }
+}
+</style>

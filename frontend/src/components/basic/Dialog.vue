@@ -46,7 +46,7 @@
           <!-- 内容区 -->
           <div class="dialog-content scrollbar-stable min-h-0 flex-1 overflow-y-auto px-6 py-4" :style="contentStyle" :aria-busy="loading">
             <div v-if="loading" class="flex items-center justify-center p-8" role="status" aria-live="polite">
-              <font-awesome-icon :icon="['fas', 'spinner']" class="fa-spin text-2xl text-[#8B6F47]" aria-hidden="true" />
+              <font-awesome-icon :icon="['fas', 'spinner']" class="fa-spin text-2xl text-accent" aria-hidden="true" />
               <span class="ml-3 text-gray-500">加载中...</span>
             </div>
             <slot v-else />

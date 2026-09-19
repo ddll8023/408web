@@ -53,7 +53,7 @@
       <button
         v-if="clearable && modelValue !== null && modelValue !== '' && !isOpen"
         type="button"
-        class="ml-2 cursor-pointer text-gray-400 hover:text-gray-600 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8B6F47]/30 rounded"
+        class="ml-2 cursor-pointer text-gray-400 hover:text-gray-600 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30 rounded"
         aria-label="清除选择"
         @click.stop="handleClear"
       >
@@ -109,7 +109,7 @@
                 :aria-selected="option.value === modelValue"
                 class="wheel-option flex items-center justify-center cursor-pointer transition-all duration-150"
                 :class="[
-                  option.value === modelValue ? 'text-[#8B6F47] font-semibold' : 'text-gray-500',
+                  option.value === modelValue ? 'text-accent font-semibold' : 'text-gray-500',
                   getOptionOpacity(index)
                 ]"
                 :style="{ height: `${itemHeight}px` }"

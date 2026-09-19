@@ -307,7 +307,7 @@ const handleCommand = (command: string) => {
   overflow-y: auto;
   scrollbar-gutter: stable;
   scrollbar-width: thin;
-  scrollbar-color: rgba(139, 111, 71, 0.35) transparent;
+  scrollbar-color: color-mix(in srgb, var(--brand-accent) 35%, transparent) transparent;
 }
 
 .question-copy-dropdown .question-copy-menu__section {
@@ -402,7 +402,7 @@ const handleCommand = (command: string) => {
 }
 
 .dropdown-menu.question-copy-dropdown .question-copy-menu__items .dropdown-item:focus-visible {
-  outline: 2px solid rgba(139, 111, 71, 0.45);
+  outline: 2px solid color-mix(in srgb, var(--brand-accent) 45%, transparent);
   outline-offset: -2px;
 }
 

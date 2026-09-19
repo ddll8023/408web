@@ -11,7 +11,7 @@
       <select
         :value="pageSize"
         aria-label="每页条数"
-        class="px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-[#8B6F47]/50"
+        class="px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-accent/50"
         @change="handleSizeChange"
       >
         <option v-for="size in pageSizes" :key="size" :value="size">
@@ -40,7 +40,7 @@
         class="px-3 py-1 border rounded text-sm transition-colors"
         :aria-current="page === currentPage ? 'page' : undefined"
         :class="page === currentPage
-          ? 'bg-[#8B6F47] text-white border-[#8B6F47]'
+          ? 'bg-accent text-white border-accent'
           : 'border-gray-300 hover:bg-gray-50'"
         @click="handlePageClick(page)"
       >
@@ -68,7 +68,7 @@
         min="1"
         :max="totalPages"
         aria-label="跳转页码"
-        class="w-14 px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-[#8B6F47]/50"
+        class="w-14 px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-accent/50"
         @keyup.enter="handleJump"
       />
       <span class="text-sm text-gray-600">页</span>

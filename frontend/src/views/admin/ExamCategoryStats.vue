@@ -3,10 +3,10 @@
   <main class="min-h-[var(--app-page-height)]">
     <div class="stats-page mx-auto max-w-[1400px] px-4 py-6 md:px-6 md:py-8">
       <!-- 页面标题与操作 -->
-      <header class="mb-6 flex flex-col gap-5 border-b border-[#8B6F47]/10 pb-6 lg:flex-row lg:items-end lg:justify-between">
+      <header class="mb-6 flex flex-col gap-5 border-b border-accent/10 pb-6 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <div class="mb-2 flex items-center gap-2 text-xs font-semibold tracking-[0.16em] text-[#8B6F47]">
-            <span class="inline-flex h-6 w-6 items-center justify-center rounded-md bg-[#8B6F47] text-white shadow-sm">
+          <div class="mb-2 flex items-center gap-2 text-xs font-semibold tracking-[0.16em] text-accent">
+            <span class="inline-flex h-6 w-6 items-center justify-center rounded-md bg-accent text-white shadow-sm">
               <font-awesome-icon :icon="['fas', 'chart-bar']" aria-hidden="true" />
             </span>
             <span>统计看板</span>
@@ -45,7 +45,7 @@
 
       <!-- 筛选与明细排序 -->
       <section
-        class="mb-6 flex flex-col gap-4 rounded-2xl border border-[#8B6F47]/10 bg-white/80 p-4 shadow-sm lg:flex-row lg:items-center lg:justify-between"
+        class="mb-6 flex flex-col gap-4 rounded-2xl border border-accent/10 bg-white/80 p-4 shadow-sm lg:flex-row lg:items-center lg:justify-between"
         aria-label="统计筛选与视图工具"
       >
         <div class="flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -68,15 +68,15 @@
 
         <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
           <span class="whitespace-nowrap text-xs font-semibold text-gray-500">明细排序</span>
-          <div class="flex flex-wrap gap-1 rounded-lg bg-[#FBF7F2] p-1" role="group" aria-label="分类明细排序">
+          <div class="flex flex-wrap gap-1 rounded-lg bg-surface p-1" role="group" aria-label="分类明细排序">
             <button
               v-for="option in sortOptions"
               :key="option.label"
               type="button"
-              class="inline-flex h-8 items-center gap-1 rounded-md px-2.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8B6F47] focus-visible:ring-offset-1"
+              class="inline-flex h-8 items-center gap-1 rounded-md px-2.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-1"
               :class="isSortActive(option.prop)
-                ? 'bg-[#8B6F47] text-white shadow-sm'
-                : 'text-gray-600 hover:bg-white hover:text-[#8B6F47]'"
+                ? 'bg-accent text-white shadow-sm'
+                : 'text-gray-600 hover:bg-white hover:text-accent'"
               :aria-pressed="isSortActive(option.prop)"
               @click="handleSortOption(option.prop)"
             >
@@ -107,12 +107,12 @@
 
       <template v-else-if="hasStats">
         <!-- 分组明细 -->
-        <section class="overflow-hidden rounded-2xl border border-[#8B6F47]/10 bg-white shadow-sm" aria-labelledby="category-detail-title" :aria-busy="statsLoading">
+        <section class="overflow-hidden rounded-2xl border border-accent/10 bg-white shadow-sm" aria-labelledby="category-detail-title" :aria-busy="statsLoading">
           <header class="flex flex-col gap-3 border-b border-gray-100 px-5 py-4 md:flex-row md:items-center md:justify-between md:px-6">
             <div>
               <div class="flex items-center gap-2">
                 <h2 id="category-detail-title" class="m-0 text-lg font-semibold text-gray-900">分类明细</h2>
-                <span v-if="statsLoading" class="inline-flex items-center gap-1 text-xs font-normal text-[#8B6F47]" role="status">
+                <span v-if="statsLoading" class="inline-flex items-center gap-1 text-xs font-normal text-accent" role="status">
                   <font-awesome-icon :icon="['fas', 'spinner']" class="fa-spin" aria-hidden="true" />
                   正在刷新
                 </span>
@@ -135,9 +135,9 @@
             <div v-for="view in detailGroups" :key="`detail-${view.group.subjectId ?? 'unassigned'}`">
               <div
                 v-if="showSubjectGroupLabels"
-                class="mb-3 flex items-center justify-between gap-3 rounded-lg bg-[#FBF7F2] px-3 py-2 text-sm"
+                class="mb-3 flex items-center justify-between gap-3 rounded-lg bg-surface px-3 py-2 text-sm"
               >
-                <span class="flex items-center gap-2 font-semibold text-[#8B6F47]">
+                <span class="flex items-center gap-2 font-semibold text-accent">
                   <font-awesome-icon :icon="['fas', 'folder']" aria-hidden="true" />
                   {{ view.group.subjectName }}
                 </span>
@@ -154,8 +154,8 @@
                 >
                   <button
                     type="button"
-                    class="flex w-full flex-col gap-3 px-4 py-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#8B6F47] md:flex-row md:items-center md:justify-between"
-                    :class="section.row.isUnfiled ? 'bg-amber-50 hover:bg-amber-100' : 'bg-[#FBF7F2]/70 hover:bg-[#FBF7F2]'"
+                    class="flex w-full flex-col gap-3 px-4 py-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent md:flex-row md:items-center md:justify-between"
+                    :class="section.row.isUnfiled ? 'bg-amber-50 hover:bg-amber-100' : 'bg-surface/70 hover:bg-surface'"
                     :aria-expanded="isSectionExpanded(section.key)"
                     :aria-controls="`${getSectionDomId(section.key)}-content`"
                     @click="toggleSection(section.key)"
@@ -163,7 +163,7 @@
                     <div class="flex min-w-0 items-center gap-3">
                       <span
                         class="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-xs"
-                        :class="section.row.isUnfiled ? 'bg-amber-100 text-amber-700' : 'bg-[#8B6F47]/10 text-[#8B6F47]'"
+                        :class="section.row.isUnfiled ? 'bg-amber-100 text-amber-700' : 'bg-accent/10 text-accent'"
                       >
                         <font-awesome-icon
                           :icon="isSectionExpanded(section.key) ? ['fas', 'chevron-down'] : ['fas', 'chevron-right']"
@@ -172,7 +172,7 @@
                       </span>
                       <span
                         class="flex h-7 w-7 shrink-0 items-center justify-center rounded-md"
-                        :class="section.row.isUnfiled ? 'bg-amber-500 text-white' : 'bg-[#8B6F47] text-white'"
+                        :class="section.row.isUnfiled ? 'bg-amber-500 text-white' : 'bg-accent text-white'"
                       >
                         <font-awesome-icon :icon="section.row.isUnfiled ? ['fas', 'triangle-exclamation'] : ['fas', 'folder-open']" aria-hidden="true" />
                       </span>
@@ -181,7 +181,7 @@
                       </span>
                       <span
                         class="shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium"
-                        :class="section.row.isUnfiled ? 'bg-white/80 text-amber-700' : 'bg-white text-[#8B6F47]'"
+                        :class="section.row.isUnfiled ? 'bg-white/80 text-amber-700' : 'bg-white text-accent'"
                       >
                         {{ section.row.scope }}
                       </span>
@@ -210,7 +210,7 @@
                           <tr
                             v-for="row in section.children"
                             :key="row.id"
-                            class="border-b border-gray-50 transition-colors last:border-0 hover:bg-[#FBF7F2]/60"
+                            class="border-b border-gray-50 transition-colors last:border-0 hover:bg-surface/60"
                           >
                             <td class="px-4 py-3 md:px-5">
                               <div class="flex min-w-0 items-center gap-2" :style="{ paddingLeft: `${Math.max(0, row.level - 1) * 1.25}rem` }">
@@ -218,7 +218,7 @@
                                 <span class="min-w-0 truncate text-sm" :class="row.enabled || row.isUnfiled ? 'text-gray-700' : 'text-gray-400'">{{ row.category }}</span>
                                 <span
                                   class="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium"
-                                  :class="row.isUnfiled ? 'bg-gray-100 text-gray-500' : row.hasChildren ? 'bg-[#8B6F47]/10 text-[#8B6F47]' : 'bg-blue-50 text-blue-600'"
+                                  :class="row.isUnfiled ? 'bg-gray-100 text-gray-500' : row.hasChildren ? 'bg-accent/10 text-accent' : 'bg-blue-50 text-blue-600'"
                                 >
                                   {{ row.scope }}
                                 </span>
@@ -229,7 +229,7 @@
                               <div class="flex flex-col items-end gap-1.5">
                                 <span class="text-sm font-semibold text-gray-800">{{ formatNumber(row.count) }}</span>
                                 <div class="h-1.5 w-full max-w-[130px] overflow-hidden rounded-full bg-gray-100" aria-hidden="true">
-                                  <div class="h-full rounded-full bg-[#8B6F47]/65 transition-[width] duration-300" :style="{ width: getBarWidth(row.count, section.maxChildCount) }"></div>
+                                  <div class="h-full rounded-full bg-accent/65 transition-[width] duration-300" :style="{ width: getBarWidth(row.count, section.maxChildCount) }"></div>
                                 </div>
                               </div>
                             </td>
@@ -272,8 +272,8 @@
       </template>
 
       <!-- 空状态 -->
-      <div v-else class="rounded-2xl border border-dashed border-[#8B6F47]/20 bg-white/70 px-6 py-16 text-center shadow-sm">
-        <font-awesome-icon :icon="['fas', 'inbox']" class="mb-4 text-4xl text-[#8B6F47]/30" aria-hidden="true" />
+      <div v-else class="rounded-2xl border border-dashed border-accent/20 bg-white/70 px-6 py-16 text-center shadow-sm">
+        <font-awesome-icon :icon="['fas', 'inbox']" class="mb-4 text-4xl text-accent/30" aria-hidden="true" />
         <h2 class="m-0 text-lg font-semibold text-gray-700">当前范围暂无分类统计</h2>
         <p class="mb-0 mt-2 text-sm text-gray-400">请先录入带有分类的真题，或切换其他科目。</p>
       </div>
