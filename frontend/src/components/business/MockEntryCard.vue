@@ -101,7 +101,7 @@ defineEmits<{ copy: [command: string]; edit: [question: MockQuestion]; delete: [
   }
 }
 
-@media (max-width: 768px) {
+@media (max-width: 767px) {
   /* 响应式样式已通过 Tailwind 的 sm: 前缀处理 */
 }
 </style>

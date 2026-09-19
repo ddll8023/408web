@@ -526,7 +526,7 @@ watch(() => route.query.keyword, (newKeyword) => {
  */
 
 /* 响应式布局 */
-@media (max-width: 768px) {
+@media (max-width: 767px) {
   .admin-pagination {
     justify-content: center;
   }

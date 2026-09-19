@@ -1743,7 +1743,7 @@ onBeforeUnmount(() => {
   }
 }
 
-@media (max-width: 640px) {
+@media (max-width: 639px) {
   .category-manage-actions {
     align-items: stretch;
   }

@@ -3,6 +3,7 @@
     <!-- 触发器（显示选中值或占位符） -->
     <div
       :id="pickerId"
+      ref="triggerRef"
       class="dropdown-control wheel-picker-trigger relative flex items-center border px-3 cursor-pointer"
       :class="[
         sizeClasses,
@@ -60,66 +61,70 @@
       </button>
     </div>
 
-    <!-- 下拉滚动选择器 -->
-    <transition name="wheel-dropdown">
-      <div
-        :id="listId"
-        v-show="isOpen"
-        role="listbox"
-        :aria-label="placeholder"
-        class="dropdown-panel absolute top-full left-0 right-0 mt-2 z-50 overflow-hidden"
-        :style="{ height: `${containerHeight}px` }"
-      >
+    <!-- 下拉滚动选择器：传送到 body 并按视口定位，避免被父级滚动容器裁剪或在视口外展开 -->
+    <teleport to="body">
+      <transition name="wheel-dropdown">
         <div
-          ref="pickerRef"
-          class="wheel-picker relative h-full overflow-hidden cursor-pointer select-none"
-          @wheel.prevent="handleWheel"
-          @mousedown="handleMouseDown"
-          @touchstart.passive="handleTouchStart"
+          :id="listId"
+          ref="panelRef"
+          v-show="isOpen"
+          role="listbox"
+          :aria-label="placeholder"
+          class="dropdown-panel fixed z-[99999] max-w-[calc(100vw-24px)] overflow-hidden"
+          :style="{ height: `${containerHeight}px` }"
+          @click.stop
         >
-          <!-- 高亮区域 -->
           <div
-            class="absolute left-0 right-0 pointer-events-none z-10"
-            :style="highlightStyle"
+            ref="pickerRef"
+            class="wheel-picker relative h-full overflow-hidden cursor-pointer select-none"
+            @wheel.prevent="handleWheel"
+            @mousedown="handleMouseDown"
+            @touchstart.passive="handleTouchStart"
           >
-            <div class="dropdown-wheel-highlight"></div>
-          </div>
-
-          <!-- 选项列表 -->
-          <div
-            class="wheel-options"
-            :style="{
-              transform: `translateY(${offset}px)`,
-              transition: isAnimating ? 'transform 0.15s ease-out' : 'none'
-            }"
-          >
-            <!-- 顶部占位 -->
-            <div :style="{ height: `${paddingHeight}px` }"></div>
-
-            <!-- 选项 -->
+            <!-- 高亮区域 -->
             <div
-              v-for="(option, index) in options"
-              :key="option.value"
-              :id="`${listId}-option-${index}`"
-              role="option"
-              :aria-selected="option.value === modelValue"
-              class="wheel-option flex items-center justify-center cursor-pointer transition-all duration-150"
-              :class="[
-                option.value === modelValue ? 'text-[#8B6F47] font-semibold' : 'text-gray-500',
-                getOptionOpacity(index)
-              ]"
-              :style="{ height: `${itemHeight}px` }"
-              @click.stop="handleSelect(option, index)"
+              class="absolute left-0 right-0 pointer-events-none z-10"
+              :style="highlightStyle"
             >
-              {{ option.label }}
+              <div class="dropdown-wheel-highlight"></div>
             </div>
 
-            <!-- 底部占位 -->
-            <div :style="{ height: `${paddingHeight}px` }"></div>
+            <!-- 选项列表 -->
+            <div
+              class="wheel-options"
+              :style="{
+                transform: `translateY(${offset}px)`,
+                transition: isAnimating ? 'transform 0.15s ease-out' : 'none'
+              }"
+            >
+              <!-- 顶部占位 -->
+              <div :style="{ height: `${paddingHeight}px` }"></div>
+
+              <!-- 选项 -->
+              <div
+                v-for="(option, index) in options"
+                :key="option.value"
+                :id="`${listId}-option-${index}`"
+                role="option"
+                :aria-selected="option.value === modelValue"
+                class="wheel-option flex items-center justify-center cursor-pointer transition-all duration-150"
+                :class="[
+                  option.value === modelValue ? 'text-[#8B6F47] font-semibold' : 'text-gray-500',
+                  getOptionOpacity(index)
+                ]"
+                :style="{ height: `${itemHeight}px` }"
+                @click.stop="handleSelect(option, index)"
+              >
+                {{ option.label }}
+              </div>
+
+              <!-- 底部占位 -->
+              <div :style="{ height: `${paddingHeight}px` }"></div>
+            </div>
           </div>
         </div>
-      </div>
-    </transition>
+      </transition>
+    </teleport>
   </div>
 </template>
 
@@ -200,6 +205,8 @@ const emit = defineEmits<{ 'update:modelValue': [value: string | number | null];
 let nextWheelPickerId = 0
 const generatedPickerId = `wheel-picker-${++nextWheelPickerId}`
 const containerRef = ref<HTMLElement | null>(null)
+const triggerRef = ref<HTMLElement | null>(null)
+const panelRef = ref<HTMLElement | null>(null)
 const pickerRef = ref<HTMLElement | null>(null)
 const isOpen = ref(false)
 const offset = ref(0)
@@ -292,6 +299,33 @@ const handleTriggerKeydown = (event: KeyboardEvent) => {
 // 关闭下拉框
 const closeDropdown = () => {
   isOpen.value = false
+}
+
+// 计算弹层位置：优先向下展开，空间不足时上翻，并做视口钳制
+const updatePanelPosition = () => {
+  if (!isOpen.value || !triggerRef.value || !panelRef.value) return
+
+  const panel = panelRef.value
+  const triggerRect = triggerRef.value.getBoundingClientRect()
+  const gap = 8
+  const viewportPadding = 12
+  const width = triggerRect.width
+  // 弹层高度固定为 containerHeight，但视口更矮时先压缩，避免顶出可视区域
+  const maxHeight = Math.max(props.itemHeight, window.innerHeight - viewportPadding * 2)
+  const height = Math.min(containerHeight.value, maxHeight)
+  const maxLeft = Math.max(viewportPadding, window.innerWidth - width - viewportPadding)
+  const left = Math.min(Math.max(triggerRect.left, viewportPadding), maxLeft)
+  const spaceBelow = window.innerHeight - triggerRect.bottom - gap - viewportPadding
+  const spaceAbove = triggerRect.top - gap - viewportPadding
+  const openAbove = spaceBelow < height && spaceAbove > spaceBelow
+  const preferredTop = openAbove ? triggerRect.top - height - gap : triggerRect.bottom + gap
+  const maxTop = Math.max(viewportPadding, window.innerHeight - height - viewportPadding)
+  const top = Math.min(Math.max(preferredTop, viewportPadding), maxTop)
+
+  panel.style.width = `${width}px`
+  panel.style.height = `${height}px`
+  panel.style.top = `${top}px`
+  panel.style.left = `${left}px`
 }
 
 // 滚动到指定索引
@@ -445,20 +479,20 @@ const handleClear = () => {
   emit('change', null)
 }
 
-// 点击外部关闭下拉框
+// 点击外部关闭下拉框；弹层已传送到 body，需要单独判断是否点在弹层内部
 const handleClickOutside = (e: MouseEvent) => {
   if (!(e.target instanceof Node)) return
-  if (containerRef.value && !containerRef.value.contains(e.target)) {
-    closeDropdown()
-  }
+  if (containerRef.value?.contains(e.target)) return
+  if (panelRef.value?.contains(e.target)) return
+  closeDropdown()
 }
-
-// 监听 isOpen 变化，添加/移除点击外部监听
+// 监听 isOpen 变化，添加/移除点击外部监听，并在展开后按视口定位
 watch(isOpen, (val) => {
   if (val) {
     setTimeout(() => {
       document.addEventListener('click', handleClickOutside)
     }, 0)
+    nextTick(updatePanelPosition)
   } else {
     document.removeEventListener('click', handleClickOutside)
   }
@@ -473,11 +507,13 @@ watch(() => props.modelValue, () => {
   }
 })
 
-// 组件挂载时初始化位置
+// 组件挂载时初始化位置，并监听视口变化重新定位弹层
 onMounted(() => {
   if (props.modelValue !== null && props.modelValue !== '') {
     scrollToIndex(currentIndex.value, false)
   }
+  window.addEventListener('resize', updatePanelPosition)
+  window.addEventListener('scroll', updatePanelPosition, true)
 })
 
 // 组件卸载时清理事件监听
@@ -487,6 +523,8 @@ onUnmounted(() => {
   document.removeEventListener('touchmove', handleTouchMove)
   document.removeEventListener('touchend', handleTouchEnd)
   document.removeEventListener('click', handleClickOutside)
+  window.removeEventListener('resize', updatePanelPosition)
+  window.removeEventListener('scroll', updatePanelPosition, true)
 })
 
 // 暴露方法

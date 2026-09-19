@@ -236,7 +236,7 @@ const handlePreview = () => {
   white-space: nowrap;
 }
 
-@media (max-width: 900px) {
+@media (max-width: 1023px) {
   .question-card {
     grid-template-columns: 28px minmax(0, 1fr);
   }
@@ -249,7 +249,7 @@ const handlePreview = () => {
   }
 }
 
-@media (max-width: 560px) {
+@media (max-width: 639px) {
   .question-card {
     gap: 10px;
     padding: 13px;

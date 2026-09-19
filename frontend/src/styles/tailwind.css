@@ -3,6 +3,18 @@
 
 /* ==================== 基础样式重置 ==================== */
 
+/*
+ * 响应式断点约定：全站只使用下面五档，Tailwind 工具类用 sm/md/lg/xl 对应 640/768/1024/1280，
+ * 组件内的自定义媒体查询必须取同一组数值，不再引入其它宽度。
+ *   420px   超窄手机（iPhone SE/mini 竖屏），Tailwind 无对应档位，仅用于极端窄屏的降级
+ *   640px   sm   手机横屏、大屏手机
+ *   768px   md   平板竖屏
+ *   1024px  lg   平板横屏、小尺寸笔记本
+ *   1280px  xl   桌面
+ * 自定义媒体查询写 max-width 时统一取「档位 − 1」（639/767/1023/1279），
+ * 保证与 min-width 语义的 sm:/md:/lg:/xl: 严格互补，避免 1px 重叠。
+ */
+
 * {
   box-sizing: border-box;
 }
@@ -70,8 +82,8 @@ body {
   }
 }
 
-/* 避免 iOS 在聚焦小于 16px 的表单控件时自动放大页面。 */
-@media (max-width: 767px) {
+/* 避免 iOS 在聚焦小于 16px 的表单控件时自动放大页面；该行为与视口宽度无关，按指针类型判断，平板同样生效。 */
+@media (pointer: coarse) {
   input:not([type='checkbox']):not([type='radio']),
   select,
   textarea {

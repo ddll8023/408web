@@ -1088,7 +1088,7 @@ watch(() => route.query.keyword, newKeyword => {
   }
 }
 
-@media (max-width: 768px) {
+@media (max-width: 767px) {
   .compose-page {
     padding-right: 8px;
     padding-left: 8px;

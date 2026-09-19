@@ -521,7 +521,7 @@ onUnmounted(() => {
 }
 
 /* 窄屏优先保留可编辑区域，避免编辑与预览各自只剩很窄的一列。 */
-@media (max-width: 768px) {
+@media (max-width: 767px) {
   .editor-pane {
     border-right: 0;
   }

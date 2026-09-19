@@ -302,7 +302,7 @@ onBeforeUnmount(() => {
   transform: translateX(100%);
 }
 
-@media (max-width: 640px) {
+@media (max-width: 639px) {
   .question-preview-drawer__panel {
     width: 100vw;
   }

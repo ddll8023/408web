@@ -280,7 +280,7 @@ dialog[open] {
   transform: scale(0.95);
 }
 
-@media (max-width: 640px) {
+@media (max-width: 639px) {
   .dialog-container {
     border-radius: 12px;
   }

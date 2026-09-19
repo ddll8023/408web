@@ -206,7 +206,7 @@ watch(() => props.currentPage, (val) => {
 </script>
 
 <style scoped>
-@media (max-width: 640px) {
+@media (max-width: 639px) {
   .pagination {
     width: 100%;
     justify-content: center;

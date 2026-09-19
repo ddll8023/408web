@@ -63,7 +63,7 @@ defineEmits<{ copy: [command: string]; edit: [question: MockQuestion]; delete: [
  */
 
 /* 响应式布局 */
-@media (max-width: 768px) {
+@media (max-width: 767px) {
   .mock-item-header {
     flex-direction: column;
     align-items: flex-start;

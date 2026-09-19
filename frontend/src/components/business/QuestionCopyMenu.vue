@@ -423,14 +423,14 @@ const handleCommand = (command: string) => {
   white-space: nowrap;
 }
 
-@media (max-width: 960px) {
+@media (max-width: 1023px) {
   .question-copy-dropdown .question-copy-menu {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     width: 620px;
   }
 }
 
-@media (max-width: 520px) {
+@media (max-width: 639px) {
   .question-copy-dropdown .question-copy-menu {
     grid-template-columns: 1fr;
     width: calc(100vw - 24px);

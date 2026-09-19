@@ -5,7 +5,10 @@
       v-show="visible"
       type="button"
       class="fixed z-50 w-10 h-10 rounded-full bg-[#8B6F47] flex items-center justify-center text-white shadow-[0_4px_12px_rgba(0,0,0,0.25)] transition-opacity hover:bg-[#7A5F3E] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#8B6F47] focus-visible:ring-offset-2"
-      :style="{ right: right + 'px', bottom: bottom + 'px' }"
+      :style="{
+        right: `calc(${right}px + env(safe-area-inset-right, 0px))`,
+        bottom: `calc(${bottom}px + env(safe-area-inset-bottom, 0px))`
+      }"
       aria-label="回到顶部"
       @click="scrollToTop"
     >
@@ -19,6 +22,7 @@
 <script setup lang="ts">
 /**
  * 回到顶部组件
+ * 按钮位置在 right/bottom 的基础上叠加刘海屏安全区，避免在 iPhone 上被圆角或底部指示条遮挡
  */
 import { ref, onMounted, onUnmounted } from 'vue'
 

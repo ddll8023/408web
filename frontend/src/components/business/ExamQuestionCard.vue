@@ -520,7 +520,7 @@ const correctOptionKeys = computed(() => {
 }
 
 /* 移动端优化 */
-@media (max-width: 768px) {
+@media (max-width: 767px) {
   .exam-question-card__question-card,
   .answer-card {
     padding: 16px;

@@ -24,13 +24,18 @@
       class="ml-1 text-xs text-gray-400 font-normal"
     >({{ hint }})</span>
 
-    <!-- 信息图标 -->
+    <!-- 信息图标：仅鼠标悬停时显示；触屏没有 hover，改为直接展开说明文字 -->
     <span
       v-if="tooltip"
-      class="ml-0.5 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity duration-200 cursor-help"
+      class="form-label__tooltip ml-0.5 text-gray-400"
       :title="tooltip"
     >
-      <font-awesome-icon :icon="['fas', 'circle-question']" class="text-xs" />
+      <span class="form-label__tooltip-text font-normal">（{{ tooltip }}）</span>
+      <font-awesome-icon
+        :icon="['fas', 'circle-question']"
+        class="form-label__tooltip-icon text-xs transition-opacity duration-200 opacity-0 group-hover:opacity-100"
+        aria-hidden="true"
+      />
     </span>
   </label>
 </template>
@@ -103,3 +108,22 @@ const labelColor = computed(() => {
   return `${colors[props.color]} ${sizeClasses[props.size]}`
 })
 </script>
+
+<style scoped>
+/* 说明文字默认隐藏，只保留需要悬停才能看到的信息图标。 */
+.form-label__tooltip-text {
+  display: none;
+  font-size: 12px;
+}
+
+/* 触屏设备没有稳定的 hover，隐藏图标并直接展示说明文字，避免提示不可见。 */
+@media (pointer: coarse) {
+  .form-label__tooltip-text {
+    display: inline;
+  }
+
+  .form-label__tooltip-icon {
+    display: none;
+  }
+}
+</style>

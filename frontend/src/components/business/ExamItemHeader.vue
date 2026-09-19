@@ -67,7 +67,7 @@ defineEmits<{ copy: [command: string]; edit: [question: ExamQuestion]; delete: [
  */
 
 /* 响应式布局 */
-@media (max-width: 768px) {
+@media (max-width: 767px) {
   .exam-item-header {
     flex-direction: column;
     align-items: flex-start;

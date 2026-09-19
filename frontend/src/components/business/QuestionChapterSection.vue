@@ -167,7 +167,7 @@ const handleQuestionStatusToggle = (question: QuestionRow) => {
   padding-top: 13px;
 }
 
-@media (max-width: 640px) {
+@media (max-width: 639px) {
   .question-chapter-section__header {
     align-items: flex-start;
     flex-direction: column;
