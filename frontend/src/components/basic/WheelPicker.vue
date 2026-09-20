@@ -142,7 +142,7 @@ import type { SelectInput, SelectOption, OptionValue } from './types'
  * - 惯性滚动动画
  * - 高亮选中区域
  * - 可清除选择
- * 遵循 `规范文档/前端规范文档.md`：使用 Tailwind CSS + Font Awesome
+ * 样式使用 Tailwind CSS，图标使用 Font Awesome
  */
 import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 

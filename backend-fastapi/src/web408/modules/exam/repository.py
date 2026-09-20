@@ -326,6 +326,59 @@ class ExamRepository:
         )
         return result.all()
 
+    async def list_exam_refs(self, keys: set[tuple[int, int]]) -> list[Any]:
+        """按「年份 + 题号」批量读取真题标识与展示字段，供改编来源解析使用。"""
+        if not keys:
+            return []
+        result = await self.session.exec(
+            select(
+                ExamQuestion.id,
+                ExamQuestion.year,
+                ExamQuestion.question_number,
+                ExamQuestion.title,
+                ExamQuestion.question_type,
+                ExamQuestion.subject_id,
+            ).where(
+                or_(
+                    *[
+                        and_(
+                            ExamQuestion.year == year,
+                            ExamQuestion.question_number == number,
+                        )
+                        for year, number in sorted(keys)
+                    ]
+                )
+            )
+        )
+        return result.all()
+
+    async def list_question_numbers(
+        self,
+        years: set[int],
+        subject_id: int | None = None,
+    ) -> list[Any]:
+        """返回指定年份（可按科目过滤）的题号，供改编覆盖统计使用。"""
+        if not years:
+            return []
+        statement = select(ExamQuestion.year, ExamQuestion.question_number).where(
+            ExamQuestion.year.in_(years),
+            ExamQuestion.question_number.isnot(None),
+        )
+        if subject_id is not None:
+            statement = statement.where(ExamQuestion.subject_id == subject_id)
+        result = await self.session.exec(
+            statement.order_by(ExamQuestion.year.asc(), ExamQuestion.question_number.asc())
+        )
+        return result.all()
+
+    async def list_years(self, subject_id: int | None = None) -> list[int]:
+        """返回真题库中已录入的年份，供改编覆盖统计确定年份范围。"""
+        statement = select(ExamQuestion.year).distinct()
+        if subject_id is not None:
+            statement = statement.where(ExamQuestion.subject_id == subject_id)
+        result = await self.session.exec(statement.order_by(ExamQuestion.year.asc()))
+        return [year for year in result.all() if year is not None]
+
     @staticmethod
     def _category_conditions(category: str | None) -> list[Any]:
         """构造 JSON 分类名称的兼容过滤条件。"""

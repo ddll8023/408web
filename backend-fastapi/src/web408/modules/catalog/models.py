@@ -36,6 +36,10 @@ class Subject(BaseModel, table=True):
         back_populates="subject",
         passive_deletes=True,
     )
+    adaptation_questions: List["AdaptationQuestion"] = Relationship(
+        back_populates="subject",
+        passive_deletes=True,
+    )
 
 
 class Chapter(BaseModel, table=True):

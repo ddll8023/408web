@@ -33,3 +33,7 @@ class User(BaseModel, table=True):
         back_populates="author",
         passive_deletes=True,
     )
+    adaptation_questions: List["AdaptationQuestion"] = Relationship(
+        back_populates="author",
+        passive_deletes=True,
+    )

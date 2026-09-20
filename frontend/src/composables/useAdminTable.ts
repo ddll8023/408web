@@ -13,7 +13,7 @@ import { useSubjects } from './useSubjects'
 
 /**
  * 排序字段名映射：前端驼峰 -> 后端下划线
- * 遵循 `规范文档/前端规范文档.md` 的 API 数据格式约定
+ * sortField 是字段值而非键名，不会被 convertKeysToSnake 转换，必须显式映射
  */
 const SORT_FIELD_MAPPING: Record<string, string> = {
   questionNumber: 'question_number',

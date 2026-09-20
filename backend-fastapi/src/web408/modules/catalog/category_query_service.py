@@ -14,6 +14,7 @@ from web408.modules.catalog.schemas.category import (
     ExamCategoryUsageResponse,
     SubjectStatItem,
 )
+from web408.modules.adaptation.read_service import AdaptationReadService
 from web408.modules.exam.read_service import ExamReadService
 from web408.modules.mock.read_service import MockReadService
 from web408.modules.question_content.serialization import parse_categories
@@ -26,6 +27,7 @@ class CategoryQueryService:
         self.repository = CategoryRepository(session)
         self.exam_read_service = ExamReadService(session)
         self.mock_read_service = MockReadService(session)
+        self.adaptation_read_service = AdaptationReadService(session)
 
     async def get_all_categories(
         self,
@@ -92,7 +94,7 @@ class CategoryQueryService:
         question_type: str = "exam",
     ) -> ExamCategoryStatResponse:
         subject_stats: list[SubjectStatItem] = []
-        question_reader = self.mock_read_service if question_type == "mock" else self.exam_read_service
+        question_reader = self._get_question_reader(question_type)
         total_questions = 0
         total_categories = 0
         enabled_categories = 0
@@ -149,6 +151,10 @@ class CategoryQueryService:
                 category.subject_id,
                 category.name,
             )
+            + await self.adaptation_read_service.count_question_references(
+                category.subject_id,
+                category.name,
+            )
         )
 
     async def get_category_usage(self, category_id: int) -> ExamCategoryUsageResponse:
@@ -161,6 +167,10 @@ class CategoryQueryService:
             category.subject_id,
             category.name,
         )
+        adaptation_count = await self.adaptation_read_service.count_question_references(
+            category.subject_id,
+            category.name,
+        )
         has_children = await self.repository.count_children(category_id) > 0
         return ExamCategoryUsageResponse(
             id=category.id,
@@ -168,7 +178,13 @@ class CategoryQueryService:
             has_children=has_children,
             question_count=question_count,
             mock_count=mock_count,
-            can_delete=not has_children and question_count == 0 and mock_count == 0,
+            adaptation_count=adaptation_count,
+            can_delete=(
+                not has_children
+                and question_count == 0
+                and mock_count == 0
+                and adaptation_count == 0
+            ),
         )
 
     async def get_by_id(self, category_id: int) -> ExamCategoryResponse:
@@ -192,12 +208,19 @@ class CategoryQueryService:
             raise NotFoundException(f"分类不存在：ID={category_id}")
         return category
 
+    def _get_question_reader(self, question_type: str):
+        """按题目类型选择只读边界，未知类型回退到真题。"""
+        return {
+            "mock": self.mock_read_service,
+            "adaptation": self.adaptation_read_service,
+        }.get(question_type, self.exam_read_service)
+
     async def _apply_question_counts(
         self,
         categories: List[ExamCategoryResponse],
         question_type: str,
     ) -> None:
-        question_reader = self.mock_read_service if question_type == "mock" else self.exam_read_service
+        question_reader = self._get_question_reader(question_type)
         categories_by_subject: dict[int, list[ExamCategoryResponse]] = defaultdict(list)
         for category in categories:
             categories_by_subject[category.subject_id].append(category)

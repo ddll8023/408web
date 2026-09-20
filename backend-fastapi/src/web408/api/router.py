@@ -2,6 +2,7 @@
 from fastapi import APIRouter
 
 from web408.modules.auth.router import router as auth_router
+from web408.modules.adaptation.router import router as adaptation_router
 from web408.modules.catalog.router import router as catalog_router
 from web408.modules.exam.router import router as exam_router
 from web408.modules.mock.router import router as mock_router
@@ -16,4 +17,5 @@ router.include_router(catalog_router, tags=["目录管理"])
 router.include_router(reporting_router, prefix="/exam", tags=["真题管理"])
 router.include_router(exam_router, prefix="/exam", tags=["真题管理"])
 router.include_router(mock_router, prefix="/mock", tags=["模拟题管理"])
+router.include_router(adaptation_router, prefix="/adaptation", tags=["改编题管理"])
 router.include_router(media_router, prefix="/upload", tags=["文件上传"])

@@ -17,7 +17,8 @@
         <!-- 题目类型切换 -->
         <CustomRadioGroup v-model="questionType" aria-label="题目类型" :disabled="moveSaving" :options="[
           { label: '真题', value: 'exam' },
-          { label: '模拟题', value: 'mock' }
+          { label: '模拟题', value: 'mock' },
+          { label: '改编题', value: 'adaptation' }
         ]" @change="handleQuestionTypeChange" />
         <CustomButton
           :disabled="!filterSubjectId || moveSaving || loading || codeRebuildLoading || draggingId !== null"
@@ -540,8 +541,8 @@ const subjectOptions = ref<Subject[]>([])
 // 筛选科目ID
 const filterSubjectId = ref<number | null>(null)
 
-// 题目类型筛选（exam=真题, mock=模拟题）
-const questionType = ref<'exam' | 'mock'>('exam')
+// 题目类型筛选（exam=真题, mock=模拟题, adaptation=改编题）
+const questionType = ref<'exam' | 'mock' | 'adaptation'>('exam')
 
 // 大纲视图展开的节点ID列表（响应式，用于保持展开状态）
 const treeExpandedKeys = ref<(number | string)[]>([])

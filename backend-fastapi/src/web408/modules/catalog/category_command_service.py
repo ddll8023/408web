@@ -21,6 +21,8 @@ from web408.modules.catalog.category_code import (
     subject_code_prefix,
 )
 from web408.modules.catalog.category_query_service import CategoryQueryService
+from web408.modules.adaptation.category_tag_service import AdaptationCategoryTagService
+from web408.modules.adaptation.read_service import AdaptationReadService
 from web408.modules.exam.category_tag_service import ExamCategoryTagService
 from web408.modules.exam.read_service import ExamReadService
 from web408.modules.mock.category_tag_service import MockCategoryTagService
@@ -36,8 +38,10 @@ class CategoryCommandService:
         self.query_service = query_service
         self.exam_read_service = ExamReadService(session)
         self.mock_read_service = MockReadService(session)
+        self.adaptation_read_service = AdaptationReadService(session)
         self.exam_category_tag_service = ExamCategoryTagService(session)
         self.mock_category_tag_service = MockCategoryTagService(session)
+        self.adaptation_category_tag_service = AdaptationCategoryTagService(session)
 
     async def _lock_structure(self) -> None:
         """在分类写用例内取得 SQLite 写锁。"""
@@ -163,6 +167,11 @@ class CategoryCommandService:
                 category.name,
             )
             await self.mock_category_tag_service.rename_category(
+                subject_id,
+                old_name,
+                category.name,
+            )
+            await self.adaptation_category_tag_service.rename_category(
                 subject_id,
                 old_name,
                 category.name,
@@ -293,6 +302,12 @@ class CategoryCommandService:
         )
         if mock_count > 0:
             raise ConflictException(f"该分类被 {mock_count} 道模拟题引用，无法删除")
+        adaptation_count = await self.adaptation_read_service.count_question_references(
+            category.subject_id,
+            category.name,
+        )
+        if adaptation_count > 0:
+            raise ConflictException(f"该分类被 {adaptation_count} 道改编题引用，无法删除")
         await self.session.delete(category)
         await self.session.commit()
 

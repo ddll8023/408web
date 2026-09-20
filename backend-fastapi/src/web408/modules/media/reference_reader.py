@@ -1,4 +1,5 @@
 """媒体模块的题目图片引用读取边界。"""
+from web408.modules.adaptation.query_service import AdaptationQueryService
 from web408.modules.exam.process_image_read_service import ExamProcessImageReadService
 from web408.modules.exam.query_service import ExamQueryService
 from web408.modules.media.schemas import ImageResourceResponse, ImageUsageResponse
@@ -13,9 +14,10 @@ class MediaReferenceReader:
         self.exam_query_service = ExamQueryService(session)
         self.exam_process_image_read_service = ExamProcessImageReadService(session)
         self.mock_query_service = MockQueryService(session)
+        self.adaptation_query_service = AdaptationQueryService(session)
 
     async def mark_references(self, images: list[ImageResourceResponse]) -> None:
-        """扫描真题和模拟题文本并回填图片引用信息。"""
+        """扫描真题、模拟题和改编题文本并回填图片引用信息。"""
         if not images:
             return
 
@@ -24,6 +26,7 @@ class MediaReferenceReader:
 
         exam_rows = await self.exam_query_service.list_image_reference_texts()
         mock_rows = await self.mock_query_service.list_image_reference_texts()
+        adaptation_rows = await self.adaptation_query_service.list_image_reference_texts()
 
         for exam in exam_rows:
             text = " ".join(
@@ -79,5 +82,28 @@ class MediaReferenceReader:
                                 year=None,
                                 question_number=mock.question_number,
                                 title=f"[模拟题] {mock.title or mock.source}",
+                            )
+                        )
+
+        for adaptation in adaptation_rows:
+            text = " ".join(
+                part
+                for part in (adaptation.content, adaptation.answer, adaptation.options)
+                if part
+            )
+            for filename in filename_set:
+                if filename in text:
+                    image = image_map[filename]
+                    image.referenced = True
+                    if not any(
+                        item.id == adaptation.id and item.title.startswith("[改编题]")
+                        for item in image.exams
+                    ):
+                        image.exams.append(
+                            ImageUsageResponse(
+                                id=adaptation.id,
+                                year=None,
+                                question_number=adaptation.question_number,
+                                title=f"[改编题] {adaptation.title or f'改编题-{adaptation.id}'}",
                             )
                         )

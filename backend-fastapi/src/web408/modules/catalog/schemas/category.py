@@ -5,7 +5,7 @@ from typing import Literal
 from pydantic import AliasChoices, BaseModel, ConfigDict, Field, model_validator
 
 
-CategoryQuestionType = Literal["exam", "mock", "exercise"]
+CategoryQuestionType = Literal["exam", "mock", "adaptation", "exercise"]
 
 
 class CategoryQueryRequest(BaseModel):
@@ -294,6 +294,12 @@ class ExamCategoryUsageResponse(BaseModel):
         ge=0,
         description="被模拟题引用的次数",
         examples=[3]
+    )
+    adaptation_count: int = Field(
+        default=0,
+        ge=0,
+        description="被改编题引用的次数",
+        examples=[1]
     )
     can_delete: bool = Field(
         ...,

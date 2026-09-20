@@ -8,6 +8,7 @@
 
 - **真题资源**：收录历年考研真题，支持按年份、科目和分类浏览，并可查看独立的讲解过程图片
 - **模拟题练习**：提供按来源、科目和分类浏览的模拟题及即时作答反馈
+- **真题改编题**：独立保存真题改编题，记录一个或多个来源年份/题号，并支持来源反查与改编覆盖统计
 - **章节与分类管理**：支持树形章节和分类结构，方便知识点梳理
 - **Markdown支持**：题目和答案支持完整的Markdown渲染，包含LaTeX数学公式
 - **用户系统**：提供注册登录、个人中心和浏览器本地分类收藏
@@ -68,13 +69,14 @@
 │   │   ├── middleware/      # 中间件
 │   │   ├── models/          # 公共模型基类与枚举
 │   │   ├── schemas/         # 跨模块响应与分页模型
-│   │   └── modules/         # auth、catalog、exam、mock、reporting、media 等业务模块
+│   │   └── modules/         # auth、catalog、exam、mock、adaptation、reporting、media 等业务模块
 │   ├── pyproject.toml       # 依赖、项目元数据与 uv_build 打包配置
 │   └── uv.lock              # 依赖锁定结果
 │
 ├── doc/                      # 项目结构、模块与数据库设计文档
 │   ├── 项目结构文档.md
 │   ├── 模块说明文档.md
+│   ├── 模块/真题改编模块开发设计.md
 │   ├── 数据库设计.md
 │   └── 分类标签清单.md
 │
@@ -104,12 +106,20 @@
 - 选择题作答反馈
 - 管理端复制完整内容到 Word、导出题目+选项 PNG 图片和出题状态管理
 
+### 真题改编题模块
+- 独立改编题库，支持选择题和主观题
+- 一道改编题可关联多道、跨年份真题，并记录小问备注
+- 管理端来源解析、查重、编辑和删除
+- 按年份/科目统计真题改编覆盖与未改编题号
+- 用户端按科目和分类浏览改编题
+
 ### 管理功能（管理员）
 - 科目管理
 - 章节管理
 - 分类标签管理
-- 题目管理（真题/模拟题）
-- 真题/模拟题按分类子树筛选和按 ID 排序
+- 题目管理（真题/模拟题/改编题）
+- 真题/模拟题/改编题按分类子树筛选和按 ID 排序
+- 改编题来源反查与真题改编覆盖统计
 - 编辑弹窗 JSON 完整导入和仅更新题目内容
 - 模拟题 Word 复制、题目+选项 PNG 图片导出和出题状态管理
 - 出题工作台：按科目章节树选择题目范围（选中章节只显示该章节题目），按来源、关键词、题型和出题状态筛选，滚动加载并临时编排题目、预览完整内容、批量复制到 Word
@@ -234,6 +244,16 @@ npm run build
 | `/api/mock/{id}/exam-mark` | POST | 切换模拟题出题状态（管理员） |
 | `/api/mock/exam-mark/batch` | POST | 批量更新模拟题出题状态（管理员） |
 
+### 真题改编题模块
+| 接口 | 方法 | 说明 |
+|------|------|------|
+| `/api/adaptation/query` | POST | 获取改编题列表 |
+| `/api/adaptation` | POST | 创建改编题（管理员） |
+| `/api/adaptation/{id}/detail` | POST | 获取改编题详情及来源 |
+| `/api/adaptation/source-lookup` | POST | 批量解析年份/题号来源 |
+| `/api/adaptation/by-source` | POST | 反查引用指定真题的改编题 |
+| `/api/adaptation/source-coverage` | POST | 统计真题改编覆盖 |
+
 以上为常用接口示例，不是完整路由清单。完整路由与响应模型以 `backend-fastapi/src/web408/api/router.py`、各模块 `router.py`、`schemas.py`/`schemas/` 和 `backend-fastapi/src/web408/schemas/common.py` 为准，运行中的接口还可通过后端 `/docs` 查看。
 
 ## 配置说明
@@ -285,8 +305,10 @@ JWT_ALGORITHM=HS256
 - `exam_question` - 真题表
 - `mock_question` - 模拟题表
 - `mock_question_exam_mark` - 模拟题出题状态表
+- `adaptation_question` - 真题改编题主体表
+- `adaptation_source` - 改编题来源真题引用表
 
-完整字段、索引、约束和外键说明见 [`doc/数据库设计.md`](./doc/数据库设计.md)。
+完整字段、索引、约束和外键说明见 [`doc/数据库设计.md`](./doc/数据库设计.md)；改编题模块的业务、流程和 API 设计见 [`doc/模块/真题改编模块开发设计.md`](./doc/模块/真题改编模块开发设计.md)。
 
 ## 开发规范
 

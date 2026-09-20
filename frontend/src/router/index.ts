@@ -79,10 +79,25 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/user/MockClassify.vue'),
     meta: { keepAlive: true }
   },
+  {
+    path: '/adaptation',
+    component: () => import('@/views/user/AdaptationClassify.vue'),
+    meta: { keepAlive: true }
+  },
 
   {
     path: '/manage/mock',
     component: () => import('@/views/admin/MockManage.vue'),
+    meta: { requiresAuth: true, requiresAdmin: true, keepAlive: true }
+  },
+  {
+    path: '/manage/adaptation',
+    component: () => import('@/views/admin/AdaptationManage.vue'),
+    meta: { requiresAuth: true, requiresAdmin: true, keepAlive: true }
+  },
+  {
+    path: '/manage/adaptation-coverage',
+    component: () => import('@/views/admin/AdaptationCoverage.vue'),
     meta: { requiresAuth: true, requiresAdmin: true, keepAlive: true }
   },
   {

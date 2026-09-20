@@ -33,7 +33,7 @@
  * 功能：提供统一的自定义按钮样式
  * 遵循KISS原则：简洁实现，只包含必需功能
  * 遵循YAGNI原则：只实现项目实际使用的props
- * 遵循 `规范文档/前端规范文档.md`：使用 baseClasses、sizeClasses、variantClasses 三常量分离模式
+ * 样式按 baseClasses、sizeClasses、variantClasses 三常量分离组合
  */
 import { computed, type PropType } from 'vue'
 

@@ -1,5 +1,5 @@
 /** 分类统计的题目类型（对应 CategoryQueryRequest.question_type） */
-export type CategoryQuestionType = 'exam' | 'mock' | 'exercise'
+export type CategoryQuestionType = 'exam' | 'mock' | 'adaptation' | 'exercise'
 
 /** 分类节点（对应 ExamCategoryResponse，已转驼峰） */
 export interface CategoryNode {
@@ -85,5 +85,6 @@ export interface CategoryUsage {
   hasChildren: boolean
   questionCount: number
   mockCount: number
+  adaptationCount?: number
   canDelete: boolean
 }

@@ -9,6 +9,7 @@ from fastapi.staticfiles import StaticFiles
 # 显式加载全部 SQLModel 表模型，避免依赖路由或 Repository 的间接导入顺序。
 from web408.modules.auth import models as _auth_models
 from web408.modules.catalog import models as _catalog_models
+from web408.modules.adaptation import models as _adaptation_models
 from web408.modules.exam import models as _exam_models
 from web408.modules.mock import models as _mock_models
 from web408.api.router import router as api_router
