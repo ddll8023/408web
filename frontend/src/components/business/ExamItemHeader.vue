@@ -9,6 +9,9 @@
         <Tag :type="exam.questionType === 'CHOICE' ? 'success' : 'primary'">
           {{ exam.questionType === 'CHOICE' ? '选择题' : '主观题' }}
         </Tag>
+        <Tag v-if="exam.difficulty" :type="getDifficultyType(exam.difficulty)">
+          {{ getDifficultyLabel(exam.difficulty) }}
+        </Tag>
         <Tag
           v-for="cat in (Array.isArray(exam.category) ? exam.category : [])"
           :key="cat"
@@ -34,7 +37,7 @@ import type { PropType } from 'vue'
 import type { ExamQuestion } from '@/types'
 /**
  * 题目头部组件
- * 功能描述：显示题目年份、题号、类型标签和操作按钮
+ * 功能描述：显示题目年份、题号、类型/难度/分类标签和操作按钮
  * 依赖组件：CustomButton, QuestionCopyMenu, ExamProcessMenu, Tag
  */
 
@@ -43,6 +46,7 @@ import CustomButton from '@/components/basic/CustomButton.vue'
 import QuestionCopyMenu from '@/components/business/QuestionCopyMenu.vue'
 import ExamProcessMenu from '@/components/business/ExamProcessMenu.vue'
 import Tag from '@/components/basic/Tag.vue'
+import { getDifficultyLabel, getDifficultyType } from '@/constants/exam'
 
 // 2. Props 定义
 defineProps({
