@@ -131,6 +131,7 @@
                       @edit="handleEdit"
                       @delete="(id: number) => handleDelete(id)"
                       @toggle-answer="toggleAnswer(exam.id)"
+                      @show-adaptations="handleShowAdaptations"
                     />
                   </div>
                 </section>
@@ -167,6 +168,11 @@
           v-model:visible="editDialogVisible"
           :exam-id="editingExamId"
           @success="handleEditSuccess"
+        />
+
+        <AdaptationRelatedDialog
+          v-model:visible="adaptationDialogVisible"
+          :exam="selectedAdaptationExam"
         />
 
         <BackTop :right="32" :bottom="32" />
@@ -213,6 +219,7 @@ import CategoryOutline from '@/components/business/CategoryOutline.vue'
 import CategorySectionHeader from '@/components/business/CategorySectionHeader.vue'
 import ExamEntryCard from '@/components/business/ExamEntryCard.vue'
 import ExamEditDialog from '@/components/business/ExamEditDialog.vue'
+import AdaptationRelatedDialog from '@/components/business/AdaptationRelatedDialog.vue'
 import { useCategoryOutline } from '@/composables/useCategoryOutline'
 
 const route = useRoute()
@@ -239,6 +246,8 @@ let questionsRequestVersion = 0
 // 题目编辑弹窗状态
 const editDialogVisible = ref(false)
 const editingExamId = ref<number | null>(null)
+const adaptationDialogVisible = ref(false)
+const selectedAdaptationExam = ref<ExamQuestion | null>(null)
 
 // Data
 const subjects = ref<Subject[]>([])
@@ -900,6 +909,12 @@ const handleEdit = (exam: ExamQuestion) => {
 
   editingExamId.value = exam.id
   editDialogVisible.value = true
+}
+
+const handleShowAdaptations = (exam: ExamQuestion) => {
+  if (exam.questionNumber == null) return
+  selectedAdaptationExam.value = exam
+  adaptationDialogVisible.value = true
 }
 
 const handleEditSuccess = async () => {

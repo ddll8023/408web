@@ -54,7 +54,6 @@ class AdaptationRepository:
 
         order_column = {
             "id": AdaptationQuestion.id,
-            "title": AdaptationQuestion.title,
             "update_time": AdaptationQuestion.update_time,
             "create_time": AdaptationQuestion.create_time,
         }.get(params.sort_field, AdaptationQuestion.update_time)
@@ -79,15 +78,6 @@ class AdaptationRepository:
             select(AdaptationQuestion).where(AdaptationQuestion.id == question_id)
         )
         return result.first()
-
-    async def list_by_ids(self, question_ids: set[int]) -> list[AdaptationQuestion]:
-        """批量查询改编题，供来源占用提示拼装题目信息。"""
-        if not question_ids:
-            return []
-        result = await self.session.exec(
-            select(AdaptationQuestion).where(AdaptationQuestion.id.in_(question_ids))
-        )
-        return result.all()
 
     async def list_sources(self, adaptation_ids: set[int]) -> list[AdaptationSource]:
         """批量读取改编题的来源引用行。"""
@@ -202,7 +192,6 @@ class AdaptationRepository:
         result = await self.session.exec(
             select(
                 AdaptationQuestion.id,
-                AdaptationQuestion.title,
                 AdaptationQuestion.content,
                 AdaptationQuestion.answer,
                 AdaptationQuestion.options,
@@ -238,12 +227,7 @@ class AdaptationRepository:
 
         if params.keyword and params.keyword.strip():
             keyword_pattern = f"%{params.keyword.strip()}%"
-            conditions.append(
-                or_(
-                    AdaptationQuestion.title.ilike(keyword_pattern),
-                    AdaptationQuestion.content.ilike(keyword_pattern),
-                )
-            )
+            conditions.append(AdaptationQuestion.content.ilike(keyword_pattern))
 
         source_condition = AdaptationRepository._source_condition(params)
         if source_condition is not None:

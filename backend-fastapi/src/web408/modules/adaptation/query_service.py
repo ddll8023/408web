@@ -29,7 +29,6 @@ class AdaptationImageReferenceRead:
     """供媒体模块使用的改编题文本只读数据。"""
 
     id: int
-    title: str | None
     content: str
     answer: str | None
     options: str | None
@@ -137,7 +136,6 @@ class AdaptationQueryService:
         return [
             AdaptationImageReferenceRead(
                 id=row.id,
-                title=row.title,
                 content=row.content,
                 answer=row.answer,
                 options=row.options,
@@ -228,22 +226,11 @@ class AdaptationQueryService:
         )
         if not rows:
             return []
-        questions = {
-            question.id: question
-            for question in await self.repository.list_by_ids(
-                {row.adaptation_id for row in rows}
-            )
-        }
         return [
             AdaptationSourceUsageItem(
                 source_year=row.source_year,
                 source_question_number=row.source_question_number,
                 adaptation_id=row.adaptation_id,
-                title=(
-                    questions[row.adaptation_id].title
-                    if row.adaptation_id in questions
-                    else None
-                ),
             )
             for row in rows
         ]

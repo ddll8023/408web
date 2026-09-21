@@ -74,7 +74,8 @@ interface OutlineTheme {
 const outlineThemes = {
   exam: { active: 'bg-exam-surface text-exam-strong', dot: 'bg-exam-accent' },
   mock: { active: 'bg-mock-surface text-mock-strong', dot: 'bg-mock-accent' },
-} satisfies Record<'exam' | 'mock', OutlineTheme>
+  adaptation: { active: 'bg-accent/10 text-accent', dot: 'bg-accent' },
+} satisfies Record<'exam' | 'mock' | 'adaptation', OutlineTheme>
 
 let nextNavId = 0
 const outlineTitleId = `mobile-nav-outline-title-${++nextNavId}`
@@ -107,7 +108,7 @@ const props = defineProps({
   },
   // 科目类型，决定锚点激活色
   kind: {
-    type: String as PropType<'exam' | 'mock'>,
+    type: String as PropType<'exam' | 'mock' | 'adaptation'>,
     default: 'exam'
   }
 })

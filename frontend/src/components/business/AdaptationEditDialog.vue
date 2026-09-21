@@ -8,6 +8,14 @@
     @close="handleClose"
   >
     <form id="adaptation-edit-form" class="space-y-6" @submit.prevent="handleSubmit">
+      <QuestionJsonImportPanel
+        v-model="jsonInput"
+        v-model:visible="jsonImportVisible"
+        @paste="handlePasteJson"
+        @parse="handleParseJson"
+        @clear="handleClearJson"
+      />
+
       <!-- 基础信息 -->
       <section>
         <h4 class="mb-4 flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-accent">
@@ -23,16 +31,6 @@
               :options="questionTypeOptions"
               placeholder="请选择题型"
               @change="handleQuestionTypeChange"
-            />
-          </div>
-          <div>
-            <FormLabel label="标题" for-id="adaptation-title" />
-            <CustomInput
-              id="adaptation-title"
-              v-model="form.title"
-              placeholder="可选，便于识别题目"
-              :maxlength="200"
-              clearable
             />
           </div>
           <div>
@@ -65,35 +63,6 @@
               placeholder="请选择分类（支持多个）"
               :disabled="!form.subjectId"
             />
-          </div>
-        </div>
-      </section>
-
-      <!-- JSON 导入 -->
-      <section class="rounded-xl border border-accent/10 bg-surface/40 p-3">
-        <button
-          type="button"
-          class="flex w-full items-center justify-between border-0 bg-transparent p-0 text-left text-sm font-semibold text-accent"
-          :aria-expanded="jsonImportVisible"
-          @click="jsonImportVisible = !jsonImportVisible"
-        >
-          <span class="flex items-center gap-2">
-            <font-awesome-icon :icon="['fas', 'code']" />
-            从 JSON 导入题目内容
-          </span>
-          <font-awesome-icon :icon="jsonImportVisible ? ['fas', 'chevron-up'] : ['fas', 'chevron-down']" />
-        </button>
-        <div v-if="jsonImportVisible" class="mt-3 space-y-3">
-          <textarea
-            v-model="jsonInput"
-            rows="5"
-            class="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 font-mono text-sm focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
-            placeholder="粘贴题目 JSON；导入后来源仍需在下方单独核对"
-          />
-          <div class="flex flex-wrap gap-2">
-            <CustomButton size="sm" @click="handlePasteJson">粘贴</CustomButton>
-            <CustomButton type="primary" size="sm" @click="handleParseJson">解析并填充</CustomButton>
-            <CustomButton size="sm" @click="handleClearJson">清空</CustomButton>
           </div>
         </div>
       </section>
@@ -191,13 +160,13 @@ import { useJsonImport } from '@/composables/useJsonImport'
 import { useQuestionForm } from '@/composables/useQuestionForm'
 import { useToast } from '@/composables/useToast'
 import CustomButton from '@/components/basic/CustomButton.vue'
-import CustomInput from '@/components/basic/CustomInput.vue'
 import Dialog from '@/components/basic/Dialog.vue'
 import FormLabel from '@/components/basic/FormLabel.vue'
 import MarkdownEditor from '@/components/basic/MarkdownEditor.vue'
 import MultiSelectCascader from '@/components/basic/MultiSelectCascader.vue'
 import Select from '@/components/basic/Select.vue'
 import AdaptationSourceEditor from '@/components/business/AdaptationSourceEditor.vue'
+import QuestionJsonImportPanel from '@/components/business/QuestionJsonImportPanel.vue'
 
 const props = defineProps({
   visible: { type: Boolean, default: false },
@@ -313,7 +282,6 @@ const loadAdaptationData = async (id: number | string) => {
       return
     }
     await fillFormFromData(question)
-    form.title = question.title || ''
     sources.value = (question.sources || []).map(source => ({
       sourceYear: source.sourceYear,
       sourceQuestionNumber: source.sourceQuestionNumber
@@ -327,7 +295,6 @@ const loadAdaptationData = async (id: number | string) => {
 }
 
 const resetDialog = () => {
-  form.title = ''
   sources.value = []
   form.content = ''
   form.answer = ''
@@ -365,7 +332,7 @@ const checkSourceUsageBeforeSave = async () => {
 
   if (response.data?.reusedSources?.length) {
     const names = response.data.reusedSources
-      .map(item => `${item.sourceYear} 年第 ${item.sourceQuestionNumber} 题（${item.title || '未命名'}）`)
+      .map(item => `${item.sourceYear} 年第 ${item.sourceQuestionNumber} 题（改编题 #${item.adaptationId}）`)
       .join('、')
     showToast(`以下来源已被其他改编题引用，仍会保存：${names}`, 'warning')
   }
@@ -381,7 +348,6 @@ const handleSubmit = async () => {
     if (!passed) return
 
     const payload = {
-      title: form.title || null,
       questionType: form.questionType,
       content: form.content,
       subjectId: form.subjectId || null,

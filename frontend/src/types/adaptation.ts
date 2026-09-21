@@ -27,7 +27,6 @@ export interface AdaptationSourceRef {
 /** 改编题（对应 AdaptationResponse） */
 export interface AdaptationQuestion {
   id: number
-  title?: string | null
   questionType: QuestionType
   content: string
   options?: QuestionOptions | null
@@ -64,12 +63,12 @@ export interface AdaptationQueryParams {
 }
 
 /** 改编题创建请求（对应 AdaptationCreateRequest） */
-export interface AdaptationCreateRequest extends Omit<QuestionCreateFields, 'questionNumber'> {
+export interface AdaptationCreateRequest extends Omit<QuestionCreateFields, 'questionNumber' | 'title'> {
   sources?: AdaptationSourceRefInput[]
 }
 
 /** 改编题更新请求（对应 AdaptationUpdateRequest，sources 缺省表示不修改来源） */
-export interface AdaptationUpdateRequest extends QuestionUpdateFields {
+export interface AdaptationUpdateRequest extends Omit<QuestionUpdateFields, 'title'> {
   sources?: AdaptationSourceRefInput[] | null
 }
 
@@ -88,7 +87,6 @@ export interface AdaptationSourceUsage {
   sourceYear: number
   sourceQuestionNumber: number
   adaptationId: number
-  title?: string | null
 }
 
 /** 改编题来源占用检查响应（对应 AdaptationSourceUsageCheckResponse） */

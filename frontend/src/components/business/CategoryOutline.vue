@@ -85,7 +85,7 @@ import type { CategoryOutlineItem } from '@/types'
 interface Props {
   items: readonly CategoryOutlineItem[]
   activeId: string
-  kind: 'exam' | 'mock'
+  kind: 'exam' | 'mock' | 'adaptation'
 }
 
 const props = defineProps<Props>()
@@ -106,6 +106,19 @@ const theme = computed(() => {
       dot: 'bg-exam-accent',
       active: 'bg-exam-surface text-exam-strong',
       count: 'text-exam-strong',
+    }
+  }
+
+  if (props.kind === 'adaptation') {
+    return {
+      label: '改编题',
+      border: 'border-accent/20',
+      headerSurface: 'bg-accent/8',
+      icon: 'text-accent',
+      accent: 'bg-accent',
+      dot: 'bg-accent',
+      active: 'bg-accent/10 text-accent',
+      count: 'text-accent',
     }
   }
 

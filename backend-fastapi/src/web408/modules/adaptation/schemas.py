@@ -6,14 +6,14 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from web408.models.enums import DifficultyEnum, QuestionTypeEnum
 from web408.modules.question_content.schemas import (
-    QuestionCreateFields,
+    QuestionContentCreateFields,
+    QuestionContentUpdateFields,
     QuestionOptions,
-    QuestionUpdateFields,
 )
 from web408.schemas.common import PaginatedResponse
 
 
-AdaptationSortField = Literal["id", "title", "update_time", "create_time"]
+AdaptationSortField = Literal["id", "update_time", "create_time"]
 SortOrder = Literal["asc", "desc"]
 SourceState = Literal["all", "with_source", "without_source"]
 
@@ -118,7 +118,6 @@ class AdaptationSourceUsageItem(BaseModel):
         ..., ge=1, le=MAX_SOURCE_QUESTION_NUMBER
     )
     adaptation_id: int = Field(..., ge=1)
-    title: str | None = Field(default=None)
 
 
 class AdaptationSourceRefResponse(BaseModel):
@@ -140,7 +139,6 @@ class AdaptationResponse(BaseModel):
     """改编题响应。"""
 
     id: int = Field(..., ge=1)
-    title: str | None = Field(default=None)
     question_type: QuestionTypeEnum
     content: str
     options: QuestionOptions | None = None
@@ -162,7 +160,7 @@ class AdaptationResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
-class AdaptationCreateRequest(QuestionCreateFields):
+class AdaptationCreateRequest(QuestionContentCreateFields):
     """改编题创建请求。"""
 
     sources: list[AdaptationSourceRefInput] = Field(
@@ -172,7 +170,7 @@ class AdaptationCreateRequest(QuestionCreateFields):
     )
 
 
-class AdaptationUpdateRequest(QuestionUpdateFields):
+class AdaptationUpdateRequest(QuestionContentUpdateFields):
     """改编题更新请求。"""
 
     sources: list[AdaptationSourceRefInput] | None = Field(

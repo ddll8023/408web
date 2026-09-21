@@ -1,3 +1,4 @@
+<!-- 题目分类分组标题：按题库类型使用对应的主题色和题量展示。 -->
 <template>
   <header
     class="relative min-h-[74px] overflow-hidden rounded-xl border px-4 py-3 shadow-sm transition-colors duration-200"
@@ -71,7 +72,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 
-type CategorySectionKind = 'exam' | 'mock'
+type CategorySectionKind = 'exam' | 'mock' | 'adaptation'
 
 interface Props {
   category: string
@@ -96,6 +97,20 @@ const theme = computed(() => {
       childLabel: 'bg-exam-surface-soft text-exam-soft-fg',
       subtitle: 'text-exam-subtitle',
       badge: 'bg-exam-surface-badge text-exam-strong',
+    }
+  }
+
+  if (props.kind === 'adaptation') {
+    return {
+      label: '改编题',
+      surface: props.depth === 0 ? 'bg-accent/8' : 'bg-white/90',
+      border: 'border-accent/20',
+      accent: 'bg-accent',
+      iconSurface: 'bg-accent/10 text-accent',
+      eyebrow: 'text-accent',
+      childLabel: 'bg-accent/10 text-accent',
+      subtitle: 'text-ink-soft',
+      badge: 'bg-accent/10 text-accent',
     }
   }
 

@@ -1,7 +1,7 @@
 /**
  * 分类树查询与分组工具：按分类树顺序把题目分组，并为内容区生成跳转锚点。
  */
-import type { CategoryTreeNode, ExamQuestion, MockQuestion } from '@/types'
+import type { AdaptationQuestion, CategoryTreeNode, ExamQuestion, MockQuestion } from '@/types'
 
 /** 分类分组后的题目集合。 */
 export interface ExamQuestionGroup {
@@ -18,9 +18,16 @@ export interface MockQuestionGroup {
   items: MockQuestion[]
 }
 
+export interface AdaptationQuestionGroup {
+  category: string
+  categoryId?: number
+  depth: number
+  items: AdaptationQuestion[]
+}
+
 /** 为内容分组生成稳定的 DOM 锚点；未归档历史分类使用编码后的名称兜底。 */
 export const getCategorySectionId = (
-  kind: 'exam' | 'mock',
+  kind: 'exam' | 'mock' | 'adaptation',
   categoryId: number | undefined,
   categoryName: string,
 ) => `${kind}-category-${categoryId ?? encodeURIComponent(categoryName)}`
@@ -231,6 +238,24 @@ export const groupMockQuestionsByCategory = (
   categories: readonly CategoryTreeNode[],
   selectedCategory = '',
 ): MockQuestionGroup[] => {
+  return groupQuestionsByCategory(
+    uniqueQuestionsById(questions),
+    categories,
+    selectedCategory,
+  )
+}
+
+/** 按题目 ID 去重改编题，保持接口返回顺序。 */
+export const uniqueAdaptationQuestions = (questions: readonly AdaptationQuestion[]) => {
+  return uniqueQuestionsById(questions)
+}
+
+/** 按分类树顺序分组改编题，并确保一题只展示一次。 */
+export const groupAdaptationQuestionsByCategory = (
+  questions: readonly AdaptationQuestion[],
+  categories: readonly CategoryTreeNode[],
+  selectedCategory = '',
+): AdaptationQuestionGroup[] => {
   return groupQuestionsByCategory(
     uniqueQuestionsById(questions),
     categories,

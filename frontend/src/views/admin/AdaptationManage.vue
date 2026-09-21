@@ -89,7 +89,7 @@
             <label class="text-sm font-medium text-gray-700">关键词</label>
             <CustomInput
               v-model="filters.keyword"
-              placeholder="搜索标题或题干"
+              placeholder="搜索题干"
               aria-label="关键词"
               clearable
               class="w-full"
@@ -100,7 +100,7 @@
               </template>
             </CustomInput>
           </div>
-          <div class="flex justify-end gap-2 pb-0.5 sm:col-span-2 xl:col-span-1 2xl:col-span-1">
+          <div class="flex justify-end gap-2 pb-0.5 sm:col-span-2 xl:col-span-1 xl:col-start-6 2xl:col-span-1 2xl:col-start-8 justify-self-end">
             <CustomButton type="primary" @click="handleSearch">
               <font-awesome-icon :icon="['fas', 'magnifying-glass']" class="mr-1.5" />
               查询
@@ -134,23 +134,19 @@
             </Tag>
           </template>
 
-          <template #title="{ row }">
-            <button
-              type="button"
-              class="line-clamp-2 cursor-pointer border-0 bg-transparent p-0 text-left transition-colors hover:text-accent"
-              :title="row.title ?? ''"
-              @click="handleEdit(row)"
-            >
-              {{ row.title || '（未命名）' }}
-            </button>
-          </template>
-
           <template #sourceSummary="{ row }">
             <span v-if="row.sources.length === 0" class="text-amber-600">未标注来源</span>
-            <span v-else class="text-ink-soft">
-              {{ row.sourceSummary }}
-              <span v-if="hasUnresolvedSource(row)" class="ml-1 text-amber-600">（含未解析）</span>
-            </span>
+            <div v-else class="flex flex-wrap gap-1.5">
+              <Tag
+                v-for="source in row.sources"
+                :key="`${source.sourceYear}-${source.sourceQuestionNumber}`"
+                :type="source.sourceExists ? 'success' : 'warning'"
+                size="sm"
+                :title="source.sourceExists ? (source.examTitle || '已解析来源') : '真题库中未找到该来源'"
+              >
+                {{ source.sourceYear }}-{{ source.sourceQuestionNumber }}
+              </Tag>
+            </div>
           </template>
 
           <template #category="{ row }">
@@ -310,7 +306,6 @@ const sourceStateOptions = [
 const tableColumns = [
   { prop: 'id', label: 'ID', width: '80px', align: 'center', sortable: true },
   { prop: 'questionType', label: '题型', width: '100px', align: 'center' },
-  { prop: 'title', label: '标题', minWidth: '200px', sortable: true },
   { prop: 'sourceSummary', label: '改编来源', minWidth: '240px' },
   { prop: 'category', label: '分类', width: '200px' },
   { prop: 'difficulty', label: '难度', width: '100px', align: 'center' },
@@ -332,9 +327,6 @@ const categorySelection = ref<string[]>([])
 const handleSourceNumberChange = (value: number | null) => {
   filters.sourceQuestionNumber = typeof value === 'number' && value > 0 ? value : null
 }
-
-const hasUnresolvedSource = (row: AdaptationQuestion) =>
-  row.sources.some(source => !source.sourceExists)
 
 /** 加载改编题列表 */
 const loadAdaptationList = async () => {
@@ -427,7 +419,7 @@ const handleEdit = (row: QuestionRow) => {
 }
 
 const handleDelete = async (row: QuestionRow) => {
-  const label = row.title || `ID ${row.id}`
+  const label = `ID ${row.id}`
   const ok = await showConfirm({
     title: '警告',
     message: `确定要删除改编题"${label}"吗？其来源引用会一并删除。`,

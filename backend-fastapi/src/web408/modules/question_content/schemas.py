@@ -18,14 +18,13 @@ class QuestionOptions(BaseModel):
     D: str = Field(..., min_length=1, description="选项 D")
 
 
-class QuestionCreateFields(BaseModel):
-    """题目创建时的共用字段。"""
+class QuestionContentCreateFields(BaseModel):
+    """不含标题的题目创建字段，供没有独立标题语义的题库复用。"""
 
     question_type: QuestionTypeEnum = Field(
         default=QuestionTypeEnum.ESSAY,
         description="题型",
     )
-    title: str | None = Field(default=None, max_length=200, description="题目标题")
     content: str = Field(..., min_length=1, description="Markdown 格式题目内容")
     options: QuestionOptions | None = Field(default=None, description="选择题选项")
     answer: str | None = Field(default=None, description="答案解析")
@@ -56,11 +55,16 @@ class QuestionCreateFields(BaseModel):
         return self
 
 
-class QuestionUpdateFields(BaseModel):
-    """题目更新时的共用字段。"""
+class QuestionCreateFields(QuestionContentCreateFields):
+    """含标题的题目创建共用字段，供真题和模拟题复用。"""
+
+    title: str | None = Field(default=None, max_length=200, description="题目标题")
+
+
+class QuestionContentUpdateFields(BaseModel):
+    """不含标题的题目更新字段，供没有独立标题语义的题库复用。"""
 
     question_type: QuestionTypeEnum | None = Field(default=None, description="题型")
-    title: str | None = Field(default=None, max_length=200, description="题目标题")
     content: str | None = Field(default=None, min_length=1, description="Markdown 格式题目内容")
     options: QuestionOptions | None = Field(default=None, description="选择题选项")
     answer: str | None = Field(default=None, description="答案解析")
@@ -84,6 +88,12 @@ class QuestionUpdateFields(BaseModel):
         if any(not item for item in normalized):
             raise ValueError("分类名称不能为空")
         return normalized
+
+
+class QuestionUpdateFields(QuestionContentUpdateFields):
+    """含标题的题目更新共用字段，供真题和模拟题复用。"""
+
+    title: str | None = Field(default=None, max_length=200, description="题目标题")
 
 
 def validate_question_payload(

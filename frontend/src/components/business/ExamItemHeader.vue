@@ -22,6 +22,15 @@
       </div>
     </div>
     <div class="question-actions flex gap-1 opacity-80 transition-opacity duration-200 hover:opacity-100">
+      <CustomButton
+        v-if="exam.questionNumber != null"
+        size="sm"
+        type="text-primary"
+        title="查看关联改编题"
+        @click="$emit('show-adaptations', exam)"
+      >
+        改编
+      </CustomButton>
       <QuestionCopyMenu :question="exam" @copy="(command) => $emit('copy', command)" />
       <ExamProcessMenu :exam="exam" :is-admin="isAdmin" />
       <template v-if="isAdmin">
@@ -61,7 +70,12 @@ defineProps({
 })
 
 // 3. Emits 定义
-defineEmits<{ copy: [command: string]; edit: [question: ExamQuestion]; delete: [id: number] }>()
+defineEmits<{
+  copy: [command: string]
+  edit: [question: ExamQuestion]
+  delete: [id: number]
+  'show-adaptations': [question: ExamQuestion]
+}>()
 </script>
 
 <style scoped>

@@ -47,65 +47,17 @@
 
       <!-- 内容区 -->
       <div class="scrollbar-stable min-h-0 flex-1 overflow-y-auto p-3 sm:p-6">
-        <!-- JSON快速导入区域 -->
-        <section class="mb-6">
-          <!-- 折叠面板头部 -->
-          <button
-            class="group flex items-center justify-between px-5 py-3.5 bg-gradient-to-r from-surface/80 to-transparent border-l-4 border-accent rounded-r-lg cursor-pointer hover:from-surface hover:shadow-sm transition-all duration-200"
-            type="button"
-            :aria-expanded="jsonImportVisible"
-            :aria-controls="jsonImportPanelId"
-            @click="toggleJsonImport"
-          >
-            <span class="flex items-center gap-3">
-                            <font-awesome-icon :icon="['fas', 'code']" class="text-accent" />
-              <span class="font-semibold text-ink">从 JSON 格式导入</span>
-              <span class="text-xs text-accent/60 bg-accent/10 px-2 py-0.5 rounded-full">批量录入</span>
-            </span>
-            <font-awesome-icon
-              class="text-accent/60 group-hover:text-accent transition-transform duration-300"
-              :icon="jsonImportVisible ? ['fas', 'chevron-up'] : ['fas', 'chevron-down']"
-            />
-          </button>
-
-          <!-- 折叠面板内容 -->
-          <transition name="slide-fade">
-            <div v-show="jsonImportVisible" :id="jsonImportPanelId" class="mt-3 p-5 bg-white border border-gray-100 rounded-xl shadow-sm">
-              <!-- 提示信息卡片 -->
-              <div class="flex items-start gap-3 p-4 mb-4 bg-surface rounded-lg border border-accent/10">
-                                <font-awesome-icon :icon="['fas', 'info-circle']" class="text-accent mt-0.5" />
-                <div class="text-sm text-ink-soft">
-                  粘贴单个题目的JSON数据，点击"解析并填充"后自动填充到下方表单。
-                  <a href="#" class="text-accent hover:text-accent-hover ml-2 underline underline-offset-2" @click.prevent="showJsonExample('exam')">查看格式示例</a>
-                </div>
-              </div>
-              <textarea
-                v-model="jsonInput"
-                class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent bg-gray-50/50 font-mono text-sm transition-all duration-200"
-                rows="5"
-                placeholder="粘贴JSON数据..."
-              ></textarea>
-              <div class="mt-4 flex flex-wrap gap-3">
-                <CustomButton size="sm" @click="handlePasteJson">
-                  <font-awesome-icon :icon="['fas', 'clipboard']" class="mr-1.5" />粘贴
-                </CustomButton>
-                <CustomButton type="primary" size="sm" @click="handleParseJson">
-                  <font-awesome-icon :icon="['fas', 'check']" class="mr-1.5" />解析并填充
-                </CustomButton>
-                <CustomButton
-                  size="sm"
-                  title="仅更新题干、选项和答案解析，不修改基础信息"
-                  @click="handleParseContentJson"
-                >
-                  <font-awesome-icon :icon="['fas', 'edit']" class="mr-1.5" />仅更新题目内容
-                </CustomButton>
-                <CustomButton size="sm" @click="handleClearJson">
-                  <font-awesome-icon :icon="['fas', 'trash']" class="mr-1.5" />清空
-                </CustomButton>
-              </div>
-            </div>
-          </transition>
-        </section>
+        <QuestionJsonImportPanel
+          v-model="jsonInput"
+          v-model:visible="jsonImportVisible"
+          show-content-only
+          show-example
+          @paste="handlePasteJson"
+          @parse="handleParseJson"
+          @parse-content="handleParseContentJson"
+          @clear="handleClearJson"
+          @show-example="() => showJsonExample('exam')"
+        />
 
         <!-- 表单 -->
         <div :class="{ 'relative': loading }">
@@ -305,6 +257,7 @@ import MarkdownEditor from '@/components/basic/MarkdownEditor.vue'
 import CustomButton from '@/components/basic/CustomButton.vue'
 import MultiSelectCascader from '@/components/basic/MultiSelectCascader.vue'
 import FormLabel from '@/components/basic/FormLabel.vue'
+import QuestionJsonImportPanel from '@/components/business/QuestionJsonImportPanel.vue'
 import Select from '@/components/basic/Select.vue'
 
 const props = defineProps({
@@ -316,7 +269,6 @@ const emit = defineEmits<{ 'update:visible': [visible: boolean]; success: [quest
 
 let nextEditDialogId = 0
 const dialogTitleId = `exam-edit-dialog-title-${++nextEditDialogId}`
-const jsonImportPanelId = `exam-json-import-${nextEditDialogId}`
 const dialogRef = ref<HTMLElement | null>(null)
 let previouslyFocused: HTMLElement | null = null
 let previousBodyOverflow = ''
@@ -350,11 +302,6 @@ const {
 
 // JSON 导入区域显示状态
 const jsonImportVisible = ref(false)
-
-// 切换 JSON 导入区域
-const toggleJsonImport = () => {
-  jsonImportVisible.value = !jsonImportVisible.value
-}
 
 // 年份选项：从 2009 年生成到当前年份，避免年份列表过期
 const firstExamYear = 2009

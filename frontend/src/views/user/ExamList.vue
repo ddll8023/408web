@@ -105,6 +105,7 @@
               @edit="handleEdit"
               @delete="(id: number) => handleDelete(id)"
               @toggle-answer="toggleYearAnswer(exam.id)"
+              @show-adaptations="handleShowAdaptations"
             />
           </div>
 
@@ -131,6 +132,11 @@
           v-model:visible="editDialogVisible"
           :exam-id="editingExamId"
           @success="handleEditSuccess"
+        />
+
+        <AdaptationRelatedDialog
+          v-model:visible="adaptationDialogVisible"
+          :exam="selectedAdaptationExam"
         />
       </div>
     </div>
@@ -168,6 +174,7 @@ import YearNavList from '@/components/business/YearNavList.vue'
 import MobileQuestionNav from '@/components/business/MobileQuestionNav.vue'
 import ExamEntryCard from '@/components/business/ExamEntryCard.vue'
 import ExamEditDialog from '@/components/business/ExamEditDialog.vue'
+import AdaptationRelatedDialog from '@/components/business/AdaptationRelatedDialog.vue'
 
 const route = useRoute()
 const authStore = useAuthStore()
@@ -221,6 +228,8 @@ const isNavCollapsed = ref(false)
 // 题目编辑弹窗状态
 const editDialogVisible = ref(false)
 const editingExamId = ref<number | null>(null)
+const adaptationDialogVisible = ref(false)
+const selectedAdaptationExam = ref<ExamQuestion | null>(null)
 
 // 记录从哪个题目进入编辑页，以便返回时滚回该题目
 const RETURN_SCROLL_KEY = 'exam-return-position'
@@ -668,6 +677,12 @@ const handleEdit = (exam: ExamQuestion) => {
 
   editingExamId.value = exam.id
   editDialogVisible.value = true
+}
+
+const handleShowAdaptations = (exam: ExamQuestion) => {
+  if (exam.questionNumber == null) return
+  selectedAdaptationExam.value = exam
+  adaptationDialogVisible.value = true
 }
 
 const handleEditSuccess = async () => {

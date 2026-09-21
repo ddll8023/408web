@@ -8,6 +8,7 @@
       @copy="(cmd) => $emit('copy', cmd)"
       @edit="$emit('edit', exam)"
       @delete="(id) => $emit('delete', id)"
+      @show-adaptations="$emit('show-adaptations', exam)"
     />
 
     <!-- 题目内容与答案卡片 -->
@@ -69,7 +70,14 @@ defineProps({
  * @property {Function} toggle-answer - 切换答案显示
  * @property {Function} answered - 用户作答事件
  */
-defineEmits<{ copy: [command: string]; edit: [question: ExamQuestion]; delete: [id: number]; 'toggle-answer': []; answered: [payload: { optionKey: string; correct: boolean }] }>()
+defineEmits<{
+  copy: [command: string]
+  edit: [question: ExamQuestion]
+  delete: [id: number]
+  'show-adaptations': [question: ExamQuestion]
+  'toggle-answer': []
+  answered: [payload: { optionKey: string; correct: boolean }]
+}>()
 </script>
 
 <style scoped>

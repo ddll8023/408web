@@ -1,3 +1,4 @@
+<!-- 题目复制渲染器：为 Word、图片和富文本复制准备隔离的 Markdown 内容。 -->
 <template>
   <div
     v-if="question"
@@ -59,7 +60,7 @@
 <script setup lang="ts">
 import { computed, nextTick, ref } from 'vue'
 import { toBlob } from 'html-to-image'
-import type { ExamQuestion, MockQuestion } from '@/types'
+import type { AdaptationQuestion, ExamQuestion, MockQuestion } from '@/types'
 import { parseQuestionOptions } from '@/utils/questionOptions'
 import { getDifficultyLabel } from '@/constants/exam'
 import {
@@ -70,7 +71,7 @@ import {
 import type { QuestionContentScope, RichCopyContent } from '@/utils/questionCopy'
 import MarkdownViewer from '@/components/basic/MarkdownViewer.vue'
 
-type Question = ExamQuestion | MockQuestion
+type Question = AdaptationQuestion | ExamQuestion | MockQuestion
 
 interface Props {
   question: Question
@@ -83,7 +84,9 @@ const renderedCount = ref(0)
 
 const questionTitle = computed(() => {
   const current = props.question
-  const questionNumber = current.questionNumber == null ? '' : `第${current.questionNumber}题`
+  const questionNumber = 'questionNumber' in current && current.questionNumber != null
+    ? `第${current.questionNumber}题`
+    : ''
 
   if ('source' in current) {
     return [current.title || current.source || '', questionNumber]
@@ -91,9 +94,13 @@ const questionTitle = computed(() => {
       .join(' · ') || '模拟题'
   }
 
-  return [current.year != null ? `${current.year}年真题` : '真题', questionNumber]
-    .filter(Boolean)
-    .join(' ')
+  if ('year' in current) {
+    return [current.year != null ? `${current.year}年真题` : '真题', questionNumber]
+      .filter(Boolean)
+      .join(' ')
+  }
+
+  return '改编题'
 })
 
 const questionTypeLabel = computed(() => {

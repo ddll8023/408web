@@ -1,3 +1,4 @@
+<!-- 通用题目内容卡片：统一渲染真题、模拟题和改编题的题干、选项与答案。 -->
 <template>
   <div class="exam-question-card" :data-density="density">
     <!-- 题目卡片（白色卡片） -->
@@ -81,10 +82,10 @@
 
 <script setup lang="ts">
 import type { PropType } from 'vue'
-import type { ExamQuestion, MockQuestion } from '@/types'
+import type { AdaptationQuestion, ExamQuestion, MockQuestion } from '@/types'
 /**
  * 通用题目卡片组件（紧凑样式）
- * 用途：统一渲染题干、选项与答案区域，替换各页面重复模板
+ * 用途：统一渲染真题、模拟题和改编题的题干、选项与答案区域
  * 设计：遵循 KISS/YAGNI/SOLID（单一职责：渲染题目与答案）
  * Source: @kangc/v-md-editor 官方文档
  */
@@ -99,7 +100,7 @@ import { useToast } from '@/composables/useToast'
  */
 const props = defineProps({
   /** 题目对象 */
-  exam: { type: Object as PropType<ExamQuestion | MockQuestion>, required: true },
+  exam: { type: Object as PropType<AdaptationQuestion | ExamQuestion | MockQuestion>, required: true },
   /** 是否显示答案 */
   showAnswer: { type: Boolean, default: false },
   /** 紧凑密度：compact | comfortable */

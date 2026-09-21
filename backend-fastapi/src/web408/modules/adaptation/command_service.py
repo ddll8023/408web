@@ -47,7 +47,6 @@ class AdaptationCommandService:
             request.category,
         )
         question = AdaptationQuestion(
-            title=request.title,
             question_type=request.question_type.value,
             content=request.content,
             options=serialize_options(request.options),
@@ -103,16 +102,12 @@ class AdaptationCommandService:
             existing_categories=existing_categories,
         )
 
-        new_title = request.title if "title" in update_data else question.title
-
         # sources 缺省表示不修改来源，显式传入空数组表示清空来源。
         if "sources" in update_data and request.sources is not None:
             await self._replace_sources(question_id, request.sources)
 
         if "question_type" in update_data:
             question.question_type = new_type
-        if "title" in update_data:
-            question.title = new_title
         if "content" in update_data:
             question.content = new_content
         if "options" in update_data or "question_type" in update_data:

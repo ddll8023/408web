@@ -27,7 +27,6 @@ class AdaptationQuestion(BaseModel, table=True):
         ),
     )
 
-    title: str | None = Field(default=None, description="题目标题")
     question_type: str = Field(default=QuestionTypeEnum.ESSAY.value, description="题型")
     content: str = Field(description="题目内容")
     options: str | None = Field(default=None, description="选择题选项(JSON)")

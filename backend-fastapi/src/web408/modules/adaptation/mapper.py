@@ -18,7 +18,6 @@ def to_adaptation_response(
     """将已取得显示字段与来源引用的改编题实体转换为公开响应。"""
     return AdaptationResponse(
         id=question.id,
-        title=question.title,
         question_type=question.question_type,
         content=question.content,
         options=parse_options(question.options),

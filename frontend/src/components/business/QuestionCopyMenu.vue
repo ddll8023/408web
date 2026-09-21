@@ -64,7 +64,7 @@
 <script setup lang="ts">
 import type { PropType } from 'vue'
 import { computed, nextTick, ref } from 'vue'
-import type { ExamQuestion, MockQuestion } from '@/types'
+import type { AdaptationQuestion, ExamQuestion, MockQuestion } from '@/types'
 import {
   copyImageBlob,
   copyRichContent,
@@ -103,7 +103,7 @@ interface CopyMenuSection {
 /** 题目复制菜单，统一提供 Markdown、Word 富文本和图片复制入口。 */
 const props = defineProps({
   question: {
-    type: Object as PropType<ExamQuestion | MockQuestion>,
+    type: Object as PropType<AdaptationQuestion | ExamQuestion | MockQuestion>,
     required: true
   },
   headless: {
@@ -181,9 +181,12 @@ const menuSections = computed<CopyMenuSection[]>(() => [
 
 const getImageFilename = (scope: QuestionImageCopyScope) => {
   const question = props.question
-  const prefix = 'source' in question
-    ? question.title || question.source || '模拟题'
-    : `${question.year}年真题`
+  let prefix = '改编题'
+  if ('source' in question) {
+    prefix = question.title || question.source || '模拟题'
+  } else if ('year' in question) {
+    prefix = `${question.year}年真题`
+  }
   const safePrefix = prefix.replace(/[\\/:*?"<>|]/g, '_').slice(0, 60)
   return `${safePrefix || '408题目'}-${scope}.png`
 }
