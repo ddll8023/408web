@@ -110,6 +110,7 @@
                     @edit="handleEdit"
                     @delete="handleDelete"
                     @toggle-answer="toggleAnswer(mock.id)"
+                    @answered="(payload) => handleAnswered(mock, payload)"
                   />
                 </div>
               </section>
@@ -174,6 +175,7 @@ import {
   getMockQuestionById,
   deleteMockQuestion,
   getMockSubjectStats,
+  recordMockWrongAnswer,
 } from '@/api/mock'
 import { getEnabledCategoryTreeBySubjectWithStats } from '@/api/category'
 import { useAuthStore } from '@/stores/auth'
@@ -536,6 +538,21 @@ const handleNavSheetOutlineJump = (anchorId: string) => {
 
 const toggleAnswer = (id: number) => {
   showAnswers.value[id] = !showAnswers.value[id]
+}
+
+/**
+ * 只为模拟题记录选择错误次数；计数不在学习页面展示。
+ */
+const handleAnswered = (
+  mock: MockQuestion,
+  payload: { optionKey: string; correct: boolean },
+) => {
+  if (payload.correct) return
+
+  void recordMockWrongAnswer(mock.id).catch((error: unknown) => {
+    // 计数失败不影响当前答题反馈，保留日志便于管理员排查。
+    console.error('记录模拟题错题计数失败:', error)
+  })
 }
 
 // 难度辅助函数已从 @/constants/exam 导入

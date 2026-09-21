@@ -1,3 +1,4 @@
+/** 模拟题 API 领域类型：对应后端响应并补充答错计数。 */
 import type { Difficulty, QuestionCreateFields, QuestionOptions, QuestionType, QuestionUpdateFields } from './question'
 
 /** 模拟题（对应 MockResponse，已转驼峰） */
@@ -20,6 +21,7 @@ export interface MockQuestion {
   createTime?: string | null
   updateTime?: string | null
   isExamMarked: boolean
+  wrongCount: number
 }
 
 /** 模拟题分页查询参数（对应 MockQueryParams，size 为页面分页组件的历史别名） */
@@ -69,6 +71,12 @@ export interface MockSubjectStat {
   subjectId: number
   subjectName: string
   count: number
+}
+
+/** 模拟题答错计数响应（对应 MockWrongCountResponse） */
+export interface MockWrongCount {
+  mockQuestionId: number
+  wrongCount: number
 }
 
 /** 批量设置模拟题出题标记响应（对应 MockExamMarkBatchResponse） */

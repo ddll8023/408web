@@ -1,17 +1,16 @@
+/** 模拟题 API 模块：封装查询、管理标记和答错计数接口。 */
 import type {
   MockCategoryStats,
   MockCreateRequest,
   MockExamMarkBatchResponse,
   MockQuestion,
+  MockWrongCount,
   MockQueryParams,
   MockSources,
   MockSubjectStat,
   MockUpdateRequest,
   Paginated,
 } from '@/types'
-/**
- * 模拟题 API 模块
- */
 import request from './request'
 import { convertKeysToSnake } from '@/utils/convertKeys'
 
@@ -67,6 +66,21 @@ export function setMockExamMark(id: number, marked: boolean) {
     url: `/api/mock/${id}/exam-mark`,
     method: 'post',
     data: { marked }
+  })
+}
+
+export function recordMockWrongAnswer(id: number) {
+  return request<MockWrongCount>({
+    url: `/api/mock/${id}/wrong-count`,
+    method: 'post'
+  })
+}
+
+export function setMockWrongCount(id: number, wrongCount: number) {
+  return request<MockWrongCount>({
+    url: `/api/mock/${id}/wrong-count/set`,
+    method: 'post',
+    data: convertKeysToSnake({ wrongCount })
   })
 }
 

@@ -22,6 +22,8 @@ from web408.modules.mock.schemas import (
     MockSourcesResponse,
     MockSubjectStatItem,
     MockUpdateRequest,
+    MockWrongCountResponse,
+    MockWrongCountSetRequest,
     PaginatedMockResponse,
 )
 from web408.schemas.common import ApiResponse
@@ -152,6 +154,38 @@ async def get_titles_by_source(
     """根据来源查询标题列表。"""
     titles = await MockQueryService(session).get_titles_by_source(source)
     return ApiResponse(data=titles)
+
+
+@router.post(
+    "/{mock_id}/wrong-count/set",
+    response_model=ApiResponse[MockWrongCountResponse],
+    summary="调整模拟题答错次数",
+    description="管理员调整模拟题答错次数，不修改模拟题主体",
+)
+async def set_mock_wrong_count(
+    request: MockWrongCountSetRequest,
+    session: SessionDep,
+    mock_id: int = Path(..., ge=1, description="模拟题 ID"),
+    _admin: AuthUser = Depends(get_current_admin),
+) -> ApiResponse[MockWrongCountResponse]:
+    """调整模拟题答错次数。"""
+    result = await _get_command_service(session).set_wrong_count(mock_id, request)
+    return ApiResponse(data=result, message="错题计数已调整")
+
+
+@router.post(
+    "/{mock_id}/wrong-count",
+    response_model=ApiResponse[MockWrongCountResponse],
+    summary="记录模拟题答错次数",
+    description="记录一次模拟题答错；计数数据独立保存，不修改模拟题主体",
+)
+async def record_mock_wrong_answer(
+    session: SessionDep,
+    mock_id: int = Path(..., ge=1, description="模拟题 ID"),
+) -> ApiResponse[MockWrongCountResponse]:
+    """记录一次模拟题答错次数。"""
+    result = await _get_command_service(session).record_wrong_answer(mock_id)
+    return ApiResponse(data=result, message="错题计数已记录")
 
 
 @router.post(

@@ -11,6 +11,8 @@ from web408.modules.mock.schemas import (
     MockExamMarkBatchResponse,
     MockResponse,
     MockUpdateRequest,
+    MockWrongCountResponse,
+    MockWrongCountSetRequest,
 )
 from web408.modules.question_content.serialization import (
     parse_categories,
@@ -155,6 +157,38 @@ class MockCommandService:
         response = await self.query_service.to_response(question)
         await self.session.commit()
         return response
+
+    async def record_wrong_answer(self, question_id: int) -> MockWrongCountResponse:
+        """记录一次模拟题答错，并返回最新计数。"""
+        question = await self.repository.get_by_id(question_id)
+        if question is None:
+            raise NotFoundException(f"模拟题不存在：ID={question_id}")
+
+        await self.repository.increment_wrong_count(question_id)
+        await self.session.commit()
+
+        wrong_count = await self.repository.get_wrong_count(question_id)
+        return MockWrongCountResponse(
+            mock_question_id=question_id,
+            wrong_count=wrong_count.wrong_count if wrong_count else 0,
+        )
+
+    async def set_wrong_count(
+        self,
+        question_id: int,
+        request: MockWrongCountSetRequest,
+    ) -> MockWrongCountResponse:
+        """调整模拟题答错次数并提交事务。"""
+        question = await self.repository.get_by_id(question_id)
+        if question is None:
+            raise NotFoundException(f"模拟题不存在：ID={question_id}")
+
+        await self.repository.set_wrong_count(question_id, request.wrong_count)
+        await self.session.commit()
+        return MockWrongCountResponse(
+            mock_question_id=question_id,
+            wrong_count=request.wrong_count,
+        )
 
     async def set_exam_mark(self, question_id: int, marked: bool) -> MockResponse:
         """设置模拟题出题标记，状态记录独立于模拟题主体。"""

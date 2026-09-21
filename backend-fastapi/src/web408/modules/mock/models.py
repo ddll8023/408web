@@ -75,3 +75,27 @@ class MockQuestionExamMark(BaseModel, table=True):
         index=True,
         description="模拟题 ID",
     )
+
+
+class MockQuestionWrongCount(BaseModel, table=True):
+    """模拟题答错次数；独立保存统计，不修改模拟题主体记录。"""
+
+    __tablename__ = "mock_question_wrong_count"
+    __table_args__ = (
+        CheckConstraint(
+            "wrong_count >= 0",
+            name="ck_mock_question_wrong_count_non_negative",
+        ),
+        UniqueConstraint(
+            "mock_question_id",
+            name="uq_mock_question_wrong_count_question",
+        ),
+    )
+
+    mock_question_id: int = Field(
+        foreign_key="mock_question.id",
+        ondelete="CASCADE",
+        index=True,
+        description="模拟题 ID",
+    )
+    wrong_count: int = Field(default=0, ge=0, description="答错次数")

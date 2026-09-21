@@ -129,6 +129,20 @@
           size="md"
           @sort-change="handleSortChange"
         >
+          <!-- 题号列：点击题号打开学习页定位题目 -->
+          <template #questionNumber="{ row }">
+            <button
+              v-if="row.questionNumber != null"
+              type="button"
+              class="cursor-pointer border-0 bg-transparent px-1 text-accent underline-offset-2 hover:underline focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-1 rounded"
+              :aria-label="`查看第${row.questionNumber}题`"
+              @click="handleView(row)"
+            >
+              {{ row.questionNumber }}
+            </button>
+            <span v-else class="text-gray-400">-</span>
+          </template>
+
           <!-- 题型列 -->
           <template #questionType="{ row }">
             <Tag :type="row.questionType === 'CHOICE' ? 'success' : 'primary'" size="sm">
@@ -177,6 +191,13 @@
             </Tag>
           </template>
 
+          <!-- 错题计数列：只在管理页展示 -->
+          <template #wrongCount="{ row }">
+            <Tag :type="row.wrongCount > 0 ? 'danger' : 'default'" size="sm">
+              {{ row.wrongCount }}
+            </Tag>
+          </template>
+
           <!-- 更新时间列 -->
           <template #updateTime="{ row }">
             <span class="text-gray-600 text-sm">{{ formatDateTime(row.updateTime) }}</span>
@@ -192,11 +213,12 @@
                 @toggle-exam-status="handleExamStatusToggle(row)"
               />
               <CustomButton
-                type="text"
+                type="text-danger"
                 size="sm"
                 class="!px-2.5 whitespace-nowrap shrink-0"
-                @click="handleView(row)"
-              >查看</CustomButton>
+                :loading="row.wrongCountLoading"
+                @click="openWrongCountDialog(row)"
+              >错题</CustomButton>
               <CustomButton
                 type="text-primary"
                 size="sm"
@@ -240,6 +262,46 @@
       </div>
     </BackTop>
 
+    <!-- 错题计数弹窗 -->
+    <Dialog
+      v-model:visible="wrongCountDialogVisible"
+      title="错题"
+      width="440px"
+      :loading="wrongCountInitializing"
+      @close="handleWrongCountDialogClose"
+    >
+      <div v-if="wrongCountRow" class="flex flex-col items-center gap-4 py-4 text-center">
+        <p class="m-0 max-w-full truncate text-sm text-gray-500">
+          {{ wrongCountRow.title || `${wrongCountRow.source} 第${wrongCountRow.questionNumber ?? '-'}题` }}
+        </p>
+        <div class="w-full max-w-xs text-left">
+          <label for="mock-wrong-count" class="mb-2 block text-sm font-medium text-gray-700">错题计数</label>
+          <CustomInput
+            id="mock-wrong-count"
+            v-model="wrongCountDraft"
+            type="number"
+            aria-label="错题计数"
+            :disabled="wrongCountOperationLoading"
+          />
+        </div>
+        <p class="m-0 text-sm text-gray-500">打开弹窗已自动增加 1 次，可修改后保存</p>
+      </div>
+
+      <template #footer>
+        <div class="flex justify-end gap-3">
+          <CustomButton
+            :disabled="wrongCountOperationLoading"
+            @click="closeWrongCountDialog"
+          >取消</CustomButton>
+          <CustomButton
+            type="primary"
+            :loading="wrongCountOperationLoading"
+            @click="saveWrongCount"
+          >保存</CustomButton>
+        </div>
+      </template>
+    </Dialog>
+
     <!-- 编辑弹窗 -->
     <MockEditDialog
       v-model:visible="editDialogVisible"
@@ -256,6 +318,7 @@ import { queryString } from "@/utils/storage"
 type QuestionRow = MockQuestion & {
   deleteLoading?: boolean
   examStatusLoading?: boolean
+  wrongCountLoading?: boolean
 }
 /**
  * 模拟题管理页面
@@ -274,6 +337,8 @@ import {
   getMockQuestions,
   deleteMockQuestion,
   setMockExamMark,
+  recordMockWrongAnswer,
+  setMockWrongCount,
   getAllMockSources,
   getMockCategoriesBySubject
 } from '@/api/mock'
@@ -289,6 +354,7 @@ import Table from '@/components/basic/Table.vue'
 import Pagination from '@/components/basic/Pagination.vue'
 import Tag from '@/components/basic/Tag.vue'
 import BackTop from '@/components/basic/BackTop.vue'
+import Dialog from '@/components/basic/Dialog.vue'
 
 // 业务组件
 import MockEditDialog from '@/components/business/MockEditDialog.vue'
@@ -315,6 +381,7 @@ const tableColumns = [
   { prop: 'category', label: '分类', width: '200px' },
   { prop: 'difficulty', label: '难度', width: '100px', align: 'center' },
   { prop: 'isExamMarked', label: '出题状态', width: '110px', align: 'center' },
+  { prop: 'wrongCount', label: '错题计数', width: '110px', align: 'center' },
   { prop: 'updateTime', label: '更新时间', width: '160px', sortable: true },
   { prop: 'actions', label: '操作', width: '300px', align: 'center', fixed: 'right' }
 ]
@@ -341,6 +408,11 @@ const {
 const editDialogVisible = ref(false)
 const editingMockId = ref<number | null>(null)
 const editingMockData = ref<MockQuestion | null>(null)  // 编辑时传递的完整数据（避免重复请求API）
+const wrongCountDialogVisible = ref(false)
+const wrongCountRow = ref<QuestionRow | null>(null)
+const wrongCountDraft = ref('0')
+const wrongCountInitializing = ref(false)
+const wrongCountOperationLoading = ref(false)
 
 // 模拟题列表
 const mockQuestions = ref<QuestionRow[]>([])
@@ -572,6 +644,85 @@ const handleWordCopied = async (row: QuestionRow) => {
  */
 const handleExamStatusToggle = async (row: QuestionRow) => {
   await saveExamStatus(row, !row.isExamMarked)
+}
+
+/**
+ * 打开错题计数弹窗，并在打开时自动记录一次错题。
+ */
+const openWrongCountDialog = async (row: QuestionRow) => {
+  if (row.wrongCountLoading || wrongCountOperationLoading.value || wrongCountDialogVisible.value) return
+
+  wrongCountRow.value = row
+  wrongCountDraft.value = String(row.wrongCount + 1)
+  wrongCountDialogVisible.value = true
+  wrongCountInitializing.value = true
+  wrongCountOperationLoading.value = true
+  row.wrongCountLoading = true
+
+  try {
+    const response = await recordMockWrongAnswer(row.id)
+    if (response.code !== 200 || !response.data) {
+      showToast(response.message || '记录错题失败', 'error')
+      wrongCountDialogVisible.value = false
+      wrongCountRow.value = null
+      return
+    }
+
+    row.wrongCount = response.data.wrongCount
+    wrongCountDraft.value = String(response.data.wrongCount)
+  } catch (error) {
+    console.error('记录错题失败:', error)
+    showToast('记录错题失败，请稍后重试', 'error')
+    wrongCountDialogVisible.value = false
+    wrongCountRow.value = null
+  } finally {
+    row.wrongCountLoading = false
+    wrongCountInitializing.value = false
+    wrongCountOperationLoading.value = false
+  }
+}
+
+const closeWrongCountDialog = () => {
+  if (wrongCountOperationLoading.value) return
+
+  wrongCountDialogVisible.value = false
+  wrongCountRow.value = null
+}
+
+const handleWrongCountDialogClose = () => {
+  wrongCountRow.value = null
+}
+
+const saveWrongCount = async () => {
+  const row = wrongCountRow.value
+  const rawCount = wrongCountDraft.value.trim()
+  const wrongCount = Number(rawCount)
+  if (!row || wrongCountOperationLoading.value) return
+  if (!/^\d+$/.test(rawCount) || !Number.isSafeInteger(wrongCount)) {
+    showToast('错题计数必须是非负整数', 'warning')
+    return
+  }
+
+  row.wrongCountLoading = true
+  wrongCountOperationLoading.value = true
+  try {
+    const response = await setMockWrongCount(row.id, wrongCount)
+    if (response.code !== 200 || !response.data) {
+      showToast(response.message || '保存错题计数失败', 'error')
+      return
+    }
+
+    row.wrongCount = response.data.wrongCount
+    wrongCountDialogVisible.value = false
+    wrongCountRow.value = null
+    showToast('错题计数已保存', 'success')
+  } catch (error) {
+    console.error('保存错题计数失败:', error)
+    showToast('保存错题计数失败，请稍后重试', 'error')
+  } finally {
+    row.wrongCountLoading = false
+    wrongCountOperationLoading.value = false
+  }
 }
 
 /**

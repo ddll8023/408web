@@ -1,17 +1,23 @@
 """模拟题查询的持久化边界。
 
-Repository 只负责构造和执行模拟题查询，不负责事务提交、响应转换或业务校验。
+Repository 负责构造和执行模拟题查询，并提供错题计数的原子更新语句；不负责事务提交、响应转换或业务校验。
 """
 from dataclasses import dataclass
 import json
 from typing import Any
 
 from sqlalchemy import and_, func, or_
+from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
+from web408.models.base import utc_now
 from web408.models.enums import QuestionTypeEnum
-from web408.modules.mock.models import MockQuestion, MockQuestionExamMark
+from web408.modules.mock.models import (
+    MockQuestion,
+    MockQuestionExamMark,
+    MockQuestionWrongCount,
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -122,6 +128,63 @@ class MockRepository:
             )
         )
         return result.all()
+
+    async def list_wrong_counts(self, question_ids: set[int]) -> list[MockQuestionWrongCount]:
+        """批量读取模拟题答错次数。"""
+        if not question_ids:
+            return []
+
+        result = await self.session.exec(
+            select(MockQuestionWrongCount).where(
+                MockQuestionWrongCount.mock_question_id.in_(question_ids)
+            )
+        )
+        return result.all()
+
+    async def get_wrong_count(self, question_id: int) -> MockQuestionWrongCount | None:
+        """读取指定模拟题的答错次数记录。"""
+        result = await self.session.exec(
+            select(MockQuestionWrongCount).where(
+                MockQuestionWrongCount.mock_question_id == question_id
+            )
+        )
+        return result.first()
+
+    async def increment_wrong_count(self, question_id: int) -> None:
+        """原子增加模拟题答错次数，不提交当前事务。"""
+        now = utc_now()
+        statement = sqlite_insert(MockQuestionWrongCount.__table__).values(
+            mock_question_id=question_id,
+            wrong_count=1,
+            create_time=now,
+            update_time=now,
+        )
+        statement = statement.on_conflict_do_update(
+            index_elements=["mock_question_id"],
+            set_={
+                "wrong_count": MockQuestionWrongCount.__table__.c.wrong_count + 1,
+                "update_time": now,
+            },
+        )
+        await self.session.execute(statement)
+
+    async def set_wrong_count(self, question_id: int, wrong_count: int) -> None:
+        """设置模拟题答错次数，不提交当前事务。"""
+        now = utc_now()
+        statement = sqlite_insert(MockQuestionWrongCount.__table__).values(
+            mock_question_id=question_id,
+            wrong_count=wrong_count,
+            create_time=now,
+            update_time=now,
+        )
+        statement = statement.on_conflict_do_update(
+            index_elements=["mock_question_id"],
+            set_={
+                "wrong_count": wrong_count,
+                "update_time": now,
+            },
+        )
+        await self.session.execute(statement)
 
     async def find_duplicate(
         self,

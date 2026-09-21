@@ -232,6 +232,11 @@ class MockQueryService:
             question.id for question in questions if question.id is not None
         }
         marked_question_ids = await self.repository.list_exam_marked_ids(question_ids)
+        wrong_count_records = await self.repository.list_wrong_counts(question_ids)
+        wrong_count_map = {
+            record.mock_question_id: record.wrong_count
+            for record in wrong_count_records
+        }
         subject_names = await self.catalog_read_service.get_subject_names(
             {question.subject_id for question in questions if question.subject_id is not None}
         )
@@ -244,6 +249,7 @@ class MockQueryService:
                 subject_name=subject_names.get(question.subject_id),
                 author_name=author_names.get(question.author_id),
                 is_exam_marked=question.id in marked_question_ids,
+                wrong_count=wrong_count_map.get(question.id, 0),
             )
             for question in questions
         ]

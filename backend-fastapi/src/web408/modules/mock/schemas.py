@@ -97,6 +97,19 @@ class MockExamMarkBatchResponse(BaseModel):
     )
 
 
+class MockWrongCountResponse(BaseModel):
+    """记录模拟题答错次数后的响应。"""
+
+    mock_question_id: int = Field(..., ge=1, description="模拟题 ID")
+    wrong_count: int = Field(..., ge=0, description="答错次数")
+
+
+class MockWrongCountSetRequest(BaseModel):
+    """调整模拟题答错次数的请求。"""
+
+    wrong_count: int = Field(..., ge=0, description="调整后的答错次数")
+
+
 class MockDuplicateRequest(BaseModel):
     """模拟题查重请求。"""
 
@@ -140,6 +153,7 @@ class MockResponse(BaseModel):
     create_time: str | None = None
     update_time: str | None = None
     is_exam_marked: bool = Field(default=False, description="是否已标记为出题")
+    wrong_count: int = Field(default=0, ge=0, description="答错次数")
 
     model_config = ConfigDict(from_attributes=True)
 
