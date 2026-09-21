@@ -1,5 +1,5 @@
 /**
- * 改编题领域类型：改编题实体、来源引用、查询参数、查重、反查与覆盖统计结构。
+ * 改编题领域类型：改编题实体、来源引用、查询参数、来源占用检查、反查与覆盖统计结构。
  * 类型以 HTTP 拦截器转换后的 camelCase 视图为准（非后端 snake_case 线格式）。
  */
 import type { Difficulty, QuestionCreateFields, QuestionOptions, QuestionType, QuestionUpdateFields } from './question'
@@ -11,8 +11,6 @@ export type AdaptationSourceState = 'all' | 'with_source' | 'without_source'
 export interface AdaptationSourceRefInput {
   sourceYear: number
   sourceQuestionNumber: number
-  /** 小问或备注，整题留空 */
-  sourcePart?: string | null
 }
 
 /** 来源引用（对应 AdaptationSourceRefResponse） */
@@ -20,7 +18,6 @@ export interface AdaptationSourceRef {
   id?: number | null
   sourceYear: number
   sourceQuestionNumber: number
-  sourcePart: string
   examQuestionId?: number | null
   /** 真题库中是否命中该题 */
   sourceExists: boolean
@@ -31,7 +28,6 @@ export interface AdaptationSourceRef {
 export interface AdaptationQuestion {
   id: number
   title?: string | null
-  questionNumber?: number | null
   questionType: QuestionType
   content: string
   options?: QuestionOptions | null
@@ -68,13 +64,12 @@ export interface AdaptationQueryParams {
 }
 
 /** 改编题创建请求（对应 AdaptationCreateRequest） */
-export interface AdaptationCreateRequest extends QuestionCreateFields {
+export interface AdaptationCreateRequest extends Omit<QuestionCreateFields, 'questionNumber'> {
   sources?: AdaptationSourceRefInput[]
 }
 
 /** 改编题更新请求（对应 AdaptationUpdateRequest，sources 缺省表示不修改来源） */
 export interface AdaptationUpdateRequest extends QuestionUpdateFields {
-  questionNumber?: number | null
   sources?: AdaptationSourceRefInput[] | null
 }
 
@@ -82,7 +77,6 @@ export interface AdaptationUpdateRequest extends QuestionUpdateFields {
 export interface AdaptationSourceLookupItem {
   sourceYear: number
   sourceQuestionNumber: number
-  sourcePart: string
   exists: boolean
   examQuestionId?: number | null
   examTitle?: string | null
@@ -93,15 +87,12 @@ export interface AdaptationSourceLookupItem {
 export interface AdaptationSourceUsage {
   sourceYear: number
   sourceQuestionNumber: number
-  sourcePart: string
   adaptationId: number
   title?: string | null
 }
 
-/** 改编题查重响应（对应 AdaptationDuplicateCheckResponse） */
-export interface AdaptationDuplicateCheck {
-  isDuplicate: boolean
-  existingQuestion?: AdaptationQuestion | null
+/** 改编题来源占用检查响应（对应 AdaptationSourceUsageCheckResponse） */
+export interface AdaptationSourceUsageCheck {
   reusedSources: AdaptationSourceUsage[]
 }
 
@@ -109,11 +100,9 @@ export interface AdaptationDuplicateCheck {
 export interface AdaptationBySourceItem {
   id: number
   title?: string | null
-  questionNumber?: number | null
   questionType: QuestionType
   subjectId?: number | null
   subjectName?: string | null
-  sourcePart: string
   updateTime?: string | null
 }
 

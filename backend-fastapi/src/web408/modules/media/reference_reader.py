@@ -103,7 +103,7 @@ class MediaReferenceReader:
                             ImageUsageResponse(
                                 id=adaptation.id,
                                 year=None,
-                                question_number=adaptation.question_number,
+                                question_number=None,
                                 title=f"[改编题] {adaptation.title or f'改编题-{adaptation.id}'}",
                             )
                         )

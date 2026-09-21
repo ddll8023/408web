@@ -1,4 +1,5 @@
-import type { Difficulty, QuestionType, QuestionOptions } from '@/types'
+/** 题目表单类型与 JSON 导入边界，区分通用题目字段和改编题来源引用。 */
+import type { AdaptationSourceRefInput, Difficulty, QuestionType, QuestionOptions } from '@/types'
 
 export interface QuestionForm {
   questionType: QuestionType
@@ -30,6 +31,7 @@ export interface QuestionFormData {
   year?: number
   source?: string
   questionNumber?: number | null
+  sources?: AdaptationSourceRefInput[]
 }
 export function parseOptions(value: unknown): Partial<QuestionOptions> {
   const parsed: unknown = typeof value === 'string' ? JSON.parse(value) : value
@@ -79,5 +81,30 @@ export function validateImportedQuestion(value: unknown): QuestionFormData {
     else throw new Error('category 必须是字符串或字符串数组')
   }
   if ('options' in value) result.options = parseOptions(value.options)
+  if ('sources' in value) {
+    if (!Array.isArray(value.sources)) throw new Error('sources 必须是数组')
+    result.sources = value.sources.map((item: unknown, index: number) => {
+      if (!isRecord(item)) throw new Error(`sources[${index}] 必须是对象`)
+      const sourceYear = item.sourceYear
+      const sourceQuestionNumber = item.sourceQuestionNumber
+      if (
+        typeof sourceYear !== 'number' ||
+        !Number.isInteger(sourceYear) ||
+        sourceYear < 1990 ||
+        sourceYear > 2100
+      ) {
+        throw new Error(`sources[${index}].sourceYear 必须是 1990—2100 的整数`)
+      }
+      if (
+        typeof sourceQuestionNumber !== 'number' ||
+        !Number.isInteger(sourceQuestionNumber) ||
+        sourceQuestionNumber < 1 ||
+        sourceQuestionNumber > 47
+      ) {
+        throw new Error(`sources[${index}].sourceQuestionNumber 必须是 1—47 的整数`)
+      }
+      return { sourceYear, sourceQuestionNumber }
+    })
+  }
   return result
 }

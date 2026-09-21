@@ -1,4 +1,4 @@
-<!-- 改编来源编辑区：按行维护「年份 + 题号 + 小问」并即时解析真题命中情况。 -->
+<!-- 改编来源编辑区：按行维护「年份 + 题号」并即时解析真题命中情况。 -->
 <template>
   <div class="space-y-3">
     <div
@@ -7,7 +7,7 @@
       class="rounded-lg border border-gray-200 bg-white/60 p-3"
     >
       <div class="grid grid-cols-1 gap-3 sm:grid-cols-12">
-        <div class="sm:col-span-3">
+        <div class="sm:col-span-4">
           <FormLabel :label="`来源年份 ${index + 1}`" :for-id="`source-year-${row.key}`" />
           <WheelPicker
             :id="`source-year-${row.key}`"
@@ -21,30 +21,19 @@
             @update:model-value="handleYearChange(index, $event)"
           />
         </div>
-        <div class="sm:col-span-3">
+        <div class="sm:col-span-4">
           <FormLabel label="来源题号" :for-id="`source-number-${row.key}`" />
           <InputNumber
             :id="`source-number-${row.key}`"
             :model-value="row.sourceQuestionNumber ?? 0"
             :min="1"
-            :max="1000"
+            :max="MAX_SOURCE_QUESTION_NUMBER"
             placeholder="题号"
             :disabled="disabled"
             @update:model-value="handleNumberChange(index, $event)"
           />
         </div>
-        <div class="sm:col-span-4">
-          <FormLabel label="小问或备注" hint="可选" :for-id="`source-part-${row.key}`" />
-          <CustomInput
-            :id="`source-part-${row.key}`"
-            :model-value="row.sourcePart"
-            placeholder="如 41(2)，整题留空"
-            :maxlength="50"
-            :disabled="disabled"
-            @update:model-value="handlePartChange(index, $event)"
-          />
-        </div>
-        <div class="flex items-end sm:col-span-2">
+        <div class="flex items-end sm:col-span-4">
           <CustomButton
             type="text-danger"
             size="sm"
@@ -56,9 +45,12 @@
           </CustomButton>
         </div>
       </div>
-      <p class="mt-2 flex items-center gap-1 text-xs" :class="rowStatusClass(index)">
+      <p class="mt-2 flex flex-wrap items-center gap-x-1 gap-y-0.5 text-xs" :class="rowStatusClass(index)">
         <font-awesome-icon :icon="rowStatusIcon(index)" />
-        {{ rowStatusText(index) }}
+        <span>{{ rowStatusText(index) }}</span>
+        <span v-if="rowStatusMeta(index)" class="text-ink-soft">
+          （{{ rowStatusMeta(index) }}）
+        </span>
       </p>
     </div>
 
@@ -82,14 +74,13 @@
 /**
  * AdaptationSourceEditor 改编来源编辑区
  * 功能：受控维护来源引用行，并为每行给出真题库命中提示
- * 依赖：WheelPicker、InputNumber、CustomInput、CustomButton、FormLabel 基础组件
+ * 依赖：WheelPicker、InputNumber、CustomButton、FormLabel 基础组件
  */
 import type { AdaptationSourceLookupItem, AdaptationSourceRefInput } from '@/types'
 import type { PropType } from 'vue'
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { lookupAdaptationSources } from '@/api/adaptation'
 import CustomButton from '@/components/basic/CustomButton.vue'
-import CustomInput from '@/components/basic/CustomInput.vue'
 import FormLabel from '@/components/basic/FormLabel.vue'
 import InputNumber from '@/components/basic/InputNumber.vue'
 import WheelPicker from '@/components/basic/WheelPicker.vue'
@@ -98,11 +89,11 @@ interface SourceRow {
   key: number
   sourceYear: number | null
   sourceQuestionNumber: number | null
-  sourcePart: string
 }
 
 /** 与后端 MAX_SOURCE_REFS 保持一致，避免提交被直接拒绝 */
 const MAX_SOURCE_REFS = 20
+const MAX_SOURCE_QUESTION_NUMBER = 47
 const FIRST_EXAM_YEAR = 2009
 const LOOKUP_DEBOUNCE_MS = 400
 
@@ -140,8 +131,7 @@ const yearOptions = computed(() => {
 const createRow = (source?: AdaptationSourceRefInput): SourceRow => ({
   key: ++rowKeySeed,
   sourceYear: source?.sourceYear ?? null,
-  sourceQuestionNumber: source?.sourceQuestionNumber ?? null,
-  sourcePart: source?.sourcePart ?? ''
+  sourceQuestionNumber: source?.sourceQuestionNumber ?? null
 })
 
 /** 仅保留年份与题号都完整的行，作为提交与解析的正式数据 */
@@ -150,8 +140,7 @@ const toSourceRefs = (): AdaptationSourceRefInput[] =>
     .filter(row => row.sourceYear !== null && row.sourceQuestionNumber !== null)
     .map(row => ({
       sourceYear: row.sourceYear as number,
-      sourceQuestionNumber: row.sourceQuestionNumber as number,
-      sourcePart: row.sourcePart.trim() || null
+      sourceQuestionNumber: row.sourceQuestionNumber as number
     }))
 
 const emitSources = () => {
@@ -193,13 +182,6 @@ const handleNumberChange = (index: number, value: number | null) => {
   const row = rows.value[index]
   if (!row) return
   row.sourceQuestionNumber = typeof value === 'number' && value > 0 ? value : null
-  emitSources()
-}
-
-const handlePartChange = (index: number, value: string) => {
-  const row = rows.value[index]
-  if (!row) return
-  row.sourcePart = value
   emitSources()
 }
 
@@ -250,17 +232,36 @@ const rowResultIndex = (index: number) => {
   return cursor
 }
 
+const rowLookupResult = (index: number): AdaptationSourceLookupItem | null => {
+  const row = rows.value[index]
+  if (!row || row.sourceYear === null || row.sourceQuestionNumber === null) return null
+  return lookupResults.value[rowResultIndex(index)] || null
+}
+
 const rowStatusText = (index: number) => {
   const row = rows.value[index]
   if (!row) return ''
   if (row.sourceYear === null || row.sourceQuestionNumber === null) {
     return '请填写年份与题号'
   }
-  const result = lookupResults.value[rowResultIndex(index)]
+  const result = rowLookupResult(index)
   if (!result) return '正在核对真题库…'
   return result.exists
     ? `命中真题：${result.examTitle || '（未命名题目）'}`
     : '真题库中未找到该题号，保存后标记为未解析，请核对年份与题号'
+}
+
+/** 命中时补充题型和真题 ID，避免标题为空时无法确认具体题目。 */
+const rowStatusMeta = (index: number) => {
+  const result = rowLookupResult(index)
+  if (!result?.exists) return ''
+
+  const details: string[] = []
+  if (result.examQuestionType) {
+    details.push(result.examQuestionType === 'CHOICE' ? '选择题' : '主观题')
+  }
+  if (result.examQuestionId) details.push(`真题 ID ${result.examQuestionId}`)
+  return details.join(' · ')
 }
 
 const rowStatusClass = (index: number) => {
@@ -268,7 +269,7 @@ const rowStatusClass = (index: number) => {
   if (!row || row.sourceYear === null || row.sourceQuestionNumber === null) {
     return 'text-ink-soft'
   }
-  const result = lookupResults.value[rowResultIndex(index)]
+  const result = rowLookupResult(index)
   if (!result) return 'text-ink-soft'
   return result.exists ? 'text-emerald-600' : 'text-amber-600'
 }
@@ -278,7 +279,7 @@ const rowStatusIcon = (index: number) => {
   if (!row || row.sourceYear === null || row.sourceQuestionNumber === null) {
     return ['fas', 'circle-info']
   }
-  const result = lookupResults.value[rowResultIndex(index)]
+  const result = rowLookupResult(index)
   if (!result) return ['fas', 'spinner']
   return result.exists ? ['fas', 'circle-check'] : ['fas', 'triangle-exclamation']
 }

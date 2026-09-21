@@ -1,4 +1,4 @@
-<!-- 改编题编辑弹窗：维护改编题内容与来源引用，保存前提示查重结果。 -->
+<!-- 改编题编辑弹窗：维护改编题内容与来源引用，保存前提示来源占用情况。 -->
 <template>
   <Dialog
     v-model:visible="dialogVisible"
@@ -26,24 +26,13 @@
             />
           </div>
           <div>
-            <FormLabel label="标题" hint="题集分组" for-id="adaptation-title" />
+            <FormLabel label="标题" for-id="adaptation-title" />
             <CustomInput
               id="adaptation-title"
               v-model="form.title"
-              placeholder="如 2027 真题改编卷一"
+              placeholder="可选，便于识别题目"
               :maxlength="200"
               clearable
-            />
-          </div>
-          <div>
-            <FormLabel label="题号" hint="题集内序号" for-id="adaptation-question-number" />
-            <InputNumber
-              id="adaptation-question-number"
-              :model-value="form.questionNumber ?? 0"
-              :min="0"
-              :max="1000"
-              placeholder="题号"
-              @update:model-value="handleQuestionNumberChange"
             />
           </div>
           <div>
@@ -104,7 +93,6 @@
           <div class="flex flex-wrap gap-2">
             <CustomButton size="sm" @click="handlePasteJson">粘贴</CustomButton>
             <CustomButton type="primary" size="sm" @click="handleParseJson">解析并填充</CustomButton>
-            <CustomButton size="sm" @click="showJsonExample('exercise')">查看格式示例</CustomButton>
             <CustomButton size="sm" @click="handleClearJson">清空</CustomButton>
           </div>
         </div>
@@ -134,17 +122,20 @@
           aria-label="题干"
         />
 
-        <div v-if="form.questionType === 'CHOICE'" class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div v-if="form.questionType === 'CHOICE'" class="mt-4 grid grid-cols-1 gap-4">
           <div v-for="option in optionFields" :key="option.key">
             <FormLabel
               :label="`选项 ${option.key}`"
               required
               :for-id="`adaptation-option-${option.key}`"
             />
-            <CustomInput
+            <MarkdownEditor
               :id="`adaptation-option-${option.key}`"
               v-model="option.model.value"
-              :placeholder="`请输入选项 ${option.key}`"
+              content-role="option"
+              height="140px"
+              :placeholder="`请输入选项 ${option.key}（支持 Markdown 与 LaTeX）`"
+              :aria-label="`选项 ${option.key}`"
             />
           </div>
         </div>
@@ -191,7 +182,7 @@ import type { AdaptationQuestion, AdaptationSourceRefInput } from '@/types'
 import type { PropType } from 'vue'
 import { computed, ref, toRef, watch } from 'vue'
 import {
-  checkAdaptationDuplicate,
+  checkAdaptationSourceUsage,
   createAdaptation,
   getAdaptationDetail,
   updateAdaptation
@@ -203,7 +194,6 @@ import CustomButton from '@/components/basic/CustomButton.vue'
 import CustomInput from '@/components/basic/CustomInput.vue'
 import Dialog from '@/components/basic/Dialog.vue'
 import FormLabel from '@/components/basic/FormLabel.vue'
-import InputNumber from '@/components/basic/InputNumber.vue'
 import MarkdownEditor from '@/components/basic/MarkdownEditor.vue'
 import MultiSelectCascader from '@/components/basic/MultiSelectCascader.vue'
 import Select from '@/components/basic/Select.vue'
@@ -243,8 +233,7 @@ const {
   jsonInput,
   parseJsonWithRelaxedSupport,
   handlePasteJson,
-  handleClearJson,
-  showJsonExample
+  handleClearJson
 } = useJsonImport()
 
 const jsonImportVisible = ref(false)
@@ -273,10 +262,6 @@ const sourceSummaryHint = computed(() => {
   return `已标注 ${total} 处来源`
 })
 
-const handleQuestionNumberChange = (value: number | null) => {
-  form.questionNumber = typeof value === 'number' && value > 0 ? value : null
-}
-
 const handleParseJson = async () => {
   if (!jsonInput.value.trim()) {
     showToast('请先粘贴 JSON 数据', 'warning')
@@ -293,8 +278,10 @@ const handleParseJson = async () => {
       return
     }
     await fillFormFromData(data)
-    form.questionNumber = data.questionNumber ?? null
-    showToast('JSON 解析成功，来源请在下方单独核对', 'success')
+    if (data.sources) {
+      sources.value = data.sources
+    }
+    showToast('JSON 解析成功，来源请在下方核对', 'success')
     jsonImportVisible.value = false
   } catch (error) {
     showToast(`JSON 格式错误：${error instanceof Error ? error.message : String(error)}`, 'error')
@@ -327,11 +314,9 @@ const loadAdaptationData = async (id: number | string) => {
     }
     await fillFormFromData(question)
     form.title = question.title || ''
-    form.questionNumber = question.questionNumber ?? null
     sources.value = (question.sources || []).map(source => ({
       sourceYear: source.sourceYear,
-      sourceQuestionNumber: source.sourceQuestionNumber,
-      sourcePart: source.sourcePart || null
+      sourceQuestionNumber: source.sourceQuestionNumber
     }))
   } catch (error) {
     showToast('改编题读取失败', 'error')
@@ -343,7 +328,6 @@ const loadAdaptationData = async (id: number | string) => {
 
 const resetDialog = () => {
   form.title = ''
-  form.questionNumber = null
   sources.value = []
   form.content = ''
   form.answer = ''
@@ -371,27 +355,16 @@ const handleClose = () => {
   dialogVisible.value = false
 }
 
-/** 保存前查重：标题题号重复直接阻止，同源引用只提示不阻断 */
-const checkDuplicateBeforeSave = async () => {
-  const response = await checkAdaptationDuplicate({
-    title: form.title || null,
-    questionNumber: form.questionNumber,
+/** 保存前提示已被其他改编题引用的来源，但不阻断保存。 */
+const checkSourceUsageBeforeSave = async () => {
+  const response = await checkAdaptationSourceUsage({
     excludeId: isEditMode.value ? Number(props.adaptationId) : null,
     sources: sources.value
   })
   if (response.code !== 200) return true
 
-  const result = response.data
-  if (result?.isDuplicate) {
-    const existing = result.existingQuestion
-    showToast(
-      `该标题下题号 ${form.questionNumber} 已存在：${existing?.title || '未命名'}（ID ${existing?.id}）`,
-      'error'
-    )
-    return false
-  }
-  if (result?.reusedSources?.length) {
-    const names = result.reusedSources
+  if (response.data?.reusedSources?.length) {
+    const names = response.data.reusedSources
       .map(item => `${item.sourceYear} 年第 ${item.sourceQuestionNumber} 题（${item.title || '未命名'}）`)
       .join('、')
     showToast(`以下来源已被其他改编题引用，仍会保存：${names}`, 'warning')
@@ -404,12 +377,11 @@ const handleSubmit = async () => {
 
   saving.value = true
   try {
-    const passed = await checkDuplicateBeforeSave()
+    const passed = await checkSourceUsageBeforeSave()
     if (!passed) return
 
     const payload = {
       title: form.title || null,
-      questionNumber: form.questionNumber,
       questionType: form.questionType,
       content: form.content,
       subjectId: form.subjectId || null,

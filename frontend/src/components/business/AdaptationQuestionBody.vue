@@ -6,9 +6,6 @@
         {{ question.questionType === 'CHOICE' ? '选择题' : '主观题' }}
       </Tag>
       <span class="font-medium text-ink">{{ question.title || '（未命名）' }}</span>
-      <span v-if="question.questionNumber != null" class="text-sm text-ink-soft">
-        第 {{ question.questionNumber }} 题
-      </span>
       <Tag v-if="question.sourceSummary" type="info" size="sm">{{ question.sourceSummary }}</Tag>
       <Tag v-else type="warning" size="sm">未标注来源</Tag>
       <span v-if="unresolvedCount > 0" class="text-xs text-amber-600">
@@ -49,11 +46,11 @@
         <ul class="mt-1 space-y-1">
           <li
             v-for="source in question.sources"
-            :key="`${source.sourceYear}-${source.sourceQuestionNumber}-${source.sourcePart}`"
+            :key="`${source.sourceYear}-${source.sourceQuestionNumber}`"
             class="text-xs"
             :class="source.sourceExists ? 'text-ink-soft' : 'text-amber-600'"
           >
-            {{ source.sourceYear }} 年第 {{ source.sourceQuestionNumber }} 题<span v-if="source.sourcePart"> · 小问 {{ source.sourcePart }}</span>
+            {{ source.sourceYear }} 年第 {{ source.sourceQuestionNumber }} 题
             <span v-if="source.examTitle"> —— {{ source.examTitle }}</span>
             <span v-else>（真题库未找到该题）</span>
           </li>

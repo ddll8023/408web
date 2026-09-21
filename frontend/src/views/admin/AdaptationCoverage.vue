@@ -112,13 +112,11 @@
           <div class="flex flex-wrap items-center justify-between gap-2">
             <span class="font-medium text-ink">
               {{ item.title || '（未命名）' }}
-              <span v-if="item.questionNumber != null" class="text-ink-soft">· 第 {{ item.questionNumber }} 题</span>
             </span>
             <div class="flex items-center gap-2">
               <Tag :type="item.questionType === 'CHOICE' ? 'success' : 'primary'" size="sm">
                 {{ item.questionType === 'CHOICE' ? '选择题' : '主观题' }}
               </Tag>
-              <span v-if="item.sourcePart" class="text-xs text-ink-soft">小问 {{ item.sourcePart }}</span>
             </div>
           </div>
           <p class="mt-1 text-xs text-ink-soft">

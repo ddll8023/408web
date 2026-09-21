@@ -14,7 +14,7 @@ from web408.modules.adaptation.schemas import (
     AdaptationCoverageCountItem,
     AdaptationCoverageItem,
     AdaptationCoverageRequest,
-    AdaptationDuplicateCheckResponse,
+    AdaptationSourceUsageCheckResponse,
     AdaptationQueryParams,
     AdaptationResponse,
     AdaptationSourceLookupItem,
@@ -36,17 +36,15 @@ class AdaptationImageReferenceRead:
     """供媒体模块使用的改编题文本只读数据。"""
 
     id: int
-    question_number: int | None
     title: str | None
     content: str
     answer: str | None
     options: str | None
 
 
-def format_source_label(source_year: int, source_question_number: int, source_part: str) -> str:
-    """生成来源展示文案，例如「2021 年第 15 题 41(2)」。"""
-    label = f"{source_year} 年第 {source_question_number} 题"
-    return f"{label} {source_part}" if source_part else label
+def format_source_label(source_year: int, source_question_number: int) -> str:
+    """生成来源展示文案，例如「2021 年第 15 题」。"""
+    return f"{source_year} 年第 {source_question_number} 题"
 
 
 class AdaptationQueryService:
@@ -110,23 +108,14 @@ class AdaptationQueryService:
             raise NotFoundException(f"改编题不存在：ID={question_id}")
         return await self.to_response(question)
 
-    async def check_duplicate(
+    async def check_source_usage(
         self,
-        title: str | None,
-        question_number: int | None,
         sources: list[AdaptationSourceRefInput],
         exclude_id: int | None = None,
-    ) -> AdaptationDuplicateCheckResponse:
-        """检查标题与题号是否重复，并提示已被其他改编题使用的来源。"""
-        existing = await self.repository.find_duplicate(title, question_number, exclude_id)
+    ) -> AdaptationSourceUsageCheckResponse:
+        """检查来源是否已被其他改编题使用。"""
         reused_sources = await self._find_reused_sources(sources, exclude_id)
-        return AdaptationDuplicateCheckResponse(
-            is_duplicate=existing is not None,
-            existing_question=(
-                await self.to_response(existing) if existing is not None else None
-            ),
-            reused_sources=reused_sources,
-        )
+        return AdaptationSourceUsageCheckResponse(reused_sources=reused_sources)
 
     async def lookup_sources(
         self,
@@ -151,13 +140,8 @@ class AdaptationQueryService:
         if not rows:
             return []
 
-        parts_by_question: dict[int, list[str]] = {}
-        for row in rows:
-            parts = parts_by_question.setdefault(row.adaptation_id, [])
-            if row.source_part and row.source_part not in parts:
-                parts.append(row.source_part)
-
-        questions = await self.repository.list_by_ids(set(parts_by_question))
+        question_ids = {row.adaptation_id for row in rows}
+        questions = await self.repository.list_by_ids(question_ids)
         if request.subject_id is not None:
             questions = [
                 question for question in questions if question.subject_id == request.subject_id
@@ -169,11 +153,9 @@ class AdaptationQueryService:
             AdaptationBySourceItem(
                 id=question.id,
                 title=question.title,
-                question_number=question.question_number,
                 question_type=question.question_type,
                 subject_id=question.subject_id,
                 subject_name=subject_names.get(question.subject_id),
-                source_part="、".join(parts_by_question.get(question.id, [])),
                 update_time=question.update_time.isoformat() if question.update_time else None,
             )
             for question in questions
@@ -258,7 +240,6 @@ class AdaptationQueryService:
         return [
             AdaptationImageReferenceRead(
                 id=row.id,
-                question_number=row.question_number,
                 title=row.title,
                 content=row.content,
                 answer=row.answer,
@@ -318,7 +299,6 @@ class AdaptationQueryService:
                     id=row.id,
                     source_year=row.source_year,
                     source_question_number=row.source_question_number,
-                    source_part=row.source_part,
                     exam_question_id=exam_ref.id if exam_ref else None,
                     source_exists=exam_ref is not None,
                     exam_title=exam_ref.title if exam_ref else None,
@@ -328,7 +308,6 @@ class AdaptationQueryService:
                 format_source_label(
                     row.source_year,
                     row.source_question_number,
-                    row.source_part,
                 )
             )
         summaries = {
@@ -373,7 +352,6 @@ class AdaptationQueryService:
             AdaptationSourceUsageItem(
                 source_year=row.source_year,
                 source_question_number=row.source_question_number,
-                source_part=row.source_part,
                 adaptation_id=row.adaptation_id,
                 title=(
                     questions[row.adaptation_id].title
@@ -393,7 +371,6 @@ class AdaptationQueryService:
         return AdaptationSourceLookupItem(
             source_year=source.source_year,
             source_question_number=source.source_question_number,
-            source_part=source.source_part or "",
             exists=exam_ref is not None,
             exam_question_id=exam_ref.id if exam_ref else None,
             exam_title=exam_ref.title if exam_ref else None,

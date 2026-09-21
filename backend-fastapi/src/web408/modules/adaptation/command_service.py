@@ -4,7 +4,7 @@
 """
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from web408.core.exceptions import ConflictException, NotFoundException, ValidationException
+from web408.core.exceptions import NotFoundException, ValidationException
 from web408.modules.adaptation.models import AdaptationQuestion, AdaptationSource
 from web408.modules.adaptation.query_service import AdaptationQueryService
 from web408.modules.adaptation.repository import AdaptationRepository
@@ -46,20 +46,8 @@ class AdaptationCommandService:
             request.subject_id,
             request.category,
         )
-        if request.title is not None and request.question_number is not None:
-            duplicate = await self.query_service.check_duplicate(
-                request.title,
-                request.question_number,
-                [],
-            )
-            if duplicate.is_duplicate:
-                raise ConflictException(
-                    f"改编题已存在：{request.title} 第 {request.question_number} 题"
-                )
-
         question = AdaptationQuestion(
             title=request.title,
-            question_number=request.question_number,
             question_type=request.question_type.value,
             content=request.content,
             options=serialize_options(request.options),
@@ -116,33 +104,11 @@ class AdaptationCommandService:
         )
 
         new_title = request.title if "title" in update_data else question.title
-        new_number = (
-            request.question_number
-            if "question_number" in update_data
-            else question.question_number
-        )
-        if (
-            new_title is not None
-            and new_number is not None
-            and (new_title != question.title or new_number != question.question_number)
-        ):
-            duplicate = await self.query_service.check_duplicate(
-                new_title,
-                new_number,
-                [],
-                question_id,
-            )
-            if duplicate.is_duplicate:
-                raise ConflictException(
-                    f"改编题已存在：{new_title} 第 {new_number} 题"
-                )
 
         # sources 缺省表示不修改来源，显式传入空数组表示清空来源。
         if "sources" in update_data and request.sources is not None:
             await self._replace_sources(question_id, request.sources)
 
-        if "question_number" in update_data:
-            question.question_number = new_number
         if "question_type" in update_data:
             question.question_type = new_type
         if "title" in update_data:
@@ -193,16 +159,15 @@ class AdaptationCommandService:
         await self.session.flush()
 
         exam_refs = await self.exam_read_service.resolve_sources(
-            {(year, number) for year, number, _ in normalized}
+            {(year, number) for year, number in normalized}
         )
-        for year, number, part in normalized:
+        for year, number in normalized:
             exam_ref = exam_refs.get((year, number))
             self.session.add(
                 AdaptationSource(
                     adaptation_id=question_id,
                     source_year=year,
                     source_question_number=number,
-                    source_part=part,
                     exam_question_id=exam_ref.id if exam_ref else None,
                 )
             )
@@ -210,12 +175,12 @@ class AdaptationCommandService:
     @staticmethod
     def _normalize_sources(
         sources: list[AdaptationSourceRefInput],
-    ) -> list[tuple[int, int, str]]:
-        """按输入顺序整理来源三元组，并拒绝同一题内的重复引用。"""
-        normalized: list[tuple[int, int, str]] = []
-        seen: set[tuple[int, int, str]] = set()
+    ) -> list[tuple[int, int]]:
+        """按输入顺序整理来源二元组，并拒绝同一题内的重复引用。"""
+        normalized: list[tuple[int, int]] = []
+        seen: set[tuple[int, int]] = set()
         for item in sources:
-            key = (item.source_year, item.source_question_number, item.source_part or "")
+            key = (item.source_year, item.source_question_number)
             if key in seen:
                 raise ValidationException(
                     f"来源引用重复：{key[0]} 年第 {key[1]} 题"

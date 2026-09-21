@@ -138,12 +138,15 @@ const containerClass = computed(() => {
   }
 })
 
-const containerStyle = computed(() => ({
-  width: `min(${props.width}, calc(100vw - 32px))`,
-  maxWidth: `min(${props.maxWidth}, calc(100vw - 32px))`,
-  maxHeight: 'calc(100dvh - 32px)',
-  marginTop: `min(${props.top}, 8dvh)`,
-}))
+const containerStyle = computed(() => {
+  const topOffset = `min(${props.top}, 8dvh)`
+  return {
+    width: `min(${props.width}, calc(100vw - 32px))`,
+    maxWidth: `min(${props.maxWidth}, calc(100vw - 32px))`,
+    maxHeight: `calc(100dvh - 32px - ${topOffset})`,
+    marginTop: topOffset,
+  }
+})
 
 const contentStyle = computed(() => ({
   maxHeight: 'none',

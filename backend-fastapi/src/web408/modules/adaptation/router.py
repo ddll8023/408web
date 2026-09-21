@@ -11,8 +11,8 @@ from web408.modules.adaptation.schemas import (
     AdaptationCoverageItem,
     AdaptationCoverageRequest,
     AdaptationCreateRequest,
-    AdaptationDuplicateCheckResponse,
-    AdaptationDuplicateRequest,
+    AdaptationSourceUsageCheckResponse,
+    AdaptationSourceUsageRequest,
     AdaptationQueryParams,
     AdaptationResponse,
     AdaptationSourceLookupItem,
@@ -78,20 +78,18 @@ async def get_categories_by_subject(
 
 
 @router.post(
-    "/check-duplicate",
-    response_model=ApiResponse[AdaptationDuplicateCheckResponse],
-    summary="检查改编题重复",
-    description="检查标题与题号组合是否已存在，并提示已被引用的来源，仅管理员可访问",
+    "/check-source-usage",
+    response_model=ApiResponse[AdaptationSourceUsageCheckResponse],
+    summary="检查改编题来源占用",
+    description="提示来源是否已被其他改编题引用，仅管理员可访问",
 )
-async def check_adaptation_duplicate(
-    request: AdaptationDuplicateRequest,
+async def check_adaptation_source_usage(
+    request: AdaptationSourceUsageRequest,
     session: SessionDep,
     _admin: AuthUser = Depends(get_current_admin),
-) -> ApiResponse[AdaptationDuplicateCheckResponse]:
-    """检查改编题重复与同源引用。"""
-    result = await AdaptationQueryService(session).check_duplicate(
-        request.title,
-        request.question_number,
+) -> ApiResponse[AdaptationSourceUsageCheckResponse]:
+    """检查改编题来源占用情况。"""
+    result = await AdaptationQueryService(session).check_source_usage(
         request.sources,
         request.exclude_id,
     )

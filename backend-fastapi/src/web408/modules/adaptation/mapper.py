@@ -19,7 +19,6 @@ def to_adaptation_response(
     return AdaptationResponse(
         id=question.id,
         title=question.title,
-        question_number=question.question_number,
         question_type=question.question_type,
         content=question.content,
         options=parse_options(question.options),

@@ -1,3 +1,4 @@
+<!-- 数字输入组件：提供统一的增减按钮与范围校验输入。 -->
 <template>
   <div class="flex items-center gap-1">
     <!-- 减少按钮 -->
@@ -19,7 +20,7 @@
       :step="step"
       :aria-label="id ? undefined : '数值'"
       class="w-16 h-[42px] text-center text-sm border border-gray-200 rounded-md bg-white focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 transition-all duration-200 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
-      :value="modelValue"
+      :value="modelValue === 0 && min > 0 ? '' : modelValue"
       :min="min"
       :max="max"
       :disabled="disabled"

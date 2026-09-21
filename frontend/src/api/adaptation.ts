@@ -6,7 +6,7 @@ import type {
   AdaptationBySourceItem,
   AdaptationCoverageItem,
   AdaptationCreateRequest,
-  AdaptationDuplicateCheck,
+  AdaptationSourceUsageCheck,
   AdaptationQueryParams,
   AdaptationQuestion,
   AdaptationSourceLookupItem,
@@ -86,15 +86,13 @@ export function deleteAdaptation(id: number) {
   })
 }
 
-/** 检查标题与题号重复，并提示同源引用 */
-export function checkAdaptationDuplicate(data: {
-  title?: string | null
-  questionNumber?: number | null
+/** 检查改编题来源是否已被其他题目引用。 */
+export function checkAdaptationSourceUsage(data: {
   excludeId?: number | null
   sources?: AdaptationSourceRefInput[]
 }) {
-  return request<AdaptationDuplicateCheck>({
-    url: '/api/adaptation/check-duplicate',
+  return request<AdaptationSourceUsageCheck>({
+    url: '/api/adaptation/check-source-usage',
     method: 'post',
     data: convertKeysToSnake(data)
   })

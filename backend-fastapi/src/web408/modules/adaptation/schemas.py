@@ -13,30 +13,23 @@ from web408.modules.question_content.schemas import (
 from web408.schemas.common import PaginatedResponse
 
 
-AdaptationSortField = Literal["id", "title", "update_time", "question_number", "create_time"]
+AdaptationSortField = Literal["id", "title", "update_time", "create_time"]
 SortOrder = Literal["asc", "desc"]
 SourceState = Literal["all", "with_source", "without_source"]
 
 # 单题一次最多维护/解析的来源条数，避免误传超大列表拖慢请求。
 MAX_SOURCE_REFS = 20
+# 408 真题每年固定为 47 道题，来源题号统一按该范围校验。
+MAX_SOURCE_QUESTION_NUMBER = 47
 
 
 class AdaptationSourceRefInput(BaseModel):
     """改编来源引用输入。"""
 
     source_year: int = Field(..., ge=1990, le=2100, description="来源真题年份")
-    source_question_number: int = Field(..., ge=1, le=1000, description="来源真题题号")
-    source_part: str | None = Field(
-        default=None,
-        max_length=50,
-        description="小问或备注，整题留空",
+    source_question_number: int = Field(
+        ..., ge=1, le=MAX_SOURCE_QUESTION_NUMBER, description="来源真题题号"
     )
-
-    @field_validator("source_part")
-    @classmethod
-    def normalize_source_part(cls, value: str | None) -> str:
-        """把未填写的小问归一化为空串，保证唯一约束可拦截重复引用。"""
-        return (value or "").strip()
 
 
 class AdaptationQueryParams(BaseModel):
@@ -53,7 +46,7 @@ class AdaptationQueryParams(BaseModel):
     source_question_number: int | None = Field(
         default=None,
         ge=1,
-        le=1000,
+        le=MAX_SOURCE_QUESTION_NUMBER,
         description="来源题号筛选",
     )
     source_state: SourceState = Field(default="all", description="来源标注状态筛选")
@@ -80,11 +73,9 @@ class AdaptationQueryParams(BaseModel):
     )
 
 
-class AdaptationDuplicateRequest(BaseModel):
-    """改编题查重请求。"""
+class AdaptationSourceUsageRequest(BaseModel):
+    """改编题来源占用检查请求。"""
 
-    title: str | None = Field(default=None, max_length=200, description="题集或题目标题")
-    question_number: int | None = Field(default=None, ge=1, le=1000, description="题集内题号")
     exclude_id: int | None = Field(default=None, ge=1, description="排除的题目 ID")
     sources: list[AdaptationSourceRefInput] = Field(
         default_factory=list,
@@ -108,8 +99,9 @@ class AdaptationSourceLookupItem(BaseModel):
     """来源解析结果项。"""
 
     source_year: int = Field(..., ge=1990, le=2100)
-    source_question_number: int = Field(..., ge=1)
-    source_part: str = Field(default="", description="小问或备注")
+    source_question_number: int = Field(
+        ..., ge=1, le=MAX_SOURCE_QUESTION_NUMBER
+    )
     exists: bool = Field(..., description="真题库中是否存在该题")
     exam_question_id: int | None = Field(default=None, ge=1)
     exam_title: str | None = Field(default=None, description="命中的真题标题")
@@ -122,7 +114,9 @@ class AdaptationBySourceRequest(BaseModel):
     """按真题来源反查改编题的请求。"""
 
     source_year: int = Field(..., ge=1990, le=2100, description="来源真题年份")
-    source_question_number: int = Field(..., ge=1, le=1000, description="来源真题题号")
+    source_question_number: int = Field(
+        ..., ge=1, le=MAX_SOURCE_QUESTION_NUMBER, description="来源真题题号"
+    )
     subject_id: int | None = Field(default=None, ge=1, description="科目 ID 筛选")
 
 
@@ -131,11 +125,9 @@ class AdaptationBySourceItem(BaseModel):
 
     id: int = Field(..., ge=1)
     title: str | None = Field(default=None)
-    question_number: int | None = Field(default=None, ge=1)
     question_type: QuestionTypeEnum
     subject_id: int | None = Field(default=None, ge=1)
     subject_name: str | None = Field(default=None)
-    source_part: str = Field(default="", description="小问或备注")
     update_time: str | None = Field(default=None)
 
     model_config = ConfigDict(from_attributes=True)
@@ -163,7 +155,9 @@ class AdaptationCoverageRequest(BaseModel):
 class AdaptationCoverageCountItem(BaseModel):
     """覆盖统计中单题的改编次数。"""
 
-    question_number: int = Field(..., ge=1)
+    question_number: int = Field(
+        ..., ge=1, le=MAX_SOURCE_QUESTION_NUMBER
+    )
     adaptation_count: int = Field(..., ge=0)
 
 
@@ -194,8 +188,9 @@ class AdaptationSourceUsageItem(BaseModel):
     """同源改编提示项。"""
 
     source_year: int = Field(..., ge=1990, le=2100)
-    source_question_number: int = Field(..., ge=1)
-    source_part: str = Field(default="")
+    source_question_number: int = Field(
+        ..., ge=1, le=MAX_SOURCE_QUESTION_NUMBER
+    )
     adaptation_id: int = Field(..., ge=1)
     title: str | None = Field(default=None)
 
@@ -205,8 +200,9 @@ class AdaptationSourceRefResponse(BaseModel):
 
     id: int | None = Field(default=None, ge=1, description="来源行 ID")
     source_year: int = Field(..., ge=1990, le=2100)
-    source_question_number: int = Field(..., ge=1)
-    source_part: str = Field(default="", description="小问或备注")
+    source_question_number: int = Field(
+        ..., ge=1, le=MAX_SOURCE_QUESTION_NUMBER
+    )
     exam_question_id: int | None = Field(default=None, ge=1, description="命中的真题 ID")
     source_exists: bool = Field(default=False, description="真题库中是否存在该题")
     exam_title: str | None = Field(default=None, description="命中的真题标题")
@@ -219,7 +215,6 @@ class AdaptationResponse(BaseModel):
 
     id: int = Field(..., ge=1)
     title: str | None = Field(default=None)
-    question_number: int | None = Field(default=None, ge=1)
     question_type: QuestionTypeEnum
     content: str
     options: QuestionOptions | None = None
@@ -244,7 +239,6 @@ class AdaptationResponse(BaseModel):
 class AdaptationCreateRequest(QuestionCreateFields):
     """改编题创建请求。"""
 
-    question_number: int | None = Field(default=None, ge=1, le=1000, description="题集内题号")
     sources: list[AdaptationSourceRefInput] = Field(
         default_factory=list,
         max_length=MAX_SOURCE_REFS,
@@ -255,7 +249,6 @@ class AdaptationCreateRequest(QuestionCreateFields):
 class AdaptationUpdateRequest(QuestionUpdateFields):
     """改编题更新请求。"""
 
-    question_number: int | None = Field(default=None, ge=1, le=1000, description="题集内题号")
     sources: list[AdaptationSourceRefInput] | None = Field(
         default=None,
         max_length=MAX_SOURCE_REFS,
@@ -263,11 +256,9 @@ class AdaptationUpdateRequest(QuestionUpdateFields):
     )
 
 
-class AdaptationDuplicateCheckResponse(BaseModel):
-    """改编题查重响应。"""
+class AdaptationSourceUsageCheckResponse(BaseModel):
+    """改编题来源占用检查响应。"""
 
-    is_duplicate: bool = Field(..., description="标题与题号是否已存在")
-    existing_question: AdaptationResponse | None = None
     reused_sources: list[AdaptationSourceUsageItem] = Field(
         default_factory=list,
         description="已被其他改编题引用的来源",

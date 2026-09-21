@@ -56,7 +56,6 @@ class AdaptationRepository:
             "id": AdaptationQuestion.id,
             "title": AdaptationQuestion.title,
             "update_time": AdaptationQuestion.update_time,
-            "question_number": AdaptationQuestion.question_number,
             "create_time": AdaptationQuestion.create_time,
         }.get(params.sort_field, AdaptationQuestion.update_time)
         order_column = (
@@ -89,26 +88,6 @@ class AdaptationRepository:
             select(AdaptationQuestion).where(AdaptationQuestion.id.in_(question_ids))
         )
         return result.all()
-
-    async def find_duplicate(
-        self,
-        title: str | None,
-        question_number: int | None,
-        exclude_id: int | None = None,
-    ) -> AdaptationQuestion | None:
-        """查询标题与题号组合是否已存在；两者任一为空时不参与唯一性判定。"""
-        if title is None or question_number is None:
-            return None
-        conditions: list[Any] = [
-            AdaptationQuestion.title == title,
-            AdaptationQuestion.question_number == question_number,
-        ]
-        if exclude_id is not None:
-            conditions.append(AdaptationQuestion.id != exclude_id)
-        result = await self.session.exec(
-            select(AdaptationQuestion).where(and_(*conditions))
-        )
-        return result.first()
 
     async def list_sources(self, adaptation_ids: set[int]) -> list[AdaptationSource]:
         """批量读取改编题的来源引用行。"""
@@ -266,7 +245,6 @@ class AdaptationRepository:
         result = await self.session.exec(
             select(
                 AdaptationQuestion.id,
-                AdaptationQuestion.question_number,
                 AdaptationQuestion.title,
                 AdaptationQuestion.content,
                 AdaptationQuestion.answer,

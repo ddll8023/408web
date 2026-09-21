@@ -16,7 +16,7 @@
 
       <!-- 筛选条件 -->
       <div class="mb-6 rounded-xl border border-[#eadfd4] bg-white/70 p-3 shadow-sm backdrop-blur-sm sm:p-5">
-        <div class="grid grid-cols-1 items-end gap-4 sm:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-6">
+        <div class="grid grid-cols-1 items-end gap-4 sm:grid-cols-2 xl:grid-cols-6 2xl:grid-cols-8">
           <div class="flex flex-col gap-1.5">
             <label class="text-sm font-medium text-gray-700">来源年份</label>
             <WheelPicker
@@ -32,8 +32,8 @@
             <label class="text-sm font-medium text-gray-700">来源题号</label>
             <InputNumber
               :model-value="filters.sourceQuestionNumber ?? 0"
-              :min="0"
-              :max="1000"
+              :min="1"
+              :max="47"
               placeholder="题号"
               aria-label="来源题号"
               @update:model-value="handleSourceNumberChange"
@@ -85,7 +85,7 @@
               class="w-full"
             />
           </div>
-          <div class="flex flex-col gap-1.5 sm:col-span-2">
+          <div class="flex flex-col gap-1.5 sm:col-span-2 2xl:col-span-1">
             <label class="text-sm font-medium text-gray-700">关键词</label>
             <CustomInput
               v-model="filters.keyword"
@@ -100,7 +100,7 @@
               </template>
             </CustomInput>
           </div>
-          <div class="flex justify-end gap-2 pb-0.5 sm:col-span-2 xl:col-span-1 2xl:col-span-2">
+          <div class="flex justify-end gap-2 pb-0.5 sm:col-span-2 xl:col-span-1 2xl:col-span-1">
             <CustomButton type="primary" @click="handleSearch">
               <font-awesome-icon :icon="['fas', 'magnifying-glass']" class="mr-1.5" />
               查询
@@ -127,10 +127,6 @@
           @sort-change="handleSortChange"
         >
           <template #id="{ row }">{{ row.id }}</template>
-
-          <template #questionNumber="{ row }">
-            {{ row.questionNumber ?? '-' }}
-          </template>
 
           <template #questionType="{ row }">
             <Tag :type="row.questionType === 'CHOICE' ? 'success' : 'primary'" size="sm">
@@ -319,7 +315,6 @@ const sourceStateOptions = [
 
 const tableColumns = [
   { prop: 'id', label: 'ID', width: '80px', align: 'center', sortable: true },
-  { prop: 'questionNumber', label: '题号', width: '80px', align: 'center', sortable: true },
   { prop: 'questionType', label: '题型', width: '100px', align: 'center' },
   { prop: 'title', label: '标题', minWidth: '200px', sortable: true },
   { prop: 'sourceSummary', label: '改编来源', minWidth: '240px' },
