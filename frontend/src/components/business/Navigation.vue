@@ -35,7 +35,6 @@
         <RouterLink to="/exam" class="nav-link">真题首页</RouterLink>
         <RouterLink to="/exam/classify" class="nav-link">真题分类</RouterLink>
         <RouterLink to="/mock" class="nav-link">模拟题</RouterLink>
-        <RouterLink to="/adaptation" class="nav-link">改编题</RouterLink>
         <span class="nav-link disabled" aria-disabled="true">资源</span>
 
         <Dropdown v-if="authStore.isAdmin()" trigger="hover" @command="handleManageCommand">
@@ -118,7 +117,6 @@
           <RouterLink to="/exam" class="mobile-link" @click="closeMobileMenu">真题首页</RouterLink>
           <RouterLink to="/exam/classify" class="mobile-link" @click="closeMobileMenu">真题分类</RouterLink>
           <RouterLink to="/mock" class="mobile-link" @click="closeMobileMenu">模拟题</RouterLink>
-          <RouterLink to="/adaptation" class="mobile-link" @click="closeMobileMenu">改编题</RouterLink>
           <span class="mobile-link disabled" aria-disabled="true">资源</span>
         </div>
 

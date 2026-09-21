@@ -122,10 +122,3 @@ export interface AdaptationCoverageItem {
   danglingSources: number
   counts: AdaptationCoverageCount[]
 }
-
-/** 科目改编题统计项（对应 AdaptationSubjectStatItem） */
-export interface AdaptationSubjectStat {
-  subjectId: number
-  subjectName: string
-  count: number
-}

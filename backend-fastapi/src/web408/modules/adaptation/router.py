@@ -17,7 +17,6 @@ from web408.modules.adaptation.schemas import (
     AdaptationResponse,
     AdaptationSourceLookupItem,
     AdaptationSourceLookupRequest,
-    AdaptationSubjectStatItem,
     AdaptationUpdateRequest,
     PaginatedAdaptationResponse,
 )
@@ -46,20 +45,6 @@ async def get_adaptations(
     """分页查询改编题。"""
     result = await AdaptationQueryService(session).get_paginated(request)
     return ApiResponse(data=result)
-
-
-@router.post(
-    "/subject-stats",
-    response_model=ApiResponse[list[AdaptationSubjectStatItem]],
-    summary="按科目统计改编题",
-    description="返回各科目的改编题数量，包含零题目科目",
-)
-async def get_subject_stats(
-    session: SessionDep,
-) -> ApiResponse[list[AdaptationSubjectStatItem]]:
-    """按科目统计改编题数量。"""
-    stats = await AdaptationQueryService(session).count_by_subject()
-    return ApiResponse(data=stats)
 
 
 @router.post(

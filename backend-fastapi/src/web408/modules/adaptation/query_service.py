@@ -6,7 +6,6 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from web408.core.exceptions import NotFoundException
 from web408.modules.adaptation.mapper import to_adaptation_response
 from web408.modules.adaptation.models import AdaptationQuestion, AdaptationSource
-from web408.modules.adaptation.read_service import AdaptationReadService
 from web408.modules.adaptation.repository import AdaptationQuery, AdaptationRepository
 from web408.modules.adaptation.schemas import (
     AdaptationBySourceItem,
@@ -21,7 +20,6 @@ from web408.modules.adaptation.schemas import (
     AdaptationSourceRefInput,
     AdaptationSourceRefResponse,
     AdaptationSourceUsageItem,
-    AdaptationSubjectStatItem,
     PaginatedAdaptationResponse,
 )
 from web408.modules.auth.read_service import AuthReadService
@@ -53,7 +51,6 @@ class AdaptationQueryService:
     def __init__(self, session: AsyncSession) -> None:
         self.session = session
         self.repository = AdaptationRepository(session)
-        self.read_service = AdaptationReadService(session)
         self.catalog_read_service = CatalogReadService(session)
         self.auth_read_service = AuthReadService(session)
         self.exam_read_service = ExamReadService(session)
@@ -221,19 +218,6 @@ class AdaptationQueryService:
             if categories:
                 category_set.update(categories)
         return sorted(category_set)
-
-    async def count_by_subject(self) -> list[AdaptationSubjectStatItem]:
-        """组合目录和改编题计数，保留名称排序、禁用科目及零题目科目。"""
-        subjects = await self.catalog_read_service.list_subjects(order_by_name=True)
-        counts = await self.read_service.count_by_subject({subject.id for subject in subjects})
-        return [
-            AdaptationSubjectStatItem(
-                subject_id=subject.id,
-                subject_name=subject.name,
-                count=counts.get(subject.id, 0),
-            )
-            for subject in subjects
-        ]
 
     async def list_image_reference_texts(self) -> list[AdaptationImageReferenceRead]:
         """返回媒体模块扫描图片引用所需的改编题文本。"""

@@ -80,12 +80,6 @@ const routes: RouteRecordRaw[] = [
     meta: { keepAlive: true }
   },
   {
-    path: '/adaptation',
-    component: () => import('@/views/user/AdaptationClassify.vue'),
-    meta: { keepAlive: true }
-  },
-
-  {
     path: '/manage/mock',
     component: () => import('@/views/admin/MockManage.vue'),
     meta: { requiresAuth: true, requiresAdmin: true, keepAlive: true }

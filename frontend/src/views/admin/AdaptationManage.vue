@@ -180,12 +180,6 @@
           <template #actions="{ row }">
             <div class="flex items-center justify-center gap-1 whitespace-nowrap">
               <CustomButton
-                type="text"
-                size="sm"
-                class="!px-2.5 shrink-0 whitespace-nowrap"
-                @click="handleView(row)"
-              >查看</CustomButton>
-              <CustomButton
                 type="text-primary"
                 size="sm"
                 class="!px-2.5 shrink-0 whitespace-nowrap"
@@ -430,11 +424,6 @@ const handleAdd = () => {
 const handleEdit = (row: QuestionRow) => {
   editingAdaptationId.value = row.id
   editDialogVisible.value = true
-}
-
-/** 查看：在用户端改编题页面按 ID 定位该题 */
-const handleView = (row: QuestionRow) => {
-  window.open(`/adaptation?id=${row.id}`, '_blank')
 }
 
 const handleDelete = async (row: QuestionRow) => {

@@ -11,7 +11,6 @@ import type {
   AdaptationQuestion,
   AdaptationSourceLookupItem,
   AdaptationSourceRefInput,
-  AdaptationSubjectStat,
   AdaptationUpdateRequest,
   Paginated
 } from '@/types'
@@ -40,14 +39,6 @@ export function getAdaptationList(params: AdaptationQueryParams = {}) {
 export function getAdaptationDetail(id: number) {
   return request<AdaptationQuestion>({
     url: `/api/adaptation/${id}/detail`,
-    method: 'post'
-  })
-}
-
-/** 按科目统计改编题数量 */
-export function getAdaptationSubjectStats() {
-  return request<AdaptationSubjectStat[]>({
-    url: '/api/adaptation/subject-stats',
     method: 'post'
   })
 }

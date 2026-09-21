@@ -176,18 +176,6 @@ class AdaptationRepository:
         )
         return result.all()
 
-    async def count_by_subject(self, subject_ids: set[int]) -> list[Any]:
-        """批量统计指定科目的改编题数量，不读取目录模型。"""
-        result = await self.session.exec(
-            select(
-                AdaptationQuestion.subject_id,
-                func.count(AdaptationQuestion.id).label("count"),
-            )
-            .where(AdaptationQuestion.subject_id.in_(subject_ids))
-            .group_by(AdaptationQuestion.subject_id)
-        )
-        return result.all()
-
     async def list_question_categories(self, subject_id: int) -> list[Any]:
         """读取科目下非空分类 JSON 和题目 ID，供目录统计使用。"""
         result = await self.session.exec(

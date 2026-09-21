@@ -267,15 +267,5 @@ class AdaptationSourceUsageCheckResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
-class AdaptationSubjectStatItem(BaseModel):
-    """按科目统计项。"""
-
-    subject_id: int = Field(..., ge=1)
-    subject_name: str
-    count: int = Field(..., ge=0)
-
-    model_config = ConfigDict(from_attributes=True)
-
-
 class PaginatedAdaptationResponse(PaginatedResponse[AdaptationResponse]):
     """改编题分页响应。"""
