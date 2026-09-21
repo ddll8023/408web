@@ -1,10 +1,8 @@
 /**
- * 改编题相关 API：查询、详情、来源解析与反查、覆盖统计和管理端维护。
+ * 改编题相关 API：查询、详情、来源解析和管理端维护。
  * 所有请求走统一 request 封装，请求体统一转换下划线字段名。
  */
 import type {
-  AdaptationBySourceItem,
-  AdaptationCoverageItem,
   AdaptationCreateRequest,
   AdaptationSourceUsageCheck,
   AdaptationQueryParams,
@@ -95,27 +93,5 @@ export function lookupAdaptationSources(sources: AdaptationSourceRefInput[]) {
     url: '/api/adaptation/source-lookup',
     method: 'post',
     data: { sources: convertKeysToSnake(sources) }
-  })
-}
-
-/** 按来源年份与题号反查改编题 */
-export function findAdaptationsBySource(data: {
-  sourceYear: number
-  sourceQuestionNumber: number
-  subjectId?: number | null
-}) {
-  return request<AdaptationBySourceItem[]>({
-    url: '/api/adaptation/by-source',
-    method: 'post',
-    data: convertKeysToSnake(data)
-  })
-}
-
-/** 统计真题改编覆盖情况 */
-export function getAdaptationCoverage(data: { subjectId?: number | null; years?: number[] | null } = {}) {
-  return request<AdaptationCoverageItem[]>({
-    url: '/api/adaptation/source-coverage',
-    method: 'post',
-    data: convertKeysToSnake(data)
   })
 }

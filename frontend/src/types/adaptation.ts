@@ -1,5 +1,5 @@
 /**
- * 改编题领域类型：改编题实体、来源引用、查询参数、来源占用检查、反查与覆盖统计结构。
+ * 改编题领域类型：改编题实体、来源引用、查询参数和来源占用检查结构。
  * 类型以 HTTP 拦截器转换后的 camelCase 视图为准（非后端 snake_case 线格式）。
  */
 import type { Difficulty, QuestionCreateFields, QuestionOptions, QuestionType, QuestionUpdateFields } from './question'
@@ -94,31 +94,4 @@ export interface AdaptationSourceUsage {
 /** 改编题来源占用检查响应（对应 AdaptationSourceUsageCheckResponse） */
 export interface AdaptationSourceUsageCheck {
   reusedSources: AdaptationSourceUsage[]
-}
-
-/** 按来源反查结果项（对应 AdaptationBySourceItem） */
-export interface AdaptationBySourceItem {
-  id: number
-  title?: string | null
-  questionType: QuestionType
-  subjectId?: number | null
-  subjectName?: string | null
-  updateTime?: string | null
-}
-
-/** 覆盖统计单题项（对应 AdaptationCoverageCountItem） */
-export interface AdaptationCoverageCount {
-  questionNumber: number
-  adaptationCount: number
-}
-
-/** 年份改编覆盖统计项（对应 AdaptationCoverageItem） */
-export interface AdaptationCoverageItem {
-  year: number
-  total: number
-  adapted: number
-  missingNumbers: number[]
-  /** 无法对应真题库的来源引用条数 */
-  danglingSources: number
-  counts: AdaptationCoverageCount[]
 }

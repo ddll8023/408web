@@ -8,11 +8,6 @@ from web408.modules.adaptation.mapper import to_adaptation_response
 from web408.modules.adaptation.models import AdaptationQuestion, AdaptationSource
 from web408.modules.adaptation.repository import AdaptationQuery, AdaptationRepository
 from web408.modules.adaptation.schemas import (
-    AdaptationBySourceItem,
-    AdaptationBySourceRequest,
-    AdaptationCoverageCountItem,
-    AdaptationCoverageItem,
-    AdaptationCoverageRequest,
     AdaptationSourceUsageCheckResponse,
     AdaptationQueryParams,
     AdaptationResponse,
@@ -46,7 +41,7 @@ def format_source_label(source_year: int, source_question_number: int) -> str:
 
 
 class AdaptationQueryService:
-    """编排改编题列表、来源解析、反查、覆盖统计和详情查询。"""
+    """编排改编题列表、来源解析和详情查询。"""
 
     def __init__(self, session: AsyncSession) -> None:
         self.session = session
@@ -125,88 +120,6 @@ class AdaptationQueryService:
             self._to_lookup_item(item, exam_refs.get((item.source_year, item.source_question_number)))
             for item in sources
         ]
-
-    async def find_by_source(
-        self,
-        request: AdaptationBySourceRequest,
-    ) -> list[AdaptationBySourceItem]:
-        """按来源年份与题号反查引用它的改编题。"""
-        rows = await self.repository.list_sources_by_keys(
-            {(request.source_year, request.source_question_number)}
-        )
-        if not rows:
-            return []
-
-        question_ids = {row.adaptation_id for row in rows}
-        questions = await self.repository.list_by_ids(question_ids)
-        if request.subject_id is not None:
-            questions = [
-                question for question in questions if question.subject_id == request.subject_id
-            ]
-        subject_names = await self.catalog_read_service.get_subject_names(
-            {question.subject_id for question in questions if question.subject_id is not None}
-        )
-        items = [
-            AdaptationBySourceItem(
-                id=question.id,
-                title=question.title,
-                question_type=question.question_type,
-                subject_id=question.subject_id,
-                subject_name=subject_names.get(question.subject_id),
-                update_time=question.update_time.isoformat() if question.update_time else None,
-            )
-            for question in questions
-        ]
-        return sorted(items, key=lambda item: item.id, reverse=True)
-
-    async def get_coverage(
-        self,
-        request: AdaptationCoverageRequest,
-    ) -> list[AdaptationCoverageItem]:
-        """统计各年份真题的改编覆盖，并单独报告无法对应真题库的来源数。"""
-        years = (
-            sorted(set(request.years))
-            if request.years
-            else await self.exam_read_service.list_years(request.subject_id)
-        )
-        if not years:
-            return []
-
-        year_set = set(years)
-        numbers_by_year = await self.exam_read_service.list_question_numbers(
-            year_set,
-            request.subject_id,
-        )
-        counts_by_year = await self._build_source_counts(year_set, request.subject_id)
-
-        items: list[AdaptationCoverageItem] = []
-        for year in years:
-            numbers = numbers_by_year.get(year, [])
-            year_counts = counts_by_year.get(year, {})
-            known_numbers = set(numbers)
-            items.append(
-                AdaptationCoverageItem(
-                    year=year,
-                    total=len(numbers),
-                    adapted=sum(1 for number in numbers if year_counts.get(number, 0) > 0),
-                    missing_numbers=[
-                        number for number in numbers if year_counts.get(number, 0) == 0
-                    ],
-                    dangling_sources=sum(
-                        count
-                        for number, count in year_counts.items()
-                        if number not in known_numbers
-                    ),
-                    counts=[
-                        AdaptationCoverageCountItem(
-                            question_number=number,
-                            adaptation_count=year_counts.get(number, 0),
-                        )
-                        for number in numbers
-                    ],
-                )
-            )
-        return sorted(items, key=lambda item: item.year, reverse=True)
 
     async def find_categories_by_subject(self, subject_id: int) -> list[str]:
         """返回科目下改编题实际使用的分类名称。"""
@@ -299,17 +212,6 @@ class AdaptationQueryService:
             for adaptation_id, labels in labels_by_question.items()
         }
         return sources_by_question, summaries
-
-    async def _build_source_counts(
-        self,
-        years: set[int],
-        subject_id: int | None,
-    ) -> dict[int, dict[int, int]]:
-        """把来源引用计数整理为年份到题号的映射。"""
-        counts: dict[int, dict[int, int]] = {}
-        for row in await self.repository.list_source_counts(years, subject_id):
-            counts.setdefault(row.source_year, {})[row.source_question_number] = row.count
-        return counts
 
     async def _find_reused_sources(
         self,

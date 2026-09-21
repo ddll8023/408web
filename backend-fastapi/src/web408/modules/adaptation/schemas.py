@@ -2,7 +2,7 @@
 
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field
 
 from web408.models.enums import DifficultyEnum, QuestionTypeEnum
 from web408.modules.question_content.schemas import (
@@ -106,80 +106,6 @@ class AdaptationSourceLookupItem(BaseModel):
     exam_question_id: int | None = Field(default=None, ge=1)
     exam_title: str | None = Field(default=None, description="命中的真题标题")
     exam_question_type: QuestionTypeEnum | None = Field(default=None, description="命中的真题题型")
-
-    model_config = ConfigDict(from_attributes=True)
-
-
-class AdaptationBySourceRequest(BaseModel):
-    """按真题来源反查改编题的请求。"""
-
-    source_year: int = Field(..., ge=1990, le=2100, description="来源真题年份")
-    source_question_number: int = Field(
-        ..., ge=1, le=MAX_SOURCE_QUESTION_NUMBER, description="来源真题题号"
-    )
-    subject_id: int | None = Field(default=None, ge=1, description="科目 ID 筛选")
-
-
-class AdaptationBySourceItem(BaseModel):
-    """反查结果项。"""
-
-    id: int = Field(..., ge=1)
-    title: str | None = Field(default=None)
-    question_type: QuestionTypeEnum
-    subject_id: int | None = Field(default=None, ge=1)
-    subject_name: str | None = Field(default=None)
-    update_time: str | None = Field(default=None)
-
-    model_config = ConfigDict(from_attributes=True)
-
-
-class AdaptationCoverageRequest(BaseModel):
-    """改编覆盖统计请求。"""
-
-    subject_id: int | None = Field(default=None, ge=1, description="科目 ID 筛选")
-    years: list[int] | None = Field(
-        default=None,
-        max_length=50,
-        description="年份列表，不传表示统计真题库中全部年份",
-    )
-
-    @field_validator("years")
-    @classmethod
-    def validate_years(cls, value: list[int] | None) -> list[int] | None:
-        """约束覆盖统计的年份范围，避免非法年份进入统计查询。"""
-        if value is not None and any(year < 1990 or year > 2100 for year in value):
-            raise ValueError("年份必须在 1990 到 2100 之间")
-        return value
-
-
-class AdaptationCoverageCountItem(BaseModel):
-    """覆盖统计中单题的改编次数。"""
-
-    question_number: int = Field(
-        ..., ge=1, le=MAX_SOURCE_QUESTION_NUMBER
-    )
-    adaptation_count: int = Field(..., ge=0)
-
-
-class AdaptationCoverageItem(BaseModel):
-    """按年份的改编覆盖统计项。"""
-
-    year: int = Field(..., ge=1990, le=2100)
-    total: int = Field(..., ge=0, description="该年真题总题数")
-    adapted: int = Field(..., ge=0, description="被引用的真题题目数")
-    missing_numbers: list[int] = Field(
-        default_factory=list,
-        description="尚未被改编的真题题号",
-    )
-    dangling_sources: int = Field(
-        default=0,
-        ge=0,
-        description="来源中无法对应真题库的引用条数",
-    )
-    counts: list[AdaptationCoverageCountItem] = Field(
-        default_factory=list,
-        description="题号及其被引用次数",
-    )
 
     model_config = ConfigDict(from_attributes=True)
 

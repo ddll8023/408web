@@ -50,7 +50,6 @@
             <DropdownItem command="exam">真题管理</DropdownItem>
             <DropdownItem command="mock">模拟题管理</DropdownItem>
             <DropdownItem command="adaptation">改编题管理</DropdownItem>
-            <DropdownItem command="adaptation-coverage">改编覆盖统计</DropdownItem>
             <DropdownItem command="compose">出题工作台</DropdownItem>
             <DropdownItem command="image">图片管理</DropdownItem>
             <DropdownItem command="exam-category">分类统计</DropdownItem>
@@ -175,7 +174,6 @@ const manageItems = [
   { command: 'exam', label: '真题管理' },
   { command: 'mock', label: '模拟题管理' },
   { command: 'adaptation', label: '改编题管理' },
-  { command: 'adaptation-coverage', label: '改编覆盖统计' },
   { command: 'compose', label: '出题工作台' },
   { command: 'image', label: '图片管理' },
   { command: 'exam-category', label: '分类统计' },
@@ -230,7 +228,6 @@ const handleManageCommand = (command: string | number) => {
     exam: '/manage/exam',
     mock: '/manage/mock',
     adaptation: '/manage/adaptation',
-    'adaptation-coverage': '/manage/adaptation-coverage',
     compose: '/manage/compose',
     image: '/manage/image',
     'exam-category': '/manage/exam-category',

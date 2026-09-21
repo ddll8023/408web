@@ -81,7 +81,7 @@ class AdaptationRepository:
         return result.first()
 
     async def list_by_ids(self, question_ids: set[int]) -> list[AdaptationQuestion]:
-        """批量查询改编题，供来源反查拼装题目信息。"""
+        """批量查询改编题，供来源占用提示拼装题目信息。"""
         if not question_ids:
             return []
         result = await self.session.exec(
@@ -110,7 +110,7 @@ class AdaptationRepository:
         keys: set[tuple[int, int]],
         exclude_adaptation_id: int | None = None,
     ) -> list[AdaptationSource]:
-        """按「年份 + 题号」读取来源行，供同源改编提示与反查使用。"""
+        """按「年份 + 题号」读取来源行，供同源改编提示使用。"""
         if not keys:
             return []
         conditions: list[Any] = [
@@ -131,37 +131,6 @@ class AdaptationRepository:
             .where(*conditions)
             .order_by(AdaptationSource.source_year.asc(), AdaptationSource.id.asc())
         )
-        return result.all()
-
-    async def list_source_counts(
-        self,
-        years: set[int],
-        subject_id: int | None = None,
-    ) -> list[Any]:
-        """按年份与题号统计被多少道改编题引用，同一改编题的不同小问只计一次。"""
-        if not years:
-            return []
-        statement = select(
-            AdaptationSource.source_year,
-            AdaptationSource.source_question_number,
-            func.count(func.distinct(AdaptationSource.adaptation_id)).label("count"),
-        )
-        if subject_id is not None:
-            statement = statement.join(
-                AdaptationQuestion,
-                AdaptationQuestion.id == AdaptationSource.adaptation_id,
-            )
-        statement = statement.where(AdaptationSource.source_year.in_(years))
-        if subject_id is not None:
-            statement = statement.where(AdaptationQuestion.subject_id == subject_id)
-        statement = statement.group_by(
-            AdaptationSource.source_year,
-            AdaptationSource.source_question_number,
-        ).order_by(
-            AdaptationSource.source_year.asc(),
-            AdaptationSource.source_question_number.asc(),
-        )
-        result = await self.session.exec(statement)
         return result.all()
 
     async def list_category_values(self, subject_id: int) -> list[str | None]:

@@ -71,21 +71,3 @@ class ExamReadService:
             for row in rows
             if row.question_number is not None
         }
-
-    async def list_question_numbers(
-        self,
-        years: set[int],
-        subject_id: int | None = None,
-    ) -> dict[int, list[int]]:
-        """返回年份到题号的映射，缺失年份由调用方补空列表。"""
-        rows = await self.repository.list_question_numbers(years, subject_id)
-        numbers_by_year: dict[int, list[int]] = {}
-        for row in rows:
-            if row.question_number is None:
-                continue
-            numbers_by_year.setdefault(row.year, []).append(row.question_number)
-        return numbers_by_year
-
-    async def list_years(self, subject_id: int | None = None) -> list[int]:
-        """返回真题库中已录入的年份，供改编覆盖统计使用。"""
-        return await self.repository.list_years(subject_id)

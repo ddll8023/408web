@@ -1,4 +1,4 @@
-"""改编题查询、维护、来源解析与覆盖统计 HTTP 路由。"""
+"""改编题查询、维护与来源解析 HTTP 路由。"""
 from fastapi import APIRouter, Depends, Path
 from sqlmodel.ext.asyncio.session import AsyncSession
 
@@ -6,10 +6,6 @@ from web408.api.dependencies import SessionDep
 from web408.modules.adaptation.command_service import AdaptationCommandService
 from web408.modules.adaptation.query_service import AdaptationQueryService
 from web408.modules.adaptation.schemas import (
-    AdaptationBySourceItem,
-    AdaptationBySourceRequest,
-    AdaptationCoverageItem,
-    AdaptationCoverageRequest,
     AdaptationCreateRequest,
     AdaptationSourceUsageCheckResponse,
     AdaptationSourceUsageRequest,
@@ -93,36 +89,6 @@ async def lookup_adaptation_sources(
 ) -> ApiResponse[list[AdaptationSourceLookupItem]]:
     """批量解析改编来源。"""
     items = await AdaptationQueryService(session).lookup_sources(request.sources)
-    return ApiResponse(data=items)
-
-
-@router.post(
-    "/by-source",
-    response_model=ApiResponse[list[AdaptationBySourceItem]],
-    summary="按真题来源反查改编题",
-    description="查询引用指定年份与题号的改编题列表",
-)
-async def find_adaptations_by_source(
-    request: AdaptationBySourceRequest,
-    session: SessionDep,
-) -> ApiResponse[list[AdaptationBySourceItem]]:
-    """按真题来源反查改编题。"""
-    items = await AdaptationQueryService(session).find_by_source(request)
-    return ApiResponse(data=items)
-
-
-@router.post(
-    "/source-coverage",
-    response_model=ApiResponse[list[AdaptationCoverageItem]],
-    summary="统计真题改编覆盖",
-    description="按年份统计真题总题数、已改编题数、未改编题号与悬空来源数",
-)
-async def get_adaptation_coverage(
-    request: AdaptationCoverageRequest,
-    session: SessionDep,
-) -> ApiResponse[list[AdaptationCoverageItem]]:
-    """统计真题改编覆盖情况。"""
-    items = await AdaptationQueryService(session).get_coverage(request)
     return ApiResponse(data=items)
 
 

@@ -90,11 +90,6 @@ const routes: RouteRecordRaw[] = [
     meta: { requiresAuth: true, requiresAdmin: true, keepAlive: true }
   },
   {
-    path: '/manage/adaptation-coverage',
-    component: () => import('@/views/admin/AdaptationCoverage.vue'),
-    meta: { requiresAuth: true, requiresAdmin: true, keepAlive: true }
-  },
-  {
     path: '/manage/compose',
     component: () => import('@/views/admin/QuestionCompose.vue'),
     meta: { requiresAuth: true, requiresAdmin: true, keepAlive: true }
