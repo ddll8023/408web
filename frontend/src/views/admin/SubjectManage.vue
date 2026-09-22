@@ -40,6 +40,29 @@
           </div>
         </template>
 
+        <!-- 窄屏卡片：避免在手机上强制横向滚动整张管理表格。 -->
+        <template #mobile="{ row }">
+          <div class="flex items-start justify-between gap-3">
+            <div class="min-w-0">
+              <h3 class="m-0 truncate text-base font-semibold text-gray-800">{{ row.name }}</h3>
+              <p class="m-0 mt-1 truncate text-xs text-gray-500">{{ row.code }}</p>
+            </div>
+            <Tag :type="row.enabled ? 'success' : 'danger'" class="shrink-0 whitespace-nowrap">
+              {{ row.enabled ? '启用' : '禁用' }}
+            </Tag>
+          </div>
+          <p v-if="row.description" class="mb-0 mt-3 line-clamp-2 text-sm text-gray-600">
+            {{ row.description }}
+          </p>
+          <div class="mt-3 flex flex-wrap justify-end gap-1 border-t border-gray-100 pt-2">
+            <CustomButton type="text-primary" size="sm" @click="handleEdit(row)">编辑</CustomButton>
+            <CustomButton type="text" size="sm" @click="handleToggleStatus(row)">
+              {{ row.enabled ? '禁用' : '启用' }}
+            </CustomButton>
+            <CustomButton type="text-danger" size="sm" @click="handleDelete(row)">删除</CustomButton>
+          </div>
+        </template>
+
         <!-- 空状态插槽 -->
         <template #empty>
           <div class="flex flex-col items-center py-12">
@@ -55,7 +78,7 @@
     </CustomCard>
 
     <!-- 编辑对话框 -->
-    <Dialog
+    <ResponsiveDialog
       v-model:visible="dialogVisible"
       :title="dialogMode === 'add' ? '新增科目' : '编辑科目'"
       width="600px"
@@ -164,7 +187,7 @@
           确定
         </CustomButton>
       </template>
-    </Dialog>
+    </ResponsiveDialog>
   </div>
 </template>
 
@@ -199,7 +222,7 @@ import {
 import CustomButton from '@/components/basic/CustomButton.vue'
 import CustomCard from '@/components/basic/CustomCard.vue'
 import Table from '@/components/basic/Table.vue'
-import Dialog from '@/components/basic/Dialog.vue'
+import ResponsiveDialog from '@/components/basic/ResponsiveDialog.vue'
 import CustomInput from '@/components/basic/CustomInput.vue'
 import InputNumber from '@/components/basic/InputNumber.vue'
 import Switch from '@/components/basic/Switch.vue'

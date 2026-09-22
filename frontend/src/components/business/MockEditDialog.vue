@@ -1,52 +1,12 @@
 <!-- 模拟题编辑弹窗：表单在桌面与移动视口内自适应。 -->
 <template>
-  <teleport to="body">
-    <transition name="dialog-fade">
-      <div
-        v-show="dialogVisible"
-        ref="dialogRef"
-        class="fixed inset-0 z-[1100] flex items-center justify-center p-2 sm:p-4"
-        role="dialog"
-        aria-modal="true"
-        :aria-labelledby="dialogTitleId"
-        :aria-busy="loading || saving"
-        :aria-hidden="!dialogVisible || undefined"
-        tabindex="-1"
-        @keydown="handleKeydown"
-      >
-        <!-- 遮罩层 -->
-        <div
-          class="fixed inset-0 bg-black/50 transition-opacity"
-          @click="handleBackdropClick"
-        />
-
-        <!-- 弹窗主体 -->
-        <div
-          class="question-edit-dialog-panel relative z-10 flex w-[min(1200px,calc(100vw-16px))] min-w-0 max-w-[1600px] flex-col overflow-hidden rounded-xl border border-gray-100 bg-white shadow-2xl sm:w-[min(1200px,calc(100vw-32px))]"
-        >
-          <!-- 头部 -->
-          <header class="flex items-center justify-between border-b border-accent/10 bg-gradient-to-r from-surface to-white px-4 py-3 sm:px-6 sm:py-4">
-            <div class="flex items-center gap-3">
-              <!-- 装饰图标 -->
-              <span class="w-8 h-8 rounded-lg bg-accent flex items-center justify-center text-white shadow-sm">
-                <font-awesome-icon :icon="['fas', 'pencil-alt']" />
-              </span>
-              <h3 :id="dialogTitleId" class="text-lg font-bold text-ink tracking-wide">
-                {{ isEditMode ? '编辑模拟题' : '新增模拟题' }}
-              </h3>
-            </div>
-            <button
-              type="button"
-              class="p-2 text-gray-400 hover:text-accent hover:bg-accent/5 rounded-lg transition-all duration-200"
-              @click="handleCancel"
-              aria-label="关闭"
-            >
-              <font-awesome-icon :icon="['fas', 'times']" class="text-lg" />
-            </button>
-          </header>
-
-          <!-- 内容区 -->
-          <div ref="contentRef" class="scrollbar-stable min-h-0 flex-1 overflow-y-auto p-3 sm:p-6">
+  <ResponsiveDialog
+    v-model:visible="dialogVisible"
+    :title="isEditMode ? '编辑模拟题' : '新增模拟题'"
+    width="1200px"
+    max-width="1600px"
+  >
+    <div ref="contentRef" class="p-3 sm:p-6">
             <QuestionJsonImportPanel
               v-model="jsonInput"
               v-model:visible="jsonImportVisible"
@@ -212,27 +172,25 @@
             </div>
           </div>
 
-          <!-- 底部 -->
-          <footer class="flex flex-shrink-0 flex-wrap items-center justify-end gap-3 border-t border-gray-100 bg-gradient-to-r from-gray-50 to-surface/30 px-4 py-3 sm:justify-between sm:px-6 sm:py-4">
-            <!-- 左侧提示 -->
-            <div class="hidden text-xs text-gray-400 sm:block">
-              <font-awesome-icon :icon="['fas', 'info-circle']" class="mr-1" />
-              按 <kbd class="px-1.5 py-0.5 bg-white border border-gray-200 rounded text-[10px] font-mono">Ctrl</kbd> + <kbd class="px-1.5 py-0.5 bg-white border border-gray-200 rounded text-[10px] font-mono">Enter</kbd> 快速提交
-            </div>
+          </div>
 
-            <!-- 右侧按钮 -->
-            <div class="flex w-full items-center justify-end gap-2 sm:w-auto sm:gap-3">
-              <CustomButton @click="handleCancel">取消</CustomButton>
-              <CustomButton type="primary" :loading="saving" @click="handleSubmit">
-                <font-awesome-icon :icon="isEditMode ? ['fas', 'save'] : ['fas', 'plus']" />
-                {{ isEditMode ? '保存修改' : '创建模拟题' }}
-              </CustomButton>
-            </div>
-          </footer>
+    <template #footer>
+      <div class="flex flex-shrink-0 flex-wrap items-center justify-end gap-3 sm:justify-between">
+        <div class="hidden text-xs text-gray-400 sm:block">
+          <font-awesome-icon :icon="['fas', 'info-circle']" class="mr-1" />
+          按 <kbd class="px-1.5 py-0.5 bg-white border border-gray-200 rounded text-[10px] font-mono">Ctrl</kbd> + <kbd class="px-1.5 py-0.5 bg-white border border-gray-200 rounded text-[10px] font-mono">Enter</kbd> 快速提交
+        </div>
+
+        <div class="flex w-full items-center justify-end gap-2 sm:w-auto sm:gap-3">
+          <CustomButton @click="handleCancel">取消</CustomButton>
+          <CustomButton type="primary" :loading="saving" @click="handleSubmit">
+            <font-awesome-icon :icon="isEditMode ? ['fas', 'save'] : ['fas', 'plus']" />
+            {{ isEditMode ? '保存修改' : '创建模拟题' }}
+          </CustomButton>
         </div>
       </div>
-    </transition>
-  </teleport>
+    </template>
+  </ResponsiveDialog>
 </template>
 
 <script setup lang="ts">
@@ -245,13 +203,14 @@ import type { PropType } from 'vue'
  * 依赖：MarkdownEditor、CustomButton、InputSelect、Select、FormLabel、MultiSelectCascader 基础组件
  * 依赖：useQuestionForm、useJsonImport、useToast composables
  */
-import { ref, computed, watch, nextTick, onBeforeUnmount } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { getMockQuestionById, updateMockQuestion, createMockQuestion, getAllMockSources, getMockTitlesBySource } from '@/api/mock'
 import { useQuestionForm } from '@/composables/useQuestionForm'
 import { useJsonImport } from '@/composables/useJsonImport'
 import { useToast } from '@/composables/useToast'
 import MarkdownEditor from '@/components/basic/MarkdownEditor.vue'
 import CustomButton from '@/components/basic/CustomButton.vue'
+import ResponsiveDialog from '@/components/basic/ResponsiveDialog.vue'
 import InputSelect from '@/components/basic/InputSelect.vue'
 import MultiSelectCascader from '@/components/basic/MultiSelectCascader.vue'
 import FormLabel from '@/components/basic/FormLabel.vue'
@@ -266,12 +225,7 @@ const props = defineProps({
 
 const emit = defineEmits<{ 'update:visible': [visible: boolean]; success: [question: MockQuestion | null] }>()
 
-let nextEditDialogId = 0
-const dialogTitleId = `mock-edit-dialog-title-${++nextEditDialogId}`
-const dialogRef = ref<HTMLElement | null>(null)
 const contentRef = ref<HTMLElement | null>(null)
-let previouslyFocused: HTMLElement | null = null
-let previousBodyOverflow = ''
 
 const dialogVisible = computed({
   get: () => props.visible,
@@ -387,56 +341,6 @@ const loadMockData = async (id: number | string | null) => {
   }
 }
 
-// 点击遮罩层关闭
-const handleBackdropClick = () => {
-  // 不自动关闭，需要点击取消按钮
-}
-
-const getFocusableElements = () => Array.from(
-  dialogRef.value?.querySelectorAll<HTMLElement>(
-    'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
-  ) || []
-)
-
-const focusInitialElement = () => {
-  const first = getFocusableElements()[0]
-  ;(first || dialogRef.value)?.focus()
-}
-
-const restoreFocus = () => {
-  const target = previouslyFocused
-  previouslyFocused = null
-  if (target?.isConnected) target.focus()
-}
-
-const handleKeydown = (event: KeyboardEvent) => {
-  if (!dialogVisible.value) return
-
-  if (event.key === 'Escape') {
-    event.preventDefault()
-    handleCancel()
-    return
-  }
-
-  if (event.key !== 'Tab') return
-  const elements = getFocusableElements()
-  if (elements.length === 0) {
-    event.preventDefault()
-    dialogRef.value?.focus()
-    return
-  }
-
-  const first = elements[0]
-  const last = elements[elements.length - 1]
-  if (event.shiftKey && document.activeElement === first) {
-    event.preventDefault()
-    last.focus()
-  } else if (!event.shiftKey && document.activeElement === last) {
-    event.preventDefault()
-    first.focus()
-  }
-}
-
 // 初始化弹窗
 const initDialog = async () => {
   // 优先使用传入的数据对象（来自列表页），避免重复请求API
@@ -473,22 +377,9 @@ const initDialog = async () => {
 }
 
 watch(() => props.visible, async (visible) => {
-  if (typeof document === 'undefined') return
-
   if (visible) {
-    previouslyFocused = document.activeElement instanceof HTMLElement ? document.activeElement : null
-    previousBodyOverflow = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
     await initDialog()
-    await nextTick()
-    if (!isEditMode.value) {
-      resetContentScroll()
-    }
-    focusInitialElement()
-  } else {
-    document.body.style.overflow = previousBodyOverflow
-    previousBodyOverflow = ''
-    restoreFocus()
+    if (!isEditMode.value) resetContentScroll()
   }
 })
 
@@ -611,37 +502,9 @@ const handleCancel = () => {
   dialogVisible.value = false
 }
 
-onBeforeUnmount(() => {
-  if (typeof document !== 'undefined') {
-    document.body.style.overflow = previousBodyOverflow
-  }
-  restoreFocus()
-})
 </script>
 
 <style scoped>
-/* 弹窗遮罩层过渡 */
-.dialog-fade-enter-active,
-.dialog-fade-leave-active {
-  transition: opacity 0.3s ease;
-}
-
-.dialog-fade-enter-from,
-.dialog-fade-leave-to {
-  opacity: 0;
-}
-
-.dialog-fade-enter-active .bg-white,
-.dialog-fade-leave-active .bg-white {
-  transition: opacity 0.3s ease, transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-.dialog-fade-enter-from .bg-white,
-.dialog-fade-leave-to .bg-white {
-  opacity: 0;
-  transform: scale(0.95) translateY(-10px);
-}
-
 /* JSON 区域滑入动画 */
 .slide-fade-enter-active {
   transition: all 0.3s ease-out;
@@ -659,27 +522,5 @@ onBeforeUnmount(() => {
 .slide-fade-leave-to {
   opacity: 0;
   transform: translateY(-5px);
-}
-
-.question-edit-dialog-panel {
-  max-height: calc(100vh - 16px);
-}
-
-@supports (height: 100dvh) {
-  .question-edit-dialog-panel {
-    max-height: calc(100dvh - 16px);
-  }
-}
-
-@media (min-width: 640px) {
-  .question-edit-dialog-panel {
-    max-height: calc(100vh - 32px);
-  }
-
-  @supports (height: 100dvh) {
-    .question-edit-dialog-panel {
-      max-height: calc(100dvh - 32px);
-    }
-  }
 }
 </style>

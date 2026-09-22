@@ -1,6 +1,6 @@
 <!-- 改编题编辑弹窗：维护改编题内容与来源引用，保存前提示来源占用情况。 -->
 <template>
-  <Dialog
+  <ResponsiveDialog
     v-model:visible="dialogVisible"
     :title="isEditMode ? '编辑改编题' : '新增改编题'"
     width="1000px"
@@ -137,14 +137,14 @@
         </div>
       </div>
     </template>
-  </Dialog>
+  </ResponsiveDialog>
 </template>
 
 <script setup lang="ts">
 /**
  * AdaptationEditDialog 改编题编辑弹窗
  * 功能：新增或编辑改编题，维护题干、选项、答案解析与来源引用
- * 依赖：Dialog、MarkdownEditor、Select、MultiSelectCascader 等基础组件
+ * 依赖：ResponsiveDialog、MarkdownEditor、Select、MultiSelectCascader 等基础组件
  * 依赖：useQuestionForm、useToast composables 与 AdaptationSourceEditor 业务组件
  */
 import type { AdaptationQuestion, AdaptationSourceRefInput } from '@/types'
@@ -160,7 +160,7 @@ import { useJsonImport } from '@/composables/useJsonImport'
 import { useQuestionForm } from '@/composables/useQuestionForm'
 import { useToast } from '@/composables/useToast'
 import CustomButton from '@/components/basic/CustomButton.vue'
-import Dialog from '@/components/basic/Dialog.vue'
+import ResponsiveDialog from '@/components/basic/ResponsiveDialog.vue'
 import FormLabel from '@/components/basic/FormLabel.vue'
 import MarkdownEditor from '@/components/basic/MarkdownEditor.vue'
 import MultiSelectCascader from '@/components/basic/MultiSelectCascader.vue'

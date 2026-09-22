@@ -1,3 +1,6 @@
+/**
+ * 管理分类大纲的激活状态、滚动观察和页内跳转，并绑定到业务页面提供的内容滚动容器。
+ */
 import { nextTick, onBeforeUnmount, ref, watch, type Ref } from 'vue'
 import type { CategoryOutlineItem } from '@/types'
 
@@ -82,7 +85,8 @@ export function useCategoryOutline({
     })
   }
 
-  watch(items, refresh, { flush: 'post', immediate: true })
+  // 布局外壳负责创建滚动容器，容器引用变化时也需要重新建立观察器。
+  watch([items, containerRef], refresh, { flush: 'post', immediate: true })
   onBeforeUnmount(() => {
     refreshVersion += 1
     disconnect()

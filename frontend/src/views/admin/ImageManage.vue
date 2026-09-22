@@ -77,6 +77,48 @@
             删除
           </CustomButton>
         </template>
+
+        <!-- 窄屏卡片：预览、文件信息和引用关系集中展示。 -->
+        <template #mobile="{ row }">
+          <div class="flex items-start gap-3">
+            <button
+              v-if="row.url"
+              type="button"
+              class="shrink-0 rounded border-0 bg-transparent p-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+              @click="openPreview(row.url)"
+            >
+              <img
+                :src="getFullUrl(row.url)"
+                :alt="`预览图片 ${row.filename || ''}`"
+                class="h-16 w-16 rounded object-cover"
+              />
+            </button>
+            <div class="min-w-0 flex-1">
+              <h3 class="m-0 truncate text-sm font-semibold text-gray-800">{{ row.filename || '未命名图片' }}</h3>
+              <dl class="mt-2 space-y-1 text-xs text-gray-500">
+                <div class="flex justify-between gap-3"><dt>大小</dt><dd class="m-0">{{ formatSize(row.size) }}</dd></div>
+                <div class="flex justify-between gap-3"><dt>修改时间</dt><dd class="m-0 text-right">{{ formatTime(row.lastModified) }}</dd></div>
+              </dl>
+            </div>
+          </div>
+          <div class="mt-3 border-t border-gray-100 pt-2">
+            <div v-if="row.exams && row.exams.length" class="flex flex-wrap gap-1">
+              <Tag v-for="exam in row.exams" :key="exam.id" type="info">
+                {{ formatExamLabel(exam) }}
+              </Tag>
+            </div>
+            <span v-else class="text-xs text-gray-400">
+              <font-awesome-icon :icon="['fas', 'link-slash']" class="mr-1" />
+              未引用
+            </span>
+            <div class="mt-2 flex justify-end">
+              <CustomButton type="text-danger" size="sm" :loading="row.deleteLoading" @click="handleDelete(row)">
+                <font-awesome-icon :icon="['fas', 'trash']" class="mr-1" />
+                删除
+              </CustomButton>
+            </div>
+          </div>
+        </template>
       </Table>
     </CustomCard>
 

@@ -1,7 +1,7 @@
 <!-- 改编题分类阅读页面：复用真题/模拟题的科目导航、分类分组和题目锚点跳转。 -->
 <template>
-  <div class="app-viewport-page overflow-hidden flex flex-col bg-surface">
-    <div class="flex-1 flex flex-col md:flex-row relative overflow-hidden">
+  <ReadingLayout @content-ready="setContentScroller">
+    <template #wide-nav>
       <SubjectSidebar
         v-model:is-collapsed="isNavCollapsed"
         v-model:expanded-ids="expandedCategoryIds"
@@ -15,34 +15,36 @@
         @toggle-expand="toggleSubjectExpand"
         @select-category="(payload) => handleCategorySelect(payload.subject, payload.category)"
       />
+    </template>
 
-      <div ref="contentScroller" class="scrollbar-stable flex-1 w-full min-w-0 overflow-y-auto bg-surface md:w-0">
-        <MobileQuestionNav
-          v-model:visible="navSheetVisible"
-          :title="currentTitle"
-          :count="displayTotal"
-          :outline-items="outlineItems"
-          :active-outline-id="activeOutlineId"
-          kind="adaptation"
-          @outline-jump="handleNavSheetOutlineJump"
-        >
-          <template #nav>
-            <SubjectNavList
-              v-model:expanded-ids="expandedCategoryIds"
-              :subjects="subjects"
-              :subject-categories="subjectCategories"
-              :active-subject-id="activeSubjectId"
-              :expanded-subject-id="expandedSubjectId"
-              :filter-category="filterCategory"
-              :loading="loadingSubjects"
-              auto-scroll-active
-              @select-subject="handleSubjectSelect"
-              @select-category="handleNavSheetCategorySelect"
-            />
-          </template>
-        </MobileQuestionNav>
+    <template #compact-nav>
+      <MobileQuestionNav
+        v-model:visible="navSheetVisible"
+        :title="currentTitle"
+        :count="displayTotal"
+        :outline-items="outlineItems"
+        :active-outline-id="activeOutlineId"
+        kind="adaptation"
+        @outline-jump="handleNavSheetOutlineJump"
+      >
+        <template #nav>
+          <SubjectNavList
+            v-model:expanded-ids="expandedCategoryIds"
+            :subjects="subjects"
+            :subject-categories="subjectCategories"
+            :active-subject-id="activeSubjectId"
+            :expanded-subject-id="expandedSubjectId"
+            :filter-category="filterCategory"
+            :loading="loadingSubjects"
+            auto-scroll-active
+            @select-subject="handleSubjectSelect"
+            @select-category="handleNavSheetCategorySelect"
+          />
+        </template>
+      </MobileQuestionNav>
+    </template>
 
-        <div class="min-h-full bg-surface">
+    <div class="min-h-full bg-surface">
           <div class="p-4">
             <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div class="hidden min-w-0 flex-1 items-center gap-3 md:flex">
@@ -152,10 +154,8 @@
           :adaptation="selectedSourceAdaptation"
         />
 
-        <BackTop :right="32" :bottom="32" />
-      </div>
-    </div>
-  </div>
+      <BackTop :right="32" :bottom="32" />
+  </ReadingLayout>
 </template>
 
 <script setup lang="ts">
@@ -175,6 +175,7 @@ import {
 } from '@/api/adaptation'
 import { getCategoryStats, getEnabledCategoryTreeBySubjectWithStats } from '@/api/category'
 import { getEnabledSubjects } from '@/api/subject'
+import ReadingLayout from '@/app/layouts/ReadingLayout.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useConfirm } from '@/composables/useConfirm'
 import { useToast } from '@/composables/useToast'
@@ -241,6 +242,9 @@ const sourceDialogVisible = ref(false)
 const selectedSourceAdaptation = ref<AdaptationQuestion | null>(null)
 const deletingAdaptationId = ref<number | null>(null)
 const contentScroller = ref<HTMLElement | null>(null)
+const setContentScroller = (element: HTMLElement | null) => {
+  contentScroller.value = element
+}
 
 const currentTitle = computed(() => {
   if (activeSubjectName.value && filterCategory.value) {

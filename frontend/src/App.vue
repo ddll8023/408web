@@ -1,43 +1,8 @@
+<!-- Vue 应用根组件：将全局布局职责交给 AppShell。 -->
 <template>
-  <div id="app">
-    <!-- 顶部导航栏（登录/注册页面不显示） -->
-    <Navigation v-if="showNavigation" />
-    
-    <!-- 主内容区域 -->
-    <div :class="['main-content', { 'with-nav': showNavigation }]">
-      <router-view v-slot="{ Component, route }">
-        <keep-alive v-if="route.meta && route.meta.keepAlive">
-          <component
-            :is="Component"
-          />
-        </keep-alive>
-        <component
-          :is="Component"
-          v-else
-        />
-      </router-view>
-    </div>
-  </div>
+  <AppShell />
 </template>
 
 <script setup lang="ts">
-/**
- * 应用根组件
- * 管理全局布局结构：导航栏 + 内容区域
- * 遵循KISS原则：简洁的布局管理
- */
-import { computed } from 'vue'
-import { useRoute } from 'vue-router'
-import Navigation from '@/components/business/Navigation.vue'
-
-const route = useRoute()
-
-/**
- * 判断是否显示导航栏
- * 登录和注册页面不显示导航栏
- */
-const showNavigation = computed(() => {
-  const noNavRoutes = ['/login', '/register']
-  return !noNavRoutes.includes(route.path)
-})
+import AppShell from '@/app/layouts/AppShell.vue'
 </script>

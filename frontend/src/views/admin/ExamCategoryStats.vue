@@ -196,7 +196,32 @@
                   </button>
 
                   <div v-show="isSectionExpanded(section.key)" :id="`${getSectionDomId(section.key)}-content`" class="border-t border-gray-100 bg-white">
-                    <div v-if="section.children.length > 0" class="overflow-x-auto">
+                    <div v-if="section.children.length > 0 && isCompactViewport" class="space-y-2 p-3">
+                      <article
+                        v-for="row in section.children"
+                        :key="row.id"
+                        class="rounded-lg border border-gray-100 bg-surface/40 p-3"
+                        :class="{ 'border-amber-200 bg-amber-50/40': row.isUnfiled }"
+                      >
+                        <div class="flex items-start justify-between gap-3">
+                          <div class="flex min-w-0 items-center gap-2">
+                            <span class="tree-marker" :class="row.hasChildren ? 'tree-marker-parent' : 'tree-marker-leaf'" aria-hidden="true"></span>
+                            <span class="min-w-0 truncate text-sm font-medium" :class="row.enabled || row.isUnfiled ? 'text-gray-700' : 'text-gray-400'">{{ row.category }}</span>
+                          </div>
+                          <span class="shrink-0 text-sm font-semibold text-gray-900">{{ formatNumber(row.count) }} 题</span>
+                        </div>
+                        <div class="mt-2 h-1.5 overflow-hidden rounded-full bg-gray-100" aria-hidden="true">
+                          <div class="h-full rounded-full bg-accent/65" :style="{ width: getBarWidth(row.count, section.maxChildCount) }"></div>
+                        </div>
+                        <div class="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-500">
+                          <span>{{ row.scope }}</span>
+                          <span v-if="!row.enabled && !row.isUnfiled" class="text-orange-500">已禁用</span>
+                          <span class="text-[#5D88AE]">选择 {{ formatNumber(row.choiceCount) }}</span>
+                          <span class="text-[#B87542]">主观 {{ formatNumber(row.subjectiveCount) }}</span>
+                        </div>
+                      </article>
+                    </div>
+                    <div v-else-if="section.children.length > 0" class="overflow-x-auto">
                       <table class="category-detail-table w-full min-w-[720px] border-collapse">
                         <thead>
                           <tr class="border-b border-gray-100 bg-gray-50/80 text-left text-xs font-semibold text-gray-500">
@@ -290,6 +315,8 @@
 
 // 1. Vue 官方 API
 import { computed, onMounted, ref } from 'vue'
+import { MEDIA_QUERIES } from '@/shared/responsive/breakpoints'
+import { useMediaQuery } from '@/shared/responsive/useViewport'
 
 // 2. API 接口定义
 import { exportExamCategoryStats, getExamCategoryStats } from '@/api/exam'
@@ -352,6 +379,7 @@ const statsError = ref('')
 const expandedSections = ref<Set<string>>(new Set())
 let statsLoadVersion = 0
 
+const isCompactViewport = useMediaQuery(MEDIA_QUERIES.compact)
 const sortConfig = ref<TableSort>({ prop: null, order: null })
 const sortOptions = [
   { prop: null, label: '目录顺序' },

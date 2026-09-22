@@ -9,7 +9,12 @@ import { createRouter, createWebHistory } from 'vue-router'
 import type { RouteRecordRaw } from 'vue-router'
 
 declare module 'vue-router' {
-  interface RouteMeta { requiresAuth?: boolean; requiresAdmin?: boolean; keepAlive?: boolean }
+  interface RouteMeta {
+    requiresAuth?: boolean
+    requiresAdmin?: boolean
+    keepAlive?: boolean
+    layout?: 'app' | 'blank' | 'admin'
+  }
 }
 import { useAuthStore } from '@/stores/auth'
 
@@ -21,11 +26,13 @@ const routes: RouteRecordRaw[] = [
   },
   {
     path: '/login',
-    component: () => import('@/views/user/Login.vue')
+    component: () => import('@/views/user/Login.vue'),
+    meta: { layout: 'blank' }
   },
   {
     path: '/register',
-    component: () => import('@/views/user/Register.vue')
+    component: () => import('@/views/user/Register.vue'),
+    meta: { layout: 'blank' }
   },
   {
     path: '/user/center',
@@ -51,27 +58,27 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/manage/subject',
     component: () => import('@/views/admin/SubjectManage.vue'),
-    meta: { requiresAuth: true, requiresAdmin: true }
+    meta: { layout: 'admin', requiresAuth: true, requiresAdmin: true }
   },
   {
     path: '/manage/exam',
     component: () => import('@/views/admin/ExamManage.vue'),
-    meta: { requiresAuth: true, requiresAdmin: true, keepAlive: true }
+    meta: { layout: 'admin', requiresAuth: true, requiresAdmin: true, keepAlive: true }
   },
   {
     path: '/manage/category',
     component: () => import('@/views/admin/CategoryManage.vue'),
-    meta: { requiresAuth: true, requiresAdmin: true }
+    meta: { layout: 'admin', requiresAuth: true, requiresAdmin: true }
   },
   {
     path: '/manage/exam-category',
     component: () => import('@/views/admin/ExamCategoryStats.vue'),
-    meta: { requiresAuth: true, requiresAdmin: true }
+    meta: { layout: 'admin', requiresAuth: true, requiresAdmin: true }
   },
   {
     path: '/manage/image',
     component: () => import('@/views/admin/ImageManage.vue'),
-    meta: { requiresAuth: true, requiresAdmin: true }
+    meta: { layout: 'admin', requiresAuth: true, requiresAdmin: true }
   },
   // 模拟题相关路由
   {
@@ -88,17 +95,17 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/manage/mock',
     component: () => import('@/views/admin/MockManage.vue'),
-    meta: { requiresAuth: true, requiresAdmin: true, keepAlive: true }
+    meta: { layout: 'admin', requiresAuth: true, requiresAdmin: true, keepAlive: true }
   },
   {
     path: '/manage/adaptation',
     component: () => import('@/views/admin/AdaptationManage.vue'),
-    meta: { requiresAuth: true, requiresAdmin: true, keepAlive: true }
+    meta: { layout: 'admin', requiresAuth: true, requiresAdmin: true, keepAlive: true }
   },
   {
     path: '/manage/compose',
     component: () => import('@/views/admin/QuestionCompose.vue'),
-    meta: { requiresAuth: true, requiresAdmin: true, keepAlive: true }
+    meta: { layout: 'admin', requiresAuth: true, requiresAdmin: true, keepAlive: true }
   }
 ]
 

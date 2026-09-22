@@ -136,7 +136,7 @@
     </main>
 
     <!-- 添加收藏弹窗 -->
-    <Dialog
+    <ResponsiveDialog
       v-model:visible="addDialogVisible"
       title="添加收藏"
       width="600px"
@@ -200,7 +200,7 @@
           <Empty description="该科目暂无题目分类" />
         </div>
       </div>
-    </Dialog>
+    </ResponsiveDialog>
   </div>
 </template>
 
@@ -220,7 +220,7 @@ import { useFavorites } from '@/composables/useFavorites'
 import { getEnabledSubjects } from '@/api/subject'
 import { getExamCategoriesBySubject } from '@/api/exam'
 import CustomButton from '@/components/basic/CustomButton.vue'
-import Dialog from '@/components/basic/Dialog.vue'
+import ResponsiveDialog from '@/components/basic/ResponsiveDialog.vue'
 import Empty from '@/components/basic/Empty.vue'
 import { useToast } from '@/composables/useToast'
 import { useConfirm } from '@/composables/useConfirm'

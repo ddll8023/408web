@@ -192,6 +192,37 @@
               </CustomButton>
             </div>
           </template>
+
+          <!-- 窄屏卡片：突出来源、分类和编辑/删除操作。 -->
+          <template #mobile="{ row }">
+            <div class="flex items-start justify-between gap-3">
+              <div class="min-w-0">
+                <h3 class="m-0 text-base font-semibold text-gray-800">改编题 #{{ row.id }}</h3>
+                <p class="m-0 mt-1 line-clamp-2 text-sm text-gray-600">{{ row.sourceSummary || '未标注来源' }}</p>
+              </div>
+              <Tag :type="row.questionType === 'CHOICE' ? 'success' : 'primary'" size="sm" class="shrink-0">
+                {{ row.questionType === 'CHOICE' ? '选择题' : '主观题' }}
+              </Tag>
+            </div>
+            <div class="mt-3 flex flex-wrap gap-1">
+              <Tag
+                v-for="source in row.sources"
+                :key="`${source.sourceYear}-${source.sourceQuestionNumber}`"
+                :type="source.sourceExists ? 'success' : 'warning'"
+                size="sm"
+              >
+                {{ source.sourceYear }}-{{ source.sourceQuestionNumber }}
+              </Tag>
+              <Tag v-for="cat in (Array.isArray(row.category) ? row.category : [])" :key="cat" type="info" size="sm">{{ cat }}</Tag>
+            </div>
+            <div class="mt-3 flex items-center justify-between gap-2 border-t border-gray-100 pt-2 text-xs text-gray-500">
+              <span>{{ formatDateTime(row.updateTime) }}</span>
+              <div class="flex justify-end gap-1">
+                <CustomButton type="text-primary" size="sm" @click="handleEdit(row)">编辑</CustomButton>
+                <CustomButton type="text-danger" size="sm" :loading="row.deleteLoading" @click="handleDelete(row)">删除</CustomButton>
+              </div>
+            </div>
+          </template>
         </Table>
 
         <footer class="admin-pagination mt-6 flex justify-end border-t border-gray-100 pt-4">

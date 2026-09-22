@@ -1,11 +1,12 @@
 <template>
-  <Dialog
+  <ResponsiveDialog
     v-model:visible="visible"
     :title="state.title"
     aria-label="操作确认"
     width="420px"
     max-width="90vw"
     close-on-click-modal
+    close-on-backdrop
     @close="handleCancel"
   >
     <div class="flex items-start gap-4">
@@ -35,7 +36,7 @@
         </button>
       </div>
     </template>
-  </Dialog>
+  </ResponsiveDialog>
 </template>
 
 <script setup lang="ts">
@@ -44,7 +45,7 @@
  * 通过 utils/confirm.ts 提供命令式调用，同时复用通用 Dialog 的可访问性和焦点管理。
  */
 import { computed, reactive, ref } from 'vue'
-import Dialog from './Dialog.vue'
+import ResponsiveDialog from './ResponsiveDialog.vue'
 
 export type ConfirmType = 'success' | 'warning' | 'danger' | 'info'
 export type ConfirmMode = 'confirm' | 'alert'

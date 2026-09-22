@@ -63,7 +63,9 @@
  */
 import type { PropType } from 'vue'
 import type { CategoryOutlineItem } from '@/types'
-import { computed, onDeactivated, onMounted, onUnmounted } from 'vue'
+import { computed, onDeactivated, watch } from 'vue'
+import { MEDIA_QUERIES } from '@/shared/responsive/breakpoints'
+import { useMediaQuery } from '@/shared/responsive/useViewport'
 import BottomSheet from '@/components/basic/BottomSheet.vue'
 
 interface OutlineTheme {
@@ -123,21 +125,10 @@ const theme = computed(() => outlineThemes[props.kind])
 const open = () => emit('update:visible', true)
 
 // 抽屉挂载在 body 上不受根节点 md:hidden 约束，视口变宽时主动收起，避免残留遮罩
-let desktopQuery: MediaQueryList | null = null
-const handleDesktopChange = (event: MediaQueryListEvent) => {
-  if (event.matches) emit('update:visible', false)
-}
-
-onMounted(() => {
-  if (typeof window === 'undefined' || !window.matchMedia) return
-  desktopQuery = window.matchMedia('(min-width: 768px)')
-  desktopQuery.addEventListener('change', handleDesktopChange)
-})
-
-onUnmounted(() => {
-  desktopQuery?.removeEventListener('change', handleDesktopChange)
-  desktopQuery = null
-})
+const isWideViewport = useMediaQuery(MEDIA_QUERIES.wide)
+watch(isWideViewport, (isWide) => {
+  if (isWide) emit('update:visible', false)
+}, { immediate: true })
 
 // 页面被 keep-alive 缓存时先行收起，避免返回该页面时弹层仍然打开
 onDeactivated(() => {

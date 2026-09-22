@@ -11,6 +11,25 @@
       </slot>
     </div>
 
+    <!-- 窄屏卡片内容：页面提供 mobile 插槽时才切换，未提供时继续使用横向滚动表格。 -->
+    <div v-else-if="isCompactTable" class="space-y-3 p-1">
+      <article
+        v-for="(row, index) in data"
+        :key="getRowKey(row, index)"
+        class="rounded-lg border border-gray-200 bg-white p-3 shadow-sm"
+      >
+        <slot :name="'mobile'" :row="row" />
+      </article>
+      <div v-if="!data || data.length === 0" class="px-4 py-8 text-center text-gray-400">
+        <slot name="empty">
+          <div class="flex flex-col items-center">
+            <font-awesome-icon :icon="['fas', 'inbox']" class="mb-2 text-2xl opacity-50" aria-hidden="true" />
+            <span>暂无数据</span>
+          </div>
+        </slot>
+      </div>
+    </div>
+
     <!-- 表格内容 -->
     <table v-else class="w-full border-collapse" :style="fontStyle">
       <thead>
@@ -124,7 +143,9 @@
 
 <script setup lang="ts" generic="T extends object">
 import type { TableColumn, TableRowKey, TableSort } from './types'
-import { reactive, computed, onMounted, onUpdated, ref } from 'vue'
+import { reactive, computed, onMounted, onUpdated, ref, useSlots } from 'vue'
+import { MEDIA_QUERIES } from '@/shared/responsive/breakpoints'
+import { useMediaQuery } from '@/shared/responsive/useViewport'
 
 /**
  * Table 表格组件
@@ -159,7 +180,11 @@ const emit = defineEmits<{
   'selection-change': [payload: { key: TableRowKey; selected: boolean; row: T }]
   'select-all': [payload: { selected: boolean; rows: T[] }]
 }>()
-defineSlots<{ loading?: () => unknown; empty?: () => unknown } & { [name: string]: (props: { row: T; column: TableColumn }) => unknown }>()
+defineSlots<{ loading?: () => unknown; empty?: () => unknown } & { [name: string]: (props: { row: T; column?: TableColumn }) => unknown }>()
+const slots = useSlots()
+const isCompactViewport = useMediaQuery(MEDIA_QUERIES.compact)
+const isCompactTable = computed(() => isCompactViewport.value && Boolean(slots.mobile))
+
 const cellValue = (row: T, key: string): unknown => Reflect.get(row, key)
 
 const getRowKey = (row: T, index: number): TableRowKey => {

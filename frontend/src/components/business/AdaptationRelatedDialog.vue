@@ -1,6 +1,6 @@
 <!-- 真题关联改编题弹窗：按当前真题的年份和题号懒加载改编题摘要。 -->
 <template>
-  <Dialog
+  <ResponsiveDialog
     v-model:visible="dialogVisible"
     :title="dialogTitle"
     width="760px"
@@ -83,7 +83,7 @@
         @current-change="handlePageChange"
       />
     </div>
-  </Dialog>
+  </ResponsiveDialog>
 </template>
 
 <script setup lang="ts">
@@ -97,7 +97,7 @@ import type { AdaptationQuestion, ExamQuestion } from '@/types'
 import { getAdaptationList } from '@/api/adaptation'
 import { getDifficultyLabel, getDifficultyType } from '@/constants/exam'
 import CustomButton from '@/components/basic/CustomButton.vue'
-import Dialog from '@/components/basic/Dialog.vue'
+import ResponsiveDialog from '@/components/basic/ResponsiveDialog.vue'
 import Empty from '@/components/basic/Empty.vue'
 import Pagination from '@/components/basic/Pagination.vue'
 import Tag from '@/components/basic/Tag.vue'

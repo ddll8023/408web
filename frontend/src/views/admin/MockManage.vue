@@ -236,6 +236,37 @@
               </CustomButton>
             </div>
           </template>
+
+          <!-- 窄屏卡片：把题目上下文和出题操作集中到一张卡片。 -->
+          <template #mobile="{ row }">
+            <div class="flex items-start justify-between gap-3">
+              <div class="min-w-0">
+                <button type="button" class="block max-w-full truncate border-0 bg-transparent p-0 text-left text-base font-semibold text-accent hover:underline" @click="handleView(row)">
+                  {{ row.source }} · 第 {{ row.questionNumber ?? '-' }} 题
+                </button>
+                <p class="m-0 mt-1 line-clamp-2 text-sm text-gray-600">{{ row.title || '未填写标题' }}</p>
+              </div>
+              <Tag :type="row.questionType === 'CHOICE' ? 'success' : 'primary'" size="sm" class="shrink-0">
+                {{ row.questionType === 'CHOICE' ? '选择题' : '主观题' }}
+              </Tag>
+            </div>
+            <div class="mt-3 flex flex-wrap gap-1">
+              <Tag :type="row.isExamMarked ? 'success' : 'default'" size="sm">{{ row.isExamMarked ? '已出题' : '未出题' }}</Tag>
+              <Tag :type="row.wrongCount > 0 ? 'danger' : 'default'" size="sm">错题 {{ row.wrongCount }}</Tag>
+              <Tag v-if="row.difficulty" :type="getDifficultyType(row.difficulty)" size="sm">{{ getDifficultyLabel(row.difficulty) }}</Tag>
+            </div>
+            <div class="mt-3 flex flex-wrap justify-end gap-1 border-t border-gray-100 pt-2">
+              <MockExamActionMenu
+                :question="row"
+                :status-loading="row.examStatusLoading"
+                @word-copied="() => handleWordCopied(row)"
+                @toggle-exam-status="handleExamStatusToggle(row)"
+              />
+              <CustomButton type="text-danger" size="sm" :loading="row.wrongCountLoading" @click="openWrongCountDialog(row)">错题</CustomButton>
+              <CustomButton type="text-primary" size="sm" @click="handleEdit(row)">编辑</CustomButton>
+              <CustomButton type="text-danger" size="sm" :loading="row.deleteLoading" @click="handleDelete(row)">删除</CustomButton>
+            </div>
+          </template>
         </Table>
       </section>
 
@@ -263,7 +294,7 @@
     </BackTop>
 
     <!-- 错题计数弹窗 -->
-    <Dialog
+    <ResponsiveDialog
       v-model:visible="wrongCountDialogVisible"
       title="错题"
       width="440px"
@@ -300,7 +331,7 @@
           >保存</CustomButton>
         </div>
       </template>
-    </Dialog>
+    </ResponsiveDialog>
 
     <!-- 编辑弹窗 -->
     <MockEditDialog
@@ -354,7 +385,7 @@ import Table from '@/components/basic/Table.vue'
 import Pagination from '@/components/basic/Pagination.vue'
 import Tag from '@/components/basic/Tag.vue'
 import BackTop from '@/components/basic/BackTop.vue'
-import Dialog from '@/components/basic/Dialog.vue'
+import ResponsiveDialog from '@/components/basic/ResponsiveDialog.vue'
 
 // 业务组件
 import MockEditDialog from '@/components/business/MockEditDialog.vue'

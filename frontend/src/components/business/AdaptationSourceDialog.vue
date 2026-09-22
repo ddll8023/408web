@@ -1,6 +1,6 @@
 <!-- 改编题来源弹窗：展示关联真题，并支持新标签页定位到原真题。 -->
 <template>
-  <Dialog
+  <ResponsiveDialog
     v-model:visible="dialogVisible"
     :title="dialogTitle"
     width="680px"
@@ -43,7 +43,7 @@
         </p>
       </article>
     </div>
-  </Dialog>
+  </ResponsiveDialog>
 </template>
 
 <script setup lang="ts">
@@ -54,7 +54,7 @@
 import { computed, type PropType } from 'vue'
 import { useRouter } from 'vue-router'
 import type { AdaptationQuestion, AdaptationSourceRef } from '@/types'
-import Dialog from '@/components/basic/Dialog.vue'
+import ResponsiveDialog from '@/components/basic/ResponsiveDialog.vue'
 import Empty from '@/components/basic/Empty.vue'
 import Tag from '@/components/basic/Tag.vue'
 

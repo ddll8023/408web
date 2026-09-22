@@ -85,9 +85,12 @@
         <CustomButton size="sm" type="text" :disabled="listLoading" @click="() => loadMockList()">重试</CustomButton>
       </div>
 
-      <section class="compose-workspace">
-        <!-- 章节树 -->
-        <aside class="chapter-panel" aria-label="章节目录">
+      <QuestionComposeLayout
+        :chapter-title="activeChapterLabel"
+        :selected-count="selectedQuestions.length"
+      >
+        <template #chapter>
+          <aside class="chapter-panel" aria-label="章节目录">
           <header class="chapter-panel__header">
             <div>
               <p class="chapter-panel__eyebrow">章节导航</p>
@@ -125,10 +128,12 @@
               <p>暂无可用章节</p>
             </div>
           </template>
-        </aside>
+          </aside>
+        </template>
 
-        <!-- 章节题目内容 -->
-        <section ref="questionScroller" class="question-content" aria-label="章节题目">
+        <template #content>
+          <!-- 章节题目内容 -->
+          <section ref="questionScroller" class="question-content" aria-label="章节题目">
           <header class="question-content__header">
             <div>
               <p class="question-content__eyebrow">当前题目</p>
@@ -185,10 +190,10 @@
             <span v-else-if="hasMore" class="question-content__load-more-status">继续下滑加载更多</span>
             <span v-else class="question-content__load-more-status">已加载全部 {{ total }} 题</span>
           </div>
-        </section>
+          </section>
+        </template>
 
-        <!-- 出题篮 -->
-        <div class="question-basket-slot">
+        <template #basket>
           <QuestionBasket
             :questions="selectedQuestions"
             :disabled="batchMarking"
@@ -198,8 +203,8 @@
             @remove="removeSelectedQuestion"
             @word-copied="handleBatchWordCopied"
           />
-        </div>
-      </section>
+        </template>
+      </QuestionComposeLayout>
     </CustomCard>
 
     <BackTop :right="32" :bottom="32">
@@ -247,6 +252,7 @@ import Select from '@/components/basic/Select.vue'
 import BackTop from '@/components/basic/BackTop.vue'
 import MockEditDialog from '@/components/business/MockEditDialog.vue'
 import QuestionBasket from '@/components/business/QuestionBasket.vue'
+import QuestionComposeLayout from '@/components/business/QuestionComposeLayout.vue'
 import QuestionChapterSection from '@/components/business/QuestionChapterSection.vue'
 import QuestionChapterTree from '@/components/business/QuestionChapterTree.vue'
 import QuestionPreviewDrawer from '@/components/business/QuestionPreviewDrawer.vue'

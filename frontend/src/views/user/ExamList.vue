@@ -1,8 +1,7 @@
 <!-- 年份真题阅读页面：窄屏使用吸顶目录入口与底部目录抽屉，桌面端保留年份侧栏。 -->
 <template>
-  <div class="exam-page-container app-viewport-page overflow-hidden flex flex-col bg-surface">
-    <!-- 主要内容区域：窄屏上下排列，桌面端恢复左右分栏 -->
-    <div class="flex-1 flex flex-col md:flex-row relative overflow-hidden">
+  <ReadingLayout>
+    <template #wide-nav>
       <!-- 左侧年份导航栏（窄屏自动隐藏） -->
       <YearNav
         v-model:expanded-years="expandedYears"
@@ -14,32 +13,33 @@
         @exam-select="handleExamSelect"
         @collapse-change="handleNavCollapseChange"
       />
+    </template>
 
-      <!-- 右侧内容区域 -->
-      <div class="scrollbar-stable flex-1 w-full min-w-0 overflow-y-auto bg-surface md:w-0">
-        <!-- 窄屏目录入口与抽屉 -->
-        <MobileQuestionNav
-          v-model:visible="navSheetVisible"
-          :title="currentTitle"
-          :count="displayTotal"
-          kind="exam"
-        >
-          <template #nav>
-            <YearNavList
-              v-model:expanded-years="expandedYears"
-              :year-list="yearList"
-              :active-year="activeYear"
-              :active-exam-id="activeExamId"
-              :loading="loadingYearList"
-              auto-scroll-active
-              @year-select="handleYearSelect"
-              @exam-select="handleNavSheetExamSelect"
-            />
-          </template>
-        </MobileQuestionNav>
+    <template #compact-nav>
+      <!-- 窄屏目录入口与抽屉 -->
+      <MobileQuestionNav
+        v-model:visible="navSheetVisible"
+        :title="currentTitle"
+        :count="displayTotal"
+        kind="exam"
+      >
+        <template #nav>
+          <YearNavList
+            v-model:expanded-years="expandedYears"
+            :year-list="yearList"
+            :active-year="activeYear"
+            :active-exam-id="activeExamId"
+            :loading="loadingYearList"
+            auto-scroll-active
+            @year-select="handleYearSelect"
+            @exam-select="handleNavSheetExamSelect"
+          />
+        </template>
+      </MobileQuestionNav>
+    </template>
 
-        <!-- 使用 div + Tailwind 替代 el-card -->
-        <div class="min-h-full bg-surface">
+    <!-- 使用 div + Tailwind 替代 el-card -->
+    <div class="min-h-full bg-surface">
           <!-- 头部区域：窄屏标题已上移到目录入口，只保留导出与创建操作 -->
           <div class="flex flex-col items-stretch gap-3 px-4 py-4 border-b border-line sm:flex-row sm:items-center sm:justify-between sm:px-5">
             <div class="hidden min-w-0 flex-1 items-center gap-3 md:flex">
@@ -134,13 +134,11 @@
           @success="handleEditSuccess"
         />
 
-        <AdaptationRelatedDialog
-          v-model:visible="adaptationDialogVisible"
-          :exam="selectedAdaptationExam"
-        />
-      </div>
-    </div>
-  </div>
+    <AdaptationRelatedDialog
+      v-model:visible="adaptationDialogVisible"
+      :exam="selectedAdaptationExam"
+    />
+  </ReadingLayout>
 </template>
 
 <script setup lang="ts">
@@ -169,6 +167,7 @@ import CustomButton from '@/components/basic/CustomButton.vue'
 import Dropdown from '@/components/basic/Dropdown.vue'
 import DropdownItem from '@/components/basic/DropdownItem.vue'
 import Tag from '@/components/basic/Tag.vue'
+import ReadingLayout from '@/app/layouts/ReadingLayout.vue'
 import YearNav from '@/components/business/YearNav.vue'
 import YearNavList from '@/components/business/YearNavList.vue'
 import MobileQuestionNav from '@/components/business/MobileQuestionNav.vue'

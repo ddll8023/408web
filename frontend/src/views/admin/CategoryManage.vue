@@ -20,6 +20,10 @@
           { label: '模拟题', value: 'mock' },
           { label: '改编题', value: 'adaptation' }
         ]" @change="handleQuestionTypeChange" />
+        <CustomButton class="md:hidden" :disabled="moveSaving" @click="subjectFilterVisible = true">
+          <font-awesome-icon :icon="['fas', 'folder']" class="mr-1.5" />
+          科目筛选
+        </CustomButton>
         <CustomButton
           :disabled="!filterSubjectId || moveSaving || loading || codeRebuildLoading || draggingId !== null"
           :loading="codeRebuildLoading"
@@ -39,43 +43,26 @@
     <div class="category-manage-layout flex items-start gap-8">
       <!-- 左侧筛选栏 -->
       <aside class="category-manage-sidebar sticky top-4 w-64 flex-shrink-0">
-        <!-- 科目筛选列表 -->
-        <div class="bg-white rounded-xl p-6 shadow-sm border border-accent/8 mb-6">
-          <h3 class="m-0 mb-4 text-sm font-semibold text-accent flex items-center gap-2 pb-3 border-b border-accent/10">
-            <font-awesome-icon :icon="['fas', 'folder']" class="text-base" />
-            科目筛选
-          </h3>
-          <div class="flex flex-col gap-1">
-            <!-- 各科目选项 -->
-            <button
-              v-for="stat in subjectStats"
-              :key="stat.id"
-              type="button"
-              class="flex w-full items-center justify-between border-0 bg-transparent px-3 py-2.5 text-left rounded-lg cursor-pointer transition-all duration-200"
-              :class="[filterSubjectId === stat.id ? 'bg-gradient-to-r from-accent/12 to-accent/6' : 'hover:bg-accent/6', { 'pointer-events-none opacity-60': moveSaving }]"
-              :aria-disabled="moveSaving"
-              @click="handleStatClick(stat.id)"
-              @keydown.enter.prevent="handleStatClick(stat.id)"
-              @keydown.space.prevent="handleStatClick(stat.id)"
-            >
-              <div class="flex items-center gap-2.5 min-w-0">
-                <div class="w-7 h-7 flex items-center justify-center rounded-md bg-accent/8 text-ink-mute text-sm transition-all duration-200 flex-shrink-0" :class="{ '!bg-accent/15 !text-accent': filterSubjectId === stat.id }">
-                  <font-awesome-icon :icon="['fas', 'folder']" />
-                </div>
-                <span class="text-sm text-ink whitespace-nowrap overflow-hidden text-ellipsis transition-all duration-200" :class="{ '!text-accent !font-semibold': filterSubjectId === stat.id }">{{ stat.name }}</span>
-                <CustomTooltip v-if="stat.enabledCount < stat.count" :content="`${stat.count - stat.enabledCount} 个分类已禁用`" placement="top">
-                  <font-awesome-icon :icon="['fas', 'exclamation-triangle']" class="text-[#e6a23c] text-sm ml-1" />
-                </CustomTooltip>
-              </div>
-              <!-- 显示题目引用数量 -->
-              <span class="min-w-[36px] px-2 py-0.5 text-xs font-semibold text-center rounded-[10px] bg-accent/10 text-accent" :class="{ '!bg-accent !text-white': filterSubjectId === stat.id }">
-                {{ stat.questionCount }}
-              </span>
-            </button>
-          </div>
-        </div>
-
+        <CategorySubjectFilter
+          :stats="subjectStats"
+          :selected-id="filterSubjectId"
+          :disabled="moveSaving"
+          @select="handleStatClick"
+        />
       </aside>
+
+      <BottomSheet
+        v-model:visible="subjectFilterVisible"
+        title="科目筛选"
+        max-height="min(78dvh, 680px)"
+      >
+        <CategorySubjectFilter
+          :stats="subjectStats"
+          :selected-id="filterSubjectId"
+          :disabled="moveSaving"
+          @select="handleMobileSubjectSelect"
+        />
+      </BottomSheet>
 
       <!-- 右侧主内容区 -->
       <main
@@ -297,7 +284,7 @@
     </div>
 
     <!-- 编辑对话框 -->
-    <CustomDialog
+    <ResponsiveDialog
       v-model:visible="dialogVisible"
       :title="dialogMode === 'add' ? '新增分类' : '编辑分类'"
       width="680px"
@@ -475,7 +462,7 @@
           </CustomButton>
         </div>
       </template>
-    </CustomDialog>
+    </ResponsiveDialog>
   </div>
 </template>
 
@@ -491,7 +478,10 @@ type UnmappedMockCategory = { subjectId: number; subjectName: string; name: stri
  * 功能：按科目管理统一分类目录的CRUD操作（仅ADMIN可访问）
  * 大纲支持整棵子树拖拽和原子保存；题目类型仅切换统计口径。
  */
-import { ref, reactive, computed, nextTick, onBeforeUnmount, onMounted } from 'vue'
+import { ref, reactive, computed, nextTick, onBeforeUnmount, onMounted, watch } from 'vue'
+import BottomSheet from '@/components/basic/BottomSheet.vue'
+import { MEDIA_QUERIES } from '@/shared/responsive/breakpoints'
+import { useMediaQuery } from '@/shared/responsive/useViewport'
 
 // 工具函数 / 常量
 import { useToast } from '@/composables/useToast'
@@ -516,7 +506,7 @@ import { getMockCategoryStatsBySubject, getMockSubjectStats } from '@/api/mock'
 
 // 自定义组件导入
 import CustomButton from '@/components/basic/CustomButton.vue'
-import CustomDialog from '@/components/basic/Dialog.vue'
+import ResponsiveDialog from '@/components/basic/ResponsiveDialog.vue'
 import CustomSelect from '@/components/basic/Select.vue'
 import CustomInput from '@/components/basic/CustomInput.vue'
 import CustomTag from '@/components/basic/Tag.vue'
@@ -525,6 +515,7 @@ import CustomSwitch from '@/components/basic/Switch.vue'
 import CustomInputNumber from '@/components/basic/InputNumber.vue'
 import CustomTooltip from '@/components/basic/Tooltip.vue'
 import CustomRadioGroup from '@/components/basic/RadioGroup.vue'
+import CategorySubjectFilter from '@/components/business/CategorySubjectFilter.vue'
 
 const { showToast } = useToast()
 const { showConfirm } = useConfirm()
@@ -540,6 +531,11 @@ const subjectOptions = ref<Subject[]>([])
 
 // 筛选科目ID
 const filterSubjectId = ref<number | null>(null)
+const subjectFilterVisible = ref(false)
+const isWideViewport = useMediaQuery(MEDIA_QUERIES.wide)
+watch(isWideViewport, (isWide) => {
+  if (isWide) subjectFilterVisible.value = false
+})
 
 // 题目类型筛选（exam=真题, mock=模拟题, adaptation=改编题）
 const questionType = ref<'exam' | 'mock' | 'adaptation'>('exam')
@@ -904,6 +900,11 @@ const handleStatClick = async (subjectId: number | null) => {
   categories.value = []
   initTreeExpandedKeys()
   await loadCategories()
+}
+
+const handleMobileSubjectSelect = async (subjectId: number) => {
+  subjectFilterVisible.value = false
+  await handleStatClick(subjectId)
 }
 
 /**

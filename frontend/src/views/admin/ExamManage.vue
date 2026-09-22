@@ -198,6 +198,33 @@
               </CustomButton>
             </div>
           </template>
+
+          <!-- 窄屏卡片：保留题目定位、编辑和删除操作。 -->
+          <template #mobile="{ row }">
+            <div class="flex items-start justify-between gap-3">
+              <div class="min-w-0">
+                <button type="button" class="block max-w-full truncate border-0 bg-transparent p-0 text-left text-base font-semibold text-accent hover:underline" @click="handleView(row)">
+                  {{ row.year }} 年第 {{ row.questionNumber ?? '-' }} 题
+                </button>
+                <p class="m-0 mt-1 line-clamp-2 text-sm text-gray-600">{{ row.title || '未填写标题' }}</p>
+              </div>
+              <Tag :type="row.questionType === 'CHOICE' ? 'success' : 'primary'" size="sm" class="shrink-0">
+                {{ row.questionType === 'CHOICE' ? '选择题' : '主观题' }}
+              </Tag>
+            </div>
+            <div class="mt-3 flex flex-wrap gap-1">
+              <Tag v-for="cat in (Array.isArray(row.category) ? row.category : [])" :key="cat" type="info" size="sm">{{ cat }}</Tag>
+              <Tag v-if="row.difficulty" :type="getDifficultyType(row.difficulty)" size="sm">{{ getDifficultyLabel(row.difficulty) }}</Tag>
+            </div>
+            <div class="mt-3 flex items-center justify-between gap-2 border-t border-gray-100 pt-2 text-xs text-gray-500">
+              <span>{{ formatDateTime(row.updateTime) }}</span>
+              <div class="flex flex-wrap justify-end gap-1">
+                <CustomButton type="text" size="sm" @click="handleView(row)">查看</CustomButton>
+                <CustomButton type="text-primary" size="sm" @click="handleEdit(row)">编辑</CustomButton>
+                <CustomButton type="text-danger" size="sm" :loading="row.deleteLoading" @click="handleDelete(row)">删除</CustomButton>
+              </div>
+            </div>
+          </template>
         </Table>
 
         <!-- 分页 -->

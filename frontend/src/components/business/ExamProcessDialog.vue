@@ -1,6 +1,6 @@
 <!-- 真题过程图片弹窗：独立展示图片，不参与题干和答案渲染。 -->
 <template>
-  <Dialog
+  <ResponsiveDialog
     :visible="props.visible"
     :title="props.title"
     aria-label="真题过程图片"
@@ -75,7 +75,7 @@
         </div>
       </figure>
     </div>
-  </Dialog>
+  </ResponsiveDialog>
 </template>
 
 <script setup lang="ts">
@@ -84,7 +84,7 @@
  * 只负责图片展示和排序操作，不负责题目内容、答案或文件上传。
  */
 import type { ExamProcessImage } from '@/types'
-import Dialog from '@/components/basic/Dialog.vue'
+import ResponsiveDialog from '@/components/basic/ResponsiveDialog.vue'
 import CustomButton from '@/components/basic/CustomButton.vue'
 import { getImageUrl } from '@/api/upload'
 
