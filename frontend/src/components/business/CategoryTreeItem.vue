@@ -9,7 +9,7 @@
   <div class="category-tree-item" :class="{ 'is-root': level === 0 }">
     <!-- 当前分类节点 -->
     <div
-      class="category-item relative flex items-center min-h-9 h-auto py-1.5 pr-3 mb-0.5 rounded-lg cursor-pointer text-sm transition-all duration-300 ease-out"
+      class="category-item relative flex items-center min-h-9 h-auto py-1.5 pr-3 mb-0.5 rounded-lg cursor-pointer text-sm transition-colors duration-200 ease-out"
       :class="itemClasses"
       :style="{ paddingLeft: `${baseIndent + level * indentStep}px` }"
       :tabindex="0"
@@ -28,7 +28,7 @@
       <!-- 展开/折叠图标（有子分类时显示） -->
       <span
         v-if="hasChildren"
-        class="expand-icon-wrapper flex shrink-0 items-center justify-center w-5 h-5 mr-1 rounded-md transition-all duration-300"
+        class="expand-icon-wrapper flex shrink-0 items-center justify-center w-5 h-5 mr-1 rounded-md transition-colors duration-200"
         :class="iconWrapperClasses"
         @click.stop="toggleExpand"
       >
@@ -50,10 +50,10 @@
       <!-- 无子分类时显示精致圆点指示器 -->
       <span
         v-else
-        class="dot-indicator flex shrink-0 mr-2 transition-all duration-300 rounded-full"
+        class="dot-indicator flex shrink-0 mr-2 transition-transform duration-200 rounded-full"
         :class="dotClasses"
       >
-        <span class="dot-inner w-1.5 h-1.5 rounded-full transition-all duration-300"></span>
+        <span class="dot-inner w-1.5 h-1.5 rounded-full transition-transform duration-200"></span>
       </span>
 
       <!-- 分类图标（顶级分类显示） -->
@@ -74,26 +74,20 @@
 
       <!-- 题目数量标签 -->
       <transition name="count-fade">
-        <span v-if="totalCount > 0" class="category-count flex shrink-0 ml-2 px-2 py-0.5 text-xs rounded-full transition-all duration-200" :class="countClasses">
+        <span v-if="totalCount > 0" class="category-count flex shrink-0 ml-2 px-2 py-0.5 text-xs rounded-full transition-colors duration-200" :class="countClasses">
           {{ totalCount }}
         </span>
       </transition>
 
       <!-- 激活指示器 -->
-      <span v-if="isActive" class="active-indicator absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-[var(--theme-color)] rounded-r-full transition-all duration-300"></span>
+      <span v-if="isActive" class="active-indicator absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-[var(--theme-color)] rounded-r-full transition-opacity duration-200"></span>
     </div>
 
     <!-- 子分类列表（递归渲染） -->
-    <Transition
-      @before-enter="beforeEnter"
-      @enter="enter"
-      @leave="leave"
-      :css="false"
-    >
+    <Transition name="category">
       <div
-        v-show="hasChildren && isExpanded"
+        v-if="hasChildren && isExpanded"
         class="sub-category-list mt-0.5 pb-1 overflow-hidden"
-        :style="{ '--child-count': category.children?.length || 0 }"
         role="group"
       >
         <CategoryTreeItem
@@ -305,47 +299,7 @@ const handleChildToggleExpand = (categoryId: number) => {
   emit('toggle-expand', categoryId)
 }
 
-/**
- * 动画钩子 - 展开时
- */
-const beforeEnter = (el: Element) => {
-  if (!(el instanceof HTMLElement)) return
-  el.style.height = '0'
-  el.style.opacity = '0'
-  el.style.transform = 'translateY(-8px)'
-}
-
-const enter = (el: Element, done: () => void) => {
-  if (!(el instanceof HTMLElement)) return done()
-  const childCount = Number(el.style.getPropertyValue('--child-count')) || 1
-  const duration = Math.min(200 + childCount * 30, 400)
-
-  el.style.transition = `all ${duration}ms cubic-bezier(0.4, 0, 0.2, 1)`
-  el.style.height = `${el.scrollHeight}px`
-  el.style.opacity = '1'
-  el.style.transform = 'translateY(0)'
-
-  setTimeout(() => {
-    // 恢复自动高度，避免后代节点展开时被父级初始高度裁剪。
-    el.style.height = 'auto'
-    done()
-  }, duration)
-}
-
-const leave = (el: Element, done: () => void) => {
-  if (!(el instanceof HTMLElement)) return done()
-  const duration = Math.min(150 + el.scrollHeight * 0.3, 300)
-
-  // 展开完成后高度为 auto，收起前先固定当前高度，确保动画仍可插值。
-  el.style.height = `${el.scrollHeight}px`
-  el.style.transition = `all ${duration}ms cubic-bezier(0.4, 0, 0.2, 1)`
-  void el.offsetHeight
-  el.style.height = '0'
-  el.style.opacity = '0'
-  el.style.transform = 'translateY(-8px)'
-
-  setTimeout(done, duration)
-}
+// 子分类只使用透明度和位移动画，避免递归树在每一帧重新计算高度。
 </script>
 
 <style scoped>
@@ -381,10 +335,29 @@ const leave = (el: Element, done: () => void) => {
   transform: scale(1.2);
 }
 
+/* 子分类展开动画：不改变布局高度，避免与父级动画互相触发回流。 */
+.category-enter-active,
+.category-leave-active {
+  transition: opacity 0.18s ease, transform 0.18s ease;
+  will-change: opacity, transform;
+}
+
+.category-enter-from,
+.category-leave-to {
+  opacity: 0;
+  transform: translateY(-4px);
+}
+
+.category-enter-to,
+.category-leave-from {
+  opacity: 1;
+  transform: translateY(0);
+}
+
 /* 数量标签淡入淡出 */
 .count-fade-enter-active,
 .count-fade-leave-active {
-  transition: all 0.2s ease;
+  transition: opacity 0.2s ease, transform 0.2s ease;
 }
 
 .count-fade-enter-from,
@@ -413,5 +386,14 @@ const leave = (el: Element, done: () => void) => {
     color-mix(in srgb, var(--brand-accent) 15%, transparent) 90%,
     transparent
   );
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .category-enter-active,
+  .category-leave-active,
+  .count-fade-enter-active,
+  .count-fade-leave-active {
+    transition: none;
+  }
 }
 </style>

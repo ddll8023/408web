@@ -6,37 +6,48 @@
       :key="sub.id"
       class="subject-group mb-1"
     >
-      <button
-        class="subject-item w-full mx-0 mb-0.5 rounded-lg border-0 bg-transparent text-left cursor-pointer transition-all duration-200 px-2 py-0"
-        type="button"
-        :aria-label="sub.name"
-        :aria-expanded="!collapsed && expandedSubjectId === sub.id"
-        :aria-controls="`${listId}-categories-${sub.id}`"
+      <div
+        class="subject-item w-full mx-0 mb-0.5 rounded-lg px-2 py-0 transition-colors duration-200"
         :class="{
           'active bg-accent/8': activeSubjectId === sub.id,
           'hover:bg-black/3': activeSubjectId !== sub.id
         }"
-        @click="emit('select-subject', sub)"
       >
-        <span class="item-content flex items-center h-11 px-2 w-full">
-          <span class="icon-area flex items-center justify-center w-6 h-6 mr-1 rounded transition-colors duration-200">
+        <div class="item-content flex items-center h-11 w-full">
+          <button
+            type="button"
+            class="icon-area flex items-center justify-center w-6 h-6 mr-1 shrink-0 rounded border-0 bg-transparent p-0 cursor-pointer transition-colors duration-200 hover:bg-black/5"
+            :aria-label="(expandedSubjectId === sub.id ? '收起 ' : '展开 ') + sub.name + '分类'"
+            :aria-expanded="!collapsed && expandedSubjectId === sub.id"
+            :aria-controls="`${listId}-categories-${sub.id}`"
+            @click="emit('toggle-expand', sub)"
+          >
             <font-awesome-icon
               :icon="['fas', expandedSubjectId === sub.id ? 'chevron-down' : 'chevron-right']"
               class="expand-icon text-sm text-gray-400 transition-transform duration-300 ease"
               :class="{ 'rotate-90': expandedSubjectId === sub.id }"
               aria-hidden="true"
             />
-          </span>
-          <transition name="fade" mode="out-in">
-            <span v-if="!collapsed" class="item-label flex-1 text-base font-medium text-gray-900 whitespace-nowrap overflow-hidden text-ellipsis">{{ sub.name }}</span>
-          </transition>
-          <transition name="fade" mode="out-in">
-            <span v-if="!collapsed && (sub.questionCount ?? 0) > 0" class="count-badge text-xs text-gray-400 bg-black/5 px-1.5 py-0.5 rounded-full ml-auto">
-              {{ sub.questionCount }}
-            </span>
-          </transition>
-        </span>
-      </button>
+          </button>
+          <button
+            v-if="!collapsed"
+            type="button"
+            class="subject-select min-w-0 flex flex-1 items-center border-0 bg-transparent p-0 text-left cursor-pointer"
+            :aria-label="'选择 ' + sub.name"
+            :aria-current="activeSubjectId === sub.id ? 'page' : undefined"
+            @click="emit('select-subject', sub)"
+          >
+            <transition name="fade" mode="out-in">
+              <span v-if="!collapsed" class="item-label min-w-0 flex-1 text-base font-medium text-gray-900 whitespace-nowrap overflow-hidden text-ellipsis">{{ sub.name }}</span>
+            </transition>
+            <transition name="fade" mode="out-in">
+              <span v-if="!collapsed && (sub.questionCount ?? 0) > 0" class="count-badge text-xs text-gray-400 bg-black/5 px-1.5 py-0.5 rounded-full ml-auto">
+                {{ sub.questionCount }}
+              </span>
+            </transition>
+          </button>
+        </div>
+      </div>
 
       <!-- 多级分类树 -->
       <Transition name="collapse">
@@ -133,6 +144,7 @@ const props = defineProps({
 const emit = defineEmits<{
   'update:expandedIds': [ids: number[]]
   'select-subject': [subject: Subject]
+  'toggle-expand': [subject: Subject]
   'select-category': [selection: { subject: Subject; category: string }]
 }>()
 
@@ -195,23 +207,23 @@ onMounted(() => {
   opacity: 0;
 }
 
-/* 折叠展开动画 */
+/* 科目分类展开动画：只做合成层动画，避免与递归分类节点的布局变化叠加。 */
 .collapse-enter-active,
 .collapse-leave-active {
-  transition: all 0.3s ease;
-  overflow: hidden;
+  transition: opacity 0.18s ease, transform 0.18s ease;
+  will-change: opacity, transform;
 }
 
 .collapse-enter-from,
 .collapse-leave-to {
   opacity: 0;
-  max-height: 0;
+  transform: translateY(-4px);
 }
 
 .collapse-enter-to,
 .collapse-leave-from {
   opacity: 1;
-  max-height: 500px;
+  transform: translateY(0);
 }
 
 /* 旋转动画类 */

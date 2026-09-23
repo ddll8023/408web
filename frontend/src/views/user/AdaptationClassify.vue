@@ -38,6 +38,7 @@
             :loading="loadingSubjects"
             auto-scroll-active
             @select-subject="handleSubjectSelect"
+            @toggle-expand="toggleSubjectExpand"
             @select-category="handleNavSheetCategorySelect"
           />
         </template>
@@ -382,10 +383,8 @@ const loadCategoriesForSubject = async (subjectId: number) => {
 }
 
 const handleSubjectSelect = async (subject: Subject) => {
-  if (activeSubjectId.value === subject.id) {
-    expandedSubjectId.value = expandedSubjectId.value === subject.id ? null : subject.id
-    return
-  }
+  // 当前科目的展开/收起由侧栏箭头负责，点击名称只负责切换题目范围。
+  if (activeSubjectId.value === subject.id) return
 
   activeSubjectId.value = subject.id
   activeSubjectName.value = subject.name
@@ -411,8 +410,9 @@ const toggleSubjectExpand = async (subject: Subject | null) => {
     return
   }
 
-  await loadCategoriesForSubject(subject.id)
+  // 先更新箭头状态，分类请求完成后只补充树数据，不阻塞侧栏反馈。
   expandedSubjectId.value = subject.id
+  await loadCategoriesForSubject(subject.id)
 }
 
 const handleCategorySelect = (subject: Subject, category: string) => {

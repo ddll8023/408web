@@ -43,6 +43,7 @@
         :collapsed="isCollapsed"
         @update:expanded-ids="(ids) => emit('update:expandedIds', ids)"
         @select-subject="(subject) => emit('select-subject', subject)"
+        @toggle-expand="(subject) => emit('toggle-expand', subject)"
         @select-category="(selection) => emit('select-category', selection)"
       />
     </div>
