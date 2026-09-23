@@ -151,7 +151,6 @@ import type { AdaptationQuestion, AdaptationSourceRefInput } from '@/types'
 import type { PropType } from 'vue'
 import { computed, ref, toRef, watch } from 'vue'
 import {
-  checkAdaptationSourceUsage,
   createAdaptation,
   getAdaptationDetail,
   updateAdaptation
@@ -322,31 +321,11 @@ const handleClose = () => {
   dialogVisible.value = false
 }
 
-/** 保存前提示已被其他改编题引用的来源，但不阻断保存。 */
-const checkSourceUsageBeforeSave = async () => {
-  const response = await checkAdaptationSourceUsage({
-    excludeId: isEditMode.value ? Number(props.adaptationId) : null,
-    sources: sources.value
-  })
-  if (response.code !== 200) return true
-
-  if (response.data?.reusedSources?.length) {
-    const names = response.data.reusedSources
-      .map(item => `${item.sourceYear} 年第 ${item.sourceQuestionNumber} 题（改编题 #${item.adaptationId}）`)
-      .join('、')
-    showToast(`以下来源已被其他改编题引用，仍会保存：${names}`, 'warning')
-  }
-  return true
-}
-
 const handleSubmit = async () => {
   if (!validateForm()) return
 
   saving.value = true
   try {
-    const passed = await checkSourceUsageBeforeSave()
-    if (!passed) return
-
     const payload = {
       questionType: form.questionType,
       content: form.content,

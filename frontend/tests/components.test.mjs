@@ -5,18 +5,45 @@ import { pathToFileURL } from 'node:url'
 import test from 'node:test'
 import { parse, compileScript } from '@vue/compiler-sfc'
 import { transform } from 'esbuild'
-import { createRenderer, h, nextTick } from 'vue'
+import { createRenderer, h, nextTick, Teleport } from 'vue'
 
 const require = createRequire(import.meta.url)
 const vueUrl = pathToFileURL(require.resolve('vue')).href
 
-// Compile the actual SFCs. Only animation is stubbed; event handlers and templates remain real.
+// 编译实际 SFC，仅替换过渡动画和响应式弹窗外壳；被测模板与事件处理保持真实。
+function createDialogStub(tag = 'div', teleport = false) {
+  return {
+    props: ['visible', 'title'],
+    setup(props, { slots }) {
+      return () => {
+        if (!props.visible) return null
+        const children = [
+          ...(props.title ? [h('h2', null, props.title)] : []),
+          ...(slots.default?.() ?? []),
+          ...(slots.footer?.() ?? []),
+        ]
+        const shell = h(tag, null, children)
+        return teleport ? h(Teleport, { to: 'body' }, shell) : shell
+      }
+    },
+  }
+}
+
 async function loadComponent(name) {
+  if (name === 'ResponsiveDialog') return createDialogStub('div', true)
   const source = await readFile(new URL(`../src/components/basic/${name}.vue`, import.meta.url), 'utf8')
   const { descriptor } = parse(source.replaceAll('<transition ', '<test-transition ').replaceAll('</transition>', '</test-transition>'))
   const compiled = compileScript(descriptor, { id: name, inlineTemplate: true })
   const { code } = await transform(compiled.content, { loader: 'ts', format: 'esm' })
   let moduleCode = code.replaceAll('from "vue"', `from ${JSON.stringify(vueUrl)}`).replaceAll("from 'vue'", `from ${JSON.stringify(vueUrl)}`)
+  const responsiveTestModules = {
+    '@/shared/responsive/breakpoints': 'export const MEDIA_QUERIES = { compact: "(max-width: 767px)" }',
+    '@/shared/responsive/useViewport': 'export const useMediaQuery = () => ({ value: false })',
+  }
+  for (const [specifier, source] of Object.entries(responsiveTestModules)) {
+    const childUrl = `data:text/javascript,${encodeURIComponent(source)}`
+    moduleCode = moduleCode.replaceAll(JSON.stringify(specifier), JSON.stringify(childUrl))
+  }
   for (const [, childName] of moduleCode.matchAll(/from ["']\.\/([A-Z][A-Za-z0-9]*)\.vue["']/g)) {
     const child = await loadComponent(childName)
     const key = `__componentTest_${name}_${childName}_${Date.now()}_${Math.random().toString(36).slice(2)}`
@@ -52,6 +79,12 @@ globalThis.HTMLSelectElement = HostElement
 globalThis.Element = HostElement
 globalThis.Node = HostElement
 globalThis.document = { addEventListener() {}, removeEventListener() {} }
+globalThis.window = {
+  innerWidth: 1024,
+  innerHeight: 768,
+  addEventListener() {},
+  removeEventListener() {},
+}
 
 function mount(component, props = {}) {
   const root = new HostElement('root')
@@ -160,8 +193,8 @@ test('SubjectManage renders editable controls and accepts the backend hyphenated
   globalThis.__subjectTestComponents = {}
   const componentNames = [...code.matchAll(/"@\/components\/basic\/(\w+)\.vue"/g)].map(match => match[1])
   for (const name of componentNames) {
-    globalThis.__subjectTestComponents[name] = name === 'Dialog'
-      ? { props: ['visible'], setup: (props, { slots }) => () => props.visible ? h('dialog', null, [slots.default?.(), slots.footer?.()]) : null }
+    globalThis.__subjectTestComponents[name] = ['Dialog', 'ResponsiveDialog'].includes(name)
+      ? createDialogStub('dialog')
       : await loadComponent(name)
     code = code.replaceAll(JSON.stringify(`@/components/basic/${name}.vue`), JSON.stringify(url(`export default globalThis.__subjectTestComponents.${name}`)))
   }
@@ -217,7 +250,7 @@ test('ExamList Markdown download has one heading per section and preserves objec
     const module = await transform(contents, { loader: 'ts', format: 'esm' })
     code = code.replaceAll(JSON.stringify(`@/${name}`), JSON.stringify(url(module.code)))
   }
-  code = code.replace(/"@\/components\/[^"\n]+\.vue"/g, JSON.stringify(url('export default {}')))
+  code = code.replace(/["']@\/[^"'\n]+\.vue["']/g, JSON.stringify(url('export default {}')))
   const originalDocument = globalThis.document
   const originalSession = globalThis.sessionStorage
   const originalCreateUrl = URL.createObjectURL

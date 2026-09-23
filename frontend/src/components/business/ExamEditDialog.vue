@@ -175,8 +175,6 @@
         </div>
       </div>
 
-    </div>
-
     <template #footer>
       <div class="flex flex-shrink-0 flex-wrap items-center justify-end gap-3 sm:justify-between">
         <div class="hidden text-xs text-gray-400 sm:block">

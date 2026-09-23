@@ -117,7 +117,7 @@
                   正在刷新
                 </span>
               </div>
-              <p class="mb-0 mt-1 text-xs text-gray-500">章节显示子树合计，知识点显示自身直接引用；数字旁的条形用于快速比较。</p>
+              <p class="mb-0 mt-1 text-xs text-gray-500">章节与分类组显示子树合计，末级知识点显示自身引用；总题数紧跟名称，题型分布列于下方，条形用于比较同章节分类题量。</p>
             </div>
             <div class="flex items-center gap-1">
               <CustomButton type="text" size="sm" @click="expandAllSections">
@@ -135,13 +135,15 @@
             <div v-for="view in detailGroups" :key="`detail-${view.group.subjectId ?? 'unassigned'}`">
               <div
                 v-if="showSubjectGroupLabels"
-                class="mb-3 flex items-center justify-between gap-3 rounded-lg bg-surface px-3 py-2 text-sm"
+                class="mb-3 rounded-lg bg-surface px-3 py-2 text-sm"
               >
-                <span class="flex items-center gap-2 font-semibold text-accent">
+                <div class="flex flex-wrap items-center gap-2 font-semibold text-accent">
                   <font-awesome-icon :icon="['fas', 'folder']" aria-hidden="true" />
-                  {{ view.group.subjectName }}
-                </span>
-                <span class="text-xs text-gray-500">{{ formatNumber(view.group.totalCount) }} 道去重题目</span>
+                  <span>{{ view.group.subjectName }}</span>
+                  <span class="rounded-full bg-white px-2.5 py-1 text-xs font-medium text-gray-600">
+                    {{ formatNumber(view.group.totalCount) }} 道去重题目
+                  </span>
+                </div>
               </div>
 
               <div class="space-y-3">
@@ -154,115 +156,105 @@
                 >
                   <button
                     type="button"
-                    class="flex w-full flex-col gap-3 px-4 py-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent md:flex-row md:items-center md:justify-between"
+                    class="flex w-full items-start gap-3 px-4 py-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent md:items-center"
                     :class="section.row.isUnfiled ? 'bg-amber-50 hover:bg-amber-100' : 'bg-surface/70 hover:bg-surface'"
                     :aria-expanded="isSectionExpanded(section.key)"
                     :aria-controls="`${getSectionDomId(section.key)}-content`"
                     @click="toggleSection(section.key)"
                   >
-                    <div class="flex min-w-0 items-center gap-3">
-                      <span
-                        class="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-xs"
-                        :class="section.row.isUnfiled ? 'bg-amber-100 text-amber-700' : 'bg-accent/10 text-accent'"
-                      >
-                        <font-awesome-icon
-                          :icon="isSectionExpanded(section.key) ? ['fas', 'chevron-down'] : ['fas', 'chevron-right']"
-                          aria-hidden="true"
-                        />
-                      </span>
+                    <span
+                      class="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-xs md:mt-0"
+                      :class="section.row.isUnfiled ? 'bg-amber-100 text-amber-700' : 'bg-accent/10 text-accent'"
+                    >
+                      <font-awesome-icon
+                        :icon="isSectionExpanded(section.key) ? ['fas', 'chevron-down'] : ['fas', 'chevron-right']"
+                        aria-hidden="true"
+                      />
+                    </span>
+                    <div class="flex min-w-0 flex-1 flex-wrap items-center gap-x-2.5 gap-y-2">
                       <span
                         class="flex h-7 w-7 shrink-0 items-center justify-center rounded-md"
                         :class="section.row.isUnfiled ? 'bg-amber-500 text-white' : 'bg-accent text-white'"
                       >
                         <font-awesome-icon :icon="section.row.isUnfiled ? ['fas', 'triangle-exclamation'] : ['fas', 'folder-open']" aria-hidden="true" />
                       </span>
-                      <span class="min-w-0 truncate font-semibold" :class="section.row.isUnfiled ? 'text-amber-900' : 'text-gray-800'">
+                      <span class="min-w-0 break-words font-semibold" :class="section.row.isUnfiled ? 'text-amber-900' : 'text-gray-800'">
                         {{ section.row.category }}
                       </span>
                       <span
+                        class="inline-flex shrink-0 items-baseline gap-1 rounded-md px-2 py-1"
+                        :class="section.row.isUnfiled ? 'bg-white text-amber-800' : 'bg-white text-accent'"
+                      >
+                        <b class="text-base font-semibold">{{ formatNumber(section.row.count) }}</b>
+                        <span class="text-[11px]">题</span>
+                      </span>
+                      <span
                         class="shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium"
-                        :class="section.row.isUnfiled ? 'bg-white/80 text-amber-700' : 'bg-white text-accent'"
+                        :class="section.row.isUnfiled ? 'bg-white/80 text-amber-700' : 'bg-white text-gray-500'"
                       >
                         {{ section.row.scope }}
                       </span>
                       <span v-if="!section.row.enabled && !section.row.isUnfiled" class="shrink-0 rounded-full bg-orange-50 px-2 py-0.5 text-[11px] font-medium text-orange-600">已禁用</span>
-                    </div>
-
-                    <div class="flex shrink-0 items-center gap-3 pl-20 text-xs text-gray-500 md:pl-0">
-                      <span class="whitespace-nowrap"><b class="text-lg font-semibold text-gray-900">{{ formatNumber(section.row.count) }}</b><span class="ml-1">题</span></span>
-                      <span class="whitespace-nowrap"><b class="font-semibold text-[#5D88AE]">{{ formatNumber(section.row.choiceCount) }}</b> 选择</span>
-                      <span class="whitespace-nowrap"><b class="font-semibold text-[#B87542]">{{ formatNumber(section.row.subjectiveCount) }}</b> 主观</span>
+                      <span class="inline-flex items-center gap-1 whitespace-nowrap rounded-md bg-white/80 px-2 py-1 text-[11px] text-[#5D88AE]">
+                        选择题 <b class="font-semibold">{{ formatNumber(section.row.choiceCount) }}</b>
+                      </span>
+                      <span class="inline-flex items-center gap-1 whitespace-nowrap rounded-md bg-white/80 px-2 py-1 text-[11px] text-[#B87542]">
+                        主观题 <b class="font-semibold">{{ formatNumber(section.row.subjectiveCount) }}</b>
+                      </span>
                     </div>
                   </button>
 
                   <div v-show="isSectionExpanded(section.key)" :id="`${getSectionDomId(section.key)}-content`" class="border-t border-gray-100 bg-white">
-                    <div v-if="section.children.length > 0 && isCompactViewport" class="space-y-2 p-3">
-                      <article
-                        v-for="row in section.children"
-                        :key="row.id"
-                        class="rounded-lg border border-gray-100 bg-surface/40 p-3"
-                        :class="{ 'border-amber-200 bg-amber-50/40': row.isUnfiled }"
+                    <div v-if="section.children.length > 0" class="bg-white">
+                      <ul
+                        class="divide-y divide-gray-100 px-4"
+                        :aria-label="`${section.row.category}下级分类统计`"
                       >
-                        <div class="flex items-start justify-between gap-3">
-                          <div class="flex min-w-0 items-center gap-2">
-                            <span class="tree-marker" :class="row.hasChildren ? 'tree-marker-parent' : 'tree-marker-leaf'" aria-hidden="true"></span>
-                            <span class="min-w-0 truncate text-sm font-medium" :class="row.enabled || row.isUnfiled ? 'text-gray-700' : 'text-gray-400'">{{ row.category }}</span>
-                          </div>
-                          <span class="shrink-0 text-sm font-semibold text-gray-900">{{ formatNumber(row.count) }} 题</span>
-                        </div>
-                        <div class="mt-2 h-1.5 overflow-hidden rounded-full bg-gray-100" aria-hidden="true">
-                          <div class="h-full rounded-full bg-accent/65" :style="{ width: getBarWidth(row.count, section.maxChildCount) }"></div>
-                        </div>
-                        <div class="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-500">
-                          <span>{{ row.scope }}</span>
-                          <span v-if="!row.enabled && !row.isUnfiled" class="text-orange-500">已禁用</span>
-                          <span class="text-[#5D88AE]">选择 {{ formatNumber(row.choiceCount) }}</span>
-                          <span class="text-[#B87542]">主观 {{ formatNumber(row.subjectiveCount) }}</span>
-                        </div>
-                      </article>
-                    </div>
-                    <div v-else-if="section.children.length > 0" class="overflow-x-auto">
-                      <table class="category-detail-table w-full min-w-[720px] border-collapse">
-                        <thead>
-                          <tr class="border-b border-gray-100 bg-gray-50/80 text-left text-xs font-semibold text-gray-500">
-                            <th scope="col" class="px-4 py-3 md:px-5">分类</th>
-                            <th scope="col" class="w-[190px] px-4 py-3 text-right md:px-5">总题数（相对题量）</th>
-                            <th scope="col" class="w-[110px] px-4 py-3 text-right md:px-5">选择题</th>
-                            <th scope="col" class="w-[110px] px-4 py-3 text-right md:px-5">主观题</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          <tr
-                            v-for="row in section.children"
-                            :key="row.id"
-                            class="border-b border-gray-50 transition-colors last:border-0 hover:bg-surface/60"
+                        <li
+                          v-for="row in section.children"
+                          :key="row.id"
+                          class="px-2 py-3 first:pt-4 last:pb-4"
+                          :class="row.isUnfiled ? 'bg-amber-50/60' : ''"
+                        >
+                          <div
+                            class="flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-2"
+                            :style="{ paddingLeft: `${Math.max(0, row.level - 1) * 1.25}rem` }"
                           >
-                            <td class="px-4 py-3 md:px-5">
-                              <div class="flex min-w-0 items-center gap-2" :style="{ paddingLeft: `${Math.max(0, row.level - 1) * 1.25}rem` }">
-                                <span class="tree-marker" :class="row.hasChildren ? 'tree-marker-parent' : 'tree-marker-leaf'" aria-hidden="true"></span>
-                                <span class="min-w-0 truncate text-sm" :class="row.enabled || row.isUnfiled ? 'text-gray-700' : 'text-gray-400'">{{ row.category }}</span>
-                                <span
-                                  class="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium"
-                                  :class="row.isUnfiled ? 'bg-gray-100 text-gray-500' : row.hasChildren ? 'bg-accent/10 text-accent' : 'bg-blue-50 text-blue-600'"
-                                >
-                                  {{ row.scope }}
-                                </span>
-                                <span v-if="!row.enabled && !row.isUnfiled" class="shrink-0 text-[10px] text-orange-500">已禁用</span>
-                              </div>
-                            </td>
-                            <td class="px-4 py-3 text-right md:px-5">
-                              <div class="flex flex-col items-end gap-1.5">
-                                <span class="text-sm font-semibold text-gray-800">{{ formatNumber(row.count) }}</span>
-                                <div class="h-1.5 w-full max-w-[130px] overflow-hidden rounded-full bg-gray-100" aria-hidden="true">
-                                  <div class="h-full rounded-full bg-accent/65 transition-[width] duration-300" :style="{ width: getBarWidth(row.count, section.maxChildCount) }"></div>
-                                </div>
-                              </div>
-                            </td>
-                            <td class="px-4 py-3 text-right text-sm font-medium text-[#5D88AE] md:px-5">{{ formatNumber(row.choiceCount) }}</td>
-                            <td class="px-4 py-3 text-right text-sm font-medium text-[#B87542] md:px-5">{{ formatNumber(row.subjectiveCount) }}</td>
-                          </tr>
-                        </tbody>
-                      </table>
+                            <span class="tree-marker" :class="row.hasChildren ? 'tree-marker-parent' : 'tree-marker-leaf'" aria-hidden="true"></span>
+                            <span class="min-w-0 break-words text-sm font-medium" :class="row.enabled || row.isUnfiled ? 'text-gray-700' : 'text-gray-400'">
+                              {{ row.category }}
+                            </span>
+                            <span class="inline-flex shrink-0 items-baseline gap-1 rounded-md bg-accent/10 px-2 py-1 text-accent">
+                              <b class="text-sm font-semibold">{{ formatNumber(row.count) }}</b>
+                              <span class="text-[10px]">题</span>
+                            </span>
+                            <div class="h-1.5 w-14 shrink-0 overflow-hidden rounded-full bg-gray-100 md:w-20" aria-hidden="true">
+                              <div
+                                class="h-full rounded-full bg-accent/65 transition-[width] duration-300"
+                                :style="{ width: getBarWidth(row.count, section.maxChildCount) }"
+                              ></div>
+                            </div>
+                            <span
+                              class="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium"
+                              :class="row.isUnfiled ? 'bg-gray-100 text-gray-500' : row.hasChildren ? 'bg-accent/10 text-accent' : 'bg-blue-50 text-blue-600'"
+                            >
+                              {{ row.scope }}
+                            </span>
+                            <span v-if="!row.enabled && !row.isUnfiled" class="shrink-0 text-[10px] text-orange-500">已禁用</span>
+                          </div>
+                          <div
+                            class="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs"
+                            :style="{ paddingLeft: `${Math.max(0, row.level - 1) * 1.25 + 1.25}rem` }"
+                          >
+                            <span class="inline-flex items-center gap-1 rounded-md bg-blue-50 px-2 py-1 text-[#5D88AE]">
+                              选择题 <b class="font-semibold">{{ formatNumber(row.choiceCount) }}</b>
+                            </span>
+                            <span class="inline-flex items-center gap-1 rounded-md bg-orange-50 px-2 py-1 text-[#B87542]">
+                              主观题 <b class="font-semibold">{{ formatNumber(row.subjectiveCount) }}</b>
+                            </span>
+                          </div>
+                        </li>
+                      </ul>
                     </div>
                     <p v-else class="mb-0 px-5 py-5 text-sm text-gray-400">
                       当前章节暂无下级知识点，章节题量已在上方合计。
@@ -315,8 +307,6 @@
 
 // 1. Vue 官方 API
 import { computed, onMounted, ref } from 'vue'
-import { MEDIA_QUERIES } from '@/shared/responsive/breakpoints'
-import { useMediaQuery } from '@/shared/responsive/useViewport'
 
 // 2. API 接口定义
 import { exportExamCategoryStats, getExamCategoryStats } from '@/api/exam'
@@ -379,7 +369,6 @@ const statsError = ref('')
 const expandedSections = ref<Set<string>>(new Set())
 let statsLoadVersion = 0
 
-const isCompactViewport = useMediaQuery(MEDIA_QUERIES.compact)
 const sortConfig = ref<TableSort>({ prop: null, order: null })
 const sortOptions = [
   { prop: null, label: '目录顺序' },
@@ -771,11 +760,6 @@ onMounted(() => {
   border-radius: 9999px;
   background: #9ca3af;
   content: '';
-}
-
-.category-detail-table th,
-.category-detail-table td {
-  vertical-align: middle;
 }
 
 @media (prefers-reduced-motion: reduce) {
