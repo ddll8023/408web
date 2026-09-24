@@ -40,47 +40,14 @@
 
     <!-- 使用 div + Tailwind 替代 el-card -->
     <div class="min-h-full bg-surface">
-          <!-- 头部区域：窄屏标题已上移到目录入口，只保留导出与创建操作 -->
+          <!-- 头部区域：窄屏标题已上移到目录入口，仅保留管理员创建操作 -->
           <div class="flex flex-col items-stretch gap-3 px-4 py-4 border-b border-line sm:flex-row sm:items-center sm:justify-between sm:px-5">
             <div class="hidden min-w-0 flex-1 items-center gap-3 md:flex">
               <h2 class="m-0 text-ink font-semibold text-xl">{{ currentTitle }}</h2>
               <!-- 使用自定义 Tag 组件替代 el-tag -->
               <Tag v-if="displayTotal > 0" type="info">共 {{ displayTotal }} 题</Tag>
             </div>
-            <!-- 年份视图：显示导出按钮和管理员创建按钮 -->
-            <div class="flex flex-wrap gap-2" v-if="examList.length > 0">
-              <Dropdown trigger="click" @command="handleExportCommand">
-                <template #trigger>
-                  <CustomButton
-                    type="success"
-                    :icon="['fas', 'download']"
-                  >
-                    导出试卷
-                  </CustomButton>
-                </template>
-
-                <template #dropdown>
-                  <DropdownItem command="markdown">
-                    <font-awesome-icon :icon="['fas', 'file-lines']" class="mr-2" />
-                    导出为 Markdown (.md)
-                  </DropdownItem>
-                  <DropdownItem command="docx">
-                    <font-awesome-icon :icon="['fas', 'file-word']" class="mr-2" />
-                    导出为 Word 文档 (.docx)
-                  </DropdownItem>
-                </template>
-              </Dropdown>
-              <CustomButton
-                v-if="isAdmin"
-                type="primary"
-                :icon="['fas', 'plus']"
-                @click="handleCreate"
-              >
-                创建真题
-              </CustomButton>
-            </div>
-            <!-- 默认视图（空状态）：显示管理员创建按钮 -->
-            <div class="flex flex-wrap gap-2" v-else-if="isAdmin">
+            <div v-if="isAdmin" class="flex flex-wrap gap-2">
               <CustomButton
                 type="primary"
                 :icon="['fas', 'plus']"
@@ -145,7 +112,6 @@
 import type { ExamNavQuestion, ExamNavYear, ExamQuestion, Subject, CategoryTreeNode } from "@/types"
 import { queryString } from "@/utils/storage"
 import { parseQuestionOptions } from "@/utils/questionOptions"
-import { errorMessage } from "@/utils/errors"
 /**
  * 真题主页面
  * 功能：左侧年份导航，右侧显示选中真题的详细内容
@@ -164,8 +130,6 @@ import { useAuthStore } from '@/stores/auth'
 import toast from '@/utils/toast'
 import confirm from '@/utils/confirm'
 import CustomButton from '@/components/basic/CustomButton.vue'
-import Dropdown from '@/components/basic/Dropdown.vue'
-import DropdownItem from '@/components/basic/DropdownItem.vue'
 import Tag from '@/components/basic/Tag.vue'
 import ReadingLayout from '@/app/layouts/ReadingLayout.vue'
 import YearNav from '@/components/business/YearNav.vue'
@@ -727,281 +691,6 @@ const handleDelete = async (id: number) => {
     toast.error('删除失败')
     console.error('删除失败:', error)
   }
-}
-
-/**
- * 处理导出命令（下拉菜单）
- */
-const handleExportCommand = (command: string) => {
-  switch (command) {
-    case 'markdown':
-      exportAsMarkdown()
-      break
-    case 'docx':
-      exportAsDocx()
-      break
-    default:
-      toast.warning('不支持的导出格式')
-  }
-}
-
-/**
- * 导出为 Markdown 文件
- * 遵循KISS原则：复用现有格式化函数，简单拼接
- */
-const exportAsMarkdown = () => {
-  if (!examList.value || examList.value.length === 0) {
-    toast.warning('当前年份没有题目可导出')
-    return
-  }
-
-  try {
-    // 构建Markdown内容
-    const year = activeYear.value
-    const parts = []
-    
-    // 标题
-    parts.push(`# 408计算机统考 - ${year}年真题`)
-    parts.push('')
-    parts.push('---')
-    parts.push('')
-    
-    // 遍历所有题目
-    examList.value.forEach((exam, index) => {
-      // 题目标题
-      const questionNumber = exam.questionNumber || (index + 1)
-      const questionType = exam.questionType === 'CHOICE' ? '选择题' : '主观题'
-      const category = Array.isArray(exam.category) ? exam.category.join(', ') : (exam.category || '未分类')
-      const difficulty = exam.difficulty ? getDifficultyLabel(exam.difficulty) : ''
-      
-      let header = `## 第${questionNumber}题`
-      if (questionType || category || difficulty) {
-        const tags = [questionType, category, difficulty].filter(Boolean)
-        header += ` [${tags.join('] [')}]`
-      }
-      parts.push(header)
-      parts.push('')
-      
-      // 题目内容
-      const question = normalizeLineBreaks(exam.content)
-      if (question) {
-        parts.push('### 题目')
-        parts.push(question)
-        parts.push('')
-      }
-      
-      // 选项（仅选择题）
-      if (exam.questionType === 'CHOICE') {
-        const options = formatOptionsMarkdown(exam)
-        if (options) {
-          parts.push(options)
-          parts.push('')
-        }
-      }
-      
-      // 答案
-      const answer = formatAnswerMarkdown(exam)
-      if (answer) {
-        parts.push(answer)
-        parts.push('')
-      }
-      
-      // 题目间分隔
-      parts.push('---')
-      parts.push('')
-    })
-    
-    // 合并为完整的Markdown字符串
-    const markdown = parts.join('\n')
-    
-    // 触发下载
-    const filename = `408计算机统考-${year}年真题.md`
-    downloadFile(markdown, filename, 'text/markdown')
-    
-    toast.success(`已导出 ${examList.value.length} 道题目（Markdown格式）`)
-  } catch (error) {
-    toast.error('导出失败，请重试')
-    console.error('Markdown导出失败:', error)
-  }
-}
-
-/**
- * 导出为 DOCX 文件
- * 注意：需要先安装依赖 npm install docx
- */
-const exportAsDocx = async () => {
-  if (!examList.value || examList.value.length === 0) {
-    toast.warning('当前年份没有题目可导出')
-    return
-  }
-
-  try {
-    // 动态导入 docx 库
-    const { Document, Paragraph, TextRun, HeadingLevel, AlignmentType, Packer } = await import('docx')
-    
-    const year = activeYear.value
-    const children = []
-    
-    // 文档标题
-    children.push(
-      new Paragraph({
-        text: `408计算机统考 - ${year}年真题`,
-        heading: HeadingLevel.TITLE,
-        alignment: AlignmentType.CENTER,
-        spacing: { after: 400 }
-      })
-    )
-    
-    // 遍历所有题目
-    examList.value.forEach((exam, index) => {
-      const questionNumber = exam.questionNumber || (index + 1)
-      const questionType = exam.questionType === 'CHOICE' ? '选择题' : '主观题'
-      const category = Array.isArray(exam.category) ? exam.category.join(', ') : (exam.category || '未分类')
-      const difficulty = exam.difficulty ? getDifficultyLabel(exam.difficulty) : ''
-      
-      // 题目标题
-      let headerText = `第${questionNumber}题`
-      if (questionType || category || difficulty) {
-        const tags = [questionType, category, difficulty].filter(Boolean)
-        headerText += ` [${tags.join('] [')}]`
-      }
-      
-      children.push(
-        new Paragraph({
-          text: headerText,
-          heading: HeadingLevel.HEADING_2,
-          spacing: { before: 400, after: 200 }
-        })
-      )
-      
-      // 题目内容
-      const question = formatQuestionMarkdown(exam)
-      if (question) {
-        children.push(
-          new Paragraph({
-            text: '题目',
-            heading: HeadingLevel.HEADING_3,
-            spacing: { before: 200, after: 100 }
-          })
-        )
-        // 将Markdown文本转为段落（简单处理，保留换行）
-        question.split('\n').forEach(line => {
-          children.push(
-            new Paragraph({
-              text: line,
-              spacing: { after: 100 }
-            })
-          )
-        })
-      }
-      
-      // 选项（仅选择题）
-      if (exam.questionType === 'CHOICE') {
-        const options = formatOptionsMarkdown(exam)
-        if (options) {
-          children.push(
-            new Paragraph({
-              text: '选项',
-              heading: HeadingLevel.HEADING_3,
-              spacing: { before: 200, after: 100 }
-            })
-          )
-          options.split('\n').forEach(line => {
-            children.push(
-              new Paragraph({
-                text: line,
-                spacing: { after: 100 }
-              })
-            )
-          })
-        }
-      }
-      
-      // 答案
-      const answer = formatAnswerMarkdown(exam)
-      if (answer) {
-        children.push(
-          new Paragraph({
-            text: '答案',
-            heading: HeadingLevel.HEADING_3,
-            spacing: { before: 200, after: 100 }
-          })
-        )
-        answer.split('\n').forEach(line => {
-          children.push(
-            new Paragraph({
-              text: line,
-              spacing: { after: 100 }
-            })
-          )
-        })
-      }
-      
-      // 题目间分隔线（空段落）
-      children.push(
-        new Paragraph({
-          text: '',
-          spacing: { after: 400 }
-        })
-      )
-    })
-    
-    // 创建文档
-    const doc = new Document({
-      sections: [{
-        properties: {},
-        children: children
-      }]
-    })
-    
-    // 生成 Blob 并触发下载
-    const blob = await Packer.toBlob(doc)
-    const filename = `408计算机统考-${year}年真题.docx`
-    
-    // 创建下载链接
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    link.href = url
-    link.download = filename
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-    URL.revokeObjectURL(url)
-    
-    toast.success(`已导出 ${examList.value.length} 道题目（Word格式）`)
-  } catch (error) {
-    if (errorMessage(error, '').includes('Cannot find module')) {
-      toast.error('请先安装 docx 依赖：npm install docx')
-    } else {
-      toast.error('DOCX导出失败，请重试')
-    }
-    console.error('DOCX导出失败:', error)
-  }
-}
-
-/**
- * 下载文件工具函数
- * @param {string} content - 文件内容
- * @param {string} filename - 文件名
- * @param {string} mimeType - MIME类型
- */
-const downloadFile = (content: BlobPart, filename: string, mimeType: string) => {
-  // 创建Blob对象
-  const blob = new Blob([content], { type: mimeType })
-  
-  // 创建下载链接
-  const url = URL.createObjectURL(blob)
-  const link = document.createElement('a')
-  link.href = url
-  link.download = filename
-  
-  // 触发下载
-  document.body.appendChild(link)
-  link.click()
-  
-  // 清理
-  document.body.removeChild(link)
-  URL.revokeObjectURL(url)
 }
 
 // 监听路由参数变化（年份）

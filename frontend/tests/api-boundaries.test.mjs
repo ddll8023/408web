@@ -107,15 +107,6 @@ test('业务错误和畸形信封拒绝，不返回伪成功', async () => {
   assert.ok(messages.includes('分类不存在'))
 })
 
-test('导出保留 Blob 与下载文件名响应头', async () => {
-  responseData = new Blob(['# 真题'], { type: 'text/markdown' })
-  const result = await exam.exportExamsBySubject(2)
-  assert.equal(result.data, responseData)
-  assert.equal(result.headers['content-disposition'], 'attachment; filename="exam.md"')
-  assert.equal(lastConfig.responseType, 'blob')
-  assert.deepEqual(JSON.parse(lastConfig.data), { subject_id: 2, format: 'markdown' })
-})
-
  test('图片筛选使用 camelCase 输入并发送 snake_case', async () => {
   responseData = { code: 200, message: '成功', data: [] }
   await upload.getImageList({ onlyUnreferenced: true })

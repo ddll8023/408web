@@ -297,20 +297,6 @@ class ExamRepository:
             )
         )
         return result.all()
-
-    async def find_for_export(self, subject_id: int) -> list[ExamQuestion]:
-        """返回指定科目全部真题，按年份和题号排序。"""
-        result = await self.session.exec(
-            select(ExamQuestion)
-            .where(ExamQuestion.subject_id == subject_id)
-            .order_by(
-                ExamQuestion.year.desc(),
-                ExamQuestion.question_number.asc(),
-                ExamQuestion.id.asc(),
-            )
-        )
-        return result.all()
-
     async def list_image_reference_texts(self) -> list[Any]:
         """返回图片引用扫描所需的真题文本字段。"""
         result = await self.session.exec(

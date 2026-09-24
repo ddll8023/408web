@@ -1,10 +1,8 @@
-"""统计与题目导出格式转换。"""
-import json
+"""真题分类统计导出格式转换。"""
 from xml.etree.ElementTree import Element, SubElement, register_namespace, tostring
 from io import BytesIO
 from zipfile import ZIP_DEFLATED, ZipFile
 
-from web408.modules.exam.query_service import ExamExportQuestionRead
 from web408.modules.reporting.schemas import (
     ExamCategoryStatsResponse,
     ExamCategoryStatsTreeItem,
@@ -21,7 +19,7 @@ register_namespace("pr", _PACKAGE_RELATIONSHIP_NAMESPACE)
 
 
 class ReportingExporter:
-    """生成统计 Markdown、Excel 和真题 Markdown 内容。"""
+    """生成分类统计 Markdown 和 Excel 文件。"""
 
     @staticmethod
     def flatten_category_rows(
@@ -153,21 +151,6 @@ class ReportingExporter:
             rows.append(["", "暂无分类数据", "-", 0, 0, 0])
 
         return cls.build_xlsx(rows)
-
-    @staticmethod
-    def _format_options_markdown(value: str) -> str:
-        """将数据库中的选项 JSON 转换为 Markdown。"""
-        try:
-            options = json.loads(value)
-        except (TypeError, json.JSONDecodeError):
-            return value
-        if isinstance(options, dict):
-            return "\n".join(
-                f"- **{key}**: {option_value}"
-                for key, option_value in options.items()
-            )
-        return value
-
     @staticmethod
     def build_filename(subject_name: str, timestamp: str, extension: str) -> str:
         """构造安全的下载文件名。"""
@@ -295,27 +278,3 @@ class ReportingExporter:
             current, remainder = divmod(current - 1, 26)
             name = chr(65 + remainder) + name
         return name
-
-    @staticmethod
-    def generate_exam_markdown(questions: list[ExamExportQuestionRead]) -> str:
-        """生成 Markdown 格式的真题内容。"""
-        year_groups: dict[int, list[ExamExportQuestionRead]] = {}
-        for question in questions:
-            year_groups.setdefault(question.year, []).append(question)
-
-        lines = ["# 真题列表\n"]
-        for year in sorted(year_groups, reverse=True):
-            lines.append(f"## {year}年\n")
-            for question in year_groups[year]:
-                lines.append(f"### 第{question.question_number}题")
-                if question.title:
-                    lines.append(f"**{question.title}**")
-                lines.extend(["", question.content])
-                if question.options:
-                    lines.append("**选项：**")
-                    lines.append(ReportingExporter._format_options_markdown(question.options))
-                lines.append("")
-                if question.answer:
-                    lines.append(f"**答案：** {question.answer}")
-                lines.extend(["---", ""])
-        return "\n".join(lines)

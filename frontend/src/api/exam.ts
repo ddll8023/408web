@@ -91,15 +91,6 @@ export function getExamCategoryStats(subjectId?: number | null) {
   })
 }
 
-export function exportExamsBySubject(subjectId: number, format: 'markdown' = 'markdown') {
-  return requestBlob({
-    url: '/api/exam/export',
-    method: 'post',
-    responseType: 'blob',
-    data: convertKeysToSnake({ subjectId, format })
-  })
-}
-
 export function exportExamCategoryStats(
   subjectId: number | null | undefined,
   format: 'markdown' | 'xlsx'

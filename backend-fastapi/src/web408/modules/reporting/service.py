@@ -21,7 +21,6 @@ from web408.modules.reporting.schemas import (
     ExamCategoryStatItem,
     ExamCategoryStatsResponse,
     ExamCategoryStatsTreeItem,
-    ExamExportRequest,
     ExportResultResponse,
 )
 
@@ -139,21 +138,6 @@ class ReportingService:
             stats=stats,
             category_tree=category_tree,
         )
-
-    async def export_by_subject(
-        self,
-        request: ExamExportRequest,
-    ) -> ExportResultResponse:
-        """按科目导出 Markdown 真题文件。"""
-        questions = await self.exam_query_service.list_for_export(request.subject_id)
-        content = ReportingExporter.generate_exam_markdown(questions)
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        return ExportResultResponse(
-            filename=f"真题_{request.subject_id}_{timestamp}.md",
-            content_type="text/markdown; charset=utf-8",
-            file_bytes=content.encode("utf-8"),
-        )
-
     async def export_category_stats(
         self,
         subject_id: int | None,

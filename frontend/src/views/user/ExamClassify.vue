@@ -61,25 +61,6 @@
                   :options="questionTypeOptions"
                 />
 
-                <Dropdown trigger="click" @command="handleExportCommand" class="shrink-0">
-                  <template #trigger>
-                    <CustomButton
-                      type="success"
-                      :icon="['fas', 'download']"
-                      size="sm"
-                      class="min-w-[120px] shrink-0 whitespace-nowrap"
-                    >
-                      导出科目
-                    </CustomButton>
-                  </template>
-
-                  <template #dropdown>
-                    <DropdownItem command="docx">
-                      <font-awesome-icon :icon="['fas', 'file-word']" class="mr-2" />
-                      导出为 Word 文档 (.docx)
-                    </DropdownItem>
-                  </template>
-                </Dropdown>
               </div>
             </div>
 
@@ -144,6 +125,7 @@
                 :items="outlineItems"
                 :active-id="activeOutlineId"
                 kind="exam"
+                hide-below-xl
                 @jump="scrollToCategory"
               />
             </div>
@@ -185,7 +167,6 @@
 import type { CategoryOutlineItem, ExamQuestion, Subject, CategoryTreeNode } from "@/types"
 import { queryString } from "@/utils/storage"
 import { parseQuestionOptions } from "@/utils/questionOptions"
-import { errorMessage } from "@/utils/errors"
 import {
   findCategoryNode,
   getCategorySectionId,
@@ -200,14 +181,12 @@ import {
 import { ref, onMounted, computed, nextTick, onActivated, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { getEnabledSubjects } from '@/api/subject'
-import { getExamList, deleteExam, getExamDetail, exportExamsBySubject } from '@/api/exam'
+import { getExamList, deleteExam, getExamDetail } from '@/api/exam'
 import { getEnabledCategoryTreeBySubject } from '@/api/category'
 import { useAuthStore } from '@/stores/auth'
 import toast from '@/utils/toast'
 import confirm from '@/utils/confirm'
 import CustomButton from '@/components/basic/CustomButton.vue'
-import Dropdown from '@/components/basic/Dropdown.vue'
-import DropdownItem from '@/components/basic/DropdownItem.vue'
 import Tag from '@/components/basic/Tag.vue'
 import RadioGroup from '@/components/basic/RadioGroup.vue'
 import Empty from '@/components/basic/Empty.vue'
@@ -872,38 +851,6 @@ watch(
     }
   }
 )
-
-/**
- * 统一导出处理函数
- * 遵循KISS原则：直接调用后端导出API
- */
-const handleExportCommand = async (format: string) => {
-  if (!activeSubjectId.value) {
-    toast.warning('请先选择科目')
-    return
-  }
-  if (format !== 'markdown') {
-    toast.warning('当前仅支持 Markdown 导出')
-    return
-  }
-
-  try {
-    const response = await exportExamsBySubject(activeSubjectId.value, format)
-    const blob = response.data
-    const downloadUrl = URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    link.href = downloadUrl
-    link.download = `408-${activeSubjectName.value}-全部真题.md`
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-    URL.revokeObjectURL(downloadUrl)
-    toast.success('Markdown 导出已开始')
-  } catch (error) {
-    toast.error('导出失败，请重试')
-    console.error('Markdown 导出失败:', error)
-  }
-}
 
 const handleEdit = (exam: ExamQuestion) => {
   if (!exam || !exam.id) {

@@ -9,7 +9,6 @@ from web408.modules.reporting.schemas import (
     ExamCategoryStatsExportRequest,
     ExamCategoryStatsRequest,
     ExamCategoryStatsResponse,
-    ExamExportRequest,
 )
 from web408.modules.reporting.service import ReportingService
 from web408.schemas.common import ApiResponse
@@ -58,29 +57,5 @@ async def export_exam_category_stats(
                 f"filename*=UTF-8''{encoded_filename}"
             ),
             "Cache-Control": "no-store",
-        },
-    )
-
-
-@router.post(
-    "/export",
-    summary="导出真题",
-    description="按科目导出 Markdown 真题文件",
-)
-async def export_exam_by_subject(
-    request: ExamExportRequest,
-    session: SessionDep,
-) -> FastAPIResponse:
-    """按科目导出真题。"""
-    export_result = await ReportingService(session).export_by_subject(request)
-    encoded_filename = quote(export_result.filename)
-    return FastAPIResponse(
-        content=export_result.file_bytes,
-        media_type=export_result.content_type,
-        headers={
-            "Content-Disposition": (
-                f'attachment; filename="exam.md"; '
-                f"filename*=UTF-8''{encoded_filename}"
-            ),
         },
     )

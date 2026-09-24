@@ -42,18 +42,6 @@ class ExamCategoryQuestionRead:
 
 
 @dataclass(frozen=True, slots=True)
-class ExamExportQuestionRead:
-    """供导出模块使用的真题只读数据。"""
-
-    year: int
-    question_number: int | None
-    title: str | None
-    content: str
-    options: str | None
-    answer: str | None
-
-
-@dataclass(frozen=True, slots=True)
 class ExamImageReferenceRead:
     """供媒体模块使用的真题文本只读数据。"""
 
@@ -175,21 +163,6 @@ class ExamQueryService:
             )
             for question in await self.repository.list_for_category_stats(subject_id)
         ]
-
-    async def list_for_export(self, subject_id: int) -> list[ExamExportQuestionRead]:
-        """返回导出模块所需的真题只读数据。"""
-        return [
-            ExamExportQuestionRead(
-                year=question.year,
-                question_number=question.question_number,
-                title=question.title,
-                content=question.content,
-                options=question.options,
-                answer=question.answer,
-            )
-            for question in await self.repository.find_for_export(subject_id)
-        ]
-
     async def list_image_reference_texts(self) -> list[ExamImageReferenceRead]:
         """返回媒体模块扫描图片引用所需的真题文本。"""
         return [

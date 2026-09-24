@@ -79,8 +79,6 @@
         </span>
       </transition>
 
-      <!-- 激活指示器 -->
-      <span v-if="isActive" class="active-indicator absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-[var(--theme-color)] rounded-r-full transition-opacity duration-200"></span>
     </div>
 
     <!-- 子分类列表（递归渲染） -->
@@ -369,23 +367,6 @@ const handleChildToggleExpand = (categoryId: number) => {
 /* 旋转动画 */
 .rotate-90 {
   transform: rotate(90deg);
-}
-
-/* 根节点缩进线效果 */
-.category-tree-item.is-root::before {
-  content: '';
-  position: absolute;
-  left: calc(var(--base-indent, 12px) - 8px);
-  top: 0;
-  bottom: 0;
-  width: 1px;
-  background: linear-gradient(
-    to bottom,
-    transparent,
-    color-mix(in srgb, var(--brand-accent) 15%, transparent) 10%,
-    color-mix(in srgb, var(--brand-accent) 15%, transparent) 90%,
-    transparent
-  );
 }
 
 @media (prefers-reduced-motion: reduce) {

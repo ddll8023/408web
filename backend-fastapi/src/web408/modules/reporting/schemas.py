@@ -20,13 +20,6 @@ class ExamCategoryStatsExportRequest(BaseModel):
     )
 
 
-class ExamExportRequest(BaseModel):
-    """真题导出请求。"""
-
-    subject_id: int = Field(..., ge=1, description="科目 ID")
-    format: Literal["markdown"] = Field(default="markdown", description="导出格式")
-
-
 class ExamCategoryStatItem(BaseModel):
     """真题分类统计项。"""
 

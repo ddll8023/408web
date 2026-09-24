@@ -20,7 +20,7 @@ test('路由重复参数只读取首值，空值归一为空字符串', () => {
   assert.equal(queryString(['栈', '队列']), '栈')
   for (const input of [undefined, null, [], [null]]) assert.equal(queryString(input), '')
 })
-test('复制导出同时支持对象与字符串选项，不把对象再次 JSON.parse', () => {
+test('复制时支持对象与字符串选项，不把对象再次 JSON.parse', () => {
   const options = { A: '甲', B: '$x^2$', C: '丙', D: '丁' }
   assert.deepEqual(parseQuestionOptions(options), options)
   assert.deepEqual(parseQuestionOptions(JSON.stringify(options)), options)

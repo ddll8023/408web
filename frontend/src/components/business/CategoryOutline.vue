@@ -1,7 +1,8 @@
 <!-- 分类大纲：展示当前父分类范围内的题目分组，支撑页内跳转；窄屏隐藏，改由目录抽屉提供同能力。 -->
 <template>
   <aside
-    class="order-first max-md:hidden self-start xl:order-none xl:sticky xl:top-4"
+    class="order-first self-start xl:order-none xl:sticky xl:top-4"
+    :class="props.hideBelowXl ? 'hidden xl:block' : 'max-md:hidden'"
     :aria-label="`${theme.label}分类大纲`"
   >
     <button
@@ -86,6 +87,7 @@ interface Props {
   items: readonly CategoryOutlineItem[]
   activeId: string
   kind: 'exam' | 'mock' | 'adaptation'
+  hideBelowXl?: boolean
 }
 
 const props = defineProps<Props>()
