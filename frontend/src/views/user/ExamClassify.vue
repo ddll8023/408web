@@ -867,9 +867,14 @@ const handleShowAdaptations = (exam: ExamQuestion) => {
   adaptationDialogVisible.value = true
 }
 
-const handleEditSuccess = async () => {
-  // Reload current list (simplest is to reset, or we could just reload current page but that's complex)
-  await loadQuestions(true)
+const handleEditSuccess = (updatedExam: ExamQuestion | null) => {
+  if (!updatedExam) return
+
+  const questionIndex = questionList.value.findIndex((exam) => exam.id === updatedExam.id)
+  if (questionIndex === -1) return
+
+  // 原位更新避免清空列表触发滚动容器回到顶部。
+  questionList.value[questionIndex] = updatedExam
 }
 
 const handleDelete = async (id: number) => {
