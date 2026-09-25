@@ -4,11 +4,21 @@
  */
 import { computed, ref } from 'vue'
 import type { Ref } from 'vue'
-import type { ApiResponse, Paginated } from '@/types'
+import type { ApiResponse, PageInfo, Paginated } from '@/types'
 
 interface Options<T> {
   pageSize?: number
   getItemKey?: (item: T) => string | number
+  /** 按业务规则合并新页，例如去重并保持领域排序。 */
+  mergePageItems?: (currentItems: readonly T[], nextItems: readonly T[]) => T[]
+  /** 覆盖分页元数据以外的“是否还有更多”规则。 */
+  getHasMore?: (items: readonly T[], pagination: PageInfo) => boolean
+  /** 当前模块的请求失败兜底提示。 */
+  fallbackErrorMessage?: string
+  /** 是否在业务响应失败时停止后续分页。 */
+  stopOnResponseError?: boolean
+  /** 保留调用方的错误诊断上下文。 */
+  onRequestError?: (error: unknown) => void
 }
 
 export function useInfiniteQuestionList<T>(
@@ -17,6 +27,10 @@ export function useInfiniteQuestionList<T>(
 ) {
   const pageSize = options.pageSize || 50
   const getItemKey = options.getItemKey
+  const fallbackErrorMessage = options.fallbackErrorMessage || '题目加载失败，请重试。'
+  const reportRequestError = options.onRequestError ?? ((requestError: unknown) => {
+    console.error('无限滚动加载题目失败:', requestError)
+  })
   // 泛型元素类型在 ref 解包后不再等价于 T[]，这里保留调用方声明的元素类型
   const items = ref([]) as Ref<T[]>
   const total = ref(0)
@@ -25,14 +39,30 @@ export function useInfiniteQuestionList<T>(
   const loading = ref(false)
   const loadingMore = ref(false)
   const error = ref('')
+  const responseFailed = ref(false)
   let requestVersion = 0
 
   const hasMore = computed(() => {
+    if (options.stopOnResponseError && responseFailed.value) return false
+    if (options.getHasMore && currentPage.value > 0) {
+      return options.getHasMore(items.value, {
+        page: currentPage.value,
+        pageSize,
+        total: total.value,
+        totalPages: totalPages.value,
+      })
+    }
     return currentPage.value === 0 || currentPage.value < totalPages.value
   })
   const loadedCount = computed(() => items.value.length)
 
   const appendItems = (nextItems: T[]) => {
+    if (options.mergePageItems) {
+      const currentItems = currentPage.value === 0 ? [] : items.value
+      items.value = options.mergePageItems(currentItems, nextItems)
+      return
+    }
+
     if (!getItemKey) {
       items.value = currentPage.value === 0 ? nextItems : [...items.value, ...nextItems]
       return
@@ -58,12 +88,14 @@ export function useInfiniteQuestionList<T>(
     if (nextPage === 1) loading.value = true
     else loadingMore.value = true
     if (retry) error.value = ''
+    responseFailed.value = false
 
     try {
       const response = await loadPage(nextPage, pageSize)
       if (version !== requestVersion) return
       if (response.code !== 200 || !response.data) {
-        error.value = response.message || '题目加载失败，请重试。'
+        responseFailed.value = true
+        error.value = response.message || fallbackErrorMessage
         return
       }
 
@@ -73,10 +105,11 @@ export function useInfiniteQuestionList<T>(
       total.value = pageInfo.total
       totalPages.value = pageInfo.totalPages
       error.value = ''
+      responseFailed.value = false
     } catch (requestError) {
       if (version !== requestVersion) return
-      error.value = '题目加载失败，请重试。'
-      console.error('无限滚动加载题目失败:', requestError)
+      error.value = fallbackErrorMessage
+      reportRequestError(requestError)
     } finally {
       if (version === requestVersion) {
         loading.value = false
@@ -95,6 +128,7 @@ export function useInfiniteQuestionList<T>(
     loading.value = false
     loadingMore.value = false
     error.value = ''
+    responseFailed.value = false
     await loadMoreInternal(version)
   }
 
@@ -119,6 +153,7 @@ export function useInfiniteQuestionList<T>(
     loading.value = false
     loadingMore.value = false
     error.value = ''
+    responseFailed.value = false
   }
 
   return {

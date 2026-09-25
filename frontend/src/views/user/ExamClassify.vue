@@ -201,6 +201,7 @@ import ExamEntryCard from '@/components/business/ExamEntryCard.vue'
 import ExamEditDialog from '@/components/business/ExamEditDialog.vue'
 import AdaptationRelatedDialog from '@/components/business/AdaptationRelatedDialog.vue'
 import { useCategoryOutline } from '@/composables/useCategoryOutline'
+import { useInfiniteQuestionList } from '@/composables/useInfiniteQuestionList'
 
 const route = useRoute()
 const authStore = useAuthStore()
@@ -218,10 +219,7 @@ const navSheetVisible = ref(false)
 // 分类展开状态：桌面侧栏与窄屏抽屉共用同一份状态
 const expandedCategoryIds = ref<number[]>([])
 const loadingSubjects = ref(false)
-const questionsLoading = ref(false)
 const subjectsLoadError = ref('')
-const questionsLoadError = ref('')
-let questionsRequestVersion = 0
 
 // 题目编辑弹窗状态
 const editDialogVisible = ref(false)
@@ -236,11 +234,6 @@ const activeSubjectId = ref<number | null>(null)
 const activeSubjectName = ref('')
 const expandedSubjectId = ref<number | null>(null)
 
-// Pagination State
-const currentPage = ref(1)
-const hasMore = ref(false)
-const pageSize = ref(50) // Reduce batch size for faster initial render
-
 // Filter Data
 const filterCategory = ref('')
 // 题型筛选：ALL=全部，CHOICE=仅选择题，ESSAY=仅主观题（视为非CHOICE的题型）
@@ -254,8 +247,36 @@ const questionTypeOptions = [
 ]
 
 // Questions Data
-const questionList = ref<ExamQuestion[]>([])
-const total = ref(0)
+const {
+  items: questionList,
+  loading: initialQuestionsLoading,
+  loadingMore: loadingMoreQuestions,
+  error: questionsLoadError,
+  hasMore: hasMorePages,
+  reload: reloadQuestions,
+  loadMore: loadMoreQuestions,
+  reset: resetQuestions,
+} = useInfiniteQuestionList<ExamQuestion>(
+  (page, pageSize) => getExamList({
+    page,
+    size: pageSize,
+    subjectId: activeSubjectId.value,
+    sortField: 'year',
+    sortOrder: 'asc',
+    category: filterCategory.value || undefined,
+  }),
+  {
+    pageSize: 50,
+    mergePageItems: (currentItems, nextItems) =>
+      uniqueExamQuestions([...currentItems, ...nextItems]),
+    getHasMore: (items, pagination) => items.length < pagination.total,
+    fallbackErrorMessage: '真题读取失败，请重试。',
+    stopOnResponseError: true,
+    onRequestError: error => console.error('加载真题失败:', error),
+  },
+)
+const questionsLoading = computed(() => initialQuestionsLoading.value || loadingMoreQuestions.value)
+const hasMore = computed(() => activeSubjectId.value !== null && hasMorePages.value)
 const showAnswers = ref<Record<number, boolean>>({}) // map: { examId: boolean }
 const contentScroller = ref<HTMLElement | null>(null)
 const setContentScroller = (element: HTMLElement | null) => {
@@ -761,76 +782,18 @@ const handleCopy = async (command: string, exam: ExamQuestion) => {
 
 // Core: Load Questions
 const loadQuestions = async (isReset = false) => {
-  const requestVersion = ++questionsRequestVersion
   if (!activeSubjectId.value) {
-    questionList.value = []
-    total.value = 0
-    questionsLoadError.value = ''
-    questionsLoading.value = false
+    resetQuestions()
     return
   }
 
   if (isReset) {
-    currentPage.value = 1
-    questionList.value = []
-    hasMore.value = true
-    questionsLoadError.value = ''
-  }
-
-  questionsLoading.value = true
-  // Don't reset showAnswers on load more, only on reset
-  if (isReset) {
     showAnswers.value = {}
+    await reloadQuestions()
+    return
   }
 
-  try {
-    const params: import("@/types").ExamQueryParams = {
-      page: currentPage.value,
-      size: pageSize.value,
-      subjectId: activeSubjectId.value,
-      sortField: 'year',
-      sortOrder: 'asc',
-      category: filterCategory.value || undefined // Server-side filtering
-    }
-
-    const res = await getExamList(params)
-    if (requestVersion !== questionsRequestVersion) return
-    if (res.code === 200) {
-      questionsLoadError.value = ''
-      const pageData = res.data?.lists || []
-      const serverTotal = res.data?.pagination?.total || 0
-      
-      if (isReset) {
-        questionList.value = uniqueExamQuestions(pageData)
-      } else {
-        // 分页追加时按题目 ID 合并，避免重复记录进入展示状态。
-        questionList.value = uniqueExamQuestions([...questionList.value, ...pageData])
-      }
-
-      total.value = serverTotal
-      
-      // Update hasMore status
-      hasMore.value = questionList.value.length < serverTotal
-      
-      if (pageData.length > 0) {
-        currentPage.value++
-      }
-    } else {
-      hasMore.value = false
-      questionsLoadError.value = res.message || '真题读取失败，请重试。'
-    }
-  } catch (e) {
-    console.error('加载真题失败:', e)
-    if (requestVersion === questionsRequestVersion) {
-      questionsLoadError.value = '真题读取失败，请重试。'
-    }
-    if (requestVersion === questionsRequestVersion && isReset) {
-      questionList.value = []
-      total.value = 0
-    }
-  } finally {
-    if (requestVersion === questionsRequestVersion) questionsLoading.value = false
-  }
+  await loadMoreQuestions()
 }
 
 // keep-alive 页面再次复用时同步外部科目/分类查询参数

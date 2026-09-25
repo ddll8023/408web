@@ -164,7 +164,7 @@
  * 改编题分类阅读页面。
  * 以科目和分类组织改编题，支持通过 hash 在新标签页中定位到指定题目。
  */
-import type { AdaptationQueryParams, AdaptationQuestion, CategoryOutlineItem, CategoryTreeNode, Subject } from '@/types'
+import type { AdaptationQuestion, CategoryOutlineItem, CategoryTreeNode, Subject } from '@/types'
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { queryString } from '@/utils/storage'
@@ -194,6 +194,7 @@ import AdaptationEntryCard from '@/components/business/AdaptationEntryCard.vue'
 import AdaptationEditDialog from '@/components/business/AdaptationEditDialog.vue'
 import AdaptationSourceDialog from '@/components/business/AdaptationSourceDialog.vue'
 import { useCategoryOutline } from '@/composables/useCategoryOutline'
+import { useInfiniteQuestionList } from '@/composables/useInfiniteQuestionList'
 import {
   findCategoryNode,
   getCategorySectionId,
@@ -211,20 +212,13 @@ const isNavCollapsed = ref(false)
 const navSheetVisible = ref(false)
 const expandedCategoryIds = ref<number[]>([])
 const loadingSubjects = ref(false)
-const questionsLoading = ref(false)
 const subjectsLoadError = ref('')
-const questionsLoadError = ref('')
-let questionsRequestVersion = 0
 
 const subjects = ref<Subject[]>([])
 const subjectCategories = ref<Record<number, CategoryTreeNode[]>>({})
 const activeSubjectId = ref<number | null>(null)
 const activeSubjectName = ref('')
 const expandedSubjectId = ref<number | null>(null)
-
-const currentPage = ref(1)
-const hasMore = ref(false)
-const pageSize = ref(50)
 
 const filterCategory = ref('')
 const filterQuestionType = ref<'ALL' | 'CHOICE' | 'ESSAY'>('ALL')
@@ -234,8 +228,37 @@ const questionTypeOptions = [
   { label: '主观题', value: 'ESSAY' },
 ]
 
-const questionList = ref<AdaptationQuestion[]>([])
-const total = ref(0)
+const {
+  items: questionList,
+  loading: initialQuestionsLoading,
+  loadingMore: loadingMoreQuestions,
+  error: questionsLoadError,
+  hasMore: hasMorePages,
+  reload: reloadQuestions,
+  loadMore: loadMoreQuestions,
+  reset: resetQuestions,
+} = useInfiniteQuestionList<AdaptationQuestion>(
+  (page, pageSize) => getAdaptationList({
+    page,
+    pageSize,
+    subjectId: activeSubjectId.value,
+    category: filterCategory.value || undefined,
+    questionType: filterQuestionType.value === 'ALL' ? undefined : filterQuestionType.value,
+    sortField: 'update_time',
+    sortOrder: 'desc',
+  }),
+  {
+    pageSize: 50,
+    mergePageItems: (currentItems, nextItems) =>
+      uniqueAdaptationQuestions([...currentItems, ...nextItems]),
+    getHasMore: (items, pagination) => items.length < pagination.total,
+    fallbackErrorMessage: '改编题读取失败，请重试。',
+    stopOnResponseError: true,
+    onRequestError: error => console.error('加载改编题失败:', error),
+  },
+)
+const questionsLoading = computed(() => initialQuestionsLoading.value || loadingMoreQuestions.value)
+const hasMore = computed(() => activeSubjectId.value !== null && hasMorePages.value)
 const showAnswers = ref<Record<number, boolean>>({})
 const editDialogVisible = ref(false)
 const editingAdaptationId = ref<number | null>(null)
@@ -573,63 +596,18 @@ const handleCopy = async (command: string, question: AdaptationQuestion) => {
 }
 
 const loadQuestions = async (isReset = false) => {
-  const requestVersion = ++questionsRequestVersion
   if (!activeSubjectId.value) {
-    questionList.value = []
-    total.value = 0
-    hasMore.value = false
-    questionsLoadError.value = ''
-    questionsLoading.value = false
+    resetQuestions()
     return
   }
 
   if (isReset) {
-    currentPage.value = 1
-    questionList.value = []
-    hasMore.value = true
-    questionsLoadError.value = ''
     showAnswers.value = {}
+    await reloadQuestions()
+    return
   }
 
-  questionsLoading.value = true
-  try {
-    const params: AdaptationQueryParams = {
-      page: currentPage.value,
-      pageSize: pageSize.value,
-      subjectId: activeSubjectId.value,
-      category: filterCategory.value || undefined,
-      questionType: filterQuestionType.value === 'ALL' ? undefined : filterQuestionType.value,
-      sortField: 'update_time',
-      sortOrder: 'desc',
-    }
-    const response = await getAdaptationList(params)
-    if (requestVersion !== questionsRequestVersion) return
-
-    if (response.code === 200) {
-      const pageData = response.data?.lists || []
-      const serverTotal = response.data?.pagination?.total || 0
-      questionList.value = isReset
-        ? uniqueAdaptationQuestions(pageData)
-        : uniqueAdaptationQuestions([...questionList.value, ...pageData])
-      total.value = serverTotal
-      hasMore.value = questionList.value.length < serverTotal
-      questionsLoadError.value = ''
-      if (pageData.length > 0) currentPage.value += 1
-    } else {
-      hasMore.value = false
-      questionsLoadError.value = response.message || '改编题读取失败，请重试。'
-    }
-  } catch (error) {
-    if (requestVersion !== questionsRequestVersion) return
-    questionsLoadError.value = '改编题读取失败，请重试。'
-    if (isReset) {
-      questionList.value = []
-      total.value = 0
-    }
-    console.error('加载改编题失败:', error)
-  } finally {
-    if (requestVersion === questionsRequestVersion) questionsLoading.value = false
-  }
+  await loadMoreQuestions()
 }
 
 const handleHashScroll = async () => {

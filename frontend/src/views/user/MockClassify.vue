@@ -195,6 +195,7 @@ import CategorySectionHeader from '@/components/business/CategorySectionHeader.v
 import MockEntryCard from '@/components/business/MockEntryCard.vue'
 import MockEditDialog from '@/components/business/MockEditDialog.vue'
 import { useCategoryOutline } from '@/composables/useCategoryOutline'
+import { useInfiniteQuestionList } from '@/composables/useInfiniteQuestionList'
 import { getDifficultyLabel, getDifficultyType } from '@/constants/exam'
 import {
   findCategoryNode,
@@ -222,10 +223,7 @@ const navSheetVisible = ref(false)
 // 分类展开状态：桌面侧栏与窄屏抽屉共用同一份状态
 const expandedCategoryIds = ref<number[]>([])
 const loadingSubjects = ref(false)
-const questionsLoading = ref(false)
 const subjectsLoadError = ref('')
-const questionsLoadError = ref('')
-let questionsRequestVersion = 0
 
 // Data
 const subjects = ref<Subject[]>([])
@@ -233,11 +231,6 @@ const subjectCategories = ref<Record<number, CategoryTreeNode[]>>({})
 const activeSubjectId = ref<number | null>(null)
 const activeSubjectName = ref('')
 const expandedSubjectId = ref<number | null>(null)
-
-// Pagination State
-const currentPage = ref(1)
-const hasMore = ref(false)
-const pageSize = ref(50)
 
 // Filter Data
 const filterCategory = ref('')
@@ -251,8 +244,32 @@ const questionTypeOptions = [
 ]
 
 // Questions Data
-const questionList = ref<MockQuestion[]>([])
-const total = ref(0)
+const {
+  items: questionList,
+  loading: initialQuestionsLoading,
+  loadingMore: loadingMoreQuestions,
+  error: questionsLoadError,
+  hasMore: hasMorePages,
+  reload: reloadQuestions,
+  loadMore: loadMoreQuestions,
+  reset: resetQuestions,
+} = useInfiniteQuestionList<MockQuestion>(
+  (page, pageSize) => getMockQuestions({
+    page,
+    size: pageSize,
+    subjectId: activeSubjectId.value,
+    category: filterCategory.value || undefined,
+  }),
+  {
+    pageSize: 50,
+    getHasMore: (items, pagination) => items.length < pagination.total,
+    fallbackErrorMessage: '模拟题读取失败，请重试。',
+    stopOnResponseError: true,
+    onRequestError: error => console.error('加载模拟题失败:', error),
+  },
+)
+const questionsLoading = computed(() => initialQuestionsLoading.value || loadingMoreQuestions.value)
+const hasMore = computed(() => activeSubjectId.value !== null && hasMorePages.value)
 const showAnswers = ref<Record<number, boolean>>({})
 const contentScroller = ref<HTMLElement | null>(null)
 const setContentScroller = (element: HTMLElement | null) => {
@@ -562,70 +579,18 @@ const handleAnswered = (
 
 // Core: Load Questions
 const loadQuestions = async (isReset = false) => {
-  const requestVersion = ++questionsRequestVersion
   if (!activeSubjectId.value) {
-    questionList.value = []
-    total.value = 0
-    questionsLoadError.value = ''
-    questionsLoading.value = false
+    resetQuestions()
     return
   }
 
   if (isReset) {
-    currentPage.value = 1
-    questionList.value = []
-    hasMore.value = true
-    questionsLoadError.value = ''
-  }
-
-  questionsLoading.value = true
-  if (isReset) {
     showAnswers.value = {}
+    await reloadQuestions()
+    return
   }
 
-  try {
-    const params = {
-      page: currentPage.value,
-      size: pageSize.value,
-      subjectId: activeSubjectId.value,
-      category: filterCategory.value || undefined
-    }
-
-    const res = await getMockQuestions(params)
-    if (requestVersion !== questionsRequestVersion) return
-    if (res.code === 200) {
-      questionsLoadError.value = ''
-      const pageData = res.data?.lists || []
-      const serverTotal = res.data?.pagination?.total || 0
-      
-      if (isReset) {
-        questionList.value = pageData
-      } else {
-        questionList.value.push(...pageData)
-      }
-
-      total.value = serverTotal
-      hasMore.value = questionList.value.length < serverTotal
-      
-      if (pageData.length > 0) {
-        currentPage.value++
-      }
-    } else {
-      hasMore.value = false
-      questionsLoadError.value = res.message || '模拟题读取失败，请重试。'
-    }
-  } catch (e) {
-    console.error('加载模拟题失败:', e)
-    if (requestVersion === questionsRequestVersion) {
-      questionsLoadError.value = '模拟题读取失败，请重试。'
-    }
-    if (requestVersion === questionsRequestVersion && isReset) {
-      questionList.value = []
-      total.value = 0
-    }
-  } finally {
-    if (requestVersion === questionsRequestVersion) questionsLoading.value = false
-  }
+  await loadMoreQuestions()
 }
 
 // keep-alive 页面再次复用时同步外部科目/分类查询参数
