@@ -19,5 +19,5 @@ export interface NormalizedCascaderOption {
   selectable: boolean
 }
 export type TableRowKey = string | number
-export interface TableColumn { prop: string; label: string; width?: string; minWidth?: string; align?: string; sortable?: boolean; fixed?: string; slot?: boolean }
+export interface TableColumn { prop: string; label: string; width?: string; minWidth?: string; align?: 'left' | 'center' | 'right'; sortable?: boolean; fixed?: string; slot?: boolean }
 export interface TableSort { prop: string | null; order: 'ascending' | 'descending' | null }

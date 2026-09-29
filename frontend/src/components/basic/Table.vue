@@ -59,7 +59,7 @@
             :tabindex="column.sortable ? 0 : undefined"
             :class="[
               sizeClasses.th,
-              column.align === 'center' ? 'text-center' : column.align === 'right' ? 'text-right' : 'text-left',
+              alignClass(column),
               column.sortable ? 'cursor-pointer select-none hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent' : '',
               column.fixed ? 'sticky right-0 z-10 bg-inherit shadow-[-8px_0_12px_-12px_rgba(0,0,0,0.35)]' : ''
             ]"
@@ -68,7 +68,7 @@
             @keydown.enter.prevent="column.sortable ? handleSort(column) : null"
             @keydown.space.prevent="column.sortable ? handleSort(column) : null"
           >
-            <div class="flex items-center gap-1" :class="column.align === 'center' ? 'justify-center' : column.align === 'right' ? 'justify-end' : 'justify-start'">
+            <div class="flex items-center gap-1" :class="justifyClass(column)">
               <span>{{ column.label }}</span>
               <template v-if="column.sortable">
                 <font-awesome-icon
@@ -116,7 +116,7 @@
             :class="[
               sizeClasses.py,
               sizeClasses.td,
-              column.align === 'center' ? 'text-center' : column.align === 'right' ? 'text-right' : 'text-left',
+              alignClass(column),
               column.fixed ? 'sticky right-0 z-10 bg-inherit shadow-[-8px_0_12px_-12px_rgba(0,0,0,0.35)]' : ''
             ]"
             :style="columnStyle(column)"
@@ -244,6 +244,21 @@ const columnStyle = (column: TableColumn) => ({
   ...(column.width ? { width: normalizeSize(column.width) } : {}),
   ...(column.minWidth ? { minWidth: normalizeSize(column.minWidth) } : {})
 })
+
+// 列对齐：未显式传 align 时默认居中，仅 left/right 需要显式覆盖
+const resolveAlign = (column: TableColumn): 'left' | 'center' | 'right' => column.align || 'center'
+
+// 表头与单元格的水平对齐类
+const alignClass = (column: TableColumn) => {
+  const align = resolveAlign(column)
+  return align === 'left' ? 'text-left' : align === 'right' ? 'text-right' : 'text-center'
+}
+
+// 表头内层内容（标题 + 排序图标）的对齐类
+const justifyClass = (column: TableColumn) => {
+  const align = resolveAlign(column)
+  return align === 'left' ? 'justify-start' : align === 'right' ? 'justify-end' : 'justify-center'
+}
 
 const getAriaSort = (column: TableColumn): 'ascending' | 'descending' | 'none' => {
   if (sortConfig.prop !== column.prop || !sortConfig.order) return 'none'

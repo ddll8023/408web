@@ -8,6 +8,7 @@ __pycache__/
 .github
 .idea
 .vscode
+.pi
 
 # Backend build and runtime files
 backend-fastapi/.venv
