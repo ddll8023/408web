@@ -23,19 +23,29 @@
     </div>
     <div class="question-actions flex gap-1 opacity-80 transition-opacity duration-200 hover:opacity-100">
       <CustomButton
-        v-if="exam.questionNumber != null"
         size="sm"
-        type="text-primary"
-        title="查看关联改编题"
-        @click="$emit('show-adaptations', exam)"
-      >
-        改编
-      </CustomButton>
-      <QuestionCopyMenu :question="exam" @copy="(command) => $emit('copy', command)" />
-      <ExamProcessMenu :exam="exam" :is-admin="isAdmin" />
-      <template v-if="isAdmin">
-        <CustomButton size="sm" type="text" @click="$emit('edit', exam)">编辑</CustomButton>
-        <CustomButton size="sm" type="text" @click="$emit('delete', exam.id)">删除</CustomButton>
+        type="text"
+        :icon="['fas', fullscreenActive ? 'compress' : 'expand']"
+        :title="fullscreenActive ? '退出全屏' : '全屏查看本题'"
+        :aria-label="fullscreenActive ? '退出全屏' : '全屏查看本题'"
+        @click="$emit('toggle-fullscreen')"
+      />
+      <template v-if="!fullscreenActive">
+        <CustomButton
+          v-if="exam.questionNumber != null"
+          size="sm"
+          type="text-primary"
+          title="查看关联改编题"
+          @click="$emit('show-adaptations', exam)"
+        >
+          改编
+        </CustomButton>
+        <QuestionCopyMenu :question="exam" @copy="(command) => $emit('copy', command)" />
+        <ExamProcessMenu :exam="exam" :is-admin="isAdmin" />
+        <template v-if="isAdmin">
+          <CustomButton size="sm" type="text" @click="$emit('edit', exam)">编辑</CustomButton>
+          <CustomButton size="sm" type="text" @click="$emit('delete', exam.id)">删除</CustomButton>
+        </template>
       </template>
     </div>
   </div>
@@ -66,6 +76,11 @@ defineProps({
   isAdmin: {
     type: Boolean,
     default: false
+  },
+  /** 当前卡片是否处于全屏或沉浸模式 */
+  fullscreenActive: {
+    type: Boolean,
+    default: false
   }
 })
 
@@ -75,6 +90,7 @@ defineEmits<{
   edit: [question: ExamQuestion]
   delete: [id: number]
   'show-adaptations': [question: ExamQuestion]
+  'toggle-fullscreen': []
 }>()
 </script>
 

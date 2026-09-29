@@ -1,6 +1,9 @@
 <!-- 模拟题卡片：组合题目头部与题目正文，预留窄屏吸顶导航的锚点偏移，与 ExamEntryCard 保持样式一致。 -->
 <template>
-  <div class="mock-entry-card
+  <div
+    ref="cardRef"
+    class="mock-entry-card
+    question-immersive-card
     bg-white
     border border-gray-200
     rounded-lg
@@ -10,14 +13,18 @@
     transition-all duration-300
     scroll-mt-14
     md:scroll-mt-8
-  ">
+  "
+    :class="{ 'is-immersive': isImmersive }"
+  >
     <!-- 题目头部 -->
     <MockItemHeader
       :mock="mock"
       :is-admin="isAdmin"
+      :fullscreen-active="isActive"
       @copy="(cmd) => $emit('copy', cmd)"
       @edit="$emit('edit', mock)"
       @delete="(id) => $emit('delete', id)"
+      @toggle-fullscreen="toggleFullscreen"
     />
     <!-- 题目内容与答案 -->
     <div class="mt-6">
@@ -33,7 +40,7 @@
 </template>
 
 <script setup lang="ts">
-import type { PropType } from 'vue'
+import { ref, type PropType } from 'vue'
 import type { MockQuestion } from '@/types'
 /**
  * 模拟题卡片组件
@@ -43,6 +50,7 @@ import type { MockQuestion } from '@/types'
  */
 import MockItemHeader from '@/components/business/MockItemHeader.vue'
 import ExamQuestionCard from '@/components/business/ExamQuestionCard.vue'
+import { useQuestionFullscreen } from '@/composables/useQuestionFullscreen'
 
 /**
  * Props 定义
@@ -78,6 +86,12 @@ defineProps({
  * @property {Function} toggle-answer - 切换答案显示
  */
 defineEmits<{ copy: [command: string]; edit: [question: MockQuestion]; delete: [id: number]; 'toggle-answer': []; answered: [payload: { optionKey: string; correct: boolean }] }>()
+
+/** 卡片根元素，同时作为全屏目标 */
+const cardRef = ref<HTMLElement | null>(null)
+
+/** 单题全屏与沉浸状态 */
+const { isActive, isImmersive, toggleFullscreen } = useQuestionFullscreen(cardRef)
 </script>
 
 <style scoped>

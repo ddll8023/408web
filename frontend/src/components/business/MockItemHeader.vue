@@ -24,12 +24,22 @@
       </div>
     </div>
     <div class="question-actions flex gap-1 opacity-80 transition-opacity duration-200 hover:opacity-100">
-      <!-- 公共复制菜单组件 -->
-      <QuestionCopyMenu :question="mock" @copy="(command) => $emit('copy', command)" />
-      <!-- 管理员操作 -->
-      <template v-if="isAdmin">
-        <CustomButton size="sm" type="text" @click="$emit('edit', mock)">编辑</CustomButton>
-        <CustomButton size="sm" type="text" @click="$emit('delete', mock.id)">删除</CustomButton>
+      <CustomButton
+        size="sm"
+        type="text"
+        :icon="['fas', fullscreenActive ? 'compress' : 'expand']"
+        :title="fullscreenActive ? '退出全屏' : '全屏查看本题'"
+        :aria-label="fullscreenActive ? '退出全屏' : '全屏查看本题'"
+        @click="$emit('toggle-fullscreen')"
+      />
+      <template v-if="!fullscreenActive">
+        <!-- 公共复制菜单组件 -->
+        <QuestionCopyMenu :question="mock" @copy="(command) => $emit('copy', command)" />
+        <!-- 管理员操作 -->
+        <template v-if="isAdmin">
+          <CustomButton size="sm" type="text" @click="$emit('edit', mock)">编辑</CustomButton>
+          <CustomButton size="sm" type="text" @click="$emit('delete', mock.id)">删除</CustomButton>
+        </template>
       </template>
     </div>
   </div>
@@ -50,10 +60,12 @@ import { getDifficultyLabel, getDifficultyType } from '@/constants/exam'
 
 defineProps({
   mock: { type: Object as PropType<MockQuestion>, required: true },
-  isAdmin: { type: Boolean, default: false }
+  isAdmin: { type: Boolean, default: false },
+  /** 当前卡片是否处于全屏或沉浸模式 */
+  fullscreenActive: { type: Boolean, default: false }
 })
 
-defineEmits<{ copy: [command: string]; edit: [question: MockQuestion]; delete: [id: number] }>()
+defineEmits<{ copy: [command: string]; edit: [question: MockQuestion]; delete: [id: number]; 'toggle-fullscreen': [] }>()
 </script>
 
 <style scoped>

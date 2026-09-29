@@ -4,7 +4,7 @@
   依赖组件：FontAwesomeIcon（全局注册）
 -->
 <template>
-  <teleport to="body">
+  <teleport :to="teleportTarget">
     <transition name="image-viewer-fade">
       <div
         v-if="visible"
@@ -150,6 +150,11 @@ const imageStyle = computed(() => ({
 }))
 
 const zoomPercent = computed(() => `${Math.round(scale.value * 100)}%`)
+
+/**
+ * 题目卡片全屏时位于浏览器顶层，查看器必须渲染进全屏元素内部才可见。
+ */
+const teleportTarget = computed(() => document.fullscreenElement ?? 'body')
 
 const clampScale = (value: number) => Math.min(MAX_SCALE, Math.max(MIN_SCALE, value))
 

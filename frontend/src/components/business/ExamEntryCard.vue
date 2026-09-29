@@ -1,14 +1,20 @@
 <!-- 真题卡片：组合题目头部与题目正文，预留窄屏吸顶导航的锚点偏移。 -->
 <template>
-  <div class="exam-entry-card bg-white rounded-lg border border-gray-300 p-4 md:p-6 scroll-mt-14 md:scroll-mt-8 transition-all hover:shadow-md hover:border-accent/30">
+  <div
+    ref="cardRef"
+    class="exam-entry-card question-immersive-card bg-white rounded-lg border border-gray-300 p-4 md:p-6 scroll-mt-14 md:scroll-mt-8 transition-all hover:shadow-md hover:border-accent/30"
+    :class="{ 'is-immersive': isImmersive }"
+  >
     <!-- 题目头部：包含题号、元数据、操作按钮 -->
     <ExamItemHeader
       :exam="exam"
       :is-admin="isAdmin"
+      :fullscreen-active="isActive"
       @copy="(cmd) => $emit('copy', cmd)"
       @edit="$emit('edit', exam)"
       @delete="(id) => $emit('delete', id)"
       @show-adaptations="$emit('show-adaptations', exam)"
+      @toggle-fullscreen="toggleFullscreen"
     />
 
     <!-- 题目内容与答案卡片 -->
@@ -25,7 +31,7 @@
 </template>
 
 <script setup lang="ts">
-import type { PropType } from 'vue'
+import { ref, type PropType } from 'vue'
 import type { ExamQuestion } from '@/types'
 /**
  * 题目条目卡片组件
@@ -35,6 +41,7 @@ import type { ExamQuestion } from '@/types'
  */
 import ExamItemHeader from '@/components/business/ExamItemHeader.vue'
 import ExamQuestionCard from '@/components/business/ExamQuestionCard.vue'
+import { useQuestionFullscreen } from '@/composables/useQuestionFullscreen'
 
 /**
  * Props 定义
@@ -78,6 +85,12 @@ defineEmits<{
   'toggle-answer': []
   answered: [payload: { optionKey: string; correct: boolean }]
 }>()
+
+/** 卡片根元素，同时作为全屏目标 */
+const cardRef = ref<HTMLElement | null>(null)
+
+/** 单题全屏与沉浸状态 */
+const { isActive, isImmersive, toggleFullscreen } = useQuestionFullscreen(cardRef)
 </script>
 
 <style scoped>

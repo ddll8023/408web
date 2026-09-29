@@ -29,25 +29,35 @@
     </div>
 
     <div class="question-actions ml-3 flex shrink-0 gap-1 opacity-80 transition-opacity duration-200 hover:opacity-100">
-      <QuestionCopyMenu :question="adaptation" @copy="(command) => $emit('copy', command)" />
       <CustomButton
         size="sm"
         type="text"
-        :disabled="adaptation.sources.length === 0"
-        @click="$emit('show-sources', adaptation)"
-      >
-        来源
-      </CustomButton>
-      <template v-if="isAdmin">
-        <CustomButton size="sm" type="text" @click="$emit('edit', adaptation)">编辑</CustomButton>
+        :icon="['fas', fullscreenActive ? 'compress' : 'expand']"
+        :title="fullscreenActive ? '退出全屏' : '全屏查看本题'"
+        :aria-label="fullscreenActive ? '退出全屏' : '全屏查看本题'"
+        @click="$emit('toggle-fullscreen')"
+      />
+      <template v-if="!fullscreenActive">
+        <QuestionCopyMenu :question="adaptation" @copy="(command) => $emit('copy', command)" />
         <CustomButton
           size="sm"
-          type="text-danger"
-          :loading="deleteLoading"
-          @click="$emit('delete', adaptation.id)"
+          type="text"
+          :disabled="adaptation.sources.length === 0"
+          @click="$emit('show-sources', adaptation)"
         >
-          删除
+          来源
         </CustomButton>
+        <template v-if="isAdmin">
+          <CustomButton size="sm" type="text" @click="$emit('edit', adaptation)">编辑</CustomButton>
+          <CustomButton
+            size="sm"
+            type="text-danger"
+            :loading="deleteLoading"
+            @click="$emit('delete', adaptation.id)"
+          >
+            删除
+          </CustomButton>
+        </template>
       </template>
     </div>
   </div>
@@ -77,6 +87,11 @@ const props = defineProps({
   deleteLoading: {
     type: Boolean,
     default: false
+  },
+  /** 当前卡片是否处于全屏或沉浸模式 */
+  fullscreenActive: {
+    type: Boolean,
+    default: false
   }
 })
 
@@ -85,6 +100,7 @@ defineEmits<{
   'show-sources': [question: AdaptationQuestion]
   edit: [question: AdaptationQuestion]
   delete: [id: number]
+  'toggle-fullscreen': []
 }>()
 
 const categories = computed(() => props.adaptation.category?.filter(Boolean) || [])

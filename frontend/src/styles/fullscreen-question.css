@@ -1,0 +1,39 @@
+/**
+ * 题目卡片全屏与沉浸态样式。
+ * 浏览器真全屏（:fullscreen）与不支持全屏 API 时的降级覆盖层（.is-immersive）
+ * 共用同一套布局声明，保证两种模式下的内边距与阅读行宽一致。
+ */
+
+.question-immersive-card:fullscreen,
+.question-immersive-card.is-immersive {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 24px 20px 40px;
+  overflow: auto;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  background: #ffffff;
+  scroll-margin-top: 0;
+}
+
+.question-immersive-card:fullscreen::backdrop {
+  background: #ffffff;
+}
+
+/* 内容限宽居中，避免超宽屏下行长过长影响阅读 */
+.question-immersive-card:fullscreen > *,
+.question-immersive-card.is-immersive > * {
+  width: 100%;
+  max-width: 1120px;
+  margin-right: auto;
+  margin-left: auto;
+}
+
+/* 降级模式：用固定覆盖层模拟全屏，层级高于弹窗、低于全局提示 */
+.question-immersive-card.is-immersive {
+  position: fixed;
+  inset: 0;
+  z-index: 1500;
+}
