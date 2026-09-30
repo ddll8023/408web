@@ -1,51 +1,44 @@
 <!-- 题目 JSON 导入面板：统一真题、模拟题和改编题编辑弹窗的导入交互。 -->
 <template>
-  <section class="mb-6">
+  <section class="edit-import">
     <button
-      class="group flex w-full items-center justify-between rounded-r-lg border-l-4 border-accent bg-gradient-to-r from-surface/80 to-transparent px-5 py-3.5 transition-all duration-200 hover:from-surface hover:shadow-sm"
+      class="edit-import-toggle"
       type="button"
       :aria-expanded="visible"
       :aria-controls="panelId"
       @click="emit('update:visible', !visible)"
     >
-      <span class="flex items-center gap-3">
+      <span class="flex flex-wrap items-center gap-x-2 gap-y-1">
         <font-awesome-icon :icon="['fas', 'code']" class="text-accent" aria-hidden="true" />
-        <span class="font-semibold text-ink">从 JSON 格式导入</span>
-        <span class="rounded-full bg-accent/10 px-2 py-0.5 text-xs text-accent/60">批量录入</span>
+        <span class="text-sm font-medium">从 JSON 导入</span>
+        <span class="text-xs text-ink-soft">辅助录入</span>
       </span>
       <font-awesome-icon
-        class="text-accent/60 transition-transform duration-300 group-hover:text-accent"
+        class="shrink-0 text-ink-soft"
         :icon="visible ? ['fas', 'chevron-up'] : ['fas', 'chevron-down']"
         aria-hidden="true"
       />
     </button>
 
     <Transition name="slide-fade">
-      <div v-show="visible" :id="panelId" class="mt-3 rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
-        <div class="mb-4 flex items-start gap-3 rounded-lg border border-accent/10 bg-surface p-4">
-          <font-awesome-icon :icon="['fas', 'info-circle']" class="mt-0.5 text-accent" aria-hidden="true" />
-          <div class="text-sm text-ink-soft">
-            粘贴单个题目的 JSON 数据，点击“解析并填充”后自动填充到下方表单。
-            <a
-              v-if="showExample"
-              href="#"
-              class="ml-2 text-accent underline underline-offset-2 hover:text-accent-hover"
-              @click.prevent="emit('show-example')"
-            >
-              查看格式示例
-            </a>
-          </div>
+      <div v-show="visible" :id="panelId" class="edit-import-body">
+        <div class="mb-3 flex flex-wrap items-baseline justify-between gap-2">
+          <label :for="`${panelId}-input`" class="edit-label m-0">题目 JSON</label>
+          <button v-if="showExample" type="button" class="text-xs text-accent underline underline-offset-2 focus-visible:outline-2 focus-visible:outline-accent" @click="emit('show-example')">查看格式示例</button>
         </div>
-
         <textarea
+          :id="`${panelId}-input`"
+          :aria-describedby="`${panelId}-hint`"
           :value="modelValue"
-          class="w-full rounded-lg border border-gray-200 bg-gray-50/50 px-4 py-3 font-mono text-sm transition-all duration-200 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/30"
+          class="edit-textarea edit-json-input"
+          spellcheck="false"
           rows="5"
           placeholder="粘贴JSON数据..."
           @input="handleInput"
         />
 
-        <div class="mt-4 flex flex-wrap gap-3">
+        <p :id="`${panelId}-hint`" class="edit-hint">粘贴单个题目的 JSON，解析后填充下方表单。<span v-if="showContentOnly">“仅更新题目内容”不会修改基础信息。</span></p>
+        <div class="mt-3 flex flex-wrap gap-2">
           <CustomButton size="sm" @click="emit('paste')">
             <font-awesome-icon :icon="['fas', 'clipboard']" class="mr-1.5" aria-hidden="true" />
             粘贴
@@ -80,6 +73,7 @@
  */
 import { getCurrentInstance } from 'vue'
 import CustomButton from '@/components/basic/CustomButton.vue'
+import '@/styles/edit-form.css'
 
 interface Props {
   modelValue: string

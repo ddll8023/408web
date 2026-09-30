@@ -1,0 +1,331 @@
+/* 编辑界面专用视觉基座：只作用于显式使用 edit-* 类名的区域，不覆盖全局表单。 */
+.edit-form {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 20px;
+  color: var(--brand-ink);
+}
+
+.edit-section {
+  min-width: 0;
+  padding: 20px;
+  border: 1px solid var(--brand-line);
+  border-radius: 12px;
+  background: #fff;
+}
+
+.edit-section-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.edit-section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  color: var(--brand-ink);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.edit-section-title > svg {
+  color: var(--brand-accent);
+  font-size: 13px;
+}
+
+.edit-hint {
+  margin: 6px 0 0;
+  color: var(--brand-ink-soft);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.edit-section-heading .edit-hint,
+.edit-footer > .edit-hint {
+  margin: 0;
+}
+
+.edit-grid,
+.edit-options-grid {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+}
+
+.edit-grid > *,
+.edit-options-grid > * {
+  min-width: 0;
+}
+
+.edit-span-full {
+  grid-column: 1 / -1;
+}
+
+.edit-label {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--brand-ink);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.edit-input,
+.edit-textarea {
+  display: block;
+  width: 100%;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  background: #fff;
+  padding: 10px 12px;
+  color: var(--brand-ink);
+  font: inherit;
+  font-size: 14px;
+  line-height: 1.6;
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+
+.edit-textarea {
+  min-height: 100px;
+  resize: vertical;
+}
+
+.edit-input::placeholder,
+.edit-textarea::placeholder {
+  color: var(--brand-ink-mute);
+}
+
+.edit-input:focus,
+.edit-textarea:focus {
+  border-color: var(--brand-accent);
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand-accent) 14%, transparent);
+}
+
+.edit-readonly {
+  display: flex;
+  min-height: 42px;
+  align-items: center;
+  overflow-wrap: anywhere;
+  border: 1px solid var(--brand-line);
+  border-radius: 8px;
+  background: #f9fafb;
+  padding: 10px 12px;
+  color: var(--brand-ink-soft);
+  font-size: 13px;
+}
+
+.edit-field-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 12px;
+  margin-top: 6px;
+  color: var(--brand-ink-soft);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.edit-field-meta > p {
+  margin: 0;
+}
+
+.edit-count {
+  margin-left: auto;
+  color: var(--brand-ink-soft);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.edit-options-grid > .edit-option {
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #f9fafb;
+  padding: 12px;
+}
+
+.edit-state-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: 1px solid var(--brand-line);
+  border-radius: 8px;
+  background: #f9fafb;
+  padding: 12px;
+}
+
+.edit-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.edit-footer-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.edit-loading {
+  position: absolute;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border-radius: 12px;
+  background: rgb(255 255 255 / 92%);
+  color: var(--brand-ink-soft);
+  font-size: 14px;
+}
+
+.edit-import {
+  overflow: hidden;
+  border: 1px solid var(--brand-line);
+  border-radius: 10px;
+  background: #f9fafb;
+}
+
+.edit-import-toggle {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: 0;
+  background: transparent;
+  padding: 12px 16px;
+  color: var(--brand-ink);
+  text-align: left;
+  cursor: pointer;
+}
+
+.edit-import-toggle:hover {
+  background: color-mix(in srgb, var(--brand-accent) 5%, #fff);
+}
+
+.edit-import-toggle:focus-visible {
+  outline: 2px solid var(--brand-accent);
+  outline-offset: -3px;
+}
+
+.edit-import-body {
+  border-top: 1px solid var(--brand-line);
+  padding: 16px;
+}
+
+.edit-json-input {
+  min-height: 128px;
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 13px;
+}
+
+.edit-source-row {
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.edit-source-fields {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(136px, 1fr) auto;
+  align-items: end;
+  gap: 12px;
+}
+
+.edit-source-fields > * {
+  min-width: 0;
+}
+
+.edit-source-status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px;
+  margin: 10px 0 0;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+@media (min-width: 640px) {
+  .edit-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1024px) {
+  .edit-grid--four {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .edit-options-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 767px) {
+  .edit-form {
+    gap: 16px;
+  }
+
+  .edit-section {
+    padding: 14px;
+  }
+
+  .edit-section-heading {
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+  }
+
+  .edit-input,
+  .edit-textarea {
+    font-size: 16px;
+  }
+
+  .edit-footer-actions {
+    width: 100%;
+  }
+
+  .edit-footer-actions > button {
+    flex: 1;
+  }
+}
+
+@media (max-width: 639px) {
+  .edit-source-fields {
+    grid-template-columns: minmax(0, 1fr) minmax(136px, 1fr);
+  }
+
+  .edit-source-delete {
+    grid-column: 1 / -1;
+    justify-self: end;
+  }
+}
+
+@media (max-width: 419px) {
+  .edit-source-fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .edit-input,
+  .edit-textarea {
+    transition: none;
+  }
+}

@@ -27,7 +27,7 @@
 
         <!-- 操作列自定义 -->
         <template #action="{ row }">
-          <div class="flex gap-1 whitespace-nowrap">
+          <div class="flex justify-center gap-1 whitespace-nowrap">
             <CustomButton type="text-primary" size="sm" @click="handleEdit(row)">编辑</CustomButton>
             <CustomButton
               type="text"
@@ -84,108 +84,56 @@
       width="600px"
       @close="resetForm"
     >
-      <form ref="formRef" @submit.prevent="handleSubmit" class="space-y-4">
-        <!-- 科目编码 -->
-        <div>
-          <FormLabel label="科目编码" required for-id="subject-code" class="mb-2" />
-          <CustomInput
-            id="subject-code"
-            v-model="form.code"
-            placeholder="请输入科目编码（如：data-structure）"
-            :maxlength="50"
-            clearable
-            :error="errors.code"
-            :disabled="dialogMode === 'edit'"
-            :class="[
-              'transition-all duration-200',
-              dialogMode === 'edit' ? 'bg-gray-100 cursor-not-allowed opacity-75' : '',
-              errors.code ? 'border-red-300 focus:border-red-500 focus:ring-red-200' : ''
-            ]"
-          />
-          <p class="text-xs text-gray-500 mt-1">
-            <font-awesome-icon :icon="['fas', 'info-circle']" class="mr-1" />
-            科目编码创建后不可修改，长度不超过50字符
-          </p>
-        </div>
-
-        <!-- 科目名称 -->
-        <div>
-          <FormLabel label="科目名称" required for-id="subject-name" class="mb-2" />
-          <CustomInput
-            id="subject-name"
-            v-model="form.name"
-            placeholder="请输入科目名称（如：数据结构）"
-            :maxlength="100"
-            clearable
-            :error="errors.name"
-            :class="[
-              'transition-all duration-200',
-              errors.name ? 'border-red-300 focus:border-red-500 focus:ring-red-200' : 'focus:border-accent focus:ring-accent/20'
-            ]"
-          />
-        </div>
-
-        <!-- 科目描述 -->
-        <div>
-          <FormLabel label="科目描述" for-id="subject-description" class="mb-2" />
-          <textarea
-            id="subject-description"
-            v-model="form.description"
-            rows="3"
-            maxlength="500"
-            placeholder="请输入科目描述（可选）"
-            class="w-full px-3 py-2 border border-gray-300 rounded-md
-                   focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent
-                   resize-none transition-all duration-200
-                   hover:border-gray-400"
-          ></textarea>
-          <div class="flex justify-between items-center mt-1">
-            <p class="text-xs text-gray-500">
-              <font-awesome-icon :icon="['fas', 'lightbulb']" class="mr-1" />
-              简要描述科目内容和学习目标
-            </p>
-            <span class="text-xs text-gray-400">
-              {{ form.description?.length || 0 }}/500
-            </span>
+      <form ref="formRef" @submit.prevent="handleSubmit" class="edit-form">
+        <section class="edit-section">
+          <div class="edit-section-heading"><h4 class="edit-section-title">科目信息</h4></div>
+          <div class="edit-grid">
+            <div>
+              <FormLabel label="科目编码" required for-id="subject-code" />
+              <CustomInput id="subject-code" v-model="form.code" placeholder="如：data-structure" :maxlength="50" clearable :error="errors.code" :disabled="dialogMode === 'edit'" />
+              <p class="edit-hint">创建后不可修改，最多 50 字符</p>
+            </div>
+            <div>
+              <FormLabel label="科目名称" required for-id="subject-name" />
+              <CustomInput id="subject-name" v-model="form.name" placeholder="如：数据结构" :maxlength="100" clearable :error="errors.name" />
+            </div>
+            <div class="edit-span-full">
+              <FormLabel label="科目描述" for-id="subject-description" />
+              <textarea id="subject-description" v-model="form.description" class="edit-textarea" rows="3" maxlength="500" placeholder="请输入科目描述（可选）" aria-describedby="subject-description-hint"></textarea>
+              <div class="edit-field-meta">
+                <p id="subject-description-hint">简要描述科目内容和学习目标</p>
+                <span class="edit-count">{{ form.description?.length || 0 }}/500</span>
+              </div>
+            </div>
           </div>
-        </div>
-
-        <!-- 排序顺序 -->
-        <div>
-          <FormLabel label="排序顺序" required for-id="subject-order-num" class="mb-2" />
-          <InputNumber
-            id="subject-order-num"
-            v-model="form.orderNum"
-            :min="0"
-            :max="9999"
-            placeholder="数字越小越靠前"
-            :error="Boolean(errors.orderNum)"
-            :class="[
-              'transition-all duration-200',
-            ]"
-          />
-          <p class="text-xs text-gray-500 mt-1">
-            <font-awesome-icon :icon="['fas', 'sort-numeric-down']" class="mr-1" />
-            数字越小越靠前，用于控制科目在列表中的显示顺序
-          </p>
-          <p v-if="errors.orderNum" class="text-xs text-red-500 mt-1 flex items-center gap-1">
-            <font-awesome-icon :icon="['fas', 'exclamation-circle']" />
-            {{ errors.orderNum }}
-          </p>
-        </div>
-
-        <!-- 是否启用 -->
-        <div>
-          <FormLabel label="是否启用" for-id="subject-enabled" class="mb-2" />
-          <Switch id="subject-enabled" v-model="form.enabled" />
-        </div>
+        </section>
+        <section class="edit-section">
+          <div class="edit-section-heading"><h4 class="edit-section-title">排序与状态</h4></div>
+          <div class="edit-grid">
+            <div>
+              <FormLabel label="排序顺序" required for-id="subject-order-num" />
+              <InputNumber id="subject-order-num" v-model="form.orderNum" :min="0" :max="9999" placeholder="数字越小越靠前" :error="Boolean(errors.orderNum)" />
+              <p class="edit-hint">数字越小，科目在列表中越靠前</p>
+              <p v-if="errors.orderNum" class="mt-1 text-xs text-red-500" role="alert">{{ errors.orderNum }}</p>
+            </div>
+            <div>
+              <FormLabel label="是否启用" for-id="subject-enabled" />
+              <div class="edit-state-row">
+                <span class="text-sm text-ink-soft">{{ form.enabled ? '已启用' : '已禁用' }}</span>
+                <Switch id="subject-enabled" v-model="form.enabled" />
+              </div>
+            </div>
+          </div>
+        </section>
       </form>
 
       <template #footer>
-        <CustomButton @click="dialogVisible = false">取消</CustomButton>
-        <CustomButton type="primary" :loading="submitLoading" @click="handleSubmit">
-          确定
-        </CustomButton>
+        <div class="edit-footer">
+          <div class="edit-footer-actions">
+            <CustomButton @click="dialogVisible = false">取消</CustomButton>
+            <CustomButton type="primary" :loading="submitLoading" @click="handleSubmit">{{ dialogMode === 'add' ? '创建科目' : '保存修改' }}</CustomButton>
+          </div>
+        </div>
       </template>
     </ResponsiveDialog>
   </div>
@@ -228,6 +176,7 @@ import InputNumber from '@/components/basic/InputNumber.vue'
 import Switch from '@/components/basic/Switch.vue'
 import Tag from '@/components/basic/Tag.vue'
 import FormLabel from '@/components/basic/FormLabel.vue'
+import '@/styles/edit-form.css'
 
 // 消息提示和确认框
 const { showToast } = useToast()

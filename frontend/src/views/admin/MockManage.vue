@@ -154,7 +154,7 @@
           <template #title="{ row }">
             <button
               type="button"
-              class="cursor-pointer border-0 bg-transparent p-0 text-left hover:text-accent transition-colors line-clamp-2"
+              class="mx-auto cursor-pointer border-0 bg-transparent p-0 text-center hover:text-accent transition-colors line-clamp-2"
               @click="handleView(row)"
               :title="row.title ?? ''"
             >
@@ -164,7 +164,7 @@
 
           <!-- 分类列 -->
           <template #category="{ row }">
-            <div class="flex flex-wrap gap-1">
+            <div class="flex flex-wrap justify-center gap-1">
               <Tag
                 v-for="cat in (Array.isArray(row.category) ? row.category : [])"
                 :key="cat"
@@ -301,34 +301,28 @@
       :loading="wrongCountInitializing"
       @close="handleWrongCountDialogClose"
     >
-      <div v-if="wrongCountRow" class="flex flex-col items-center gap-4 py-4 text-center">
-        <p class="m-0 max-w-full truncate text-sm text-gray-500">
-          {{ wrongCountRow.title || `${wrongCountRow.source} 第${wrongCountRow.questionNumber ?? '-'}题` }}
-        </p>
-        <div class="w-full max-w-xs text-left">
-          <label for="mock-wrong-count" class="mb-2 block text-sm font-medium text-gray-700">错题计数</label>
-          <CustomInput
-            id="mock-wrong-count"
-            v-model="wrongCountDraft"
-            type="number"
-            aria-label="错题计数"
-            :disabled="wrongCountOperationLoading"
-          />
-        </div>
-        <p class="m-0 text-sm text-gray-500">打开弹窗已自动增加 1 次，可修改后保存</p>
+      <div v-if="wrongCountRow" class="edit-form">
+        <section class="edit-section" role="group" aria-label="错题计数调整" aria-describedby="mock-wrong-count-hint">
+          <p class="mb-4 mt-0 break-words text-sm text-ink-soft">{{ wrongCountRow.title || `${wrongCountRow.source} 第${wrongCountRow.questionNumber ?? '-'}题` }}</p>
+          <label for="mock-wrong-count" class="edit-label">错题计数</label>
+          <CustomInput id="mock-wrong-count" v-model="wrongCountDraft" type="number" aria-label="错题计数" :disabled="wrongCountOperationLoading" />
+          <p id="mock-wrong-count-hint" class="edit-hint">打开弹窗已自动增加 1 次。可修改计数后保存；取消不会撤回本次自动增加。</p>
+        </section>
       </div>
 
       <template #footer>
-        <div class="flex justify-end gap-3">
-          <CustomButton
-            :disabled="wrongCountOperationLoading"
-            @click="closeWrongCountDialog"
-          >取消</CustomButton>
-          <CustomButton
-            type="primary"
-            :loading="wrongCountOperationLoading"
-            @click="saveWrongCount"
-          >保存</CustomButton>
+        <div class="edit-footer">
+          <div class="edit-footer-actions">
+            <CustomButton
+              :disabled="wrongCountOperationLoading"
+              @click="closeWrongCountDialog"
+            >取消</CustomButton>
+            <CustomButton
+              type="primary"
+              :loading="wrongCountOperationLoading"
+              @click="saveWrongCount"
+            >保存</CustomButton>
+          </div>
         </div>
       </template>
     </ResponsiveDialog>
@@ -386,6 +380,7 @@ import Pagination from '@/components/basic/Pagination.vue'
 import Tag from '@/components/basic/Tag.vue'
 import BackTop from '@/components/basic/BackTop.vue'
 import ResponsiveDialog from '@/components/basic/ResponsiveDialog.vue'
+import '@/styles/edit-form.css'
 
 // 业务组件
 import MockEditDialog from '@/components/business/MockEditDialog.vue'

@@ -7,7 +7,7 @@
     max-width="calc(100vw - 24px)"
     @close="handleClose"
   >
-    <form id="adaptation-edit-form" class="space-y-6" @submit.prevent="handleSubmit">
+    <form id="adaptation-edit-form" class="edit-form" :aria-busy="loading" @submit.prevent="handleSubmit">
       <QuestionJsonImportPanel
         v-model="jsonInput"
         v-model:visible="jsonImportVisible"
@@ -17,12 +17,12 @@
       />
 
       <!-- 基础信息 -->
-      <section>
-        <h4 class="mb-4 flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-accent">
-          <font-awesome-icon :icon="['fas', 'cog']" />
-          基础信息
-        </h4>
-        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <section class="edit-section">
+        <div class="edit-section-heading">
+          <h4 class="edit-section-title"><font-awesome-icon :icon="['fas', 'cog']" aria-hidden="true" />基础信息</h4>
+          <span class="edit-hint m-0">标有 * 的字段为必填</span>
+        </div>
+        <div class="edit-grid edit-grid--four">
           <div>
             <FormLabel label="题型" required for-id="adaptation-question-type" />
             <Select
@@ -54,7 +54,7 @@
               @change="handleSubjectChange"
             />
           </div>
-          <div class="sm:col-span-2">
+          <div class="edit-span-full">
             <FormLabel label="分类" for-id="adaptation-category" />
             <MultiSelectCascader
               id="adaptation-category"
@@ -68,20 +68,20 @@
       </section>
 
       <!-- 改编来源 -->
-      <section>
-        <h4 class="mb-4 flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-accent">
-          <font-awesome-icon :icon="['fas', 'link-slash']" />
-          改编来源
-        </h4>
+      <section class="edit-section">
+        <div class="edit-section-heading">
+          <h4 class="edit-section-title"><font-awesome-icon :icon="['fas', 'link-slash']" aria-hidden="true" />改编来源</h4>
+          <span class="edit-hint m-0">按年份和题号核对真题引用</span>
+        </div>
         <AdaptationSourceEditor v-model="sources" :disabled="loading || saving" />
       </section>
 
       <!-- 题目内容 -->
-      <section>
-        <h4 class="mb-4 flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-accent">
-          <font-awesome-icon :icon="['fas', 'file-lines']" />
-          题目内容
-        </h4>
+      <section class="edit-section">
+        <div class="edit-section-heading">
+          <h4 class="edit-section-title"><font-awesome-icon :icon="['fas', 'file-lines']" aria-hidden="true" />题目内容</h4>
+          <span class="edit-hint m-0">支持 Markdown、公式和图片</span>
+        </div>
         <FormLabel label="题干" required for-id="adaptation-content" />
         <MarkdownEditor
           id="adaptation-content"
@@ -91,8 +91,8 @@
           aria-label="题干"
         />
 
-        <div v-if="form.questionType === 'CHOICE'" class="mt-4 grid grid-cols-1 gap-4">
-          <div v-for="option in optionFields" :key="option.key">
+        <div v-if="form.questionType === 'CHOICE'" class="edit-options-grid mt-4">
+          <div v-for="option in optionFields" :key="option.key" class="edit-option">
             <FormLabel
               :label="`选项 ${option.key}`"
               required
@@ -109,25 +109,25 @@
           </div>
         </div>
 
-        <div class="mt-4">
-          <FormLabel label="答案解析" for-id="adaptation-answer" />
-          <MarkdownEditor
-            id="adaptation-answer"
-            v-model="form.answer"
-            height="240px"
-            placeholder="请输入答案解析"
-            aria-label="答案解析"
-          />
-        </div>
+      </section>
+      <section class="edit-section">
+        <div class="edit-section-heading"><h4 class="edit-section-title">答案解析</h4><span class="edit-hint m-0">可选</span></div>
+        <MarkdownEditor
+          id="adaptation-answer"
+          v-model="form.answer"
+          height="240px"
+          placeholder="请输入答案解析"
+          aria-label="答案解析"
+        />
       </section>
     </form>
 
     <template #footer>
-      <div class="flex flex-wrap items-center justify-between gap-3">
-        <span class="text-xs text-ink-soft">
+      <div class="edit-footer">
+        <span class="edit-hint m-0">
           {{ sourceSummaryHint }}
         </span>
-        <div class="flex gap-2">
+        <div class="edit-footer-actions">
           <CustomButton type="default" :disabled="saving" @click="dialogVisible = false">
             取消
           </CustomButton>
@@ -166,6 +166,7 @@ import MultiSelectCascader from '@/components/basic/MultiSelectCascader.vue'
 import Select from '@/components/basic/Select.vue'
 import AdaptationSourceEditor from '@/components/business/AdaptationSourceEditor.vue'
 import QuestionJsonImportPanel from '@/components/business/QuestionJsonImportPanel.vue'
+import '@/styles/edit-form.css'
 
 const props = defineProps({
   visible: { type: Boolean, default: false },

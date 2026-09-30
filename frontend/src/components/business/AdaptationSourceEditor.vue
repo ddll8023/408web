@@ -4,10 +4,10 @@
     <div
       v-for="(row, index) in rows"
       :key="row.key"
-      class="rounded-lg border border-gray-200 bg-white/60 p-3"
+      class="edit-source-row"
     >
-      <div class="grid grid-cols-1 gap-3 sm:grid-cols-12">
-        <div class="sm:col-span-4">
+      <div class="edit-source-fields">
+        <div>
           <FormLabel :label="`来源年份 ${index + 1}`" :for-id="`source-year-${row.key}`" />
           <WheelPicker
             :id="`source-year-${row.key}`"
@@ -21,7 +21,7 @@
             @update:model-value="handleYearChange(index, $event)"
           />
         </div>
-        <div class="sm:col-span-4">
+        <div>
           <FormLabel label="来源题号" :for-id="`source-number-${row.key}`" />
           <InputNumber
             :id="`source-number-${row.key}`"
@@ -33,7 +33,7 @@
             @update:model-value="handleNumberChange(index, $event)"
           />
         </div>
-        <div class="flex items-end sm:col-span-4">
+        <div class="edit-source-delete">
           <CustomButton
             type="text-danger"
             size="sm"
@@ -45,7 +45,7 @@
           </CustomButton>
         </div>
       </div>
-      <p class="mt-2 flex flex-wrap items-center gap-x-1 gap-y-0.5 text-xs" :class="rowStatusClass(index)">
+      <p class="edit-source-status" :class="rowStatusClass(index)" role="status">
         <font-awesome-icon :icon="rowStatusIcon(index)" />
         <span>{{ rowStatusText(index) }}</span>
         <span v-if="rowStatusMeta(index)" class="text-ink-soft">
@@ -54,7 +54,7 @@
       </p>
     </div>
 
-    <div class="flex flex-wrap items-center gap-3">
+    <div class="flex flex-wrap items-center gap-x-3 gap-y-2">
       <CustomButton
         size="sm"
         :disabled="disabled || rows.length >= MAX_SOURCE_REFS"
@@ -63,7 +63,7 @@
         <font-awesome-icon :icon="['fas', 'plus']" class="mr-1.5" />
         添加来源
       </CustomButton>
-      <span class="text-xs text-ink-soft">
+      <span class="edit-hint m-0">
         暂未确定来源可以先保存，之后再补录；同一改编题可引用多道真题。
       </span>
     </div>
@@ -84,6 +84,7 @@ import CustomButton from '@/components/basic/CustomButton.vue'
 import FormLabel from '@/components/basic/FormLabel.vue'
 import InputNumber from '@/components/basic/InputNumber.vue'
 import WheelPicker from '@/components/basic/WheelPicker.vue'
+import '@/styles/edit-form.css'
 
 interface SourceRow {
   key: number

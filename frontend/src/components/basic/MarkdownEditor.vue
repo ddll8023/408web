@@ -1,36 +1,68 @@
-<!-- Markdown 编辑器：桌面端双栏预览，窄屏优先保留编辑区域。 -->
+<!-- 公共 Markdown 编辑器：统一编辑、双栏与预览模式，选项使用紧凑布局，保留独立预览渲染。 -->
 <template>
-  <div class="markdown-editor-split" :style="{ height: height }">
-    <!-- 左侧：编辑区（纯编辑模式） -->
-    <div class="editor-pane">
-      <v-md-editor
-        ref="editorRef"
-        :model-value="modelValue"
-        :height="height"
-        :placeholder="placeholder"
-        :aria-label="ariaLabel || undefined"
-        :left-toolbar="leftToolbar"
-        :toolbar="customToolbar"
-        mode="edit"
-        @update:model-value="handleUpdate"
-        @save="handleSave"
-      ></v-md-editor>
-    </div>
-    
-    <!-- 右侧：预览区（使用 MarkdownViewer，已验证正常） -->
-    <div class="preview-pane">
-      <div class="preview-header">
-        <span>预览</span>
+  <Teleport to="body" :disabled="!isFullscreen">
+    <div
+      ref="rootRef"
+      v-bind="$attrs"
+      :id="undefined"
+      class="markdown-editor"
+      :class="{ 'is-compact': contentRole === 'option', 'is-fullscreen': isFullscreen }"
+      :style="isFullscreen ? undefined : { height }"
+      :role="isFullscreen ? 'dialog' : 'group'"
+      :aria-modal="isFullscreen || undefined"
+      :aria-label="`${ariaLabel || 'Markdown'}编辑器`"
+      @keydown="handleFullscreenKeydown"
+    >
+      <div class="editor-header">
+        <span class="editor-heading">{{ ariaLabel || 'Markdown' }}<span v-if="ariaLabel" class="editor-format">Markdown</span></span>
+        <div class="editor-view-controls" role="group" aria-label="编辑器视图">
+          <button type="button" :aria-pressed="displayMode === 'edit'" @click="selectedMode = 'edit'">编辑</button>
+          <button v-if="!isCompactViewport" type="button" :aria-pressed="displayMode === 'split'" @click="selectedMode = 'split'">双栏</button>
+          <button type="button" :aria-pressed="displayMode === 'preview'" @click="selectedMode = 'preview'">预览</button>
+          <button
+            ref="fullscreenButtonRef"
+            type="button"
+            class="editor-fullscreen-button"
+            :aria-label="isFullscreen ? '退出全屏' : '全屏编辑'"
+            :title="isFullscreen ? '退出全屏（Esc）' : '全屏编辑'"
+            :aria-pressed="isFullscreen"
+            @click="isFullscreen = !isFullscreen"
+          >
+            <font-awesome-icon :icon="['fas', isFullscreen ? 'compress' : 'expand']" aria-hidden="true" />
+          </button>
+        </div>
       </div>
-      <div class="preview-content">
-        <MarkdownViewer
-          :content="localContent"
-          variant="plain"
-          :content-role="contentRole"
+      <div class="editor-workspace" :class="`is-${displayMode}`" :style="{ '--editor-input-min-height': `${editorInputMinHeight}px` }">
+        <!-- 使用 v-show 保留编辑实例，切换视图时不丢失撤销历史或光标状态。 -->
+        <v-md-editor
+          v-show="displayMode !== 'preview'"
+          ref="editorRef"
+          :model-value="modelValue"
+          height="100%"
+          :placeholder="placeholder"
+          :left-toolbar="leftToolbar"
+          right-toolbar="toc sync-scroll"
+          :toolbar="customToolbar"
+          mode="edit"
+          @update:model-value="handleUpdate"
+          @save="handleSave"
         />
+        <div
+          v-show="displayMode !== 'edit'"
+          class="preview-pane"
+          :style="{ top: displayMode === 'split' ? `${toolbarHeight}px` : '0', width: displayMode === 'split' ? `${previewWidth}px` : '100%' }"
+          role="region"
+          :aria-label="`${ariaLabel || '内容'}预览`"
+          tabindex="0"
+        >
+          <div class="preview-content">
+            <MarkdownViewer v-if="localContent.trim()" :content="localContent" variant="plain" :content-role="contentRole" />
+            <p v-else class="preview-empty">输入内容后在这里查看排版、公式和图片。</p>
+          </div>
+        </div>
       </div>
     </div>
-  </div>
+  </Teleport>
 </template>
 
 <script setup lang="ts">
@@ -42,7 +74,11 @@
  * Source: @kangc/v-md-editor 官方文档
  * KaTeX 由右侧 MarkdownViewer 统一预处理
  */
-import { ref, watch, onMounted, onUnmounted, type PropType } from 'vue'
+import { ref, computed, watch, nextTick, onMounted, onUpdated, onUnmounted, useAttrs, type PropType } from 'vue'
+import { MEDIA_QUERIES } from '@/shared/responsive/breakpoints'
+import { useMediaQuery } from '@/shared/responsive/useViewport'
+import '@/styles/edit-form.css'
+
 import type { MarkdownContentRole } from '@/utils/markdownMedia'
 import { uploadImage } from '@/api/upload'
 import VMdEditor, { type EditorInstance } from '@kangc/v-md-editor'
@@ -56,6 +92,8 @@ import hljs from 'highlight.js'
 import MarkdownViewer from './MarkdownViewer.vue'
 // 共享的 XSS 白名单配置
 import { getEditorWhitelist, configureSvgFence } from './config/xssWhitelist'
+
+defineOptions({ inheritAttrs: false })
 
 // 使用共享的 XSS 白名单配置（含 KaTeX 元素）
 VMdEditor?.xss?.extend?.({
@@ -117,7 +155,70 @@ const emit = defineEmits<{ 'update:modelValue': [value: string]; save: [content:
 /**
  * 编辑器引用
  */
+const attrs = useAttrs()
 const editorRef = ref<EditorInstance | null>(null)
+const rootRef = ref<HTMLElement | null>(null)
+const fullscreenButtonRef = ref<HTMLButtonElement | null>(null)
+const isCompactViewport = useMediaQuery(MEDIA_QUERIES.compact)
+const selectedMode = ref<'edit' | 'split' | 'preview' | null>(null)
+const displayMode = computed(() => {
+  const mode = selectedMode.value ?? (props.contentRole === 'option' || isCompactViewport.value ? 'edit' : 'split')
+  return isCompactViewport.value && mode === 'split' ? 'edit' : mode
+})
+const isFullscreen = ref(false)
+const toolbarHeight = ref(0)
+const previewWidth = ref(0)
+const editorInputMinHeight = ref(0)
+let layoutObserver: ResizeObserver | null = null
+let previousBodyOverflow = ''
+
+// 全屏使用 Teleport 移出弹窗，避免被弹窗的裁剪和移动端变换限制。
+watch(isFullscreen, async fullscreen => {
+  if (fullscreen) {
+    previousBodyOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+  } else {
+    document.body.style.overflow = previousBodyOverflow
+  }
+  await nextTick()
+  fullscreenButtonRef.value?.focus()
+})
+
+/** 全屏时独立处理退出和焦点循环，不触发父弹窗的关闭快捷键。 */
+const handleFullscreenKeydown = (event: KeyboardEvent) => {
+  if (!isFullscreen.value) return
+  if (event.key === 'Escape') {
+    event.preventDefault()
+    event.stopPropagation()
+    isFullscreen.value = false
+    return
+  }
+  if (event.key !== 'Tab') return
+  const elements = Array.from(rootRef.value?.querySelectorAll<HTMLElement>(
+    'button:not([disabled]), textarea, a[href], [tabindex="0"]'
+  ) ?? []).filter(element => element.getClientRects().length > 0)
+  const first = elements[0]
+  const last = elements[elements.length - 1]
+  if (!first || !last) return
+  if (event.shiftKey && document.activeElement === first) {
+    event.preventDefault()
+    last.focus()
+  } else if (!event.shiftKey && document.activeElement === last) {
+    event.preventDefault()
+    first.focus()
+  }
+}
+
+/** 库不透传普通属性，因此把业务可访问名称设置到实际输入控件。 */
+const syncInputLabel = () => {
+  const input = editorRef.value?.$el.querySelector('textarea')
+  if (!input) return
+  input.setAttribute('aria-label', props.ariaLabel || 'Markdown 内容')
+  // 外部 FormLabel 必须指向 textarea，不能把业务 ID 留在包装 div 上。
+  if (typeof attrs.id === 'string') input.id = attrs.id
+  else input.removeAttribute('id')
+}
+onUpdated(syncInputLabel)
 
 /**
  * 本地内容状态
@@ -140,6 +241,7 @@ watch(
  * 左侧工具栏配置
  * 移除默认image，使用自定义my-image按钮（包含下拉菜单）
  */
+// 内置预览与全屏按钮只作用于库自身，由顶部模式栏统一接管外置预览。
 const leftToolbar = 'undo redo clear | h bold italic strikethrough quote | ul ol table hr | link my-image code formula | save'
 
 /**
@@ -333,206 +435,288 @@ const handlePaste = async (event: ClipboardEvent) => {
  * 组件挂载时添加粘贴事件监听
  */
 onMounted(() => {
-  if (editorRef.value && editorRef.value.$el) {
-    const editorElement = editorRef.value.$el
-    editorElement.addEventListener('paste', handlePaste)
+  const editorElement = editorRef.value?.$el
+  if (!editorElement) return
+  editorElement.addEventListener('paste', handlePaste)
+  syncInputLabel()
+  const toolbar = editorElement.querySelector<HTMLElement>('.v-md-editor__toolbar')
+  const inputWrapper = editorElement.querySelector<HTMLElement>('.v-md-editor__editor-wrapper')
+  const rightArea = editorElement.querySelector<HTMLElement>('.v-md-editor__right-area')
+  if (toolbar && inputWrapper && rightArea) {
+    // 同时观察工具栏与输入视口：换行、全屏和模式切换都可能改变可编辑高度。
+    const syncLayout = () => {
+      toolbarHeight.value = toolbar.offsetHeight
+      editorInputMinHeight.value = inputWrapper.clientHeight
+      // 大纲打开后右侧工作区会变窄，预览按真实工作区宽度定位。
+      previewWidth.value = rightArea.clientWidth / 2
+    }
+    syncLayout()
+    layoutObserver = new ResizeObserver(syncLayout)
+    layoutObserver.observe(toolbar)
+    layoutObserver.observe(inputWrapper)
   }
 })
 
-/**
- * 组件卸载时移除粘贴事件监听
- */
+/** 卸载时清理监听器，并恢复全屏前的页面滚动状态。 */
 onUnmounted(() => {
-  if (editorRef.value && editorRef.value.$el) {
-    const editorElement = editorRef.value.$el
-    editorElement.removeEventListener('paste', handlePaste)
-  }
+  editorRef.value?.$el.removeEventListener('paste', handlePaste)
+  layoutObserver?.disconnect()
+  if (isFullscreen.value) document.body.style.overflow = previousBodyOverflow
 })
 </script>
 
 <style scoped>
-/**
- * Markdown编辑器组件样式（左右分栏布局）
- * 左侧：编辑区  右侧：预览区（使用 MarkdownViewer）
- * 已迁移至纯CSS，保留共享样式
- */
-
-.markdown-editor-split {
+.markdown-editor {
   display: flex;
   width: 100%;
-  gap: 0;
-  border: 1px solid #dfe2e5;
-  border-radius: 4px;
-  overflow: hidden;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
-}
-
-.editor-pane {
-  flex: 1;
+  min-height: 140px;
   min-width: 0;
-  height: 100%;
-  border-right: 1px solid #dfe2e5;
+  flex-direction: column;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  background: #fff;
 }
 
-.editor-pane :deep(.v-md-editor) {
-  height: 100% !important;
-  border: none;
+.markdown-editor:focus-within {
+  border-color: var(--brand-accent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--brand-accent) 10%, transparent);
+}
+
+.markdown-editor.is-fullscreen {
+  position: fixed;
+  inset: 0;
+  z-index: 1400;
+  height: 100dvh;
+  border: 0;
   border-radius: 0;
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.editor-header {
+  display: flex;
+  min-height: 38px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  border-bottom: 1px solid #e5e7eb;
+  border-radius: 8px 8px 0 0;
+  background: #f9fafb;
+  padding: 4px 10px;
+}
+
+.editor-heading {
+  display: flex;
+  min-width: 0;
+  align-items: baseline;
+  gap: 8px;
+  overflow: hidden;
+  color: var(--brand-ink);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.editor-format {
+  color: var(--brand-ink-soft);
+  font-size: 10px;
+  font-weight: 400;
+}
+
+.editor-view-controls {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 2px;
+}
+
+.editor-view-controls button {
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  padding: 4px 8px;
+  color: var(--brand-ink-soft);
+  font-size: 12px;
+  line-height: 20px;
+  cursor: pointer;
+}
+
+.editor-view-controls button:hover {
+  background: #e5e7eb;
+  color: var(--brand-ink);
+}
+
+.editor-view-controls button[aria-pressed='true'] {
+  background: color-mix(in srgb, var(--brand-accent) 12%, #fff);
+  color: var(--brand-accent-deep);
+  font-weight: 600;
+}
+
+.editor-view-controls button:focus-visible,
+.preview-pane:focus-visible {
+  outline: 2px solid var(--brand-accent);
+  outline-offset: -2px;
+}
+
+.editor-workspace {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+}
+
+.editor-workspace :deep(.v-md-editor) {
+  height: 100%;
+  border: 0;
+  border-radius: 0 0 8px 8px;
   box-shadow: none;
 }
 
-.preview-pane {
-  flex: 1;
+.editor-workspace :deep(.v-md-editor__right-area) {
   min-width: 0;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  background-color: #fff;
+  min-height: 0;
 }
 
-.preview-header {
-  height: 40px;
-  display: flex;
-  align-items: center;
-  padding: 0 16px;
-  background-color: #fff;
-  border-bottom: 1px solid #dfe2e5;
-  font-size: 14px;
-  font-weight: 500;
+.editor-workspace.is-split :deep(.v-md-editor__editor-wrapper) {
+  flex: 0 0 50%;
+  width: 50%;
+}
+
+/* 工具栏占满整行；允许换行，不用横向滚动容器裁剪下拉菜单。 */
+.editor-workspace :deep(.v-md-editor__toolbar) {
+  flex-shrink: 0;
+  border-bottom: 1px solid #e5e7eb;
+  background: #fff;
+  padding: 4px 6px;
+}
+
+.editor-workspace :deep(.v-md-editor__toolbar-left-wrapper) {
+  min-width: 0;
+}
+
+.editor-workspace :deep(.v-md-editor__toolbar-item) {
+  border-radius: 4px;
+  color: var(--brand-ink-soft);
+}
+
+.editor-workspace :deep(.v-md-editor__toolbar-item:hover),
+.editor-workspace :deep(.v-md-editor__toolbar-item--active) {
+  background: color-mix(in srgb, var(--brand-accent) 9%, #fff);
+  color: var(--brand-accent-deep);
+}
+
+.editor-workspace :deep(.v-md-editor__toolbar-divider) {
+  margin-right: 7px;
+  margin-left: 7px;
+}
+
+.editor-workspace :deep(.v-md-icon-formula)::before {
+  content: '∑';
+  font-size: 16px;
+  font-weight: 600;
+}
+
+/* 库只在 height 属性变化时更新镜像最小高度；全屏与工具栏换行改用真实输入视口高度。 */
+.editor-workspace :deep(.v-md-textarea-editor pre) {
+  min-height: var(--editor-input-min-height) !important;
+}
+
+/* 镜像 pre 与 textarea 必须共享字体和间距，否则光标与滚动高度会错位。 */
+.editor-workspace :deep(.v-md-textarea-editor pre),
+.editor-workspace :deep(.v-md-textarea-editor textarea) {
+  padding: 14px 16px;
   color: var(--brand-ink);
+  font-family: ui-monospace, SFMono-Regular, Consolas, 'Microsoft YaHei', monospace;
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.preview-pane {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  width: 100%;
+  min-height: 0;
+  flex-direction: column;
+  border-radius: 0 0 8px 8px;
+  background: #fff;
+}
+
+.is-split .preview-pane {
+  width: 50%;
+  border-left: 1px solid #e5e7eb;
+  border-bottom-left-radius: 0;
 }
 
 .preview-content {
   flex: 1;
   min-height: 0;
-  overflow-y: auto;
+  overflow: auto;
   scrollbar-gutter: stable;
-  overflow-x: hidden;
-  padding: 16px;
-}
-
-/* 自定义滚动条样式 */
-.preview-content::-webkit-scrollbar {
-  width: 8px;
-}
-
-.preview-content::-webkit-scrollbar-track {
-  background: #f1f1f1;
-}
-
-.preview-content::-webkit-scrollbar-thumb {
-  background: #c1c1c1;
-  border-radius: 4px;
-}
-
-.preview-content::-webkit-scrollbar-thumb:hover {
-  background: #a8a8a8;
-}
-
-/* 优化编辑器样式 */
-:deep(.v-md-editor) {
-  border-radius: 4px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
-}
-
-/* 优化工具栏样式 */
-:deep(.v-md-editor__toolbar) {
-  background-color: #fff;
-  border-bottom: 1px solid #dfe2e5;
-}
-
-/* 公式按钮图标样式 */
-:deep(.v-md-icon-formula)::before {
-  content: '∑';
-  font-size: 18px;
-  font-weight: bold;
-}
-
-/* 优化编辑区样式 */
-:deep(.v-md-editor__left-area) {
-  background-color: #fff;
-}
-
-/* 优化预览区样式 */
-:deep(.v-md-editor__preview) {
-  background-color: #fff;
-}
-
-/* 共享 Markdown 内容样式 */
-:deep(.v-md-editor__preview) pre {
-  border-radius: 4px;
-  background-color: #efefef;
-}
-
-:deep(.v-md-editor__preview) table {
-  border-collapse: collapse;
-  width: 100%;
-  margin: 16px 0;
-}
-
-:deep(.v-md-editor__preview) table th,
-:deep(.v-md-editor__preview) table td {
-  border: 1px solid #dfe2e5;
-  padding: 8px 12px;
-}
-
-:deep(.v-md-editor__preview) .katex {
-  font-size: 1.1em;
-}
-
-:deep(.v-md-editor__preview) .katex-display {
-  margin: 16px 0;
-  overflow-x: auto;
-  overflow-y: hidden;
-}
-
-:deep(.v-md-editor__preview) .katex-mathml {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  margin: 0;
-  padding: 0;
-  overflow: hidden;
-  clip: rect(1px, 1px, 1px, 1px);
-  white-space: nowrap;
-}
-
-/* 滚动条样式 */
-:deep(.v-md-editor__left-area-title),
-:deep(.v-md-editor__preview-wrapper) {
   scrollbar-width: thin;
-  scrollbar-color: #c1c1c1 #f1f1f1;
+  scrollbar-color: #c5c8cc #f9fafb;
+  padding: 12px 16px;
 }
 
-:deep(.v-md-editor__left-area-title)::-webkit-scrollbar,
-:deep(.v-md-editor__preview-wrapper)::-webkit-scrollbar {
-  width: 8px;
+.preview-empty {
+  margin: 0;
+  color: var(--brand-ink-soft);
+  font-size: 12px;
+  line-height: 1.7;
 }
 
-:deep(.v-md-editor__left-area-title)::-webkit-scrollbar-track,
-:deep(.v-md-editor__preview-wrapper)::-webkit-scrollbar-track {
-  background: #f1f1f1;
+.is-compact .editor-header {
+  min-height: 30px;
+  padding: 2px 8px;
 }
 
-:deep(.v-md-editor__left-area-title)::-webkit-scrollbar-thumb,
-:deep(.v-md-editor__preview-wrapper)::-webkit-scrollbar-thumb {
-  background: #c1c1c1;
-  border-radius: 4px;
+.is-compact .editor-view-controls button {
+  padding: 2px 6px;
 }
 
-/* 窄屏优先保留可编辑区域，避免编辑与预览各自只剩很窄的一列。 */
+.is-compact .editor-format {
+  display: none;
+}
+
+.is-compact .editor-workspace :deep(.v-md-editor__toolbar) {
+  padding: 2px 4px;
+}
+
+.is-compact .editor-workspace :deep(.v-md-editor__toolbar-item) {
+  height: 24px;
+  margin-left: 2px;
+  padding: 0 4px;
+  font-size: 13px;
+  line-height: 24px;
+}
+
+.is-compact .editor-workspace :deep(.v-md-editor__toolbar-divider) {
+  height: 24px;
+  margin-right: 4px;
+  margin-left: 4px;
+}
+
+.is-compact .editor-workspace :deep(.v-md-textarea-editor pre),
+.is-compact .editor-workspace :deep(.v-md-textarea-editor textarea),
+.is-compact .preview-content {
+  padding: 8px 10px;
+}
+
 @media (max-width: 767px) {
-  .editor-pane {
-    border-right: 0;
+  /* 手机工具栏换行时保证至少一行正文可见，不强行挤进桌面端的 140px。 */
+  .markdown-editor.is-compact {
+    min-height: 180px;
   }
 
-  .preview-pane {
+  .editor-format {
     display: none;
   }
 
-  :deep(.v-md-editor__toolbar) {
-    overflow-x: auto;
-    overscroll-behavior-x: contain;
+  .editor-workspace :deep(.v-md-textarea-editor pre),
+  .editor-workspace :deep(.v-md-textarea-editor textarea) {
+    font-size: 16px;
   }
 }
 </style>

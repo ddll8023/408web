@@ -54,7 +54,7 @@
 
         <!-- 引用题目列 -->
         <template #exams="{ row }">
-          <div v-if="row.exams && row.exams.length" class="flex flex-wrap gap-1">
+          <div v-if="row.exams && row.exams.length" class="flex flex-wrap justify-center gap-1">
             <Tag v-for="exam in row.exams" :key="exam.id" type="info">
               {{ formatExamLabel(exam) }}
             </Tag>

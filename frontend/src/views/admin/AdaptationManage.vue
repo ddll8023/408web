@@ -136,7 +136,7 @@
 
           <template #sourceSummary="{ row }">
             <span v-if="row.sources.length === 0" class="text-amber-600">未标注来源</span>
-            <div v-else class="flex flex-wrap gap-1.5">
+            <div v-else class="flex flex-wrap justify-center gap-1.5">
               <Tag
                 v-for="source in row.sources"
                 :key="`${source.sourceYear}-${source.sourceQuestionNumber}`"
@@ -150,7 +150,7 @@
           </template>
 
           <template #category="{ row }">
-            <div class="flex flex-wrap gap-1">
+            <div class="flex flex-wrap justify-center gap-1">
               <Tag
                 v-for="cat in (Array.isArray(row.category) ? row.category : [])"
                 :key="cat"

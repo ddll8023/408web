@@ -137,7 +137,7 @@
           <template #title="{ row }">
             <button
               type="button"
-              class="cursor-pointer border-0 bg-transparent p-0 text-left hover:text-accent transition-colors line-clamp-2"
+              class="mx-auto cursor-pointer border-0 bg-transparent p-0 text-center hover:text-accent transition-colors line-clamp-2"
               @click="handleView(row)"
               :title="row.title ?? ''"
             >
@@ -147,7 +147,7 @@
 
           <!-- 分类列 -->
           <template #category="{ row }">
-            <div class="flex flex-wrap gap-1">
+            <div class="flex flex-wrap justify-center gap-1">
               <Tag
                 v-for="cat in (Array.isArray(row.category) ? row.category : [])"
                 :key="cat"

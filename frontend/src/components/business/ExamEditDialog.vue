@@ -6,7 +6,7 @@
     width="1200px"
     max-width="1600px"
   >
-    <div class="p-3 sm:p-6">
+    <div class="edit-form">
         <QuestionJsonImportPanel
           v-model="jsonInput"
           v-model:visible="jsonImportVisible"
@@ -20,26 +20,19 @@
         />
 
         <!-- 表单 -->
-        <div :class="{ 'relative': loading }">
-          <!-- 加载遮罩 -->
-          <div v-if="loading" class="absolute inset-0 bg-white/90 backdrop-blur-sm flex items-center justify-center z-50">
-            <div class="flex flex-col items-center gap-4">
-              <div class="relative">
-                                <font-awesome-icon :icon="['fas', 'spinner']" class="fa-spin text-3xl text-accent" />
-                <div class="absolute inset-0 bg-accent/20 rounded-full animate-ping"></div>
-              </div>
-              <span class="text-sm text-ink-soft font-medium">正在加载...</span>
-            </div>
+        <div class="edit-form" :class="{ 'relative': loading }" :aria-busy="loading">
+          <div v-if="loading" class="edit-loading" role="status" aria-live="polite">
+            <font-awesome-icon :icon="['fas', 'spinner']" class="fa-spin text-accent" aria-hidden="true" />
+            <span>正在加载...</span>
           </div>
 
-          <!-- 基础信息分组 -->
-          <div class="mb-6">
-            <h4 class="flex items-center gap-2 text-sm font-semibold text-accent uppercase tracking-wider mb-4">
-                            <font-awesome-icon :icon="['fas', 'cog']" />
-              基础信息
-            </h4>
-            <!-- 第一行：题型、年份、科目、题号 -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+          <!-- 元信息集中排列，题干与解析保留整行编辑宽度。 -->
+          <section class="edit-section">
+            <div class="edit-section-heading">
+              <h4 class="edit-section-title"><font-awesome-icon :icon="['fas', 'cog']" aria-hidden="true" />基础信息</h4>
+              <span class="edit-hint m-0">标有 * 的字段为必填</span>
+            </div>
+            <div class="edit-grid edit-grid--four">
               <div>
                 <FormLabel label="题型" required for-id="exam-question-type" />
                 <Select
@@ -77,28 +70,25 @@
                   type="number"
                   min="1"
                   step="1"
-                  class="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg text-gray-700 text-sm focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent transition-all duration-200"
+                  class="edit-input"
                   placeholder="请输入题号（可选）"
                 />
               </div>
             </div>
-          </div>
-
-          <!-- 标题与难度同排，分类使用整行宽度，给多选标签留出稳定空间 -->
-          <div class="grid grid-cols-1 gap-4 mb-6 lg:grid-cols-12">
-            <div class="min-w-0 lg:col-span-8">
+            <div class="edit-grid mt-4">
+            <div>
               <FormLabel label="标题" for-id="exam-title" />
               <input
                 id="exam-title"
                 v-model="form.title"
                 type="text"
                 maxlength="200"
-                class="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg text-gray-700 text-sm focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent transition-all duration-200"
+                class="edit-input"
                 placeholder="请输入题目标题（可选，最多200字符）"
               />
-              <div class="text-right text-xs text-gray-400 mt-1.5">{{ form.title?.length || 0 }}/200</div>
+              <div class="edit-field-meta"><span class="edit-count">{{ form.title?.length || 0 }}/200</span></div>
             </div>
-            <div class="min-w-0 lg:col-span-4">
+            <div>
               <FormLabel label="难度" for-id="exam-difficulty" />
               <Select
                 id="exam-difficulty"
@@ -107,7 +97,7 @@
                 placeholder="请选择难度（可选）"
               />
             </div>
-            <div class="min-w-0 lg:col-span-12">
+            <div class="edit-span-full">
               <FormLabel label="分类" for-id="exam-category" />
               <!-- 多选级联选择器 -->
               <MultiSelectCascader
@@ -119,70 +109,47 @@
                 :disabled="!form.subjectId"
               />
             </div>
-          </div>
+            </div>
+          </section>
 
           <!-- 选择题表单 -->
-          <template v-if="form.questionType === 'CHOICE'">
-            <div class="mb-6">
-              <h4 class="flex items-center gap-2 text-sm font-semibold text-accent uppercase tracking-wider mb-4">
-                                <font-awesome-icon :icon="['fas', 'list-ol']" />
-                选择题内容
-              </h4>
+          <section class="edit-section">
+            <div class="edit-section-heading">
+              <h4 class="edit-section-title"><font-awesome-icon :icon="['fas', 'file-lines']" aria-hidden="true" />题目内容</h4>
+              <span class="edit-hint m-0">支持 Markdown、公式和图片</span>
             </div>
-            <div class="mb-4">
-              <FormLabel label="题干" required for-id="exam-choice-content" />
-              <MarkdownEditor id="exam-choice-content" aria-label="题干" v-model="form.content" height="400px" placeholder="请输入选择题题干（支持Markdown、代码、图片等）..." />
+            <FormLabel :label="form.questionType === 'CHOICE' ? '题干' : '题目内容'" required :for-id="form.questionType === 'CHOICE' ? 'exam-choice-content' : 'exam-essay-content'" />
+            <MarkdownEditor :id="form.questionType === 'CHOICE' ? 'exam-choice-content' : 'exam-essay-content'" aria-label="题干" v-model="form.content" height="400px" placeholder="请输入题目内容（支持 Markdown、公式和图片）..." />
+            <div v-if="form.questionType === 'CHOICE'" class="edit-options-grid mt-4">
+              <div class="edit-option">
+                <FormLabel label="选项 A" required for-id="exam-option-a" />
+                <MarkdownEditor id="exam-option-a" content-role="option" aria-label="选项 A" v-model="form.optionA" height="140px" placeholder="请输入选项 A 的内容..." />
+              </div>
+              <div class="edit-option">
+                <FormLabel label="选项 B" required for-id="exam-option-b" />
+                <MarkdownEditor id="exam-option-b" content-role="option" aria-label="选项 B" v-model="form.optionB" height="140px" placeholder="请输入选项 B 的内容..." />
+              </div>
+              <div class="edit-option">
+                <FormLabel label="选项 C" required for-id="exam-option-c" />
+                <MarkdownEditor id="exam-option-c" content-role="option" aria-label="选项 C" v-model="form.optionC" height="140px" placeholder="请输入选项 C 的内容..." />
+              </div>
+              <div class="edit-option">
+                <FormLabel label="选项 D" required for-id="exam-option-d" />
+                <MarkdownEditor id="exam-option-d" content-role="option" aria-label="选项 D" v-model="form.optionD" height="140px" placeholder="请输入选项 D 的内容..." />
+              </div>
             </div>
-            <div class="mb-4">
-              <FormLabel label="选项A" required for-id="exam-option-a" />
-              <MarkdownEditor id="exam-option-a" content-role="option" aria-label="选项A" v-model="form.optionA" height="140px" placeholder="请输入选项A的内容..." />
-            </div>
-            <div class="mb-4">
-              <FormLabel label="选项B" required for-id="exam-option-b" />
-              <MarkdownEditor id="exam-option-b" content-role="option" aria-label="选项B" v-model="form.optionB" height="140px" placeholder="请输入选项B的内容..." />
-            </div>
-            <div class="mb-4">
-              <FormLabel label="选项C" required for-id="exam-option-c" />
-              <MarkdownEditor id="exam-option-c" content-role="option" aria-label="选项C" v-model="form.optionC" height="140px" placeholder="请输入选项C的内容..." />
-            </div>
-            <div class="mb-4">
-              <FormLabel label="选项D" required for-id="exam-option-d" />
-              <MarkdownEditor id="exam-option-d" content-role="option" aria-label="选项D" v-model="form.optionD" height="140px" placeholder="请输入选项D的内容..." />
-            </div>
-            <div class="mb-4">
-              <FormLabel label="答案解析" for-id="exam-choice-answer" />
-              <MarkdownEditor id="exam-choice-answer" aria-label="答案解析" v-model="form.answer" height="400px" placeholder="请输入Markdown格式的答案与解析..." />
-            </div>
-          </template>
-
-          <!-- 主观题表单 -->
-          <template v-else>
-            <div class="mb-6">
-              <h4 class="flex items-center gap-2 text-sm font-semibold text-accent uppercase tracking-wider mb-4">
-                                <font-awesome-icon :icon="['fas', 'pencil']" />
-                主观题内容
-              </h4>
-            </div>
-            <div class="mb-4">
-              <FormLabel label="题目内容" required for-id="exam-essay-content" />
-              <MarkdownEditor id="exam-essay-content" aria-label="题目内容" v-model="form.content" height="400px" placeholder="请输入Markdown格式题目内容..." />
-            </div>
-            <div class="mb-4">
-              <FormLabel label="答案解析" for-id="exam-essay-answer" />
-              <MarkdownEditor id="exam-essay-answer" aria-label="答案解析" v-model="form.answer" height="400px" placeholder="请输入Markdown格式答案解析（可选）..." />
-            </div>
-          </template>
+          </section>
+          <section class="edit-section">
+            <div class="edit-section-heading"><h4 class="edit-section-title">答案解析</h4><span class="edit-hint m-0">可选</span></div>
+            <MarkdownEditor :id="form.questionType === 'CHOICE' ? 'exam-choice-answer' : 'exam-essay-answer'" aria-label="答案解析" v-model="form.answer" height="400px" placeholder="请输入答案与解析..." />
+          </section>
         </div>
       </div>
 
     <template #footer>
-      <div class="flex flex-shrink-0 flex-wrap items-center justify-end gap-3 sm:justify-between">
-        <div class="hidden text-xs text-gray-400 sm:block">
-          <font-awesome-icon :icon="['fas', 'info-circle']" class="mr-1" />
-          按 <kbd class="px-1.5 py-0.5 bg-white border border-gray-200 rounded text-[10px] font-mono">Ctrl</kbd> + <kbd class="px-1.5 py-0.5 bg-white border border-gray-200 rounded text-[10px] font-mono">Enter</kbd> 快速提交
-        </div>
-
-        <div class="flex w-full items-center justify-end gap-2 sm:w-auto sm:gap-3">
+      <div class="edit-footer">
+        <span class="edit-hint m-0">保存前请核对题干、选项与解析</span>
+        <div class="edit-footer-actions">
           <CustomButton @click="handleCancel">取消</CustomButton>
           <CustomButton type="primary" :loading="saving" @click="handleSubmit">
             <font-awesome-icon :icon="isEditMode ? ['fas', 'save'] : ['fas', 'plus']" />
@@ -216,6 +183,7 @@ import MultiSelectCascader from '@/components/basic/MultiSelectCascader.vue'
 import FormLabel from '@/components/basic/FormLabel.vue'
 import QuestionJsonImportPanel from '@/components/business/QuestionJsonImportPanel.vue'
 import Select from '@/components/basic/Select.vue'
+import '@/styles/edit-form.css'
 
 const props = defineProps({
   visible: { type: Boolean, default: false },

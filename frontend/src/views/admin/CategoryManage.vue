@@ -289,31 +289,18 @@
       :title="dialogMode === 'add' ? '新增分类' : '编辑分类'"
       width="680px"
     >
-      <!-- 表单区域 - 分组布局 -->
-      <div class="space-y-6">
+      <!-- 编辑表单沿用公共分组样式，不改变分类列表与拖拽区域。 -->
+      <div class="edit-form">
         <!-- 基本信息组 -->
-        <div class="
-          relative p-5
-          bg-gradient-to-br from-white/80 to-accent/2
-          backdrop-blur-sm
-          rounded-xl
-          border border-white/50
-          shadow-[0_2px_16px_color-mix(in srgb, var(--brand-accent) 6%, transparent)]
-          before:absolute before:inset-0 before:rounded-xl before:p-px
-          before:bg-gradient-to-br before:from-white/60 before:to-transparent before:-z-10
-        ">
-          <!-- 分组标题 -->
-          <div class="flex items-center gap-2 mb-5 pb-4 border-b border-dashed border-accent/12">
-            <div class="w-7 h-7 flex items-center justify-center bg-gradient-to-br from-accent to-[#968657] text-white rounded-lg shadow-md">
-              <font-awesome-icon :icon="['fas', 'folder-plus']" class="text-sm" />
-            </div>
-            <span class="text-base font-semibold text-accent">基本信息</span>
+        <section class="edit-section">
+          <div class="edit-section-heading">
+            <h4 class="edit-section-title"><font-awesome-icon :icon="['fas', 'folder-plus']" aria-hidden="true" />基本信息</h4>
           </div>
 
           <!-- 第一行：所属科目 + 父分类 -->
-          <div class="mb-5 grid grid-cols-1 gap-5 sm:grid-cols-2">
+          <div class="edit-grid mb-4">
             <div>
-              <label for="category-subject" class="flex items-center gap-1.5 text-sm font-medium text-gray-700 mb-2">
+              <label for="category-subject" class="edit-label">
                 所属科目
                 <span class="text-red-500">*</span>
               </label>
@@ -328,7 +315,7 @@
               <p class="text-xs text-ink-mute mt-1.5" v-if="dialogMode === 'edit'">所属科目创建后不可修改</p>
             </div>
             <div>
-              <label for="category-parent" class="flex items-center gap-1.5 text-sm font-medium text-gray-700 mb-2">
+              <label for="category-parent" class="edit-label">
                 父分类
               </label>
               <CustomSelect
@@ -343,14 +330,14 @@
           </div>
 
           <!-- 第二行：系统编码 + 分类名称 -->
-          <div class="grid grid-cols-1 gap-5 sm:grid-cols-2">
+          <div class="edit-grid">
             <div>
-              <label for="category-code" class="flex items-center gap-1.5 text-sm font-medium text-gray-700 mb-2">
+              <label for="category-code" class="edit-label">
                 分类 ID
               </label>
               <div
                 id="category-code"
-                class="w-full min-h-[42px] flex items-center px-4 py-2.5 rounded-lg bg-gray-100 border border-gray-200 text-sm text-gray-600 font-mono break-all"
+                class="edit-readonly font-mono"
                 aria-live="polite"
               >
                 {{ dialogMode === 'edit' ? form.code : '保存后自动生成' }}
@@ -365,101 +352,60 @@
               required
             />
           </div>
-        </div>
+        </section>
 
-        <!-- 排序与状态组 -->
-        <div class="
-          relative p-5
-          bg-gradient-to-br from-white/80 to-accent/2
-          backdrop-blur-sm
-          rounded-xl
-          border border-white/50
-          shadow-[0_2px_16px_color-mix(in srgb, var(--brand-accent) 6%, transparent)]
-          before:absolute before:inset-0 before:rounded-xl before:p-px
-          before:bg-gradient-to-br before:from-white/60 before:to-transparent before:-z-10
-        ">
-          <!-- 分组标题 -->
-          <div class="flex items-center gap-2 mb-5 pb-4 border-b border-dashed border-accent/12">
-            <div class="w-7 h-7 flex items-center justify-center bg-gradient-to-br from-[#73d13d] to-[#52c41a] text-white rounded-lg shadow-md">
-              <font-awesome-icon :icon="['fas', 'sliders-h']" class="text-sm" />
-            </div>
-            <span class="text-base font-semibold text-accent">排序与状态</span>
+        <section class="edit-section">
+          <div class="edit-section-heading">
+            <h4 class="edit-section-title"><font-awesome-icon :icon="['fas', 'sliders-h']" aria-hidden="true" />排序与状态</h4>
           </div>
-
-          <!-- 排序 + 启用状态 -->
-          <div class="flex items-center justify-between">
-            <div class="flex items-center gap-4">
-              <label for="category-order-num" class="text-sm font-medium text-gray-700">排序顺序</label>
+          <div class="edit-grid">
+            <div>
+              <label for="category-order-num" class="edit-label">排序顺序</label>
               <CustomInputNumber
                 id="category-order-num"
                 v-model="form.orderNum"
                 :min="0"
                 :max="9999"
               />
-              <span class="text-xs text-ink-mute">数字越小越靠前</span>
+              <p class="edit-hint">数字越小，分类在列表中越靠前</p>
             </div>
-            <div class="flex items-center gap-3 px-4 py-2.5 bg-accent/4 rounded-xl">
-              <CustomSwitch id="category-enabled" v-model="form.enabled" aria-label="是否启用分类" />
-              <span class="text-sm font-medium" :class="form.enabled ? 'text-[#52c41a]' : 'text-ink-mute'">
-                {{ form.enabled ? '已启用' : '已禁用' }}
-              </span>
+            <div>
+              <label for="category-enabled" class="edit-label">是否启用</label>
+              <div class="edit-state-row">
+                <span class="text-sm text-ink-soft">{{ form.enabled ? '已启用' : '已禁用' }}</span>
+                <CustomSwitch id="category-enabled" v-model="form.enabled" aria-label="是否启用分类" />
+              </div>
             </div>
           </div>
-        </div>
+        </section>
 
-        <!-- 详细信息组 -->
-        <div class="
-          relative p-5
-          bg-gradient-to-br from-white/80 to-accent/2
-          backdrop-blur-sm
-          rounded-xl
-          border border-white/50
-          shadow-[0_2px_16px_color-mix(in srgb, var(--brand-accent) 6%, transparent)]
-          before:absolute before:inset-0 before:rounded-xl before:p-px
-          before:bg-gradient-to-br before:from-white/60 before:to-transparent before:-z-10
-        ">
-          <!-- 分组标题 -->
-          <div class="flex items-center gap-2 mb-4 pb-4 border-b border-dashed border-accent/12">
-            <div class="w-7 h-7 flex items-center justify-center bg-gradient-to-br from-[#40a9ff] to-[#1890ff] text-white rounded-lg shadow-md">
-              <font-awesome-icon :icon="['fas', 'align-left']" class="text-sm" />
-            </div>
-            <span class="text-base font-semibold text-accent">详细信息</span>
+        <section class="edit-section">
+          <div class="edit-section-heading">
+            <h4 class="edit-section-title"><font-awesome-icon :icon="['fas', 'align-left']" aria-hidden="true" />详细信息</h4>
           </div>
-
-          <!-- 分类描述 -->
           <div>
-            <label class="flex items-center gap-1.5 text-sm font-medium text-gray-700 mb-2">
+            <label for="category-description" class="edit-label">
               分类描述
             </label>
             <textarea
+              id="category-description"
               v-model="form.description"
-              class="
-                w-full px-4 py-3
-                border border-accent/15 rounded-xl
-                bg-white/80 backdrop-blur-sm
-                focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/15
-                transition-all duration-200
-                resize-none
-              "
+              class="edit-textarea"
               placeholder="请输入分类描述（可选）"
               :rows="3"
               :maxlength="255"
             ></textarea>
-            <div class="flex justify-end mt-2">
-              <span class="text-xs px-2 py-0.5 rounded-full bg-accent/8 text-accent">
-                {{ form.description?.length || 0 }} / 255
-              </span>
-            </div>
+            <div class="edit-field-meta"><span class="edit-count">{{ form.description?.length || 0 }}/255</span></div>
           </div>
-        </div>
+        </section>
       </div>
 
       <template #footer>
-        <div class="flex justify-end gap-3">
-          <CustomButton @click="dialogVisible = false">取消</CustomButton>
-          <CustomButton type="primary" :loading="submitLoading" :disabled="parentLoading || parentLoadFailed" @click="handleSubmit">
-            确定
-          </CustomButton>
+        <div class="edit-footer">
+          <div class="edit-footer-actions">
+            <CustomButton @click="dialogVisible = false">取消</CustomButton>
+            <CustomButton type="primary" :loading="submitLoading" :disabled="parentLoading || parentLoadFailed" @click="handleSubmit">{{ dialogMode === 'add' ? '创建分类' : '保存修改' }}</CustomButton>
+          </div>
         </div>
       </template>
     </ResponsiveDialog>
@@ -516,6 +462,7 @@ import CustomInputNumber from '@/components/basic/InputNumber.vue'
 import CustomTooltip from '@/components/basic/Tooltip.vue'
 import CustomRadioGroup from '@/components/basic/RadioGroup.vue'
 import CategorySubjectFilter from '@/components/business/CategorySubjectFilter.vue'
+import '@/styles/edit-form.css'
 
 const { showToast } = useToast()
 const { showConfirm } = useConfirm()
