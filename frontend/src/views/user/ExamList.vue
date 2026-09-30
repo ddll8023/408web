@@ -59,7 +59,7 @@
           </div>
 
           <!-- 年份视图:显示所有题目 -->
-          <div v-if="examList.length > 0" class="mx-auto flex w-full max-w-[1100px] flex-col gap-4 px-3 py-4 sm:gap-6 sm:px-5">
+          <div v-if="examList.length > 0" class="mx-auto flex w-full max-w-[1100px] flex-col gap-3 px-3 py-3 sm:gap-4 sm:px-5">
             <ExamEntryCard
               v-for="exam in examList"
               :key="exam.id"

@@ -78,12 +78,12 @@
 
             <div
               v-if="groupedQuestions.length > 0"
-              class="mx-auto mt-6 w-full"
+              class="mx-auto mt-4 w-full"
               :class="outlineItems.length > 0
-                ? 'grid max-w-[1400px] grid-cols-1 items-start gap-6 xl:grid-cols-[minmax(0,1fr)_230px]'
-                : 'flex max-w-[1100px] flex-col gap-5'"
+                ? 'grid max-w-[1400px] grid-cols-1 items-start gap-5 xl:grid-cols-[minmax(0,1fr)_230px]'
+                : 'flex max-w-[1100px] flex-col gap-4'"
             >
-              <main class="min-w-0 flex flex-col gap-5">
+              <main class="min-w-0 flex flex-col gap-4">
                 <section
                   v-for="group in groupedQuestions"
                   :id="getCategorySectionId('adaptation', group.categoryId, group.category)"
@@ -97,7 +97,7 @@
                     kind="adaptation"
                     :depth="group.depth"
                   />
-                  <div class="mt-3 flex flex-col gap-4">
+                  <div class="mt-2 flex flex-col gap-2.5">
                     <AdaptationEntryCard
                       v-for="adaptation in group.items"
                       :id="`adaptation-${adaptation.id}`"

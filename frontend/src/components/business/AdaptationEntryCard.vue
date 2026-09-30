@@ -2,7 +2,7 @@
 <template>
   <div
     ref="cardRef"
-    class="adaptation-entry-card question-immersive-card rounded-lg border border-gray-300 bg-white p-4 transition-all hover:border-accent/30 hover:shadow-md md:p-6 scroll-mt-14 md:scroll-mt-8"
+    class="adaptation-entry-card question-immersive-card rounded-xl border border-gray-200 bg-white p-3 md:p-4 scroll-mt-14 md:scroll-mt-8"
     :class="{ 'is-immersive': isImmersive }"
   >
     <AdaptationItemHeader
@@ -17,7 +17,7 @@
       @toggle-fullscreen="toggleFullscreen"
     />
 
-    <div class="mt-6">
+    <div>
       <ExamQuestionCard
         :exam="adaptation"
         :show-answer="showAnswer"
@@ -80,6 +80,11 @@ const { isActive, isImmersive, toggleFullscreen } = useQuestionFullscreen(cardRe
 </script>
 
 <style scoped>
+/*
+ * 改编题卡片样式。
+ * 模块识别交给头部标题配色，卡片本身只保留统一的中性外框。
+ */
+
 .adaptation-entry-card:global(.highlight-card) {
   animation: highlightPulse 2s ease-out;
   border-color: var(--brand-accent);

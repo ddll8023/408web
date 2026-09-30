@@ -80,12 +80,12 @@
           <!-- 分类分组列表：标题显式区分模拟题、父子层级和题目数量 -->
           <div
             v-if="groupedQuestions.length > 0"
-            class="mx-auto mt-6 w-full"
+            class="mx-auto mt-4 w-full"
             :class="outlineItems.length > 0
-              ? 'grid max-w-[1400px] grid-cols-1 items-start gap-6 xl:grid-cols-[minmax(0,1fr)_230px]'
-              : 'flex max-w-[1100px] flex-col gap-5'"
+              ? 'grid max-w-[1400px] grid-cols-1 items-start gap-5 xl:grid-cols-[minmax(0,1fr)_230px]'
+              : 'flex max-w-[1100px] flex-col gap-4'"
           >
-            <main class="min-w-0 flex flex-col gap-5">
+            <main class="min-w-0 flex flex-col gap-4">
               <section
                 v-for="group in groupedQuestions"
                 :id="getCategorySectionId('mock', group.categoryId, group.category)"
@@ -99,7 +99,7 @@
                   kind="mock"
                   :depth="group.depth"
                 />
-                <div class="mt-3 flex flex-col gap-4">
+                <div class="mt-2 flex flex-col gap-2.5">
                   <MockEntryCard
                     v-for="mock in group.items"
                     :key="mock.id"
@@ -864,32 +864,3 @@ const handleDelete = async (id: number) => {
 }
 </script>
 
-<style scoped>
-/**
- * 模拟题分类浏览页面样式
- * 使用 Tailwind CSS
- */
-
-/* 模拟题卡片页面级样式覆盖 */
-:deep(.mock-entry-card) {
-  background-color: var(--brand-surface);
-}
-
-/* 从管理页面"查看"按钮跳转过来时的高亮效果 */
-:deep(.mock-entry-card.highlight-card) {
-  animation: highlightPulse 2s ease-out;
-  border-color: var(--brand-accent);
-  box-shadow: 0 0 20px color-mix(in srgb, var(--brand-accent) 30%, transparent);
-}
-
-/* 高亮脉冲动画 */
-@keyframes highlightPulse {
-  0%, 100% {
-    box-shadow: 0 0 20px color-mix(in srgb, var(--brand-accent) 30%, transparent);
-  }
-  50% {
-    box-shadow: 0 0 30px color-mix(in srgb, var(--brand-accent) 50%, transparent);
-  }
-}
-
-</style>

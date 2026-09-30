@@ -2,18 +2,7 @@
 <template>
   <div
     ref="cardRef"
-    class="mock-entry-card
-    question-immersive-card
-    bg-white
-    border border-gray-200
-    rounded-lg
-    shadow-sm
-    p-4 sm:p-6
-    hover:shadow-md
-    transition-all duration-300
-    scroll-mt-14
-    md:scroll-mt-8
-  "
+    class="mock-entry-card question-immersive-card rounded-xl border border-gray-200 bg-white p-3 md:p-4 scroll-mt-14 md:scroll-mt-8"
     :class="{ 'is-immersive': isImmersive }"
   >
     <!-- 题目头部 -->
@@ -27,7 +16,7 @@
       @toggle-fullscreen="toggleFullscreen"
     />
     <!-- 题目内容与答案 -->
-    <div class="mt-6">
+    <div>
       <ExamQuestionCard
         :exam="mock"
         :show-answer="showAnswer"
@@ -95,9 +84,9 @@ const { isActive, isImmersive, toggleFullscreen } = useQuestionFullscreen(cardRe
 </script>
 
 <style scoped>
-/**
- * 模拟题卡片样式
- * 主要使用Tailwind类名，保留必要的高亮动画效果
+/*
+ * 模拟题卡片样式。
+ * 模块识别交给头部标题配色，卡片本身只保留统一的中性外框。
  */
 
 /* 高亮效果（从管理页面跳转时） - 需要保留全局选择器样式 */

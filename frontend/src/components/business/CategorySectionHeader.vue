@@ -1,7 +1,7 @@
 <!-- 题目分类分组标题：按题库类型使用对应的主题色和题量展示。 -->
 <template>
   <header
-    class="relative min-h-[74px] overflow-hidden rounded-xl border px-4 py-3 shadow-sm transition-colors duration-200"
+    class="relative min-h-[62px] overflow-hidden rounded-xl border px-3.5 py-2.5 shadow-sm transition-colors duration-200"
     :class="[theme.surface, theme.border]"
     :aria-label="`${theme.label}分类：${category}`"
   >
@@ -14,7 +14,7 @@
     <div class="flex items-center justify-between gap-3 pl-2">
       <div class="flex min-w-0 items-center gap-3">
         <span
-          class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
+          class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg"
           :class="theme.iconSurface"
           aria-hidden="true"
         >
@@ -59,7 +59,7 @@
       </div>
 
       <span
-        class="inline-flex shrink-0 items-baseline gap-1 rounded-full px-3 py-1.5"
+        class="inline-flex shrink-0 items-baseline gap-1 rounded-full px-2.5 py-1"
         :class="theme.badge"
       >
         <strong class="text-base leading-none">{{ count }}</strong>

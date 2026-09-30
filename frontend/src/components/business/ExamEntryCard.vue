@@ -2,7 +2,7 @@
 <template>
   <div
     ref="cardRef"
-    class="exam-entry-card question-immersive-card bg-white rounded-lg border border-gray-300 p-4 md:p-6 scroll-mt-14 md:scroll-mt-8 transition-all hover:shadow-md hover:border-accent/30"
+    class="exam-entry-card question-immersive-card rounded-xl border border-gray-200 bg-white p-3 md:p-4 scroll-mt-14 md:scroll-mt-8"
     :class="{ 'is-immersive': isImmersive }"
   >
     <!-- 题目头部：包含题号、元数据、操作按钮 -->
@@ -18,7 +18,7 @@
     />
 
     <!-- 题目内容与答案卡片 -->
-    <div class="mt-6">
+    <div>
       <ExamQuestionCard
         :exam="exam"
         :show-answer="showAnswer"
@@ -94,9 +94,9 @@ const { isActive, isImmersive, toggleFullscreen } = useQuestionFullscreen(cardRe
 </script>
 
 <style scoped>
-/**
- * 题目条目卡片样式
- * 主要使用Tailwind类名，保留必要的高亮动画效果
+/*
+ * 真题卡片样式。
+ * 模块识别交给头部标题配色，卡片本身只保留统一的中性外框。
  */
 
 /* 从管理页面"查看"按钮跳转过来时的高亮效果 */

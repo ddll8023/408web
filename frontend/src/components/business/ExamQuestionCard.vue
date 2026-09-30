@@ -1,8 +1,7 @@
 <!-- 通用题目内容卡片：统一渲染真题、模拟题和改编题的题干、选项与答案。 -->
 <template>
   <div class="exam-question-card" :data-density="density">
-    <!-- 题目卡片（白色卡片） -->
-    <div class="exam-question-card__question-card relative bg-white border border-gray-200 rounded shadow-[0_2px_4px_rgba(0,0,0,0.08)] p-6 mb-6 transition-all duration-300" v-if="exam">
+    <div v-if="exam" class="exam-question-card__question-card">
       <div class="exam-question-card__question-content w-full overflow-hidden">
         <MarkdownViewer
           :content="exam.content || ''"
@@ -11,12 +10,11 @@
         />
       </div>
 
-      <!-- 选择题：紧凑行式选项容器（div 重构） -->
-      <div v-if="exam.questionType === 'CHOICE' && Object.keys(parsedOptions).length" class="exam-question-card__option-list list-none m-0 p-0 flex flex-col gap-2">
+      <div v-if="exam.questionType === 'CHOICE' && Object.keys(parsedOptions).length" class="exam-question-card__option-list">
         <div
           v-for="(value, key) in parsedOptions"
           :key="key"
-          class="exam-question-card__option-row flex items-center gap-1.5 py-1 px-2 min-h-[44px] border border-gray-200 border-l-[3px] border-l-accent/10 rounded bg-white transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+          class="exam-question-card__option-row"
           :class="{
             'exam-question-card__option-row--correct': showAnswer && correctOptionKeys.includes(key),
             'exam-question-card__option-row--selected-correct': showAnswer && selectedOption === key && correctOptionKeys.includes(key),
@@ -28,56 +26,60 @@
           :tabindex="selectable && !showAnswer ? 0 : -1"
           :aria-pressed="selectedOption === key"
           :aria-disabled="!selectable || showAnswer"
-          :aria-label="`选项 ${key}`"
+          :aria-label="optionStatusLabel(key) ? `选项 ${key}，${optionStatusLabel(key)}` : `选项 ${key}`"
           @click="handleOptionClick(key)"
           @keydown.enter.prevent="handleOptionClick(key)"
           @keydown.space.prevent="handleOptionClick(key)"
         >
-          <span class="exam-question-card__option-letter flex-shrink-0 w-[22px] h-[22px] flex items-center justify-center border-[1.5px] border-accent text-accent rounded-full font-semibold text-xs leading-none bg-white transition-all duration-150">{{ key }}</span>
-          <div class="exam-question-card__option-body flex-1 min-w-0 leading-[1.4] overflow-hidden flex items-center">
+          <span class="exam-question-card__option-letter">{{ key }}</span>
+          <div class="exam-question-card__option-body min-w-0 overflow-hidden">
             <MarkdownViewer
               :content="String(value)"
               variant="plain"
               content-role="option"
             />
           </div>
+          <span
+            v-if="optionStatusLabel(key)"
+            class="exam-question-card__option-status"
+            :class="{ 'exam-question-card__option-status--correct': correctOptionKeys.includes(key) }"
+          >
+            <font-awesome-icon :icon="['fas', correctOptionKeys.includes(key) ? 'check' : 'times']" aria-hidden="true" />
+            {{ optionStatusLabel(key) }}
+          </span>
         </div>
       </div>
     </div>
 
-    <!-- 答案卡片（米色主题卡片） -->
-    <div v-if="exam?.answer" class="answer-card bg-surface/50 border border-accent/20 border-l-4 border-l-accent rounded p-4 shadow-[0_2px_4px_rgba(0,0,0,0.08)] transition-all duration-300">
-      <div class="answer-header flex items-center gap-2 mb-4">
-        <font-awesome-icon :icon="['fas', 'check']" class="text-lg text-accent" />
-        <span class="text-sm font-medium text-gray-800">{{ exam?.questionType === 'CHOICE' ? '正确答案' : '参考答案' }}</span>
+    <div v-if="exam?.answer" class="answer-card">
+      <div class="answer-header">
+        <font-awesome-icon :icon="['fas', showAnswer ? 'book' : 'lock']" class="answer-icon" aria-hidden="true" />
+        <span class="answer-label">{{ exam.questionType === 'CHOICE' ? '答案与解析' : '参考答案与解析' }}</span>
         <CustomButton
           v-if="showToggle"
           size="sm"
-          :type="showAnswer ? 'warning' : 'primary'"
-          @click="$emit('toggle-answer')"
+          type="text"
           class="ml-auto"
+          :aria-expanded="showAnswer"
+          @click="$emit('toggle-answer')"
         >
-          {{ showAnswer ? '隐藏答案' : '显示答案' }}
+          {{ showAnswer ? '收起解析' : '显示答案' }}
+          <font-awesome-icon :icon="['fas', showAnswer ? 'chevron-up' : 'chevron-down']" class="ml-1" aria-hidden="true" />
         </CustomButton>
       </div>
 
       <div ref="answerTransitionContainer" class="answer-transition-container">
         <Transition name="answer-expand">
-          <div v-if="showAnswer" key="content" class="answer-content p-4 bg-white rounded shadow-sm overflow-hidden">
+          <div v-if="showAnswer" key="content" class="answer-content overflow-hidden">
             <MarkdownViewer
-              :content="exam?.answer || ''"
+              :content="exam.answer || ''"
               variant="plain"
             />
-          </div>
-          <div v-else key="placeholder" class="answer-placeholder flex items-center justify-center gap-2 p-6 bg-white/80 rounded border-2 border-dashed border-gray-300 text-gray-400 text-sm">
-            <font-awesome-icon :icon="['fas', 'lock']" aria-hidden="true" />
-            <span>答案已隐藏，点击上方按钮显示</span>
           </div>
         </Transition>
       </div>
     </div>
   </div>
-
 </template>
 
 <script setup lang="ts">
@@ -302,28 +304,22 @@ const correctOptionKeys = computed(() => {
   const result = Array.from(new Set(upper.split(''))).filter(ch => /[A-H]/.test(ch))
   return result
 })
+
+/**
+ * 选项在判题后的状态文案，可见文字与无障碍标签共用；
+ * 未判题时返回空字符串，表示不展示状态。
+ */
+const optionStatusLabel = (key: string) => {
+  if (!props.showAnswer) return ''
+  if (correctOptionKeys.value.includes(key)) {
+    return selectedOption.value === key ? '回答正确' : '正确答案'
+  }
+  return selectedOption.value === key ? '回答错误' : ''
+}
 </script>
 
 <style scoped>
-/**
- * 题目卡片样式 - 卡片分层式布局
- * 主要使用Tailwind类名，保留必要的自定义样式和动画
- */
-
-/* 答题反馈动画 - CSS 动画无法用 Tailwind 完全替代 */
-@keyframes shake {
-  0%, 100% { transform: translateX(0); }
-  10%, 30%, 50%, 70%, 90% { transform: translateX(-4px); }
-  20%, 40%, 60%, 80% { transform: translateX(4px); }
-}
-
-@keyframes pulse-success {
-  0% { transform: scale(1); }
-  50% { transform: scale(1.02); background-color: rgba(103, 194, 58, 0.15); }
-  100% { transform: scale(1); }
-}
-
-/* ==================== 答案展开/收起过渡动画 ==================== */
+/* 答案高度过渡继续由原有容器承接，隐藏时不再保留大块占位。 */
 .answer-expand-enter-active,
 .answer-expand-leave-active {
   transition:
@@ -357,20 +353,10 @@ const correctOptionKeys = computed(() => {
   transform: translateY(0);
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .answer-transition-container,
-  .answer-expand-enter-active,
-  .answer-expand-leave-active {
-    transition-duration: 0.01s;
-  }
+.exam-question-card {
+  color: var(--brand-ink);
 }
 
-/* 题目卡片（白色） - 使用Tailwind类名在template中已实现 */
-.exam-question-card__question-card:hover {
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-/* Markdown纯净模式，无额外padding */
 .exam-question-card__question-content :deep(.v-md-editor-preview) {
   padding: 0;
   background-color: transparent;
@@ -380,177 +366,220 @@ const correctOptionKeys = computed(() => {
   padding: 0;
 }
 
-/* 表格居中 */
-.exam-question-card__question-content :deep(table) {
+.exam-question-card__question-content :deep(table),
+.answer-content :deep(table) {
   margin: 0 auto;
 }
 
-/* 选项列表（紧凑） - 使用Tailwind类名在template中已实现 */
-
-/* 选项行 - 使用Tailwind类名在template中已实现 */
-
-.exam-question-card__option-row:hover {
-  border-color: #e5e7eb;
-  border-left-color: var(--brand-accent);
-  background-color: color-mix(in srgb, var(--brand-accent) 10%, transparent);
+.exam-question-card__option-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 14px;
 }
 
-/* 可点击状态（答案未显示时） */
+.exam-question-card__option-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  column-gap: 10px;
+  row-gap: 6px;
+  min-height: 44px;
+  padding: 8px 10px;
+  border: 1px solid #dfe3e8;
+  border-radius: 8px;
+  background-color: #fff;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.exam-question-card__option-body {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.exam-question-card__option-row:focus-visible {
+  outline: 2px solid var(--brand-accent);
+  outline-offset: 2px;
+}
+
+.exam-question-card__option-letter {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid #dfe3e8;
+  border-radius: 8px;
+  color: #5b6674;
+  background-color: #eef1f4;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1;
+  transition: color 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
+}
+
+/* 仅调整阅读选项的排版，保留 Markdown 的媒体尺寸变量和复制规则。 */
+.exam-question-card__option-body :deep(.markdown-viewer.is-option) {
+  font-size: 16px;
+  line-height: 1.6;
+}
+
 .exam-question-card__option-row--clickable {
   cursor: pointer;
 }
 
+/* 已判题的选项不再响应悬停染色，避免覆盖正确或错误反馈。 */
 .exam-question-card__option-row--clickable:hover {
-  border-left-color: var(--brand-accent);
-  background-color: color-mix(in srgb, var(--brand-accent) 10%, transparent);
+  border-color: var(--brand-accent);
+  background-color: color-mix(in srgb, var(--brand-accent) 8%, white);
 }
 
 .exam-question-card__option-row--clickable:hover .exam-question-card__option-letter {
-  background-color: var(--brand-accent);
-  color: #fff;
   border-color: var(--brand-accent);
+  color: var(--brand-accent);
 }
 
-.exam-question-card__option-row--clickable:active {
-  background-color: color-mix(in srgb, var(--brand-accent) 15%, transparent);
-}
-
-/* 用户选中的选项（答案未显示时的视觉反馈） */
+.exam-question-card__option-row--clickable:active,
 .exam-question-card__option-row--selected {
-  border-color: color-mix(in srgb, var(--brand-surface) 30%, transparent);
-  border-left-color: var(--brand-surface);
-  background-color: #eff6ff;
+  border-color: var(--brand-accent);
+  background-color: color-mix(in srgb, var(--brand-accent) 12%, white);
 }
 
 .exam-question-card__option-row--selected .exam-question-card__option-letter {
-  border-color: var(--brand-surface);
-  color: var(--brand-surface);
-  background-color: #eff6ff;
+  border-color: var(--brand-accent);
+  color: #fff;
+  background-color: var(--brand-accent);
 }
 
-/* 用户选择的错误选项（显示答案时） */
-.exam-question-card__option-row--wrong {
-  animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
-  border-color: #fecaca;
-  border-left-color: #ef4444;
-  background-color: #fef2f2;
-}
-
-.exam-question-card__option-row--wrong .exam-question-card__option-letter {
-  border-color: #ef4444;
-  color: #ef4444;
-  background-color: #fee2e2;
-}
-
-/* 正确答案（显示答案时） */
 .exam-question-card__option-row--correct {
-  border-color: #bbf7d0;
-  border-left-color: #22c55e;
-  background-color: rgba(240, 253, 244, 0.8);
+  border-color: #7cc39c;
+  background-color: #eaf7f0;
 }
 
 .exam-question-card__option-row--correct .exam-question-card__option-letter {
-  border-color: #22c55e;
-  color: #22c55e;
-  background-color: #dcfce7;
-}
-
-/* 用户选中的正确选项（显示答案时的视觉反馈） */
-.exam-question-card__option-row--selected-correct {
-  animation: pulse-success 0.6s ease-out both;
-  border-color: #bbf7d0;
-  border-left-color: #22c55e;
-  background-color: rgba(240, 253, 244, 0.8);
+  border-color: #7cc39c;
+  color: #10613f;
+  background-color: #d8efe3;
 }
 
 .exam-question-card__option-row--selected-correct .exam-question-card__option-letter {
-  background-color: #22c55e;
+  border-color: #10613f;
   color: #fff;
-  border-color: #22c55e;
+  background-color: #10613f;
 }
 
-/* 选项字母 - 使用Tailwind类名在template中已实现 */
-
-/* 选项主体 - 使用Tailwind类名在template中已实现 */
-
-/* 正文、选项的字号与媒体尺寸统一由 MarkdownViewer 的 contentRole 管理。 */
-
-.exam-question-card__option-text {
-  white-space: pre-line;
-  color: var(--brand-ink);
-  font-size: 14px;
-  margin: 0;
+.exam-question-card__option-row--wrong {
+  border-color: #d99c93;
+  background-color: #fdeeea;
 }
 
-/* 答案卡片（米色主题） - 使用Tailwind类名在template中已实现 */
-
-.answer-card .answer-content :deep(table) {
-  margin: 0 auto;
+.exam-question-card__option-row--wrong .exam-question-card__option-letter {
+  border-color: #d99c93;
+  color: #a63a2b;
+  background-color: #f9dcd5;
 }
 
-/* 密度：comfortable（稍大） */
-.exam-question-card[data-density='comfortable'] .question-card,
-.exam-question-card[data-density='comfortable'] .exam-question-card__question-card {
-  padding: 32px;
-}
-
-.exam-question-card[data-density='comfortable'] .option-row,
-.exam-question-card[data-density='comfortable'] .exam-question-card__option-row {
-  padding-top: 6px;
-  padding-bottom: 6px;
-  padding-left: 8px;
-  padding-right: 8px;
-}
-
-.exam-question-card[data-density='comfortable'] .option-list,
-.exam-question-card[data-density='comfortable'] .exam-question-card__option-list {
-  gap: 16px;
-  margin-top: 24px;
-}
-
-.exam-question-card[data-density='comfortable'] .option-letter,
-.exam-question-card[data-density='comfortable'] .exam-question-card__option-letter {
-  width: 22px;
-  height: 22px;
+.exam-question-card__option-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex: none;
+  margin-top: 4px;
+  margin-left: auto;
+  /* 默认取错误色，正确状态由下方修饰类覆盖为绿色。 */
+  color: #a63a2b;
   font-size: 12px;
+  font-weight: 500;
+  line-height: 1.6;
+  white-space: nowrap;
 }
 
-.exam-question-card[data-density='comfortable'] .option-body,
-.exam-question-card[data-density='comfortable'] .exam-question-card__option-body {
-  line-height: 1.5;
+.exam-question-card__option-status--correct {
+  color: #10613f;
 }
 
-/* 移动端优化 */
+.answer-card {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.answer-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.answer-icon {
+  color: var(--brand-ink-soft);
+  font-size: 13px;
+}
+
+.answer-label {
+  color: var(--brand-ink-soft);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.answer-content {
+  margin-top: 8px;
+  padding: 12px;
+  border-radius: 8px;
+  background-color: var(--brand-surface);
+}
+
+.exam-question-card[data-density='comfortable'] .exam-question-card__option-list {
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.exam-question-card[data-density='comfortable'] .exam-question-card__option-row {
+  padding: 12px;
+}
+
+.exam-question-card[data-density='comfortable'] .answer-content {
+  padding: 16px;
+}
+
 @media (max-width: 767px) {
-  .exam-question-card__question-card,
-  .answer-card {
-    padding: 16px;
+  .exam-question-card__option-row,
+  .exam-question-card[data-density='comfortable'] .exam-question-card__option-row {
+    column-gap: 8px;
+    padding: 8px 10px;
   }
 
-  .exam-question-card__question-card {
-    margin-bottom: 16px;
-  }
-
-  .exam-question-card__option-row {
-    padding-top: 2px;
-    padding-bottom: 2px;
-    padding-left: 4px;
-    padding-right: 4px;
-    gap: 4px;
-  }
-
-  .exam-question-card__option-letter {
-    width: 20px;
-    height: 20px;
-    font-size: 11px;
-  }
-
-  .exam-question-card__option-body {
-    line-height: 1.3;
+  /* 窄屏状态下状态文字独占一行，不再靠右挤压题干。 */
+  .exam-question-card__option-status {
+    margin-left: 0;
+    margin-top: 0;
   }
 
   .exam-question-card__option-list {
-    gap: 3px;
+    gap: 6px;
+    margin-top: 12px;
+  }
+
+  .answer-card {
+    margin-top: 14px;
+  }
+
+  .answer-content,
+  .exam-question-card[data-density='comfortable'] .answer-content {
+    padding: 12px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .exam-question-card__option-row,
+  .exam-question-card__option-letter {
+    transition: none;
+  }
+
+  .answer-transition-container,
+  .answer-expand-enter-active,
+  .answer-expand-leave-active {
+    transition-duration: 0.01s;
   }
 }
 </style>

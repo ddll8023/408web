@@ -1,27 +1,29 @@
 <!-- 真题题目头部：展示题目元信息、复制、过程图片和管理员操作。 -->
 <template>
-  <div class="exam-item-header flex items-center justify-between mb-6 pb-4 border-b border-black/[0.03]">
-    <div class="flex-1">
-      <h3 class="question-title text-lg font-semibold text-gray-800 flex items-center gap-3 m-0">
-        <span class="text-accent font-mono">{{ exam.year }}年 第 {{ exam.questionNumber }} 题</span>
+  <div class="exam-item-header flex items-start justify-between gap-4 mb-3 pb-3 border-b border-gray-100">
+    <div class="min-w-0 flex-1">
+      <h3 class="question-title m-0 font-semibold">
+        {{ exam.year }}年 第 {{ exam.questionNumber }} 题
       </h3>
-      <div class="flex gap-2 flex-wrap mt-2">
-        <Tag :type="exam.questionType === 'CHOICE' ? 'success' : 'primary'">
+      <div class="question-metadata mt-2 flex flex-wrap gap-1.5">
+        <Tag class="question-tag" size="sm" :type="exam.questionType === 'CHOICE' ? 'success' : 'primary'">
           {{ exam.questionType === 'CHOICE' ? '选择题' : '主观题' }}
         </Tag>
-        <Tag v-if="exam.difficulty" :type="getDifficultyType(exam.difficulty)">
+        <Tag v-if="exam.difficulty" class="question-tag" size="sm" :type="getDifficultyType(exam.difficulty)">
           {{ getDifficultyLabel(exam.difficulty) }}
         </Tag>
         <Tag
           v-for="cat in (Array.isArray(exam.category) ? exam.category : [])"
           :key="cat"
+          class="question-tag"
+          size="sm"
           type="info"
         >
           {{ cat }}
         </Tag>
       </div>
     </div>
-    <div class="question-actions flex gap-1 opacity-80 transition-opacity duration-200 hover:opacity-100">
+    <div class="question-actions flex shrink-0 flex-wrap items-center gap-1">
       <CustomButton
         size="sm"
         type="text"
@@ -95,21 +97,32 @@ defineEmits<{
 </script>
 
 <style scoped>
-/**
- * 题目头部组件样式
- * 使用纯CSS样式，兼容Tailwind CSS 4
- */
+.question-title {
+  font-size: 18px;
+  line-height: 1.5;
+  /* 标题取题目所属题库的主题色，与分类标题和卡片色条共同区分三个题库。 */
+  color: var(--theme-exam-accent);
+  overflow-wrap: anywhere;
+}
 
-/* 响应式布局 */
+/* 元信息使用中性底色，让年份题号和题干成为阅读重点。 */
+.question-metadata :deep(.question-tag) {
+  color: var(--brand-ink-soft);
+  background-color: #f4f5f6;
+}
+
+.question-actions {
+  max-width: 100%;
+}
+
 @media (max-width: 767px) {
   .exam-item-header {
     flex-direction: column;
-    align-items: flex-start;
-    gap: 8px;
+    gap: 12px;
   }
 
   .question-title {
-    font-size: 14px;
+    font-size: 16px;
   }
 
   .question-actions {

@@ -1,34 +1,33 @@
 <!-- 改编题头部：展示标题、题型、难度、分类、来源和复制操作。 -->
 <template>
-  <div class="adaptation-item-header flex items-center justify-between mb-6 pb-4 border-b border-black/[0.03]">
+  <div class="adaptation-item-header flex items-start justify-between gap-4 mb-3 pb-3 border-b border-gray-100">
     <div class="min-w-0 flex-1">
-      <h3 class="question-title m-0 text-lg font-semibold text-gray-800">
-        改编题 #{{ adaptation.id }}
+      <h3 class="question-title m-0 font-semibold">
+        {{ adaptation.sourceSummary || '改编题（未标注来源）' }}
       </h3>
-      <div class="mt-2 flex flex-wrap gap-2">
-        <Tag :type="adaptation.questionType === 'CHOICE' ? 'success' : 'primary'">
+      <div class="question-metadata mt-2 flex flex-wrap gap-1.5">
+        <Tag class="question-tag" size="sm" :type="adaptation.questionType === 'CHOICE' ? 'success' : 'primary'">
           {{ adaptation.questionType === 'CHOICE' ? '选择题' : '主观题' }}
         </Tag>
-        <Tag v-if="adaptation.difficulty" :type="getDifficultyType(adaptation.difficulty)">
+        <Tag v-if="adaptation.difficulty" class="question-tag" size="sm" :type="getDifficultyType(adaptation.difficulty)">
           {{ getDifficultyLabel(adaptation.difficulty) }}
         </Tag>
-        <Tag v-if="adaptation.subjectName" type="info">
+        <Tag v-if="adaptation.subjectName" class="question-tag" size="sm" type="info">
           {{ adaptation.subjectName }}
         </Tag>
         <Tag
           v-for="category in categories"
           :key="category"
+          class="question-tag"
+          size="sm"
           type="info"
         >
           {{ category }}
         </Tag>
       </div>
-      <p v-if="adaptation.sourceSummary" class="mt-2 mb-0 text-sm leading-6 text-ink-soft">
-        {{ adaptation.sourceSummary }}
-      </p>
     </div>
 
-    <div class="question-actions ml-3 flex shrink-0 gap-1 opacity-80 transition-opacity duration-200 hover:opacity-100">
+    <div class="question-actions flex shrink-0 flex-wrap items-center gap-1">
       <CustomButton
         size="sm"
         type="text"
@@ -107,21 +106,37 @@ const categories = computed(() => props.adaptation.category?.filter(Boolean) || 
 </script>
 
 <style scoped>
+.question-title {
+  font-size: 18px;
+  line-height: 1.5;
+  /* 标题取品牌棕色，与分类标题和卡片色条共同区分三个题库。 */
+  color: var(--brand-accent);
+  overflow-wrap: anywhere;
+}
+
+/* 元信息使用中性底色，让改编来源和题干成为阅读重点。 */
+.question-metadata :deep(.question-tag) {
+  color: var(--brand-ink-soft);
+  background-color: #f4f5f6;
+}
+
+.question-actions {
+  max-width: 100%;
+}
+
 @media (max-width: 767px) {
   .adaptation-item-header {
     flex-direction: column;
-    align-items: flex-start;
-    gap: 8px;
+    gap: 12px;
   }
 
   .question-title {
-    font-size: 14px;
+    font-size: 16px;
   }
 
   .question-actions {
     width: 100%;
     justify-content: flex-start;
-    margin-left: 0;
   }
 }
 </style>
