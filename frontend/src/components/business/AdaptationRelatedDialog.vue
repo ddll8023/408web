@@ -1,4 +1,4 @@
-<!-- 真题关联改编题弹窗：按当前真题的年份和题号懒加载改编题摘要。 -->
+<!-- 真题关联改编题弹窗：懒加载关联摘要，管理员可携带当前真题来源新增改编题。 -->
 <template>
   <ResponsiveDialog
     v-model:visible="dialogVisible"
@@ -10,7 +10,13 @@
     <div class="space-y-4">
       <div class="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-accent/15 bg-surface/60 px-4 py-3">
         <span class="text-sm text-ink-soft">当前真题：{{ sourceLabel }}</span>
-        <Tag type="info" size="sm">共 {{ total }} 道</Tag>
+        <div class="flex flex-wrap items-center gap-2">
+          <Tag type="info" size="sm">共 {{ total }} 道</Tag>
+          <CustomButton v-if="canCreate" size="sm" type="primary" @click="handleAdd">
+            <font-awesome-icon :icon="['fas', 'plus']" class="mr-1.5" aria-hidden="true" />
+            新增改编题
+          </CustomButton>
+        </div>
       </div>
 
       <div v-if="errorMessage" class="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700" role="alert">
@@ -84,6 +90,12 @@
       />
     </div>
   </ResponsiveDialog>
+
+  <AdaptationEditDialog
+    v-model:visible="createDialogVisible"
+    :initial-sources="initialSources"
+    @success="handleCreateSuccess"
+  />
 </template>
 
 <script setup lang="ts">
@@ -91,9 +103,10 @@
  * 展示与当前真题存在来源关系的改编题摘要。
  * 仅在弹窗打开时请求，避免真题列表为每道题预加载改编题数据。
  */
-import { computed, onBeforeUnmount, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import type { AdaptationQuestion, ExamQuestion } from '@/types'
+import type { AdaptationQuestion, AdaptationSourceRefInput, ExamQuestion } from '@/types'
+import { useAuthStore } from '@/stores/auth'
 import { getAdaptationList } from '@/api/adaptation'
 import { getDifficultyLabel, getDifficultyType } from '@/constants/exam'
 import CustomButton from '@/components/basic/CustomButton.vue'
@@ -101,6 +114,7 @@ import ResponsiveDialog from '@/components/basic/ResponsiveDialog.vue'
 import Empty from '@/components/basic/Empty.vue'
 import Pagination from '@/components/basic/Pagination.vue'
 import Tag from '@/components/basic/Tag.vue'
+import AdaptationEditDialog from '@/components/business/AdaptationEditDialog.vue'
 
 interface Props {
   visible: boolean
@@ -110,11 +124,38 @@ interface Props {
 const props = defineProps<Props>()
 const emit = defineEmits<{ 'update:visible': [visible: boolean] }>()
 const router = useRouter()
+const authStore = useAuthStore()
+const activeDialog = ref<'related' | 'create' | null>('related')
 
 const dialogVisible = computed({
-  get: () => props.visible,
+  get: () => props.visible && activeDialog.value === 'related',
   set: value => emit('update:visible', value)
 })
+
+const createDialogVisible = computed({
+  get: () => props.visible && activeDialog.value === 'create',
+  set: value => {
+    if (!value) void switchDialog('related')
+  }
+})
+
+const canCreate = computed(() => authStore.isAdmin() && props.exam?.questionNumber != null)
+const initialSources = computed<AdaptationSourceRefInput[]>(() => {
+  const exam = props.exam
+  if (!exam || exam.questionNumber == null) return []
+  return [{ sourceYear: exam.year, sourceQuestionNumber: exam.questionNumber }]
+})
+
+/** 先关闭当前弹层再打开目标弹层，避免焦点与页面滚动锁相互覆盖。 */
+const switchDialog = async (target: 'related' | 'create') => {
+  activeDialog.value = null
+  await nextTick()
+  if (props.visible) activeDialog.value = target
+}
+
+const handleAdd = () => {
+  if (canCreate.value) void switchDialog('create')
+}
 
 const adaptations = ref<AdaptationQuestion[]>([])
 const loading = ref(false)
@@ -205,6 +246,11 @@ const loadAdaptations = async (targetPage = 1) => {
   }
 }
 
+/** 新增后重新读取第一页，让关联列表与总数以实际保存的来源为准。 */
+const handleCreateSuccess = () => {
+  if (props.visible) void loadAdaptations(1)
+}
+
 const handlePageChange = (targetPage: number) => {
   void loadAdaptations(targetPage)
 }
@@ -216,6 +262,7 @@ const handleRetry = () => {
 watch(
   () => [props.visible, props.exam?.id] as const,
   ([visible]) => {
+    activeDialog.value = 'related'
     if (visible) void loadAdaptations(1)
   },
   { immediate: true }

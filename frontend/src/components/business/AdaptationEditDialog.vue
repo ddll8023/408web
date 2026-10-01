@@ -1,4 +1,4 @@
-<!-- 改编题编辑弹窗：维护改编题内容与来源引用，保存前提示来源占用情况。 -->
+<!-- 改编题编辑弹窗：维护内容与来源引用，支持新增时自动填入入口传来的真题来源。 -->
 <template>
   <ResponsiveDialog
     v-model:visible="dialogVisible"
@@ -170,7 +170,11 @@ import '@/styles/edit-form.css'
 
 const props = defineProps({
   visible: { type: Boolean, default: false },
-  adaptationId: { type: [Number, String] as PropType<number | string | null>, default: null }
+  adaptationId: { type: [Number, String] as PropType<number | string | null>, default: null },
+  initialSources: {
+    type: Array as PropType<AdaptationSourceRefInput[]>,
+    default: () => []
+  }
 })
 
 const emit = defineEmits<{
@@ -311,6 +315,10 @@ const resetDialog = () => {
 watch(() => props.visible, async visible => {
   if (!visible) return
   resetDialog()
+  if (!props.adaptationId) {
+    // 每次新增独立复制初始来源，避免编辑来源时修改入口数据或沿用上次输入。
+    sources.value = props.initialSources.map(source => ({ ...source }))
+  }
   await loadSubjectOptions()
   if (props.adaptationId) {
     await loadAdaptationData(props.adaptationId)
