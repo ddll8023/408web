@@ -85,6 +85,16 @@
               class="w-full"
             />
           </div>
+          <div class="flex flex-col gap-1.5">
+            <label class="text-sm font-medium text-gray-700">出题状态</label>
+            <Select
+              v-model="filters.examStatus"
+              :options="examStatusOptions"
+              placeholder="全部"
+              aria-label="出题状态"
+              class="w-full"
+            />
+          </div>
           <div class="flex flex-col gap-1.5 sm:col-span-2 2xl:col-span-1">
             <label class="text-sm font-medium text-gray-700">关键词</label>
             <CustomInput
@@ -169,12 +179,24 @@
             <span v-else class="text-gray-400">-</span>
           </template>
 
+          <template #isExamMarked="{ row }">
+            <Tag :type="row.isExamMarked ? 'success' : 'default'" size="sm">
+              {{ row.isExamMarked ? '已出题' : '未出题' }}
+            </Tag>
+          </template>
+
           <template #updateTime="{ row }">
             {{ formatDateTime(row.updateTime) }}
           </template>
 
           <template #actions="{ row }">
             <div class="flex items-center justify-center gap-1 whitespace-nowrap">
+              <QuestionExamActionMenu
+                :question="row"
+                :status-loading="row.examStatusLoading"
+                @word-copied="() => handleQuestionWordCopied(row)"
+                @toggle-exam-status="handleExamStatusToggle(row)"
+              />
               <CustomButton
                 type="text-primary"
                 size="sm"
@@ -197,8 +219,8 @@
           <template #mobile="{ row }">
             <div class="flex items-start justify-between gap-3">
               <div class="min-w-0">
-                <h3 class="m-0 text-base font-semibold text-gray-800">改编题 #{{ row.id }}</h3>
-                <p class="m-0 mt-1 line-clamp-2 text-sm text-gray-600">{{ row.sourceSummary || '未标注来源' }}</p>
+                <h3 class="m-0 text-base font-semibold text-gray-800">{{ row.sourceSummary || `改编题 #${row.id}` }}</h3>
+                <p v-if="row.sourceSummary" class="m-0 mt-1 line-clamp-2 text-sm text-gray-600">改编题 #{{ row.id }}</p>
               </div>
               <Tag :type="row.questionType === 'CHOICE' ? 'success' : 'primary'" size="sm" class="shrink-0">
                 {{ row.questionType === 'CHOICE' ? '选择题' : '主观题' }}
@@ -214,10 +236,19 @@
                 {{ source.sourceYear }}-{{ source.sourceQuestionNumber }}
               </Tag>
               <Tag v-for="cat in (Array.isArray(row.category) ? row.category : [])" :key="cat" type="info" size="sm">{{ cat }}</Tag>
+              <Tag :type="row.isExamMarked ? 'success' : 'default'" size="sm">
+                {{ row.isExamMarked ? '已出题' : '未出题' }}
+              </Tag>
             </div>
             <div class="mt-3 flex items-center justify-between gap-2 border-t border-gray-100 pt-2 text-xs text-gray-500">
               <span>{{ formatDateTime(row.updateTime) }}</span>
               <div class="flex justify-end gap-1">
+                <QuestionExamActionMenu
+                  :question="row"
+                  :status-loading="row.examStatusLoading"
+                  @word-copied="() => handleQuestionWordCopied(row)"
+                  @toggle-exam-status="handleExamStatusToggle(row)"
+                />
                 <CustomButton type="text-primary" size="sm" @click="handleEdit(row)">编辑</CustomButton>
                 <CustomButton type="text-danger" size="sm" :loading="row.deleteLoading" @click="handleDelete(row)">删除</CustomButton>
               </div>
@@ -258,7 +289,7 @@
 <script setup lang="ts">
 /**
  * 改编题管理页面
- * 功能：改编题的查询、新增、编辑、删除与来源标注状态筛选（仅 ADMIN 可访问）
+ * 功能：改编题的查询、新增、编辑、删除、出题状态维护与来源标注状态筛选（仅 ADMIN 可访问）
  * 依赖：useAdminTable 复用筛选、分页与排序逻辑
  */
 import type { AdaptationQuestion, QuestionType } from '@/types'
@@ -268,7 +299,8 @@ import { queryString } from '@/utils/storage'
 import {
   deleteAdaptation,
   getAdaptationCategoriesBySubject,
-  getAdaptationList
+  getAdaptationList,
+  setAdaptationExamMark
 } from '@/api/adaptation'
 import { getEnabledCategoryTreeBySubject } from '@/api/category'
 import { useAdminTable } from '@/composables/useAdminTable'
@@ -286,8 +318,15 @@ import Table from '@/components/basic/Table.vue'
 import Tag from '@/components/basic/Tag.vue'
 import WheelPicker from '@/components/basic/WheelPicker.vue'
 import AdaptationEditDialog from '@/components/business/AdaptationEditDialog.vue'
+import QuestionExamActionMenu from '@/components/business/QuestionExamActionMenu.vue'
 
-type QuestionRow = AdaptationQuestion & { deleteLoading?: boolean }
+/** 改编题行：附带出题状态与删除的操作中标记。 */
+type QuestionRow = AdaptationQuestion & {
+  examStatusLoading?: boolean
+  deleteLoading?: boolean
+}
+
+type ExamStatusFilter = 'all' | 'unmarked' | 'marked'
 
 const route = useRoute()
 const { showToast } = useToast()
@@ -333,6 +372,11 @@ const sourceStateOptions = [
   { label: '已标注来源', value: 'with_source' },
   { label: '未标注来源', value: 'without_source' }
 ]
+const examStatusOptions: { label: string; value: ExamStatusFilter }[] = [
+  { label: '全部', value: 'all' },
+  { label: '未出题', value: 'unmarked' },
+  { label: '已出题', value: 'marked' }
+]
 
 const tableColumns = [
   { prop: 'id', label: 'ID', width: '80px', align: 'center', sortable: true },
@@ -340,8 +384,9 @@ const tableColumns = [
   { prop: 'sourceSummary', label: '改编来源', minWidth: '240px' },
   { prop: 'category', label: '分类', width: '200px' },
   { prop: 'difficulty', label: '难度', width: '100px', align: 'center' },
+  { prop: 'isExamMarked', label: '出题状态', width: '110px', align: 'center' },
   { prop: 'updateTime', label: '更新时间', width: '160px', sortable: true },
-  { prop: 'actions', label: '操作', width: '220px', align: 'center', fixed: 'right' }
+  { prop: 'actions', label: '操作', width: '260px', align: 'center', fixed: 'right' }
 ]
 
 const filters = reactive({
@@ -351,6 +396,7 @@ const filters = reactive({
   subjectId: null as number | null,
   category: '',
   questionType: null as QuestionType | null,
+  examStatus: 'all' as ExamStatusFilter,
   keyword: ''
 })
 const categorySelection = ref<string[]>([])
@@ -374,6 +420,9 @@ const loadAdaptationList = async () => {
       subjectId: filters.subjectId || undefined,
       category: filters.category || undefined,
       questionType: filters.questionType || undefined,
+      isExamMarked: filters.examStatus === 'all'
+        ? undefined
+        : filters.examStatus === 'marked',
       keyword: filters.keyword || undefined,
       sortField: sorting.sortField || undefined,
       sortOrder: sorting.sortOrder || undefined
@@ -423,6 +472,7 @@ const handleReset = () => {
   filters.sourceYear = null
   filters.sourceQuestionNumber = null
   filters.sourceState = 'all'
+  filters.examStatus = 'all'
   filters.subjectId = null
   filters.category = ''
   filters.questionType = null
@@ -447,6 +497,44 @@ const handleAdd = () => {
 const handleEdit = (row: QuestionRow) => {
   editingAdaptationId.value = row.id
   editDialogVisible.value = true
+}
+
+/** 保存单题出题状态，并在当前筛选会把该题排除时刷新列表。 */
+const saveExamStatus = async (row: QuestionRow, marked: boolean, automatic = false) => {
+  if (row.examStatusLoading) return
+
+  row.examStatusLoading = true
+  try {
+    const response = await setAdaptationExamMark(row.id, marked)
+    if (response.code !== 200 || !response.data) {
+      showToast(response.message || '出题状态保存失败', 'error')
+      return
+    }
+
+    row.isExamMarked = response.data.isExamMarked
+    showToast(
+      automatic ? '已自动设置为已出题' : (marked ? '出题状态已切换为已出题' : '出题状态已切换为未出题'),
+      'success'
+    )
+
+    const filteredOut = (filters.examStatus === 'marked' && !marked) ||
+      (filters.examStatus === 'unmarked' && marked)
+    if (filteredOut) loadAdaptationList()
+  } catch (error) {
+    console.error('保存出题状态失败:', error)
+    showToast('出题状态保存失败，请稍后重试', 'error')
+  } finally {
+    row.examStatusLoading = false
+  }
+}
+
+const handleQuestionWordCopied = (row: QuestionRow) => {
+  if (row.isExamMarked) return
+  void saveExamStatus(row, true, true)
+}
+
+const handleExamStatusToggle = (row: QuestionRow) => {
+  void saveExamStatus(row, !row.isExamMarked)
 }
 
 const handleDelete = async (row: QuestionRow) => {

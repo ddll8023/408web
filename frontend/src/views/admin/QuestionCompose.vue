@@ -9,8 +9,23 @@
         </header>
       </template>
 
+      <!-- 题目来源类型切换：切换后重新加载对应的章节树与题目列表，出题篮保持不变。 -->
+      <section class="compose-kind-switch" aria-label="题目来源类型">
+        <RadioGroup
+          :model-value="questionKind"
+          :options="questionKindOptions"
+          aria-label="题目来源类型"
+          @change="handleQuestionKindChange"
+        />
+        <span class="compose-kind-switch__hint">{{ questionKindHint }}</span>
+      </section>
+
       <!-- 筛选区 -->
-      <section class="compose-filters mb-6 rounded-xl border border-[#eadfd4] bg-white/70 p-5 shadow-sm backdrop-blur-sm" aria-label="出题筛选条件">
+      <section
+        class="compose-filters mb-6 rounded-xl border border-[#eadfd4] bg-white/70 p-5 shadow-sm backdrop-blur-sm"
+        :class="{ 'compose-filters--adaptation': isAdaptationKind }"
+        aria-label="出题筛选条件"
+      >
         <div class="compose-filters__field compose-filters__field--subject">
           <label for="compose-subject" class="compose-filters__label">科目</label>
           <Select
@@ -23,7 +38,7 @@
             @change="handleSubjectChange"
           />
         </div>
-        <div class="compose-filters__field">
+        <div v-if="!isAdaptationKind" class="compose-filters__field">
           <label for="compose-source" class="compose-filters__label">来源机构</label>
           <Select
             id="compose-source"
@@ -35,6 +50,38 @@
             filterable
           />
         </div>
+        <template v-else>
+          <div class="compose-filters__field">
+            <span class="compose-filters__label">来源年份</span>
+            <WheelPicker
+              v-model="filters.sourceYear"
+              :options="yearOptions"
+              placeholder="全部年份"
+              aria-label="来源年份"
+              clearable
+            />
+          </div>
+          <div class="compose-filters__field">
+            <span class="compose-filters__label">来源题号</span>
+            <InputNumber
+              :model-value="filters.sourceQuestionNumber ?? 0"
+              :min="1"
+              :max="MAX_SOURCE_QUESTION_NUMBER"
+              placeholder="题号"
+              aria-label="来源题号"
+              @update:model-value="handleSourceNumberChange"
+            />
+          </div>
+          <div class="compose-filters__field">
+            <label for="compose-source-state" class="compose-filters__label">来源状态</label>
+            <Select
+              id="compose-source-state"
+              v-model="filters.sourceState"
+              :options="sourceStateOptions"
+              aria-label="来源状态"
+            />
+          </div>
+        </template>
         <div class="compose-filters__field compose-filters__field--keyword">
           <label for="compose-keyword" class="compose-filters__label">关键词</label>
           <CustomInput
@@ -80,9 +127,9 @@
         </div>
       </section>
 
-      <div v-if="listError && mockQuestions.length === 0" class="compose-error" role="alert">
+      <div v-if="listError && composeQuestions.length === 0" class="compose-error" role="alert">
         <span>{{ listError }}</span>
-        <CustomButton size="sm" type="text" :disabled="listLoading" @click="() => loadMockList()">重试</CustomButton>
+        <CustomButton size="sm" type="text" :disabled="listLoading" @click="() => loadQuestionList()">重试</CustomButton>
       </div>
 
       <QuestionComposeLayout
@@ -142,7 +189,7 @@
               </h2>
             </div>
             <span v-if="filters.subjectId" class="question-content__total">
-              已加载 {{ mockQuestions.length }} / {{ total }} 题
+              已加载 {{ composeQuestions.length }} / {{ total }} 题
             </span>
           </header>
 
@@ -165,7 +212,7 @@
               v-for="section in chapterSections"
               :key="section.id"
               :section="section"
-              :selected-ids="selectedIds"
+              :selected-keys="selectedKeys"
               @select-question="handleQuestionSelection"
               @preview="handlePreview"
               @edit="handleEdit"
@@ -219,9 +266,17 @@
     />
 
     <MockEditDialog
+      v-if="!isAdaptationKind"
       v-model:visible="editDialogVisible"
       :mock-id="editingMockId"
       :mock-data="editingMockData"
+      @success="handleEditSuccess"
+    />
+
+    <AdaptationEditDialog
+      v-else
+      v-model:visible="editDialogVisible"
+      :adaptation-id="editingAdaptationId"
       @success="handleEditSuccess"
     />
   </main>
@@ -229,15 +284,30 @@
 
 <script setup lang="ts">
 /**
- * 管理端模拟题出题工作台。
- * 以科目章节树组织题目卡片，选择集保持临时状态，题目数据仍由模拟题模块负责。
+ * 管理端出题工作台。
+ * 支持在模拟题与改编题之间切换出题：共用科目章节树、筛选区和出题篮，题目数据仍由各自模块负责。
  */
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import type { CategoryTreeNode, MockQuestion, QuestionType } from '@/types'
+import type {
+  AdaptationQuestion,
+  AdaptationSourceState,
+  ApiResponse,
+  CategoryTreeNode,
+  MockQuestion,
+  Paginated,
+  QuestionKind,
+  QuestionType,
+} from '@/types'
 import type { RichCopyResult } from '@/utils/questionCopy'
 import { queryString } from '@/utils/storage'
 import { getEnabledCategoryTreeBySubjectWithStats } from '@/api/category'
+import {
+  getAdaptationCategoriesBySubject,
+  getAdaptationList,
+  setAdaptationExamMark,
+  setAdaptationExamMarks,
+} from '@/api/adaptation'
 import {
   getAllMockSources,
   getMockCategoriesBySubject,
@@ -248,8 +318,12 @@ import {
 import CustomButton from '@/components/basic/CustomButton.vue'
 import CustomCard from '@/components/basic/CustomCard.vue'
 import CustomInput from '@/components/basic/CustomInput.vue'
+import InputNumber from '@/components/basic/InputNumber.vue'
+import RadioGroup from '@/components/basic/RadioGroup.vue'
 import Select from '@/components/basic/Select.vue'
+import WheelPicker from '@/components/basic/WheelPicker.vue'
 import BackTop from '@/components/basic/BackTop.vue'
+import AdaptationEditDialog from '@/components/business/AdaptationEditDialog.vue'
 import MockEditDialog from '@/components/business/MockEditDialog.vue'
 import QuestionBasket from '@/components/business/QuestionBasket.vue'
 import QuestionComposeLayout from '@/components/business/QuestionComposeLayout.vue'
@@ -259,11 +333,26 @@ import QuestionPreviewDrawer from '@/components/business/QuestionPreviewDrawer.v
 import { useAdminTable } from '@/composables/useAdminTable'
 import { useConfirm } from '@/composables/useConfirm'
 import { useInfiniteQuestionList } from '@/composables/useInfiniteQuestionList'
-import { useQuestionSelection } from '@/composables/useQuestionSelection'
+import { getQuestionSelectionKey, useQuestionSelection } from '@/composables/useQuestionSelection'
 import { useToast } from '@/composables/useToast'
 
-type QuestionRow = MockQuestion & {
+/** 出题工作台题目行：按来源类型区分，保证展示字段可准确收窄。 */
+type MockQuestionRow = MockQuestion & { questionKind: 'mock'; examStatusLoading?: boolean }
+type AdaptationQuestionRow = AdaptationQuestion & {
+  questionKind: 'adaptation'
   examStatusLoading?: boolean
+}
+type QuestionRow = MockQuestionRow | AdaptationQuestionRow
+
+/** 为题目附加来源类型标记，统一为可混排的题目行。 */
+const withQuestionKind = (
+  question: MockQuestion | AdaptationQuestion,
+  kind: QuestionKind,
+): QuestionRow => {
+  if (kind === 'adaptation') {
+    return { ...(question as AdaptationQuestion), questionKind: 'adaptation' }
+  }
+  return { ...(question as MockQuestion), questionKind: 'mock' }
 }
 
 interface CategoryPathInfo {
@@ -283,11 +372,13 @@ interface ChapterSection {
 type ExamStatusFilter = 'all' | 'unmarked' | 'marked'
 type QuestionTypeFilter = 'all' | QuestionType
 
-interface LoadMockListOptions {
+interface LoadQuestionListOptions {
   preserveScroll?: boolean
 }
 
 const MAX_BATCH_COPY_COUNT = 100
+const MAX_SOURCE_QUESTION_NUMBER = 47
+const FIRST_EXAM_YEAR = 2009
 const UNFILED_ROOT_ID = -1
 const UNFILED_ROOT_NAME = '未归档分类'
 const UNFILED_CHILD_ID_BASE = -100000
@@ -302,7 +393,7 @@ const {
   getUrlKeyword,
 } = useAdminTable()
 const {
-  selectedIds,
+  selectedKeys,
   selectedQuestions,
   selectedCount,
   selectQuestion,
@@ -311,7 +402,7 @@ const {
   removeQuestion,
   moveQuestion,
   clearSelection: clearSelectedQuestions,
-} = useQuestionSelection()
+} = useQuestionSelection<QuestionRow>()
 
 const filters = reactive({
   source: '',
@@ -321,7 +412,19 @@ const filters = reactive({
   noCategory: false,
   examStatus: 'all' as ExamStatusFilter,
   questionType: 'all' as QuestionTypeFilter,
+  sourceYear: null as number | null,
+  sourceQuestionNumber: null as number | null,
+  sourceState: 'all' as AdaptationSourceState,
 })
+const questionKind = ref<QuestionKind>('mock')
+const questionKindOptions: { label: string; value: QuestionKind }[] = [
+  { label: '模拟题', value: 'mock' },
+  { label: '改编题', value: 'adaptation' },
+]
+const isAdaptationKind = computed(() => questionKind.value === 'adaptation')
+const questionKindHint = computed(() =>
+  isAdaptationKind.value ? '按改编来源与出处筛选' : '按来源机构筛选'
+)
 const examStatusOptions = [
   { label: '全部状态', value: 'all' },
   { label: '未出题', value: 'unmarked' },
@@ -332,6 +435,19 @@ const questionTypeOptions = [
   { label: '选择题', value: 'CHOICE' },
   { label: '主观题', value: 'ESSAY' },
 ]
+const sourceStateOptions = [
+  { label: '全部来源', value: 'all' },
+  { label: '已标注来源', value: 'with_source' },
+  { label: '未标注来源', value: 'without_source' },
+]
+const yearOptions = computed(() => {
+  const lastYear = Math.max(new Date().getFullYear(), FIRST_EXAM_YEAR)
+  const options: { label: string; value: number }[] = []
+  for (let year = lastYear; year >= FIRST_EXAM_YEAR; year -= 1) {
+    options.push({ label: `${year} 年`, value: year })
+  }
+  return options
+})
 const sourceOptions = ref<string[]>([])
 const chapterTree = ref<CategoryTreeNode[]>([])
 const activeChapterId = ref<number | null>(null)
@@ -339,15 +455,82 @@ const previousSubjectId = ref<number | null>(null)
 const batchMarking = ref(false)
 const editDialogVisible = ref(false)
 const previewVisible = ref(false)
-const previewQuestion = ref<MockQuestion | null>(null)
+const previewQuestion = ref<QuestionRow | null>(null)
 const editingMockId = ref<number | null>(null)
 const editingMockData = ref<MockQuestion | null>(null)
+const editingAdaptationId = ref<number | null>(null)
 const questionScroller = ref<HTMLElement | null>(null)
 const loadMoreSentinel = ref<HTMLElement | null>(null)
 let intersectionObserver: IntersectionObserver | null = null
 
+/** 给模拟题响应附加来源类型，统一列表元素类型。 */
+const tagMockResponse = (
+  response: ApiResponse<Paginated<MockQuestion>>,
+): ApiResponse<Paginated<QuestionRow>> => ({
+  ...response,
+  data: {
+    ...response.data,
+    lists: response.data.lists.map(question => withQuestionKind(question, 'mock')),
+  },
+})
+
+/** 给改编题响应附加来源类型，统一列表元素类型。 */
+const tagAdaptationResponse = (
+  response: ApiResponse<Paginated<AdaptationQuestion>>,
+): ApiResponse<Paginated<QuestionRow>> => ({
+  ...response,
+  data: {
+    ...response.data,
+    lists: response.data.lists.map(question => withQuestionKind(question, 'adaptation')),
+  },
+})
+
+/** 按当前题目来源类型加载一页题目，两个模块的筛选条件在各自分支内拼装。 */
+const loadQuestionPage = async (
+  page: number,
+  pageSize: number,
+): Promise<ApiResponse<Paginated<QuestionRow>>> => {
+  const isExamMarked = filters.examStatus === 'all'
+    ? undefined
+    : filters.examStatus === 'marked'
+
+  if (isAdaptationKind.value) {
+    const response = await getAdaptationList({
+      page,
+      pageSize,
+      subjectId: filters.subjectId || undefined,
+      category: filters.category || undefined,
+      keyword: filters.keyword || undefined,
+      noCategory: filters.noCategory || undefined,
+      questionType: filters.questionType === 'all' ? undefined : filters.questionType,
+      isExamMarked,
+      sourceYear: filters.sourceYear ?? undefined,
+      sourceQuestionNumber: filters.sourceQuestionNumber ?? undefined,
+      sourceState: filters.sourceState,
+      sortField: 'update_time',
+      sortOrder: 'desc',
+    })
+    return tagAdaptationResponse(response)
+  }
+
+  const response = await getMockQuestions({
+    page,
+    pageSize,
+    source: filters.source || undefined,
+    subjectId: filters.subjectId || undefined,
+    category: filters.category || undefined,
+    keyword: filters.keyword || undefined,
+    noCategory: filters.noCategory || undefined,
+    questionType: filters.questionType === 'all' ? undefined : filters.questionType,
+    isExamMarked,
+    sortField: 'update_time',
+    sortOrder: 'desc',
+  })
+  return tagMockResponse(response)
+}
+
 const {
-  items: mockQuestions,
+  items: composeQuestions,
   total,
   loading: listLoading,
   loadingMore,
@@ -357,22 +540,10 @@ const {
   loadMore: loadMoreQuestions,
   retry: retryQuestionLoad,
   reset: resetQuestions,
-} = useInfiniteQuestionList<QuestionRow>(
-  (page, pageSize) => getMockQuestions({
-    page,
-    pageSize,
-    source: filters.source || undefined,
-    subjectId: filters.subjectId || undefined,
-    category: filters.category || undefined,
-    keyword: filters.keyword || undefined,
-    noCategory: filters.noCategory || undefined,
-    questionType: filters.questionType === 'all' ? undefined : filters.questionType,
-    isExamMarked: filters.examStatus === 'all' ? undefined : filters.examStatus === 'marked',
-    sortField: 'update_time',
-    sortOrder: 'desc',
-  }),
-  { pageSize: 50, getItemKey: question => question.id },
-)
+} = useInfiniteQuestionList<QuestionRow>(loadQuestionPage, {
+  pageSize: 50,
+  getItemKey: getQuestionSelectionKey,
+})
 
 const currentSubjectName = computed(() => {
   if (!filters.subjectId) return ''
@@ -403,7 +574,7 @@ const categoryIndex = computed(() => {
   return { byName, byId }
 })
 
-const getQuestionCategoryInfos = (question: MockQuestion) => {
+const getQuestionCategoryInfos = (question: MockQuestion | AdaptationQuestion) => {
   const names = Array.isArray(question.category)
     ? question.category.filter(category => category.trim())
     : []
@@ -437,7 +608,7 @@ const selectedCountsByCategory = computed(() => {
 })
 
 const buildActiveChapterSection = (info: CategoryPathInfo): ChapterSection[] => {
-  const questions = mockQuestions.value.filter(question =>
+  const questions = composeQuestions.value.filter(question =>
     getQuestionCategoryInfos(question).some(categoryInfo =>
       categoryInfo.path.some(node => node.id === info.node.id),
     ),
@@ -460,9 +631,9 @@ const chapterSections = computed<ChapterSection[]>(() => {
   if (activeInfo) return buildActiveChapterSection(activeInfo)
 
   const sectionMap = new Map<number, ChapterSection>()
-  const sectionQuestionIds = new Map<number, Set<number>>()
+  const sectionQuestionKeys = new Map<number, Set<string>>()
 
-  mockQuestions.value.forEach(question => {
+  composeQuestions.value.forEach(question => {
     getQuestionCategoryInfos(question).forEach(info => {
       const nodeId = info.node.id
       if (!sectionMap.has(nodeId)) {
@@ -473,12 +644,13 @@ const chapterSections = computed<ChapterSection[]>(() => {
           order: info.order,
           questions: [],
         })
-        sectionQuestionIds.set(nodeId, new Set())
+        sectionQuestionKeys.set(nodeId, new Set())
       }
 
-      const ids = sectionQuestionIds.get(nodeId)
-      if (!ids || ids.has(question.id)) return
-      ids.add(question.id)
+      const keys = sectionQuestionKeys.get(nodeId)
+      const questionKey = getQuestionSelectionKey(question)
+      if (!keys || keys.has(questionKey)) return
+      keys.add(questionKey)
       sectionMap.get(nodeId)?.questions.push(question)
     })
   })
@@ -494,7 +666,7 @@ const chapterSections = computed<ChapterSection[]>(() => {
   })
 })
 
-watch(mockQuestions, questions => {
+watch(composeQuestions, questions => {
   syncQuestions(questions)
 })
 
@@ -553,9 +725,12 @@ const buildUnfiledTree = (subjectId: number, formalTree: CategoryTreeNode[], cat
 
 const loadChapterTree = async (subjectId: number) => {
   try {
+    const kind = questionKind.value
     const [treeResponse, namesResponse] = await Promise.all([
-      getEnabledCategoryTreeBySubjectWithStats(subjectId, 'mock'),
-      getMockCategoriesBySubject(subjectId),
+      getEnabledCategoryTreeBySubjectWithStats(subjectId, kind),
+      kind === 'adaptation'
+        ? getAdaptationCategoriesBySubject(subjectId)
+        : getMockCategoriesBySubject(subjectId),
     ])
 
     if (treeResponse.code !== 200 || namesResponse.code !== 200) {
@@ -573,7 +748,7 @@ const loadChapterTree = async (subjectId: number) => {
   }
 }
 
-const loadMockList = async ({ preserveScroll = false }: LoadMockListOptions = {}) => {
+const loadQuestionList = async ({ preserveScroll = false }: LoadQuestionListOptions = {}) => {
   const scrollTop = preserveScroll ? questionScroller.value?.scrollTop ?? 0 : null
   if (!preserveScroll) {
     questionScroller.value?.scrollTo({ top: 0, behavior: 'auto' })
@@ -630,7 +805,33 @@ const handleSubjectChange = async (subjectId: string | number | null) => {
 
   if (!nextSubjectId) return
   await loadChapterTree(nextSubjectId)
-  await loadMockList()
+  await loadQuestionList()
+}
+
+/** 切换题目来源类型：重置章节与类型专属筛选，保留科目与出题篮。 */
+const handleQuestionKindChange = async (value: QuestionKind | '') => {
+  if (value !== 'mock' && value !== 'adaptation') return
+  if (value === questionKind.value) return
+
+  questionKind.value = value
+  activeChapterId.value = null
+  filters.category = ''
+  filters.noCategory = false
+  filters.source = ''
+  filters.sourceYear = null
+  filters.sourceQuestionNumber = null
+  filters.sourceState = 'all'
+  chapterTree.value = []
+  resetQuestions()
+
+  if (!filters.subjectId) return
+  await loadChapterTree(filters.subjectId)
+  await loadQuestionList()
+}
+
+/** 同步来源题号输入：非正数视为未筛选。 */
+const handleSourceNumberChange = (value: number | null) => {
+  filters.sourceQuestionNumber = typeof value === 'number' && value > 0 ? value : null
 }
 
 const handleChapterSelect = async (node: CategoryTreeNode) => {
@@ -642,14 +843,14 @@ const handleChapterSelect = async (node: CategoryTreeNode) => {
     filters.category = node.name
     filters.noCategory = false
   }
-  await loadMockList()
+  await loadQuestionList()
 }
 
 const handleAllChapters = async () => {
   activeChapterId.value = null
   filters.category = ''
   filters.noCategory = false
-  await loadMockList()
+  await loadQuestionList()
 }
 
 const handleSearch = () => {
@@ -657,7 +858,7 @@ const handleSearch = () => {
     showToast('请先选择科目', 'warning')
     return
   }
-  void loadMockList()
+  void loadQuestionList()
 }
 
 const handleReset = () => {
@@ -667,8 +868,11 @@ const handleReset = () => {
   filters.noCategory = false
   filters.examStatus = 'all'
   filters.questionType = 'all'
+  filters.sourceYear = null
+  filters.sourceQuestionNumber = null
+  filters.sourceState = 'all'
   activeChapterId.value = null
-  void loadMockList()
+  void loadQuestionList()
 }
 
 const handleQuestionSelection = (question: QuestionRow, selected: boolean) => {
@@ -679,12 +883,12 @@ const clearSelection = () => {
   clearSelectedQuestions()
 }
 
-const moveSelectedQuestion = (questionId: number, direction: -1 | 1) => {
-  moveQuestion(questionId, direction)
+const moveSelectedQuestion = (questionKey: string, direction: -1 | 1) => {
+  moveQuestion(questionKey, direction)
 }
 
-const removeSelectedQuestion = (questionId: number) => {
-  removeQuestion(questionId)
+const removeSelectedQuestion = (questionKey: string) => {
+  removeQuestion(questionKey)
 }
 
 const handlePreview = (row: QuestionRow) => {
@@ -692,26 +896,34 @@ const handlePreview = (row: QuestionRow) => {
   previewVisible.value = true
 }
 
+/** 按题目类型打开对应的编辑弹窗。 */
 const handleEdit = (row: QuestionRow) => {
-  editingMockId.value = row.id
-  editingMockData.value = row
+  if (row.questionKind === 'adaptation') {
+    editingAdaptationId.value = row.id
+  } else {
+    editingMockId.value = row.id
+    editingMockData.value = row
+  }
   editDialogVisible.value = true
 }
 
-const handleEditSuccess = (question: MockQuestion | null) => {
+/** 编辑完成后同步列表与出题篮中的题目数据。 */
+const handleEditSuccess = (question: MockQuestion | AdaptationQuestion | null) => {
   if (question) {
-    const index = mockQuestions.value.findIndex(row => row.id === question.id)
+    const kind = isAdaptationKind.value ? 'adaptation' : 'mock'
+    const updatedRow = withQuestionKind(question, kind)
+    const index = composeQuestions.value.findIndex(
+      row => row.questionKind === kind && row.id === question.id,
+    )
     if (index !== -1) {
-      mockQuestions.value[index] = {
-        ...mockQuestions.value[index],
-        ...question,
-      }
+      composeQuestions.value[index] = updatedRow
     }
-    updateQuestion(question)
+    updateQuestion(updatedRow)
   }
   editingMockId.value = null
   editingMockData.value = null
-  void loadMockList({ preserveScroll: true })
+  editingAdaptationId.value = null
+  void loadQuestionList({ preserveScroll: true })
 }
 
 const saveExamStatus = async (row: QuestionRow, marked: boolean, automatic = false) => {
@@ -719,14 +931,17 @@ const saveExamStatus = async (row: QuestionRow, marked: boolean, automatic = fal
 
   row.examStatusLoading = true
   try {
-    const response = await setMockExamMark(row.id, marked)
+    const response = row.questionKind === 'adaptation'
+      ? await setAdaptationExamMark(row.id, marked)
+      : await setMockExamMark(row.id, marked)
     if (response.code !== 200 || !response.data) {
       showToast(response.message || '出题状态保存失败', 'error')
       return
     }
 
     row.isExamMarked = response.data.isExamMarked
-    updateQuestion(response.data)
+    row.examStatusLoading = false
+    updateQuestion(row)
     showToast(
       automatic ? '已自动设置为已出题' : (marked ? '出题状态已切换为已出题' : '出题状态已切换为未出题'),
       'success',
@@ -734,7 +949,7 @@ const saveExamStatus = async (row: QuestionRow, marked: boolean, automatic = fal
 
     const filteredOut = (filters.examStatus === 'marked' && !marked) ||
       (filters.examStatus === 'unmarked' && marked)
-    if (filteredOut) await loadMockList()
+    if (filteredOut) await loadQuestionList()
   } catch (error) {
     console.error('保存出题状态失败:', error)
     showToast('出题状态保存失败，请稍后重试', 'error')
@@ -751,31 +966,80 @@ const handleExamStatusToggle = (row: QuestionRow) => {
   void saveExamStatus(row, !row.isExamMarked)
 }
 
-const handleBatchWordCopied = async (_result: RichCopyResult, copiedIds: number[]) => {
-  const ids = [...new Set(copiedIds)]
-  if (ids.length === 0 || ids.length > MAX_BATCH_COPY_COUNT || batchMarking.value) return
+/** 把选择键按题目来源类型拆分成两组 ID，供两个模块的批量接口分别调用。 */
+const splitSelectionKeys = (keys: string[]) => {
+  const mockIds: number[] = []
+  const adaptationIds: number[] = []
+
+  keys.forEach(key => {
+    const separatorIndex = key.indexOf(':')
+    if (separatorIndex === -1) return
+    const id = Number(key.slice(separatorIndex + 1))
+    if (!Number.isFinite(id)) return
+    if (key.slice(0, separatorIndex) === 'adaptation') adaptationIds.push(id)
+    else mockIds.push(id)
+  })
+
+  return { mockIds, adaptationIds }
+}
+
+/** 按题目来源类型调用各自的批量出题标记接口，返回实际更新的选择键。 */
+const markQuestions = async (
+  ids: number[],
+  kind: QuestionKind,
+): Promise<string[]> => {
+  if (ids.length === 0) return []
+  const response = kind === 'adaptation'
+    ? await setAdaptationExamMarks(ids, true)
+    : await setMockExamMarks(ids, true)
+  if (response.code !== 200 || !response.data) {
+    throw new Error(response.message || '批量更新出题状态失败')
+  }
+  return response.data.questionIds.map(id => `${kind}:${id}`)
+}
+
+const handleBatchWordCopied = async (_result: RichCopyResult, copiedKeys: string[]) => {
+  const keys = [...new Set(copiedKeys)]
+  if (keys.length === 0 || keys.length > MAX_BATCH_COPY_COUNT || batchMarking.value) return
+
+  const { mockIds, adaptationIds } = splitSelectionKeys(keys)
+  const markedKeys = new Set<string>()
+  const failedLabels: string[] = []
 
   batchMarking.value = true
   try {
-    const response = await setMockExamMarks(ids, true)
-    if (response.code !== 200 || !response.data) {
-      showToast(response.message || '批量更新出题状态失败', 'warning')
-      return
+    const targets: { kind: QuestionKind; label: string; ids: number[] }[] = [
+      { kind: 'mock', label: '模拟题', ids: mockIds },
+      { kind: 'adaptation', label: '改编题', ids: adaptationIds },
+    ]
+
+    for (const target of targets) {
+      if (target.ids.length === 0) continue
+      try {
+        const keysOfKind = await markQuestions(target.ids, target.kind)
+        keysOfKind.forEach(key => markedKeys.add(key))
+      } catch (error) {
+        failedLabels.push(target.label)
+        console.error('批量更新出题状态失败:', error)
+      }
     }
 
-    const markedIds = new Set(response.data.questionIds)
-    mockQuestions.value.forEach(row => {
-      if (markedIds.has(row.id)) row.isExamMarked = true
+    composeQuestions.value.forEach(row => {
+      if (markedKeys.has(getQuestionSelectionKey(row))) row.isExamMarked = true
     })
     selectedQuestions.value.forEach(question => {
-      if (markedIds.has(question.id)) updateQuestion({ ...question, isExamMarked: true })
+      if (!markedKeys.has(getQuestionSelectionKey(question))) return
+      question.isExamMarked = true
+      updateQuestion(question)
     })
-    showToast('选中题目已复制，并已标记为已出题', 'success')
 
-    if (filters.examStatus === 'unmarked') await loadMockList()
-  } catch (error) {
-    console.error('批量更新出题状态失败:', error)
-    showToast('题目已复制，但批量更新出题状态失败', 'warning')
+    if (failedLabels.length === 0) {
+      showToast('选中题目已复制，并已标记为已出题', 'success')
+    } else {
+      showToast(`题目已复制，${failedLabels.join('、')}的出题状态更新失败`, 'warning')
+    }
+
+    if (filters.examStatus === 'unmarked') await loadQuestionList()
   } finally {
     batchMarking.value = false
   }
@@ -805,7 +1069,7 @@ onBeforeUnmount(() => {
 watch(() => route.query.keyword, newKeyword => {
   if (newKeyword !== undefined) {
     filters.keyword = queryString(newKeyword)
-    if (filters.subjectId) void loadMockList()
+    if (filters.subjectId) void loadQuestionList()
   }
 })
 </script>
@@ -824,11 +1088,34 @@ watch(() => route.query.keyword, newKeyword => {
   letter-spacing: normal;
 }
 
+.compose-kind-switch {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.compose-kind-switch__hint {
+  color: #8b9593;
+  font-size: 12px;
+}
+
 .compose-filters {
   display: grid;
   grid-template-columns: minmax(170px, 1fr) minmax(150px, 0.9fr) minmax(220px, 1.5fr) minmax(112px, 0.7fr) minmax(112px, 0.7fr) auto;
   align-items: end;
   gap: 12px;
+}
+
+/* 改编题有 7 个筛选项，宽屏单独 8 列，保证一行放完且题号列宽跟控件对齐。 */
+.compose-filters--adaptation {
+  grid-template-columns: minmax(140px, 1fr) minmax(120px, 0.85fr) minmax(136px, 0.6fr) minmax(120px, 0.85fr) minmax(180px, 1.4fr) minmax(112px, 0.7fr) minmax(112px, 0.7fr) auto;
+}
+
+/* 改编题下按钮固定在最后一列，折行时始终落在右下角。 */
+.compose-filters--adaptation .compose-filters__actions {
+  grid-column: -1;
 }
 
 .compose-filters__field {
@@ -1068,13 +1355,27 @@ watch(() => route.query.keyword, newKeyword => {
   padding: 5px 8px 5px 18px;
 }
 
+@media (max-width: 1399px) {
+  .compose-filters--adaptation {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+}
+
 @media (max-width: 1279px) {
   .compose-filters {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
+  .compose-filters--adaptation {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
   .compose-filters__field--keyword {
     grid-column: span 2;
+  }
+
+  .compose-filters--adaptation .compose-filters__field--keyword {
+    grid-column: auto;
   }
 
   .compose-filters__actions {
@@ -1103,6 +1404,10 @@ watch(() => route.query.keyword, newKeyword => {
   .compose-filters {
     grid-template-columns: 1fr;
     padding: 14px 18px;
+  }
+
+  .compose-filters--adaptation {
+    grid-template-columns: 1fr;
   }
 
   .compose-filters__field--keyword {

@@ -4,6 +4,7 @@
  */
 import type {
   AdaptationCreateRequest,
+  AdaptationExamMarkBatchResponse,
   AdaptationSourceUsageCheck,
   AdaptationQueryParams,
   AdaptationQuestion,
@@ -72,6 +73,24 @@ export function deleteAdaptation(id: number) {
   return request<null>({
     url: `/api/adaptation/${id}/delete`,
     method: 'post'
+  })
+}
+
+/** 切换改编题出题状态 */
+export function setAdaptationExamMark(id: number, marked: boolean) {
+  return request<AdaptationQuestion>({
+    url: `/api/adaptation/${id}/exam-mark`,
+    method: 'post',
+    data: { marked }
+  })
+}
+
+/** 批量更新改编题出题状态 */
+export function setAdaptationExamMarks(ids: number[], marked: boolean) {
+  return request<AdaptationExamMarkBatchResponse>({
+    url: '/api/adaptation/exam-mark/batch',
+    method: 'post',
+    data: convertKeysToSnake({ questionIds: ids, marked })
   })
 }
 

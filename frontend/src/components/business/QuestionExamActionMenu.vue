@@ -1,3 +1,4 @@
+<!-- 出题操作菜单：按题目类型提供复制到 Word、导出图片和切换出题状态。 -->
 <template>
   <Dropdown
     trigger="click"
@@ -48,8 +49,12 @@
 </template>
 
 <script setup lang="ts">
+/**
+ * 出题操作菜单。
+ * 只负责触发复制与切换出题状态，具体标记接口和提示由宿主页面处理。
+ */
 import { computed, ref } from 'vue'
-import type { MockQuestion } from '@/types'
+import type { AdaptationQuestion, MockQuestion } from '@/types'
 import type {
   ImageCopyResult,
   QuestionImageCopyScope,
@@ -61,8 +66,11 @@ import Dropdown from '@/components/basic/Dropdown.vue'
 import DropdownItem from '@/components/basic/DropdownItem.vue'
 import QuestionCopyMenu from '@/components/business/QuestionCopyMenu.vue'
 
+/** 菜单题目类型：模拟题与改编题共用同一套复制与出题状态入口。 */
+type ExamActionQuestion = (MockQuestion | AdaptationQuestion) & { examStatusLoading?: boolean }
+
 interface Props {
-  question: MockQuestion
+  question: ExamActionQuestion
   statusLoading?: boolean
 }
 

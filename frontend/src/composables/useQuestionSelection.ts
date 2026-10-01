@@ -1,100 +1,116 @@
 /**
- * 模拟题临时选择集逻辑。
- * 选择集按题目 ID 去重，并保留管理员的选择顺序，供分页表格和批量复制共用。
+ * 出题工作台临时选择集逻辑。
+ * 选择集以「题目来源类型:题目 ID」为键去重，并保留管理员的选择顺序，供章节列表和批量复制共用；
+ * 使用复合键是因为模拟题与改编题的主键来自不同数据表，裸 ID 会互相覆盖。
  */
 import { computed, ref } from 'vue'
-import type { MockQuestion } from '@/types'
 
-export function useQuestionSelection() {
-  const selectedIds = ref<number[]>([])
-  const questionMap = ref(new Map<number, MockQuestion>())
+/** 选择集可容纳的最小题目结构：来源类型加主键即可生成唯一键。 */
+export interface SelectableQuestion {
+  id: number
+  questionKind: 'mock' | 'adaptation'
+}
+
+/** 生成跨题目类型唯一的选择键，供选择集、出题篮和批量子组件共用。 */
+export function getQuestionSelectionKey(question: SelectableQuestion): string {
+  return `${question.questionKind}:${question.id}`
+}
+
+export function useQuestionSelection<T extends SelectableQuestion>() {
+  const selectedKeys = ref<string[]>([])
+  const questionMap = ref(new Map<string, T>())
 
   const selectedQuestions = computed(() => {
-    return selectedIds.value
-      .map(id => questionMap.value.get(id))
-      .filter((question): question is MockQuestion => Boolean(question))
+    return selectedKeys.value
+      .map(key => questionMap.value.get(key))
+      .filter((question): question is T => Boolean(question))
   })
 
-  const selectedCount = computed(() => selectedIds.value.length)
+  const selectedCount = computed(() => selectedKeys.value.length)
 
-  const isSelected = (questionId: number) => selectedIds.value.includes(questionId)
+  const isSelected = (question: T) =>
+    selectedKeys.value.includes(getQuestionSelectionKey(question))
 
-  const selectQuestion = (question: MockQuestion, selected: boolean) => {
+  const selectQuestion = (question: T, selected: boolean) => {
+    const key = getQuestionSelectionKey(question)
     const nextMap = new Map(questionMap.value)
-    const exists = selectedIds.value.includes(question.id)
+    const exists = selectedKeys.value.includes(key)
 
     if (selected && !exists) {
-      selectedIds.value = [...selectedIds.value, question.id]
-      nextMap.set(question.id, question)
+      selectedKeys.value = [...selectedKeys.value, key]
+      nextMap.set(key, question)
     } else if (!selected && exists) {
-      selectedIds.value = selectedIds.value.filter(id => id !== question.id)
-      nextMap.delete(question.id)
+      selectedKeys.value = selectedKeys.value.filter(current => current !== key)
+      nextMap.delete(key)
     } else if (selected) {
-      nextMap.set(question.id, question)
+      nextMap.set(key, question)
     }
 
     questionMap.value = nextMap
   }
 
-  const selectQuestions = (questions: MockQuestion[], selected: boolean) => {
+  const selectQuestions = (questions: T[], selected: boolean) => {
     const nextMap = new Map(questionMap.value)
-    const nextIds = [...selectedIds.value]
+    const nextKeys = [...selectedKeys.value]
 
     questions.forEach(question => {
-      const index = nextIds.indexOf(question.id)
+      const key = getQuestionSelectionKey(question)
+      const index = nextKeys.indexOf(key)
       if (selected) {
-        if (index === -1) nextIds.push(question.id)
-        nextMap.set(question.id, question)
+        if (index === -1) nextKeys.push(key)
+        nextMap.set(key, question)
       } else if (index !== -1) {
-        nextIds.splice(index, 1)
-        nextMap.delete(question.id)
+        nextKeys.splice(index, 1)
+        nextMap.delete(key)
       }
     })
 
-    selectedIds.value = nextIds
+    selectedKeys.value = nextKeys
     questionMap.value = nextMap
   }
 
-  const syncQuestions = (questions: MockQuestion[]) => {
+  const syncQuestions = (questions: T[]) => {
     const nextMap = new Map(questionMap.value)
     questions.forEach(question => {
-      if (nextMap.has(question.id)) nextMap.set(question.id, question)
+      const key = getQuestionSelectionKey(question)
+      if (nextMap.has(key)) nextMap.set(key, question)
     })
     questionMap.value = nextMap
   }
 
-  const updateQuestion = (question: MockQuestion) => {
-    if (!questionMap.value.has(question.id)) return
+  const updateQuestion = (question: T) => {
+    const key = getQuestionSelectionKey(question)
+    if (!questionMap.value.has(key)) return
     const nextMap = new Map(questionMap.value)
-    nextMap.set(question.id, question)
+    nextMap.set(key, question)
     questionMap.value = nextMap
   }
 
-  const removeQuestion = (questionId: number) => {
-    selectedIds.value = selectedIds.value.filter(id => id !== questionId)
+  const removeQuestion = (key: string) => {
+    selectedKeys.value = selectedKeys.value.filter(current => current !== key)
     const nextMap = new Map(questionMap.value)
-    nextMap.delete(questionId)
+    nextMap.delete(key)
     questionMap.value = nextMap
   }
 
-  const moveQuestion = (questionId: number, direction: -1 | 1) => {
-    const currentIndex = selectedIds.value.indexOf(questionId)
+  const moveQuestion = (key: string, direction: -1 | 1) => {
+    const currentIndex = selectedKeys.value.indexOf(key)
     const targetIndex = currentIndex + direction
-    if (currentIndex === -1 || targetIndex < 0 || targetIndex >= selectedIds.value.length) return
+    if (currentIndex === -1 || targetIndex < 0 || targetIndex >= selectedKeys.value.length) return
 
-    const nextIds = [...selectedIds.value]
-    const [movedId] = nextIds.splice(currentIndex, 1)
-    nextIds.splice(targetIndex, 0, movedId)
-    selectedIds.value = nextIds
+    const nextKeys = [...selectedKeys.value]
+    const [movedKey] = nextKeys.splice(currentIndex, 1)
+    nextKeys.splice(targetIndex, 0, movedKey)
+    selectedKeys.value = nextKeys
   }
 
   const clearSelection = () => {
-    selectedIds.value = []
+    selectedKeys.value = []
     questionMap.value = new Map()
   }
 
   return {
-    selectedIds,
+    selectedKeys,
     selectedQuestions,
     selectedCount,
     isSelected,

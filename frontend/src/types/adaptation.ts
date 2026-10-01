@@ -42,6 +42,8 @@ export interface AdaptationQuestion {
   sources: AdaptationSourceRef[]
   /** 来源展示摘要，例如「改编自 2021 年第 15 题」 */
   sourceSummary: string
+  /** 是否已标记为出题 */
+  isExamMarked: boolean
 }
 
 /** 改编题分页查询参数（size 为页面分页组件的历史别名，出站前会被映射为 pageSize） */
@@ -58,8 +60,17 @@ export interface AdaptationQueryParams {
   sourceYear?: number | null
   sourceQuestionNumber?: number | null
   sourceState?: AdaptationSourceState
+  /** 出题状态筛选：true 已出题，false 未出题 */
+  isExamMarked?: boolean | null
   sortField?: string
   sortOrder?: 'asc' | 'desc'
+}
+
+/** 批量设置改编题出题标记响应（对应 AdaptationExamMarkBatchResponse） */
+export interface AdaptationExamMarkBatchResponse {
+  questionIds: number[]
+  marked: boolean
+  updatedCount: number
 }
 
 /** 改编题创建请求（对应 AdaptationCreateRequest） */

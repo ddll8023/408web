@@ -27,9 +27,9 @@
     <div class="question-chapter-section__list">
       <QuestionCard
         v-for="question in section.questions"
-        :key="question.id"
+        :key="getQuestionSelectionKey(question)"
         :question="question"
-        :selected="selectedSet.has(question.id)"
+        :selected="selectedSet.has(getQuestionSelectionKey(question))"
         @select="selected => handleQuestionSelect(question, selected)"
         @preview="handleQuestionPreview(question)"
         @edit="handleQuestionEdit(question)"
@@ -46,12 +46,16 @@
  * 负责章节头部、组内全选和题目卡片事件转发，不管理跨章节选择状态。
  */
 import { computed, type PropType } from 'vue'
-import type { MockQuestion } from '@/types'
+import type { AdaptationQuestion, MockQuestion } from '@/types'
 import type { RichCopyResult } from '@/utils/questionCopy'
+import { getQuestionSelectionKey } from '@/composables/useQuestionSelection'
 import CustomButton from '@/components/basic/CustomButton.vue'
 import QuestionCard from '@/components/business/QuestionCard.vue'
 
-type QuestionRow = MockQuestion & { examStatusLoading?: boolean }
+/** 章节内的题目行：两类题目共用展示与选择逻辑。 */
+type QuestionRow =
+  | (MockQuestion & { questionKind: 'mock'; examStatusLoading?: boolean })
+  | (AdaptationQuestion & { questionKind: 'adaptation'; examStatusLoading?: boolean })
 
 interface QuestionChapterSectionData {
   id: number
@@ -65,8 +69,8 @@ const props = defineProps({
     type: Object as PropType<QuestionChapterSectionData>,
     required: true,
   },
-  selectedIds: {
-    type: Array as PropType<readonly number[]>,
+  selectedKeys: {
+    type: Array as PropType<readonly string[]>,
     default: () => [],
   },
 })
@@ -79,8 +83,10 @@ const emit = defineEmits<{
   'toggle-exam-status': [question: QuestionRow]
 }>()
 
-const selectedSet = computed(() => new Set(props.selectedIds))
-const selectedInSection = computed(() => props.section.questions.filter(question => selectedSet.value.has(question.id)).length)
+const selectedSet = computed(() => new Set(props.selectedKeys))
+const selectedInSection = computed(() =>
+  props.section.questions.filter(question => selectedSet.value.has(getQuestionSelectionKey(question))).length,
+)
 const allSelected = computed(() => {
   return props.section.questions.length > 0 && selectedInSection.value === props.section.questions.length
 })

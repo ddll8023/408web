@@ -1,4 +1,4 @@
-<!-- 出题工作台题目卡片：替代表格行展示单道模拟题。 -->
+<!-- 出题工作台题目卡片：替代表格行展示单道模拟题或改编题。 -->
 <template>
   <article
     class="question-card"
@@ -41,8 +41,8 @@
       </div>
 
       <div class="question-card__meta">
-        <span>{{ question.source }}</span>
-        <span v-if="question.questionNumber != null">第{{ question.questionNumber }}题</span>
+        <span v-if="metaSource">{{ metaSource }}</span>
+        <span v-if="metaQuestionNumber != null">第{{ metaQuestionNumber }}题</span>
         <span v-if="question.updateTime">更新于 {{ formatDateTime(question.updateTime) }}</span>
         <span v-for="category in visibleCategories" :key="category" class="question-card__category">
           {{ category }}
@@ -51,7 +51,7 @@
     </div>
 
     <div class="question-card__actions">
-      <MockExamActionMenu
+      <QuestionExamActionMenu
         :question="question"
         :status-loading="question.examStatusLoading"
         @word-copied="handleWordCopied"
@@ -65,19 +65,22 @@
 
 <script setup lang="ts">
 /**
- * 以紧凑索引卡展示单道模拟题，保留原有出题菜单和编辑入口。
+ * 以紧凑索引卡展示单道题目，保留原有出题菜单和编辑入口。
  * 卡片只展示题目索引信息，完整 Markdown 内容通过预览抽屉按需渲染。
  */
 import { computed, type PropType } from 'vue'
-import type { MockQuestion } from '@/types'
+import type { AdaptationQuestion, MockQuestion } from '@/types'
 import type { RichCopyResult } from '@/utils/questionCopy'
 import { getDifficultyLabel, getDifficultyType } from '@/constants/exam'
 import { formatDateTime } from '@/utils/format'
 import CustomButton from '@/components/basic/CustomButton.vue'
 import Tag from '@/components/basic/Tag.vue'
-import MockExamActionMenu from '@/components/business/MockExamActionMenu.vue'
+import QuestionExamActionMenu from '@/components/business/QuestionExamActionMenu.vue'
 
-type QuestionCardData = MockQuestion & { examStatusLoading?: boolean }
+/** 卡片行：模拟题与改编题的公共展示字段按来源类型区分。 */
+type QuestionCardData =
+  | (MockQuestion & { questionKind: 'mock'; examStatusLoading?: boolean })
+  | (AdaptationQuestion & { questionKind: 'adaptation'; examStatusLoading?: boolean })
 
 const props = defineProps({
   question: {
@@ -99,9 +102,27 @@ const emit = defineEmits<{
 }>()
 
 const displayTitle = computed(() => {
-  if (props.question.title) return props.question.title
-  const number = props.question.questionNumber == null ? '' : `第${props.question.questionNumber}题`
-  return [props.question.source, number].filter(Boolean).join(' · ') || `模拟题 ID=${props.question.id}`
+  const question = props.question
+  if (question.questionKind === 'adaptation') {
+    return question.sourceSummary || `改编题 #${question.id}`
+  }
+  if (question.title) return question.title
+  const number = question.questionNumber == null ? '' : `第${question.questionNumber}题`
+  return [question.source, number].filter(Boolean).join(' · ') || `模拟题 ID=${question.id}`
+})
+
+const metaSource = computed(() => {
+  const question = props.question
+  if (question.questionKind === 'adaptation') {
+    return question.sourceSummary ? `改编题 #${question.id}` : ''
+  }
+  return question.source
+})
+
+const metaQuestionNumber = computed(() => {
+  const question = props.question
+  if (question.questionKind !== 'mock') return null
+  return question.questionNumber ?? null
 })
 
 const visibleCategories = computed(() => {

@@ -88,6 +88,10 @@ const questionTitle = computed(() => {
     ? `第${current.questionNumber}题`
     : ''
 
+  if ('sourceSummary' in current) {
+    return current.sourceSummary?.trim() || `改编题 #${current.id}`
+  }
+
   if ('source' in current) {
     return [current.title || current.source || '', questionNumber]
       .filter(Boolean)

@@ -1,4 +1,4 @@
-<!-- 出题工作台出题篮：展示已选顺序并提供批量 Word 复制。 -->
+<!-- 出题工作台出题篮：展示已选的模拟题与改编题顺序，并提供批量 Word 复制。 -->
 <template>
   <aside class="question-basket" aria-label="出题篮">
     <header class="question-basket__header">
@@ -18,7 +18,7 @@
     <div v-else class="question-basket__items">
       <div
         v-for="(question, index) in questions"
-        :key="question.id"
+        :key="getQuestionSelectionKey(question)"
         class="question-basket__item"
       >
         <span class="question-basket__index">{{ String(index + 1).padStart(2, '0') }}</span>
@@ -31,7 +31,7 @@
             class="question-basket__icon-button"
             :disabled="index === 0"
             aria-label="上移题目"
-            @click="emit('move', question.id, -1)"
+            @click="emit('move', getQuestionSelectionKey(question), -1)"
           >
             <font-awesome-icon :icon="['fas', 'chevron-up']" aria-hidden="true" />
           </button>
@@ -40,7 +40,7 @@
             class="question-basket__icon-button"
             :disabled="index === questions.length - 1"
             aria-label="下移题目"
-            @click="emit('move', question.id, 1)"
+            @click="emit('move', getQuestionSelectionKey(question), 1)"
           >
             <font-awesome-icon :icon="['fas', 'chevron-down']" aria-hidden="true" />
           </button>
@@ -48,7 +48,7 @@
             type="button"
             class="question-basket__icon-button question-basket__icon-button--danger"
             aria-label="移除题目"
-            @click="emit('remove', question.id)"
+            @click="emit('remove', getQuestionSelectionKey(question))"
           >
             <font-awesome-icon :icon="['fas', 'times']" aria-hidden="true" />
           </button>
@@ -88,11 +88,15 @@
  * 仅负责已选题目的顺序展示和事件转发，选择状态仍由页面 composable 持有。
  */
 import { type PropType } from 'vue'
-import type { MockQuestion } from '@/types'
+import type { AdaptationQuestion, MockQuestion } from '@/types'
 import type { RichCopyResult } from '@/utils/questionCopy'
+import { getQuestionSelectionKey } from '@/composables/useQuestionSelection'
 import QuestionBatchCopyMenu from '@/components/business/QuestionBatchCopyMenu.vue'
 
-type QuestionRow = MockQuestion & { examStatusLoading?: boolean }
+/** 出题篮题目行：两类题目可混排，键由来源类型与 ID 共同决定。 */
+type QuestionRow =
+  | (MockQuestion & { questionKind: 'mock'; examStatusLoading?: boolean })
+  | (AdaptationQuestion & { questionKind: 'adaptation'; examStatusLoading?: boolean })
 
 const props = defineProps({
   questions: {
@@ -111,18 +115,22 @@ const props = defineProps({
 
 const emit = defineEmits<{
   clear: []
-  move: [questionId: number, direction: -1 | 1]
-  remove: [questionId: number]
-  'word-copied': [result: RichCopyResult, questionIds: number[]]
+  move: [questionKey: string, direction: -1 | 1]
+  remove: [questionKey: string]
+  'word-copied': [result: RichCopyResult, questionKeys: string[]]
 }>()
 
-const getQuestionLabel = (question: MockQuestion) => {
+/** 生成出题篮条目文案：改编题用来源摘要，模拟题用来源机构与题号。 */
+const getQuestionLabel = (question: QuestionRow) => {
+  if (question.questionKind === 'adaptation') {
+    return question.sourceSummary || `改编题 #${question.id}`
+  }
   const number = question.questionNumber == null ? '' : `第${question.questionNumber}题`
   return [question.source, question.title, number].filter(Boolean).join(' · ') || `模拟题 ID=${question.id}`
 }
 
-const handleWordCopied = (result: RichCopyResult, questionIds: number[]) => {
-  emit('word-copied', result, questionIds)
+const handleWordCopied = (result: RichCopyResult, questionKeys: string[]) => {
+  emit('word-copied', result, questionKeys)
 }
 </script>
 

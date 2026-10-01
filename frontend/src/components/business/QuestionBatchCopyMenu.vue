@@ -1,4 +1,4 @@
-<!-- 模拟题批量 Word 复制组件：复用单题渲染和剪贴板富文本能力。 -->
+<!-- 出题工作台批量 Word 复制组件：按已选顺序合并模拟题与改编题，复用单题渲染能力。 -->
 <template>
   <CustomButton
     type="primary"
@@ -14,7 +14,7 @@
 
   <QuestionImageRenderer
     v-for="question in renderQuestions"
-    :key="question.id"
+    :key="getQuestionSelectionKey(question)"
     :question="question"
     scope="all"
     :ref="setRendererRef"
@@ -23,19 +23,25 @@
 
 <script setup lang="ts">
 /**
- * 将多道模拟题合并为一次 Word 富文本复制。
+ * 将已选题目合并为一次 Word 富文本复制。
  * 每道题继续使用 QuestionImageRenderer，确保公式、代码和图片处理规则一致。
  */
 import { computed, nextTick, onBeforeUpdate, ref } from 'vue'
-import type { MockQuestion } from '@/types'
+import type { AdaptationQuestion, MockQuestion } from '@/types'
 import type { RichCopyContent, RichCopyResult } from '@/utils/questionCopy'
 import { copyRichContent } from '@/utils/questionCopy'
+import { getQuestionSelectionKey } from '@/composables/useQuestionSelection'
 import { useToast } from '@/composables/useToast'
 import CustomButton from '@/components/basic/CustomButton.vue'
 import QuestionImageRenderer from '@/components/business/QuestionImageRenderer.vue'
 
+/** 批量复制题目行：两类题目共享渲染与复制流程。 */
+type QuestionRow =
+  | (MockQuestion & { questionKind: 'mock' })
+  | (AdaptationQuestion & { questionKind: 'adaptation' })
+
 interface Props {
-  questions: MockQuestion[]
+  questions: QuestionRow[]
   disabled?: boolean
 }
 
@@ -48,12 +54,12 @@ const props = withDefaults(defineProps<Props>(), {
 })
 
 const emit = defineEmits<{
-  'word-copied': [result: RichCopyResult, questionIds: number[]]
+  'word-copied': [result: RichCopyResult, questionKeys: string[]]
 }>()
 
 const { showToast } = useToast()
 const copying = ref(false)
-const copyingQuestions = ref<MockQuestion[]>([])
+const copyingQuestions = ref<QuestionRow[]>([])
 const rendererRefs = ref<QuestionRendererRef[]>([])
 const renderQuestions = computed(() => copying.value ? copyingQuestions.value : [])
 
@@ -72,7 +78,7 @@ const stripFragmentMarkers = (html: string) => {
     .replace('<!--EndFragment-->', '')
 }
 
-const buildBatchContent = async (questions: MockQuestion[]): Promise<RichCopyContent> => {
+const buildBatchContent = async (questions: QuestionRow[]): Promise<RichCopyContent> => {
   if (questions.length === 0) throw new Error('NO_COPY_CONTENT')
   if (rendererRefs.value.length !== questions.length) {
     throw new Error('IMAGE_RENDERER_NOT_READY')
@@ -106,7 +112,7 @@ const copyWord = async () => {
     } else {
       showToast('当前浏览器不支持富文本剪贴板，已按纯文本复制', 'warning')
     }
-    emit('word-copied', result, questionsToCopy.map(question => question.id))
+    emit('word-copied', result, questionsToCopy.map(question => getQuestionSelectionKey(question)))
   } catch (error) {
     console.error('批量 Word 复制失败:', error)
     if (error instanceof Error && error.message === 'NO_COPY_CONTENT') {

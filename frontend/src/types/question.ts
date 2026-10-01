@@ -4,6 +4,9 @@ export type QuestionType = 'CHOICE' | 'ESSAY'
 /** 难度（后端 DifficultyEnum） */
 export type Difficulty = 'EASY' | 'MEDIUM' | 'HARD'
 
+/** 出题工作台的题目来源类型，用于在同一出题篮内区分模拟题与改编题 */
+export type QuestionKind = 'mock' | 'adaptation'
+
 /** 选择题 A-D 选项（对应 QuestionOptions） */
 export interface QuestionOptions {
   A: string

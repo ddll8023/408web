@@ -206,7 +206,7 @@
           <!-- 操作列 -->
           <template #actions="{ row }">
             <div class="flex items-center justify-center gap-1 whitespace-nowrap">
-              <MockExamActionMenu
+              <QuestionExamActionMenu
                 :question="row"
                 :status-loading="row.examStatusLoading"
                 @word-copied="() => handleWordCopied(row)"
@@ -256,7 +256,7 @@
               <Tag v-if="row.difficulty" :type="getDifficultyType(row.difficulty)" size="sm">{{ getDifficultyLabel(row.difficulty) }}</Tag>
             </div>
             <div class="mt-3 flex flex-wrap justify-end gap-1 border-t border-gray-100 pt-2">
-              <MockExamActionMenu
+              <QuestionExamActionMenu
                 :question="row"
                 :status-loading="row.examStatusLoading"
                 @word-copied="() => handleWordCopied(row)"
@@ -384,7 +384,7 @@ import '@/styles/edit-form.css'
 
 // 业务组件
 import MockEditDialog from '@/components/business/MockEditDialog.vue'
-import MockExamActionMenu from '@/components/business/MockExamActionMenu.vue'
+import QuestionExamActionMenu from '@/components/business/QuestionExamActionMenu.vue'
 
 // Composables
 import { useAdminTable } from '@/composables/useAdminTable'

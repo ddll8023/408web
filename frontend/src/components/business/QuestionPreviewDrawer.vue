@@ -1,4 +1,4 @@
-<!-- 模拟题完整预览抽屉：只在查看时渲染完整 Markdown 内容。 -->
+<!-- 出题工作台完整预览抽屉：模拟题与改编题共用，只在查看时渲染完整 Markdown 内容。 -->
 <template>
   <Teleport to="body">
     <Transition name="question-preview-drawer">
@@ -17,8 +17,8 @@
               <p class="question-preview-drawer__eyebrow">QUESTION PREVIEW</p>
               <h2 :id="titleId" class="question-preview-drawer__title">{{ displayTitle }}</h2>
               <div class="question-preview-drawer__meta">
-                <span>{{ question.source }}</span>
-                <span v-if="question.questionNumber != null">第{{ question.questionNumber }}题</span>
+                <span v-if="metaSource">{{ metaSource }}</span>
+                <span v-if="metaQuestionNumber != null">第{{ metaQuestionNumber }}题</span>
                 <span v-for="category in categories" :key="category">{{ category }}</span>
               </div>
             </div>
@@ -56,13 +56,21 @@
 
 <script setup lang="ts">
 /**
- * 展示单道模拟题完整内容的右侧抽屉。
+ * 展示单道题目完整内容的右侧抽屉。
  * 默认题目卡片不渲染正文，只有打开预览时才加载 Markdown、公式和选项。
  */
 import { computed, nextTick, onBeforeUnmount, ref, watch, type PropType } from 'vue'
-import type { MockQuestion } from '@/types'
+import type { AdaptationQuestion, MockQuestion } from '@/types'
 import { parseQuestionOptions } from '@/utils/questionOptions'
 import MarkdownViewer from '@/components/basic/MarkdownViewer.vue'
+
+/** 预览抽屉可展示的题目类型：两类题目共用正文、选项与答案渲染。 */
+type QuestionPreviewData = MockQuestion | AdaptationQuestion
+
+/** 判断当前题目是否为改编题：改编题无标题与题号，摘要来自来源引用。 */
+const isAdaptationQuestion = (
+  question: QuestionPreviewData,
+): question is AdaptationQuestion => 'sourceSummary' in question
 
 const props = defineProps({
   visible: {
@@ -70,7 +78,7 @@ const props = defineProps({
     default: false,
   },
   question: {
-    type: Object as PropType<MockQuestion | null>,
+    type: Object as PropType<QuestionPreviewData | null>,
     default: null,
   },
 })
@@ -85,10 +93,29 @@ const panelRef = ref<HTMLElement | null>(null)
 let previousBodyOverflow = ''
 
 const displayTitle = computed(() => {
-  if (!props.question) return '题目预览'
-  if (props.question.title) return props.question.title
-  const number = props.question.questionNumber == null ? '' : `第${props.question.questionNumber}题`
-  return [props.question.source, number].filter(Boolean).join(' · ') || `模拟题 ID=${props.question.id}`
+  const question = props.question
+  if (!question) return '题目预览'
+  if (isAdaptationQuestion(question)) {
+    return question.sourceSummary || `改编题 #${question.id}`
+  }
+  if (question.title) return question.title
+  const number = question.questionNumber == null ? '' : `第${question.questionNumber}题`
+  return [question.source, number].filter(Boolean).join(' · ') || `模拟题 ID=${question.id}`
+})
+
+const metaSource = computed(() => {
+  const question = props.question
+  if (!question) return ''
+  if (isAdaptationQuestion(question)) {
+    return question.sourceSummary ? `改编题 #${question.id}` : ''
+  }
+  return question.source
+})
+
+const metaQuestionNumber = computed(() => {
+  const question = props.question
+  if (!question || isAdaptationQuestion(question)) return null
+  return question.questionNumber ?? null
 })
 
 const categories = computed(() => {
