@@ -14,6 +14,7 @@ def to_adaptation_response(
     author_name: str | None,
     sources: list[AdaptationSourceRefResponse],
     source_summary: str,
+    is_exam_marked: bool = False,
 ) -> AdaptationResponse:
     """将已取得显示字段与来源引用的改编题实体转换为公开响应。"""
     return AdaptationResponse(
@@ -32,4 +33,5 @@ def to_adaptation_response(
         update_time=question.update_time.isoformat() if question.update_time else None,
         sources=sources,
         source_summary=source_summary,
+        is_exam_marked=is_exam_marked,
     )

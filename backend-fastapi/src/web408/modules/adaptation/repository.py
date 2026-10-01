@@ -11,7 +11,11 @@ from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from web408.models.enums import QuestionTypeEnum
-from web408.modules.adaptation.models import AdaptationQuestion, AdaptationSource
+from web408.modules.adaptation.models import (
+    AdaptationQuestion,
+    AdaptationQuestionExamMark,
+    AdaptationSource,
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -31,6 +35,7 @@ class AdaptationQuery:
     source_year: int | None = None
     source_question_number: int | None = None
     source_state: str = "all"
+    is_exam_marked: bool | None = None
 
 
 class AdaptationRepository:
@@ -78,6 +83,50 @@ class AdaptationRepository:
             select(AdaptationQuestion).where(AdaptationQuestion.id == question_id)
         )
         return result.first()
+
+    async def list_by_ids(self, question_ids: set[int]) -> list[AdaptationQuestion]:
+        """批量查询改编题，供批量状态操作校验题目是否存在。"""
+        if not question_ids:
+            return []
+        result = await self.session.exec(
+            select(AdaptationQuestion).where(AdaptationQuestion.id.in_(question_ids))
+        )
+        return result.all()
+
+    async def get_exam_mark(
+        self, question_id: int
+    ) -> AdaptationQuestionExamMark | None:
+        """读取指定改编题的出题标记记录。"""
+        result = await self.session.exec(
+            select(AdaptationQuestionExamMark).where(
+                AdaptationQuestionExamMark.adaptation_question_id == question_id
+            )
+        )
+        return result.first()
+
+    async def list_exam_marks(
+        self, question_ids: set[int]
+    ) -> list[AdaptationQuestionExamMark]:
+        """批量读取改编题出题标记记录。"""
+        if not question_ids:
+            return []
+        result = await self.session.exec(
+            select(AdaptationQuestionExamMark).where(
+                AdaptationQuestionExamMark.adaptation_question_id.in_(question_ids)
+            )
+        )
+        return result.all()
+
+    async def list_exam_marked_ids(self, question_ids: set[int]) -> set[int]:
+        """批量读取已标记为出题的改编题 ID。"""
+        if not question_ids:
+            return set()
+        result = await self.session.exec(
+            select(AdaptationQuestionExamMark.adaptation_question_id).where(
+                AdaptationQuestionExamMark.adaptation_question_id.in_(question_ids)
+            )
+        )
+        return set(result.all())
 
     async def list_sources(self, adaptation_ids: set[int]) -> list[AdaptationSource]:
         """批量读取改编题的来源引用行。"""
@@ -205,6 +254,15 @@ class AdaptationRepository:
         conditions: list[Any] = []
         if params.subject_id is not None:
             conditions.append(AdaptationQuestion.subject_id == params.subject_id)
+
+        if params.is_exam_marked is not None:
+            marked_exists = select(AdaptationQuestionExamMark.id).where(
+                AdaptationQuestionExamMark.adaptation_question_id
+                == AdaptationQuestion.id
+            ).exists()
+            conditions.append(
+                marked_exists if params.is_exam_marked else ~marked_exists
+            )
 
         if params.question_type is not None:
             conditions.append(AdaptationQuestion.question_type == params.question_type)

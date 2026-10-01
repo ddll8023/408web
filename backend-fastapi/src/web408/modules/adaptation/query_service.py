@@ -78,6 +78,7 @@ class AdaptationQueryService:
                 source_year=params.source_year,
                 source_question_number=params.source_question_number,
                 source_state=params.source_state,
+                is_exam_marked=params.is_exam_marked,
             )
         )
         data = await self._to_responses(questions)
@@ -158,6 +159,7 @@ class AdaptationQueryService:
         question_ids = {question.id for question in questions if question.id is not None}
         source_rows = await self.repository.list_sources(question_ids)
         sources_by_question, summary_by_question = await self._build_sources(source_rows)
+        marked_ids = await self.repository.list_exam_marked_ids(question_ids)
         subject_names = await self.catalog_read_service.get_subject_names(
             {question.subject_id for question in questions if question.subject_id is not None}
         )
@@ -171,6 +173,7 @@ class AdaptationQueryService:
                 author_name=author_names.get(question.author_id),
                 sources=sources_by_question.get(question.id, []),
                 source_summary=summary_by_question.get(question.id, ""),
+                is_exam_marked=question.id in marked_ids,
             )
             for question in questions
         ]

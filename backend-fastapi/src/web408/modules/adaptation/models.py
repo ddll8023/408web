@@ -85,3 +85,22 @@ class AdaptationSource(BaseModel, table=True):
         index=True,
         description="解析命中的真题 ID",
     )
+
+
+class AdaptationQuestionExamMark(BaseModel, table=True):
+    """改编题出题标记；独立保存状态，不修改改编题主体记录。"""
+
+    __tablename__ = "adaptation_question_exam_mark"
+    __table_args__ = (
+        UniqueConstraint(
+            "adaptation_question_id",
+            name="uq_adaptation_question_exam_mark_question",
+        ),
+    )
+
+    adaptation_question_id: int = Field(
+        foreign_key="adaptation_question.id",
+        ondelete="CASCADE",
+        index=True,
+        description="改编题 ID",
+    )

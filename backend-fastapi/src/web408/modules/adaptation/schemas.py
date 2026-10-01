@@ -50,6 +50,7 @@ class AdaptationQueryParams(BaseModel):
         description="来源题号筛选",
     )
     source_state: SourceState = Field(default="all", description="来源标注状态筛选")
+    is_exam_marked: bool | None = Field(default=None, description="是否已标记为出题")
     sort_field: AdaptationSortField = Field(default="update_time", description="排序字段")
     sort_order: SortOrder = Field(default="desc", description="排序方向")
 
@@ -156,8 +157,42 @@ class AdaptationResponse(BaseModel):
         description="来源引用列表",
     )
     source_summary: str = Field(default="", description="来源展示摘要")
+    is_exam_marked: bool = Field(default=False, description="是否已标记为出题")
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class AdaptationExamMarkRequest(BaseModel):
+    """设置改编题出题标记的请求。"""
+
+    marked: bool = Field(..., description="是否标记为已出题")
+
+
+class AdaptationExamMarkBatchRequest(BaseModel):
+    """批量设置改编题出题标记的请求。"""
+
+    question_ids: list[int] = Field(
+        ...,
+        min_length=1,
+        max_length=100,
+        description="改编题 ID 列表",
+    )
+    marked: bool = Field(..., description="是否标记为已出题")
+
+
+class AdaptationExamMarkBatchResponse(BaseModel):
+    """批量设置改编题出题标记的响应。"""
+
+    question_ids: list[int] = Field(
+        default_factory=list,
+        description="已处理的改编题 ID",
+    )
+    marked: bool = Field(..., description="最终标记状态")
+    updated_count: int = Field(
+        ...,
+        ge=0,
+        description="实际发生状态变化的题目数",
+    )
 
 
 class AdaptationCreateRequest(QuestionContentCreateFields):

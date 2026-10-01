@@ -5,11 +5,16 @@
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from web408.core.exceptions import NotFoundException, ValidationException
-from web408.modules.adaptation.models import AdaptationQuestion, AdaptationSource
+from web408.modules.adaptation.models import (
+    AdaptationQuestion,
+    AdaptationQuestionExamMark,
+    AdaptationSource,
+)
 from web408.modules.adaptation.query_service import AdaptationQueryService
 from web408.modules.adaptation.repository import AdaptationRepository
 from web408.modules.adaptation.schemas import (
     AdaptationCreateRequest,
+    AdaptationExamMarkBatchResponse,
     AdaptationResponse,
     AdaptationSourceRefInput,
     AdaptationUpdateRequest,
@@ -134,6 +139,64 @@ class AdaptationCommandService:
             raise NotFoundException(f"改编题不存在：ID={question_id}")
         await self.session.delete(question)
         await self.session.commit()
+
+    async def set_exam_mark(self, question_id: int, marked: bool) -> AdaptationResponse:
+        """设置改编题出题标记，状态记录独立于改编题主体。"""
+        question = await self.repository.get_by_id(question_id)
+        if question is None:
+            raise NotFoundException(f"改编题不存在：ID={question_id}")
+
+        existing_mark = await self.repository.get_exam_mark(question_id)
+        if marked and existing_mark is None:
+            self.session.add(
+                AdaptationQuestionExamMark(adaptation_question_id=question_id)
+            )
+        elif not marked and existing_mark is not None:
+            await self.session.delete(existing_mark)
+
+        await self.session.flush()
+        response = await self.query_service.to_response(question)
+        await self.session.commit()
+        return response
+
+    async def set_exam_marks(
+        self,
+        question_ids: list[int],
+        marked: bool,
+    ) -> AdaptationExamMarkBatchResponse:
+        """在一个事务内批量设置改编题出题标记。"""
+        normalized_ids = list(dict.fromkeys(question_ids))
+        questions = await self.repository.list_by_ids(set(normalized_ids))
+        existing_ids = {question.id for question in questions}
+        missing_ids = [
+            question_id
+            for question_id in normalized_ids
+            if question_id not in existing_ids
+        ]
+        if missing_ids:
+            raise NotFoundException(f"改编题不存在：ID={missing_ids[0]}")
+
+        marks = await self.repository.list_exam_marks(set(normalized_ids))
+        mark_map = {mark.adaptation_question_id: mark for mark in marks}
+        updated_count = 0
+
+        for question_id in normalized_ids:
+            existing_mark = mark_map.get(question_id)
+            if marked and existing_mark is None:
+                self.session.add(
+                    AdaptationQuestionExamMark(adaptation_question_id=question_id)
+                )
+                updated_count += 1
+            elif not marked and existing_mark is not None:
+                await self.session.delete(existing_mark)
+                updated_count += 1
+
+        await self.session.commit()
+        return AdaptationExamMarkBatchResponse(
+            question_ids=normalized_ids,
+            marked=marked,
+            updated_count=updated_count,
+        )
 
     async def _replace_sources(
         self,

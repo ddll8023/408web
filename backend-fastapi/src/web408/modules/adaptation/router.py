@@ -7,6 +7,9 @@ from web408.modules.adaptation.command_service import AdaptationCommandService
 from web408.modules.adaptation.query_service import AdaptationQueryService
 from web408.modules.adaptation.schemas import (
     AdaptationCreateRequest,
+    AdaptationExamMarkBatchRequest,
+    AdaptationExamMarkBatchResponse,
+    AdaptationExamMarkRequest,
     AdaptationSourceUsageCheckResponse,
     AdaptationSourceUsageRequest,
     AdaptationQueryParams,
@@ -106,6 +109,45 @@ async def create_adaptation(
     """创建改编题。"""
     adaptation = await _get_command_service(session).create(request, admin.user_id)
     return ApiResponse(data=adaptation, message="创建成功")
+
+
+@router.post(
+    "/exam-mark/batch",
+    response_model=ApiResponse[AdaptationExamMarkBatchResponse],
+    summary="批量更新改编题出题标记",
+    description="批量设置改编题是否已出题，仅管理员可访问",
+)
+async def set_adaptation_exam_marks_batch(
+    request: AdaptationExamMarkBatchRequest,
+    session: SessionDep,
+    _admin: AuthUser = Depends(get_current_admin),
+) -> ApiResponse[AdaptationExamMarkBatchResponse]:
+    """批量更新改编题出题标记。"""
+    result = await _get_command_service(session).set_exam_marks(
+        request.question_ids,
+        request.marked,
+    )
+    return ApiResponse(data=result, message="批量出题标记已更新")
+
+
+@router.post(
+    "/{adaptation_id}/exam-mark",
+    response_model=ApiResponse[AdaptationResponse],
+    summary="更新改编题出题标记",
+    description="设置指定改编题是否已出题，仅管理员可访问",
+)
+async def set_adaptation_exam_mark(
+    request: AdaptationExamMarkRequest,
+    session: SessionDep,
+    adaptation_id: int = Path(..., ge=1, description="改编题 ID"),
+    _admin: AuthUser = Depends(get_current_admin),
+) -> ApiResponse[AdaptationResponse]:
+    """更新改编题出题标记。"""
+    adaptation = await _get_command_service(session).set_exam_mark(
+        adaptation_id,
+        request.marked,
+    )
+    return ApiResponse(data=adaptation, message="出题标记已更新")
 
 
 @router.post(
