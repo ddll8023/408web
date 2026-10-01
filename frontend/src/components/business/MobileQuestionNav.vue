@@ -27,26 +27,39 @@
 
       <slot name="nav" />
 
-      <!-- 本页分组锚点：仅在选择父分类后出现，跳转后由页面关闭抽屉 -->
+      <!-- 本页锚点清单：分类大纲或题号导航，跳转后由页面关闭抽屉 -->
       <section v-if="outlineItems.length > 0" class="mobile-question-nav__outline" :aria-labelledby="outlineTitleId">
-        <h3 :id="outlineTitleId" class="mobile-question-nav__outline-title">本页分组</h3>
-        <ul class="mobile-question-nav__outline-list">
-          <li v-for="item in outlineItems" :key="item.anchorId">
+        <h3 :id="outlineTitleId" class="mobile-question-nav__outline-title">{{ props.outlineTitle }}</h3>
+        <ul
+          class="mobile-question-nav__outline-list"
+          :class="gridVariant ? 'mobile-question-nav__outline-list--grid' : ''"
+        >
+          <li
+            v-for="item in outlineItems"
+            :key="item.anchorId"
+            :class="gridVariant && isGroupItem(item) ? 'mobile-question-nav__outline-group' : ''"
+          >
             <button
               type="button"
               class="mobile-question-nav__outline-item"
-              :class="activeOutlineId === item.anchorId ? theme.active : 'text-gray-600 hover:bg-black/[0.04]'"
-              :style="{ paddingLeft: `${10 + item.depth * 14}px` }"
+              :class="[
+                isGridNumberItem(item) ? 'mobile-question-nav__outline-item--grid' : '',
+                isGridNumberItem(item) && activeOutlineId !== item.anchorId ? 'bg-white' : '',
+                activeOutlineId === item.anchorId ? theme.active : 'text-gray-600 hover:bg-black/[0.04]',
+              ]"
+              :style="isGridNumberItem(item) ? {} : { paddingLeft: `${10 + item.depth * 14}px` }"
+              :aria-label="item.label"
               :aria-current="activeOutlineId === item.anchorId ? 'location' : undefined"
               @click="emit('outline-jump', item.anchorId)"
             >
               <span
+                v-if="!isGridNumberItem(item)"
                 class="mobile-question-nav__outline-dot"
                 :class="activeOutlineId === item.anchorId ? theme.dot : 'bg-gray-300'"
                 aria-hidden="true"
               />
-              <span class="min-w-0 flex-1 truncate">{{ item.label }}</span>
-              <span class="shrink-0 text-xs text-gray-400">{{ item.count }}题</span>
+              <span class="min-w-0 flex-1 truncate">{{ isGridNumberItem(item) ? (item.shortLabel ?? item.label) : item.label }}</span>
+              <span v-if="item.count != null" class="shrink-0 text-xs text-gray-400">{{ item.count }}题</span>
             </button>
           </li>
         </ul>
@@ -98,10 +111,20 @@ const props = defineProps({
     type: Number,
     default: 0
   },
-  // 页内分组锚点
+  // 页内锚点：分类大纲或题号导航，窄屏统一在抽屉底部展示
   outlineItems: {
     type: Array as PropType<readonly CategoryOutlineItem[]>,
     default: () => []
+  },
+  // 页内锚点清单的小标题
+  outlineTitle: {
+    type: String,
+    default: '本页分组'
+  },
+  // 页内锚点呈现：列表（默认）或紧凑题号网格
+  outlineVariant: {
+    type: String as PropType<'list' | 'number-grid'>,
+    default: 'list'
   },
   // 当前所在的分组锚点
   activeOutlineId: {
@@ -119,6 +142,15 @@ const emit = defineEmits<{
   'update:visible': [value: boolean]
   'outline-jump': [anchorId: string]
 }>()
+
+/** 是否使用紧凑题号网格排版。 */
+const gridVariant = computed(() => props.outlineVariant === 'number-grid')
+
+/** 分组条目（分类名或题型名）：网格模式下独占整行。 */
+const isGroupItem = (item: CategoryOutlineItem) => item.depth === 0
+
+/** 网格模式下的题号条目：渲染为居中方块，不显示圆点与层级缩进。 */
+const isGridNumberItem = (item: CategoryOutlineItem) => gridVariant.value && item.depth > 0
 
 const theme = computed(() => outlineThemes[props.kind])
 
@@ -250,6 +282,26 @@ onDeactivated(() => {
   height: 6px;
   flex: 0 0 auto;
   border-radius: 999px;
+}
+
+/* 题号网格：分组标题独占整行，题号以等宽方块排列，便于一屏内直接选任意题 */
+.mobile-question-nav__outline-list--grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 4px;
+  padding-top: 4px;
+}
+
+.mobile-question-nav__outline-group {
+  grid-column: 1 / -1;
+}
+
+/* 网格方块：边框与文字居中由样式表负责，背景色交给模板按状态切换，避免与主题色类冲突 */
+.mobile-question-nav__outline-item--grid {
+  justify-content: center;
+  padding: 0;
+  border: 1px solid #e5e7eb;
+  text-align: center;
 }
 
 @media (max-width: 419px) {

@@ -1,4 +1,4 @@
-<!-- 年份导航侧栏：桌面端展示年份与题号，移动端由目录抽屉替代。 -->
+<!-- 年份导航侧栏：桌面端展示年份列表，窄屏由目录抽屉替代。 -->
 <template>
   <div
     class="year-nav-container w-[280px] h-full bg-surface border-r border-black/[0.05] flex flex-col transition-all duration-300 flex-shrink-0 z-10"
@@ -19,17 +19,6 @@
       <transition name="fade">
         <span v-if="!isCollapsed" class="header-title font-semibold text-base text-accent whitespace-nowrap overflow-hidden flex-1">年份导航</span>
       </transition>
-      <div class="header-actions flex items-center gap-2 flex-shrink-0">
-        <button
-          v-if="!isCollapsed"
-          type="button"
-          class="collapse-all-btn flex items-center gap-1 px-2 py-1 rounded border-0 bg-transparent cursor-pointer text-gray-400 text-[13px] transition-all duration-200 whitespace-nowrap hover:bg-black/[0.05] hover:text-accent"
-          @click="collapseAll"
-        >
-          <font-awesome-icon :icon="['fas', 'compress']" class="text-sm" aria-hidden="true" />
-          <span>全部折叠</span>
-        </button>
-      </div>
     </div>
 
     <!-- 年份列表 -->
@@ -37,12 +26,8 @@
       <YearNavList
         :year-list="yearList"
         :active-year="activeYear"
-        :active-exam-id="activeExamId"
-        :expanded-years="expandedYears"
         :loading="loading"
-        @update:expanded-years="(years) => emit('update:expandedYears', years)"
         @year-select="(year) => emit('year-select', year)"
-        @exam-select="(exam) => emit('exam-select', exam)"
       />
     </div>
   </div>
@@ -51,11 +36,11 @@
 <script setup lang="ts">
 /**
  * 年份导航侧栏
- * 桌面端外壳：标题栏、折叠交互和滚动容器；列表渲染与展开状态交给 YearNavList，
- * 使移动端目录抽屉可以复用同一份数据和展开状态
+ * 桌面端外壳：标题栏、折叠交互和滚动容器；年份列表渲染交给 YearNavList，
+ * 使窄屏目录抽屉可以复用同一份数据和选中状态
  */
 import type { PropType } from 'vue'
-import type { ExamNavQuestion, ExamNavYear } from '@/types'
+import type { ExamNavYear } from '@/types'
 import { ref } from 'vue'
 import YearNavList from './YearNavList.vue'
 
@@ -70,28 +55,16 @@ defineProps({
     type: Number as PropType<number | null>,
     default: null
   },
-  // 当前激活的题目 ID
-  activeExamId: {
-    type: [Number, String] as PropType<number | string | null>,
-    default: null
-  },
   // 加载状态
   loading: {
     type: Boolean,
     default: false
-  },
-  // 已展开的年份
-  expandedYears: {
-    type: Array as PropType<number[]>,
-    default: () => []
   }
 })
 
 const emit = defineEmits<{
-  'exam-select': [exam: ExamNavQuestion]
   'year-select': [year: number]
   'collapse-change': [collapsed: boolean]
-  'update:expandedYears': [years: number[]]
 }>()
 
 // 导航栏是否折叠
@@ -103,13 +76,6 @@ const isCollapsed = ref(false)
 const toggleCollapse = () => {
   isCollapsed.value = !isCollapsed.value
   emit('collapse-change', isCollapsed.value)
-}
-
-/**
- * 全部折叠：折叠所有展开的年份
- */
-const collapseAll = () => {
-  emit('update:expandedYears', [])
 }
 </script>
 

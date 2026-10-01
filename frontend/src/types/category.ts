@@ -23,12 +23,14 @@ export interface CategoryTreeNode extends CategoryNode {
   children: CategoryTreeNode[]
 }
 
-/** 内容区域分类大纲的跳转项。 */
+/** 内容区域大纲的跳转项（count 缺省表示该项不展示题量，如题号导航）。 */
 export interface CategoryOutlineItem {
   anchorId: string
   label: string
   depth: number
-  count: number
+  count?: number
+  /** 网格等紧凑排版下使用的短标签，缺省时回退到 label */
+  shortLabel?: string
 }
 
 /** 分类创建请求（对应 ExamCategoryCreateRequest） */

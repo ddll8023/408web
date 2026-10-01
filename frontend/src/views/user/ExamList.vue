@@ -1,38 +1,36 @@
 <!-- 年份真题阅读页面：窄屏使用吸顶目录入口与底部目录抽屉，桌面端保留年份侧栏。 -->
 <template>
-  <ReadingLayout>
+  <ReadingLayout @content-ready="setContentScroller">
     <template #wide-nav>
       <!-- 左侧年份导航栏（窄屏自动隐藏） -->
       <YearNav
-        v-model:expanded-years="expandedYears"
         :year-list="yearList"
         :active-year="activeYear"
-        :active-exam-id="activeExamId"
         :loading="loadingYearList"
         @year-select="handleYearSelect"
-        @exam-select="handleExamSelect"
         @collapse-change="handleNavCollapseChange"
       />
     </template>
 
     <template #compact-nav>
-      <!-- 窄屏目录入口与抽屉 -->
+      <!-- 窄屏目录入口与抽屉：上半部为年份列表，下半部为本页题号导航 -->
       <MobileQuestionNav
         v-model:visible="navSheetVisible"
         :title="currentTitle"
         :count="displayTotal"
+        :outline-items="outlineItems"
+        :active-outline-id="activeOutlineId"
+        outline-title="题号导航"
+        outline-variant="number-grid"
         kind="exam"
+        @outline-jump="handleNavSheetOutlineJump"
       >
         <template #nav>
           <YearNavList
-            v-model:expanded-years="expandedYears"
             :year-list="yearList"
             :active-year="activeYear"
-            :active-exam-id="activeExamId"
             :loading="loadingYearList"
-            auto-scroll-active
-            @year-select="handleYearSelect"
-            @exam-select="handleNavSheetExamSelect"
+            @year-select="handleNavSheetYearSelect"
           />
         </template>
       </MobileQuestionNav>
@@ -58,21 +56,46 @@
             </div>
           </div>
 
-          <!-- 年份视图:显示所有题目 -->
-          <div v-if="examList.length > 0" class="mx-auto flex w-full max-w-[1100px] flex-col gap-3 px-3 py-3 sm:gap-4 sm:px-5">
-            <ExamEntryCard
-              v-for="exam in examList"
-              :key="exam.id"
-              :id="`question-${exam.id}`"
-              :exam="exam"
-              :is-admin="isAdmin"
-              :show-answer="showAnswers[exam.id]"
-              density="compact"
-              @copy="(cmd) => handleCopy(cmd, exam)"
-              @edit="handleEdit"
-              @delete="(id: number) => handleDelete(id)"
-              @toggle-answer="toggleYearAnswer(exam.id)"
-              @show-adaptations="handleShowAdaptations"
+          <!-- 年份视图：按题型分区域展示题目，宽屏右侧提供题号导航 -->
+          <div
+            v-if="examList.length > 0"
+            class="mx-auto grid w-full max-w-[1400px] grid-cols-1 items-start gap-5 px-3 py-3 sm:px-5 xl:grid-cols-[minmax(0,1fr)_230px]"
+          >
+            <main class="flex min-w-0 flex-col gap-3 sm:gap-4">
+              <section
+                v-for="group in questionTypeGroups"
+                :id="group.anchorId"
+                :key="group.anchorId"
+                :aria-label="group.label"
+                class="flex scroll-mt-14 flex-col gap-3 sm:gap-4 md:scroll-mt-8"
+              >
+                <ExamEntryCard
+                  v-for="exam in group.items"
+                  :key="exam.id"
+                  :id="`question-${exam.id}`"
+                  :exam="exam"
+                  :is-admin="isAdmin"
+                  :show-answer="showAnswers[exam.id]"
+                  density="compact"
+                  @copy="(cmd) => handleCopy(cmd, exam)"
+                  @edit="handleEdit"
+                  @delete="(id: number) => handleDelete(id)"
+                  @toggle-answer="toggleYearAnswer(exam.id)"
+                  @show-adaptations="handleShowAdaptations"
+                />
+              </section>
+            </main>
+
+            <CategoryOutline
+              :items="outlineItems"
+              :active-id="activeOutlineId"
+              kind="exam"
+              hide-below-xl
+              title="题号导航"
+              description="点击跳转到对应题目"
+              :show-summary="false"
+              variant="number-grid"
+              @jump="scrollToCategory"
             />
           </div>
 
@@ -109,23 +132,24 @@
 </template>
 
 <script setup lang="ts">
-import type { ExamNavQuestion, ExamNavYear, ExamQuestion, Subject, CategoryTreeNode } from "@/types"
+import type { CategoryOutlineItem, ExamNavQuestion, ExamNavYear, ExamQuestion, Subject, CategoryTreeNode } from "@/types"
 import { queryString } from "@/utils/storage"
 import { parseQuestionOptions } from "@/utils/questionOptions"
 /**
- * 真题主页面
- * 功能：左侧年份导航，右侧显示选中真题的详细内容
+ * 真题年份页面
+ * 功能：左侧年份导航，题目区按题型展示该年份全部真题，宽屏右侧提供题号导航
  * 遵循KISS原则：简单直观的内容展示
- * 
+ *
  * 改进：
- * - 左侧年份导航栏（树形结构，展示年份和题目）
- * - 右侧直接显示真题内容（不再跳转详情页）
+ * - 左侧年份导航只保留年份，题号导航移到题目区右侧
+ * - 点击题号跳转，滚动时同步高亮当前题目
  * - 管理员可编辑、删除真题
  */
 import { ref, computed, watch, onMounted, nextTick, onActivated } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { getExamNavIndex, getExamByYear, deleteExam } from '@/api/exam'
 import { getDifficultyLabel } from '@/constants/exam'
+import { useCategoryOutline } from '@/composables/useCategoryOutline'
 import { useAuthStore } from '@/stores/auth'
 import toast from '@/utils/toast'
 import confirm from '@/utils/confirm'
@@ -135,11 +159,13 @@ import ReadingLayout from '@/app/layouts/ReadingLayout.vue'
 import YearNav from '@/components/business/YearNav.vue'
 import YearNavList from '@/components/business/YearNavList.vue'
 import MobileQuestionNav from '@/components/business/MobileQuestionNav.vue'
+import CategoryOutline from '@/components/business/CategoryOutline.vue'
 import ExamEntryCard from '@/components/business/ExamEntryCard.vue'
 import ExamEditDialog from '@/components/business/ExamEditDialog.vue'
 import AdaptationRelatedDialog from '@/components/business/AdaptationRelatedDialog.vue'
 
 const route = useRoute()
+const router = useRouter()
 const authStore = useAuthStore()
 
 // 计算是否为管理员
@@ -154,15 +180,11 @@ const loadingYearList = ref(false)
 // 窄屏目录抽屉开关
 const navSheetVisible = ref(false)
 
-// 年份展开状态：桌面侧栏与窄屏抽屉共用同一份状态
-const expandedYears = ref<number[]>([])
-
 // 当前分类（来自路由查询参数）
 const activeCategory = ref(queryString(route.query.category))
 
-// 当前激活的年份和题目
+// 当前激活的年份
 const activeYear = ref<number | null>(null)
-const activeExamId = ref<number | null>(null)
 
 // 当前年份的所有题目
 const examList = ref<ExamQuestion[]>([])
@@ -178,6 +200,49 @@ const currentTitle = computed(() => {
 // 题目总数
 const displayTotal = computed(() => {
   return examList.value?.length || 0
+})
+
+// 题目区滚动容器：由 ReadingLayout 提供，题号导航据此观察当前题目
+const contentScroller = ref<HTMLElement | null>(null)
+const setContentScroller = (element: HTMLElement | null) => {
+  contentScroller.value = element
+}
+
+// 题目按题型分区：选择题在前，主观题在后
+const questionTypeGroups = computed(() => [
+  {
+    anchorId: 'exam-type-choice',
+    label: '选择题',
+    items: examList.value.filter(exam => exam.questionType === 'CHOICE'),
+  },
+  {
+    anchorId: 'exam-type-essay',
+    label: '主观题',
+    items: examList.value.filter(exam => exam.questionType !== 'CHOICE'),
+  },
+].filter(group => group.items.length > 0))
+
+// 题号导航条目：题型分组项带题量，题号项不带题量
+const outlineItems = computed<CategoryOutlineItem[]>(() => {
+  const items: CategoryOutlineItem[] = []
+  questionTypeGroups.value.forEach((group) => {
+    items.push({ anchorId: group.anchorId, label: group.label, depth: 0, count: group.items.length })
+    group.items.forEach((exam, index) => {
+      const questionNumber = exam.questionNumber ?? index + 1
+      items.push({
+        anchorId: `question-${exam.id}`,
+        label: `第 ${questionNumber} 题`,
+        shortLabel: String(questionNumber),
+        depth: 1,
+      })
+    })
+  })
+  return items
+})
+
+const { activeId: activeOutlineId, scrollToCategory } = useCategoryOutline({
+  containerRef: contentScroller,
+  items: outlineItems,
 })
 
 const loading = ref(false)
@@ -546,11 +611,32 @@ const loadExamsByYear = async (year: number | null) => {
 }
 
 /**
- * 处理年份选择
+ * 同步年份到路由：让地址栏与页面状态一致，replace 不新增历史记录
+ */
+const syncYearRoute = (year: number) => {
+  if (String(year) === String(route.params.year)) return
+  router.replace({
+    path: `/exam/${year}`,
+    query: activeCategory.value ? { category: activeCategory.value } : {}
+  })
+}
+
+/**
+ * 切换年份后把题目区滚回顶部，避免停留在上一年份的中间位置
+ */
+const scrollContentToTop = () => {
+  contentScroller.value?.scrollTo({ top: 0 })
+}
+
+/**
+ * 处理年份选择：同步路由、复位滚动位置并加载该年份题目
  */
 const handleYearSelect = (year: number | null) => {
   activeYear.value = year
-  activeExamId.value = null
+  if (year !== null) {
+    syncYearRoute(year)
+    scrollContentToTop()
+  }
   // 加载该年份的所有题目
   loadExamsByYear(year)
 }
@@ -583,36 +669,19 @@ onActivated(() => {
 })
 
 /**
- * 处理题目选择（锚点滚动）
+ * 抽屉内选择年份：先收起抽屉再加载该年份题目
  */
-const handleExamSelect = (exam: NavQuestion) => {
-  // 查找题目所属年份
-  const yearData = yearList.value.find(y => 
-    y.exams.some(e => e.id === exam.id)
-  )
-  
-  if (yearData) {
-    // 如果不在当前年份，先切换年份
-    if (activeYear.value !== yearData.year) {
-      activeYear.value = yearData.year
-      loadExamsByYear(yearData.year).then(() => {
-        scrollToExam(exam.id)
-      })
-    } else {
-      // 已在当前年份，直接滚动
-      scrollToExam(exam.id)
-    }
-    activeExamId.value = exam.id
-  }
+const handleNavSheetYearSelect = (year: number) => {
+  navSheetVisible.value = false
+  handleYearSelect(year)
 }
 
 /**
- * 抽屉内选择题目：先收起抽屉再滚动到对应题目
- * 年份行仍保留原处理函数，便于在抽屉内继续展开该年份的题号
+ * 抽屉内点击题号：先收起抽屉再滚动到对应题目
  */
-const handleNavSheetExamSelect = (exam: NavQuestion) => {
+const handleNavSheetOutlineJump = (anchorId: string) => {
   navSheetVisible.value = false
-  handleExamSelect(exam)
+  scrollToCategory(anchorId)
 }
 
 /**
@@ -678,8 +747,6 @@ const handleDelete = async (id: number) => {
       // 重新加载年份列表
       navCache.clear()
       await loadYearList()
-      // 清空当前激活的题目
-      activeExamId.value = null
       // 如果当前在年份视图，重新加载该年份的题目
       if (activeYear.value) {
         await loadExamsByYear(activeYear.value)
@@ -697,11 +764,11 @@ const handleDelete = async (id: number) => {
 watch(
   () => route.params.year,
   (newYear) => {
-    if (newYear) {
-      const year = parseInt(queryString(newYear))
-      activeYear.value = year
-      handleYearSelect(year)
-    }
+    if (!newYear) return
+    const year = parseInt(queryString(newYear))
+    // 页面内切换年份时由 handleYearSelect 同步路由，这里只处理外部进入与前进后退
+    if (year === activeYear.value) return
+    handleYearSelect(year)
   }
 )
 
