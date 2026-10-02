@@ -6,6 +6,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
+from web408.core.config import settings
 from web408.schemas.common import error_response
 
 
@@ -108,7 +109,7 @@ async def integrity_exception_handler(
     logger.error(
         "数据库完整性约束失败: path=%s",
         request.url.path,
-        exc_info=True,
+        exc_info=not request.url.path.startswith(f"{settings.server.api_prefix}/ai/"),
     )
     source_message = str(getattr(exc, "orig", "")).upper()
     if "UNIQUE" in source_message:
@@ -129,7 +130,12 @@ async def database_exception_handler(
     exc: SQLAlchemyError,
 ) -> JSONResponse:
     """处理其他数据库异常。"""
-    logger.error("数据库操作失败: path=%s", request.url.path, exc_info=True)
+    # AI 凭据相关失败不输出原始异常链；SQL 引擎同时隐藏绑定参数。
+    logger.error(
+        "数据库操作失败: path=%s",
+        request.url.path,
+        exc_info=not request.url.path.startswith(f"{settings.server.api_prefix}/ai/"),
+    )
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         content=error_response(status.HTTP_500_INTERNAL_SERVER_ERROR, "服务器内部错误"),
@@ -138,7 +144,11 @@ async def database_exception_handler(
 
 async def general_exception_handler(request: Request, exc: Exception) -> JSONResponse:
     """处理未分类异常，不向客户端暴露内部异常文本。"""
-    logger.error("未处理的服务器异常: path=%s", request.url.path, exc_info=True)
+    logger.error(
+        "未处理的服务器异常: path=%s",
+        request.url.path,
+        exc_info=not request.url.path.startswith(f"{settings.server.api_prefix}/ai/"),
+    )
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         content=error_response(status.HTTP_500_INTERNAL_SERVER_ERROR, "服务器内部错误"),

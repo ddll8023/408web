@@ -8,6 +8,7 @@ from fastapi.staticfiles import StaticFiles
 
 # 显式加载全部 SQLModel 表模型，避免依赖路由或 Repository 的间接导入顺序。
 from web408.modules.auth import models as _auth_models
+from web408.modules.ai import models as _ai_models
 from web408.modules.catalog import models as _catalog_models
 from web408.modules.adaptation import models as _adaptation_models
 from web408.modules.exam import models as _exam_models
@@ -17,6 +18,8 @@ from web408.core.config import settings
 from web408.core.logging import configure_logging
 from web408.database.connection import engine, init_db
 from web408.core.exceptions import register_exception_handlers
+from web408.integrations.ai_local_secrets import AiLocalSecretError, get_master_key
+from web408.modules.ai.runtime.manager import AiRuntime
 from web408.middleware.cors import GlobalCorsMiddleware
 from web408.schemas.common import ApiResponse
 
@@ -42,10 +45,18 @@ ensure_directories()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """管理应用启动和关闭生命周期。"""
-    await init_db()
-    yield
-    await engine.dispose()
+    """管理数据库和进程内 AI 运行模块，不启动或停止独立 Node 进程。"""
+    runtime = AiRuntime(settings.ai)
+    app.state.ai_runtime = runtime
+    try:
+        await init_db()
+        await runtime.startup()
+        yield
+    finally:
+        try:
+            await runtime.aclose()
+        finally:
+            await engine.dispose()
 
 
 app = FastAPI(

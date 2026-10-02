@@ -1,9 +1,9 @@
 """应用级运行配置。"""
 from functools import lru_cache
 from pathlib import Path
-from typing import Literal
+from typing import ClassVar, Literal
 
-from pydantic import Field
+from pydantic import BaseModel, ConfigDict, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -123,6 +123,17 @@ class LoggingConfig(BaseSettings):
     )
 
 
+class AiConfig(BaseModel):
+    """固定的 AI 运行默认值，不读取环境配置或承载个人配置与系统凭据。"""
+
+    generation_timeout_seconds: int = Field(default=120, ge=5, le=300)
+    check_timeout_seconds: int = Field(default=30, ge=5, le=120)
+    question_text_max_bytes: int = Field(default=65536, ge=1024, le=65536)
+    stream_event_max_bytes: int = Field(default=524288, ge=131072, le=1048576)
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+
 class Settings(BaseSettings):
     """项目聚合配置。"""
 
@@ -132,6 +143,8 @@ class Settings(BaseSettings):
     server: ServerConfig = Field(default_factory=ServerConfig)
     cors: CorsConfig = Field(default_factory=CorsConfig)
     logging: LoggingConfig = Field(default_factory=LoggingConfig)
+    # 非 Settings 字段，避免通过 AI JSON 环境变量覆盖固定运行默认值。
+    ai: ClassVar[AiConfig] = AiConfig()
 
     model_config = SettingsConfigDict(
         env_file=ENV_FILE,

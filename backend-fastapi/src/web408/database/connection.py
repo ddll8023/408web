@@ -31,6 +31,7 @@ engine = create_async_engine(
     DATABASE_URL,
     connect_args={"check_same_thread": False, "timeout": 5},
     echo=False,
+    hide_parameters=True,
 )
 
 
