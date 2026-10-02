@@ -30,6 +30,15 @@
     <div class="question-actions flex shrink-0 flex-wrap items-center gap-1">
       <CustomButton
         size="sm"
+        type="text-primary"
+        title="AI 咨询本题"
+        aria-label="AI 咨询本题"
+        @click="$emit('consult')"
+      >
+        AI 咨询
+      </CustomButton>
+      <CustomButton
+        size="sm"
         type="text"
         :icon="['fas', fullscreenActive ? 'compress' : 'expand']"
         :title="fullscreenActive ? '退出全屏' : '全屏查看本题'"
@@ -100,6 +109,7 @@ defineEmits<{
   edit: [question: AdaptationQuestion]
   delete: [id: number]
   'toggle-fullscreen': []
+  consult: []
 }>()
 
 const categories = computed(() => props.adaptation.category?.filter(Boolean) || [])

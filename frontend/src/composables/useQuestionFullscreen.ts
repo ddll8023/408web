@@ -7,6 +7,7 @@ import { computed, onBeforeUnmount, ref, type Ref } from 'vue'
 
 /**
  * 单张题目卡片的进入/退出全屏能力。
+ * 退出方法单独导出，供打开弹层的场景在调用模型前先退出全屏或沉浸模式。
  * @param target 卡片根元素引用，全屏目标同时也是全屏状态的判定依据
  */
 export function useQuestionFullscreen(target: Ref<HTMLElement | null>) {
@@ -104,5 +105,5 @@ export function useQuestionFullscreen(target: Ref<HTMLElement | null>) {
     }
   })
 
-  return { isFullscreen, isImmersive, isActive, toggleFullscreen }
+  return { isFullscreen, isImmersive, isActive, toggleFullscreen, exit }
 }

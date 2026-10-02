@@ -14,6 +14,7 @@
       @edit="$emit('edit', mock)"
       @delete="(id) => $emit('delete', id)"
       @toggle-fullscreen="toggleFullscreen"
+      @consult="openConsultation"
     />
     <!-- 题目内容与答案 -->
     <div>
@@ -25,6 +26,14 @@
         @answered="(payload) => $emit('answered', payload)"
       />
     </div>
+
+    <AiConsultationDialog
+      v-if="consultVisible"
+      :visible="consultVisible"
+      question-kind="mock"
+      :question-id="mock.id"
+      @update:visible="consultVisible = false"
+    />
   </div>
 </template>
 
@@ -39,7 +48,9 @@ import type { MockQuestion } from '@/types'
  */
 import MockItemHeader from '@/components/business/MockItemHeader.vue'
 import ExamQuestionCard from '@/components/business/ExamQuestionCard.vue'
+import AiConsultationDialog from '@/components/business/AiConsultationDialog.vue'
 import { useQuestionFullscreen } from '@/composables/useQuestionFullscreen'
+import { useToast } from '@/composables/useToast'
 
 /**
  * Props 定义
@@ -80,7 +91,22 @@ defineEmits<{ copy: [command: string]; edit: [question: MockQuestion]; delete: [
 const cardRef = ref<HTMLElement | null>(null)
 
 /** 单题全屏与沉浸状态 */
-const { isActive, isImmersive, toggleFullscreen } = useQuestionFullscreen(cardRef)
+const { isActive, isImmersive, toggleFullscreen, exit } = useQuestionFullscreen(cardRef)
+
+const { showToast } = useToast()
+
+/** 咨询面板可见性；面板按需挂载，关闭后不再保留内存会话。 */
+const consultVisible = ref(false)
+
+/** 退出全屏或沉浸失败时不打开咨询，也不发起任何模型请求。 */
+async function openConsultation(): Promise<void> {
+  await exit()
+  if (isActive.value) {
+    showToast('请先手动退出全屏再打开 AI 咨询', 'warning')
+    return
+  }
+  consultVisible.value = true
+}
 </script>
 
 <style scoped>

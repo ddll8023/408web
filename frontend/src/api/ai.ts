@@ -3,6 +3,10 @@ import axios from 'axios'
 import type { ApiResponse } from '@/types'
 import { convertKeysToSnake } from '@/utils/convertKeys'
 import request from './request'
+import { AiSettingsError, boolean, integer, invalid, providerId, record, revision, string } from './aiGuards'
+
+// 错误类型随共用校验迁出，仍从本模块导出，既有引用点无需改动。
+export { AiSettingsError } from './aiGuards'
 
 export type AiInputMode = 'text' | 'text_image'
 export interface AiSettingsView {
@@ -68,16 +72,8 @@ export interface AiModelCheckRequest {
 }
 export interface AiModelCheckView { requestId: string; model: AiModelView; success: true }
 
-export class AiSettingsError extends Error {
-  /** 只保留安全消息、状态与取消标记，不能附带 Axios 配置、认证头或原始 cause。 */
-  constructor(message: string, readonly status?: number, readonly cancelled = false) {
-    super(message)
-    this.name = 'AiSettingsError'
-  }
-}
-
 /** 复用统一鉴权与字段转换；目录刷新和检测可延长超时，但不自动重试。 */
-async function aiRequest(path: string, data: unknown, signal?: AbortSignal, timeout = 15000): Promise<ApiResponse<unknown>> {
+export async function aiRequest(path: string, data: unknown, signal?: AbortSignal, timeout = 15000): Promise<ApiResponse<unknown>> {
   try {
     return await request<unknown>({ url: `/api/ai/${path}`, method: 'post', data: convertKeysToSnake(data), signal, timeout })
   } catch (error: unknown) {
@@ -90,34 +86,6 @@ async function aiRequest(path: string, data: unknown, signal?: AbortSignal, time
     }
     throw new AiSettingsError('模型服务请求失败，请稍后重试')
   }
-}
-/** 响应校验失败统一返回固定消息，不保留可能含敏感字段的响应对象。 */
-function invalid(): never { throw new AiSettingsError('模型服务响应格式错误，请重新加载') }
-/** 只接收普通对象形态，后续解析显式提取声明的公开字段。 */
-function record(value: unknown): Record<string, unknown> {
-  if (typeof value !== 'object' || value === null || Array.isArray(value)) return invalid()
-  return value as Record<string, unknown>
-}
-/** 校验公开标识与名称的非空文本及长度，不做隐式类型转换。 */
-function string(value: unknown, max = 200): string {
-  if (typeof value !== 'string' || !value.trim() || value.length > max) return invalid()
-  return value
-}
-/** 响应开关只接受布尔值，不能把字符串真值当成有效状态。 */
-function boolean(value: unknown): boolean { return typeof value === 'boolean' ? value : invalid() }
-/** 限制目录计数和能力数值为预算内的非负安全整数。 */
-function integer(value: unknown, max = Number.MAX_SAFE_INTEGER): number {
-  return typeof value === 'number' && Number.isSafeInteger(value) && value >= 0 && value <= max ? value : invalid()
-}
-/** 校验配置修订或请求 UUID，防止无效标识被用于结果绑定。 */
-function revision(value: unknown): string {
-  const result = string(value, 36)
-  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(result) ? result : invalid()
-}
-/** 校验供应商标识语法；接入支持与调用权限不能由语法推断。 */
-function providerId(value: unknown): string {
-  const result = string(value, 100)
-  return /^[a-z0-9][a-z0-9-]*$/.test(result) ? result : invalid()
 }
 /** 提取独立的默认咨询选择，允许尚未配置，不读取供应商凭据状态。 */
 function parseSettings(value: unknown): AiSettingsView | null {
