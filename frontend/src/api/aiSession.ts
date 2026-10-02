@@ -47,8 +47,20 @@ function rawText(value: unknown, max = 65536): string {
   if (typeof value !== 'string' || value.length > max) return invalid()
   return value
 }
-/** 提取会话与流事件共用的模型标识，不猜测未声明的能力。 */
-function parseModel(value: unknown): AiSessionModelView {
+/**
+ * 提取会话创建结果中的模型标识。
+ * 该响应经统一拦截器递归转为 camelCase，因此模型能力字段是 supportsImages。
+ */
+function parseSessionModel(value: unknown): AiSessionModelView {
+  const item = record(value)
+  return { provider: providerId(item.provider), id: string(item.id), name: string(item.name),
+    supportsImages: boolean(item.supportsImages) }
+}
+/**
+ * 提取流事件中的模型标识。
+ * SSE 载荷是未经拦截器的原文，因此模型能力字段仍是 supports_images。
+ */
+function parseStreamModel(value: unknown): AiSessionModelView {
   const item = record(value)
   return { provider: providerId(item.provider), id: string(item.id), name: string(item.name),
     supportsImages: boolean(item.supports_images) }
@@ -58,19 +70,19 @@ function requireTextMode(value: unknown): 'text' {
   if (value !== 'text') return invalid()
   return value
 }
-/** 解析会话创建结果，题目与型号都必须是后端已核对的公开字段。 */
+/** 解析会话创建结果（camelCase），题目与型号都必须是后端已核对的公开字段。 */
 function parseSession(value: unknown): AiSessionView {
   const item = record(value)
-  const kind = item.question_kind
+  const kind = item.questionKind
   if (kind !== 'exam' && kind !== 'mock' && kind !== 'adaptation') return invalid()
-  return { sessionId: revision(item.session_id), questionKind: kind, questionId: integer(item.question_id),
-    model: parseModel(item.model), inputMode: requireTextMode(item.input_mode), contextNote: string(item.context_note, 300) }
+  return { sessionId: revision(item.sessionId), questionKind: kind, questionId: integer(item.questionId),
+    model: parseSessionModel(item.model), inputMode: requireTextMode(item.inputMode), contextNote: string(item.contextNote, 300) }
 }
-/** 解析首帧 meta；缺少 meta 时无法把增量绑定到本次提问。 */
+/** 解析首帧 meta（snake_case 原文）；缺少 meta 时无法把增量绑定到本次提问。 */
 function parseMeta(value: unknown): AiStreamMetaView {
   const item = record(value)
   return { sessionId: revision(item.session_id), requestId: revision(item.request_id),
-    model: parseModel(item.model), inputMode: requireTextMode(item.input_mode) }
+    model: parseStreamModel(item.model), inputMode: requireTextMode(item.input_mode) }
 }
 /** 解析流错误对象，拒绝未声明的错误码以免误报为可重试。 */
 function parseStreamError(value: unknown): AiStreamErrorView {
@@ -97,6 +109,7 @@ export function createAiRequestId(): string {
 
 /**
  * 创建文本咨询会话：只提交题目归属，题干由后端按可信快照固定，创建时不调用模型。
+ * 注意：本函数经统一拦截器，响应字段已转为 camelCase。
  */
 export async function createAiSession(
   questionKind: AiQuestionKind,
@@ -104,7 +117,16 @@ export async function createAiSession(
   signal?: AbortSignal,
 ): Promise<AiSessionView> {
   const response = await aiRequest('sessions/create', { questionKind, questionId }, signal)
-  return parseSession(response.data)
+  const item = record(response.data)
+  // 服务端已经建立会话，此时任何字段不符都必须先归还它，
+  // 否则客户端拿不到会话标识，该会话只能等闲置回收。
+  const sessionId = revision(item.sessionId)
+  try {
+    return parseSession(item)
+  } catch (error: unknown) {
+    await closeAiSession(sessionId).catch(() => undefined)
+    throw error
+  }
 }
 
 /**
