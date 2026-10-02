@@ -36,7 +36,9 @@ client.interceptors.request.use(
     return config
   },
   (error: unknown) => {
-    console.error('请求错误：', error)
+    if (!axios.isCancel(error)) {
+      console.error('请求错误：', { status: axios.isAxiosError(error) ? error.response?.status : undefined })
+    }
     return Promise.reject(error)
   }
 )
@@ -64,7 +66,9 @@ client.interceptors.response.use(
     return response
   },
   (error: unknown) => {
-    console.error('响应错误：', error)
+    // 菜单切换等主动取消不属于网络失败，且诊断不得带出请求体或认证头。
+    if (axios.isCancel(error)) return Promise.reject(error)
+    console.error('响应错误：', { status: axios.isAxiosError(error) ? error.response?.status : undefined })
 
     // HTTP状态码错误处理
     if (axios.isAxiosError<{ message?: string }>(error) && error.response) {

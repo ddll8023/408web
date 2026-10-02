@@ -3,7 +3,7 @@
  * 选择集以「题目来源类型:题目 ID」为键去重，并保留管理员的选择顺序，供章节列表和批量复制共用；
  * 使用复合键是因为模拟题与改编题的主键来自不同数据表，裸 ID 会互相覆盖。
  */
-import { computed, ref } from 'vue'
+import { computed, ref, shallowRef } from 'vue'
 
 /** 选择集可容纳的最小题目结构：来源类型加主键即可生成唯一键。 */
 export interface SelectableQuestion {
@@ -16,14 +16,16 @@ export function getQuestionSelectionKey(question: SelectableQuestion): string {
   return `${question.questionKind}:${question.id}`
 }
 
+/** 管理跨来源题目的选择顺序和数据同步，供出题篮与章节列表共用。 */
 export function useQuestionSelection<T extends SelectableQuestion>() {
   const selectedKeys = ref<string[]>([])
-  const questionMap = ref(new Map<string, T>())
+  // Map 通过复制并替换根值更新，避免泛型解包，同时保留题目已有的响应式引用。
+  const questionMap = shallowRef(new Map<string, T>())
 
-  const selectedQuestions = computed(() => {
+  const selectedQuestions = computed<T[]>(() => {
     return selectedKeys.value
       .map(key => questionMap.value.get(key))
-      .filter((question): question is T => Boolean(question))
+      .filter((question): question is T => question !== undefined)
   })
 
   const selectedCount = computed(() => selectedKeys.value.length)

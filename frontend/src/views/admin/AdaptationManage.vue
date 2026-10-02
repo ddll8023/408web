@@ -315,6 +315,7 @@ import MultiSelectCascader from '@/components/basic/MultiSelectCascader.vue'
 import Pagination from '@/components/basic/Pagination.vue'
 import Select from '@/components/basic/Select.vue'
 import Table from '@/components/basic/Table.vue'
+import type { TableColumn } from '@/components/basic/types'
 import Tag from '@/components/basic/Tag.vue'
 import WheelPicker from '@/components/basic/WheelPicker.vue'
 import AdaptationEditDialog from '@/components/business/AdaptationEditDialog.vue'
@@ -387,7 +388,7 @@ const tableColumns = [
   { prop: 'isExamMarked', label: '出题状态', width: '110px', align: 'center' },
   { prop: 'updateTime', label: '更新时间', width: '160px', sortable: true },
   { prop: 'actions', label: '操作', width: '260px', align: 'center', fixed: 'right' }
-]
+] satisfies TableColumn[]
 
 const filters = reactive({
   sourceYear: null as number | null,

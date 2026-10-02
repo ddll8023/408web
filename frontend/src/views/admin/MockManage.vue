@@ -376,6 +376,7 @@ import CustomInput from '@/components/basic/CustomInput.vue'
 import MultiSelectCascader from '@/components/basic/MultiSelectCascader.vue'
 import Select from '@/components/basic/Select.vue'
 import Table from '@/components/basic/Table.vue'
+import type { TableColumn } from '@/components/basic/types'
 import Pagination from '@/components/basic/Pagination.vue'
 import Tag from '@/components/basic/Tag.vue'
 import BackTop from '@/components/basic/BackTop.vue'
@@ -410,7 +411,7 @@ const tableColumns = [
   { prop: 'wrongCount', label: '错题计数', width: '110px', align: 'center' },
   { prop: 'updateTime', label: '更新时间', width: '160px', sortable: true },
   { prop: 'actions', label: '操作', width: '300px', align: 'center', fixed: 'right' }
-]
+] satisfies TableColumn[]
 
 // 使用公共管理表格逻辑
 const {

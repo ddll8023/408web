@@ -1,4 +1,4 @@
-<!-- 用户中心页面：侧栏、收藏列表与弹窗按视口自适应。 -->
+<!-- 用户中心页面：提供收藏与个人 AI 设置，离开设置菜单即释放敏感表单。 -->
 <template>
   <div class="min-h-[var(--app-page-height)] bg-surface flex flex-col md:flex-row gap-4 px-4 py-4">
     <!-- 左侧边栏 -->
@@ -25,6 +25,7 @@
           :class="activeMenu === 'favorites'
             ? 'bg-accent/10 text-accent'
             : 'bg-white text-gray-700 hover:bg-accent/5'"
+          :aria-current="activeMenu === 'favorites' ? 'page' : undefined"
           @click="handleMenuSelect('favorites')"
         >
           <font-awesome-icon :icon="['fas', 'star']" />
@@ -32,6 +33,18 @@
           <span v-if="totalCount > 0" class="ml-auto inline-flex items-center justify-center bg-[#f56c6c] text-white text-[11px] font-medium w-[18px] h-[18px] rounded-full leading-1">
             {{ totalCount }}
           </span>
+        </button>
+        <button
+          type="button"
+          class="w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200"
+          :class="activeMenu === 'ai-settings'
+            ? 'bg-accent/10 text-accent'
+            : 'bg-white text-gray-700 hover:bg-accent/5'"
+          :aria-current="activeMenu === 'ai-settings' ? 'page' : undefined"
+          @click="handleMenuSelect('ai-settings')"
+        >
+          <font-awesome-icon :icon="['fas', 'cog']" aria-hidden="true" />
+          <span>AI 设置</span>
         </button>
       </nav>
     </aside>
@@ -133,6 +146,7 @@
           </div>
         </div>
       </div>
+      <AiSettings v-else-if="activeMenu === 'ai-settings'" />
     </main>
 
     <!-- 添加收藏弹窗 -->
@@ -206,13 +220,7 @@
 
 <script setup lang="ts">
 import type { Subject } from "@/types"
-/**
- * 个人中心页面
- * 功能：展示个人信息和收藏夹（收藏题目分类）
- * 遵循KISS原则：简洁的左右布局
- * 遵循YAGNI原则：只实现当前需要的功能
- * 遵循SOLID原则：单一职责，左侧导航，右侧内容
- */
+/** 个人中心承载收藏和 AI 设置入口，凭据表单由独立业务组件管理。 */
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
@@ -222,6 +230,7 @@ import { getExamCategoriesBySubject } from '@/api/exam'
 import CustomButton from '@/components/basic/CustomButton.vue'
 import ResponsiveDialog from '@/components/basic/ResponsiveDialog.vue'
 import Empty from '@/components/basic/Empty.vue'
+import AiSettings from '@/components/business/AiSettings.vue'
 import { useToast } from '@/composables/useToast'
 import { useConfirm } from '@/composables/useConfirm'
 
@@ -232,7 +241,7 @@ const { showToast } = useToast()
 const { showConfirm } = useConfirm()
 
 // 当前激活的菜单项
-const activeMenu = ref('favorites')
+const activeMenu = ref<'favorites' | 'ai-settings'>('favorites')
 
 // 科目数据
 const subjects = ref<Subject[]>([])
@@ -293,7 +302,7 @@ const getFavoritesForSubject = (subjectId: number | null) => {
 /**
  * 处理菜单选择
  */
-const handleMenuSelect = (index: string) => {
+const handleMenuSelect = (index: 'favorites' | 'ai-settings') => {
   activeMenu.value = index
 }
 

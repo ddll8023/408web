@@ -157,6 +157,7 @@ import CustomButton from '@/components/basic/CustomButton.vue'
 import CustomCard from '@/components/basic/CustomCard.vue'
 import Switch from '@/components/basic/Switch.vue'
 import Table from '@/components/basic/Table.vue'
+import type { TableColumn } from '@/components/basic/types'
 import Tag from '@/components/basic/Tag.vue'
 import { useToast } from '@/composables/useToast'
 import { useConfirm } from '@/composables/useConfirm'
@@ -183,7 +184,7 @@ const tableColumns = [
   { prop: 'lastModified', label: '最后修改时间', width: '200px', align: 'center' },
   { prop: 'exams', label: '引用题目', minWidth: '240px' },
   { prop: 'action', label: '操作', width: '120px', align: 'center' }
-]
+] satisfies TableColumn[]
 
 // 打开预览
 const openPreview = (url: string) => {

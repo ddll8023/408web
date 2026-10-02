@@ -294,6 +294,7 @@ import WheelPicker from '@/components/basic/WheelPicker.vue'
 import Select from '@/components/basic/Select.vue'
 import Tag from '@/components/basic/Tag.vue'
 import Table from '@/components/basic/Table.vue'
+import type { TableColumn } from '@/components/basic/types'
 import BackTop from '@/components/basic/BackTop.vue'
 import Pagination from '@/components/basic/Pagination.vue'
 import ExamEditDialog from '@/components/business/ExamEditDialog.vue'
@@ -352,7 +353,7 @@ const tableColumns = [
   { prop: 'difficulty', label: '难度', width: '100px', align: 'center' },
   { prop: 'updateTime', label: '更新时间', width: '160px', sortable: true },
   { prop: 'actions', label: '操作', width: '220px', align: 'center', fixed: 'right' }
-]
+] satisfies TableColumn[]
 
 // 筛选条件
 const filters = reactive({

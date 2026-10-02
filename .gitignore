@@ -14,6 +14,8 @@ __pycache__/
 backend-fastapi/.venv
 backend-fastapi/.env
 backend-fastapi/data/*.pre_*.db.backup
+backend-fastapi/data/*.pre_*.db.backup-wal
+backend-fastapi/data/*.pre_*.db.backup-shm
 backend-fastapi/data/*.db-wal
 backend-fastapi/data/*.db-shm
 backend-fastapi/app/logs
