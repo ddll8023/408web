@@ -1,6 +1,6 @@
 /**
  * AI 题目咨询会话状态机。
- * 会话与历史只存在于页面内存：不写数据库、localStorage 或 sessionStorage，刷新或关闭后不可恢复。
+ * 会话与历史只存在于页面内存：不写数据库、localStorage 或 sessionStorage；收起不销毁，刷新或结束后不可恢复。
  * 只有真实成功的完整终态写入历史并允许追问；停止、失败与断流只把片段标记为不完整。
  */
 import { computed, ref } from 'vue'
@@ -43,6 +43,8 @@ export function useAiConsultation() {
   let activeRequestId = ''
   /** 仅用于组件卸载时中断本地读取，停止生成一律走 abort 接口。 */
   let readerAbort: AbortController | null = null
+  /** 每次清理递增，旧会话的迟到响应不能更新新会话。 */
+  let revision = 0
 
   /** 生成中：包含创建与停止确认阶段，期间禁止再次发送。 */
   const busy = computed(() => phase.value !== 'idle')
@@ -56,6 +58,7 @@ export function useAiConsultation() {
 
   /** 清空页面内存中的会话与历史，不发任何模型请求。 */
   function reset(): void {
+    revision += 1
     session.value = null
     messages.value = []
     errorMessage.value = ''
@@ -67,13 +70,20 @@ export function useAiConsultation() {
   /** 创建会话：只提交题目归属，题干由后端按可信快照固定，创建时不调用模型。 */
   async function open(questionKind: AiQuestionKind, questionId: number): Promise<void> {
     reset()
+    const currentRevision = revision
     phase.value = 'creating'
     try {
-      session.value = await createAiSession(questionKind, questionId)
+      const created = await createAiSession(questionKind, questionId)
+      if (currentRevision !== revision) {
+        // 即使创建期间已离开页面，也归还迟到的服务端会话。
+        await closeAiSession(created.sessionId).catch(() => undefined)
+        return
+      }
+      session.value = created
     } catch (error: unknown) {
-      errorMessage.value = toMessage(error)
+      if (currentRevision === revision) errorMessage.value = toMessage(error)
     } finally {
-      phase.value = 'idle'
+      if (currentRevision === revision) phase.value = 'idle'
     }
   }
 
@@ -90,7 +100,7 @@ export function useAiConsultation() {
       return
     }
     message.status = status === 'cancelled' ? 'cancelled' : 'failed'
-    if (status !== 'cancelled') message.errorMessage = failure ?? '生成失败，请重新打开咨询'
+    if (status !== 'cancelled') message.errorMessage = failure ?? '生成失败，请新建会话后重试'
   }
 
   /** 流读取异常按取消与失败区分，避免把断流显示成完成。 */
@@ -107,23 +117,29 @@ export function useAiConsultation() {
     if (!current || !canSend.value || !question) return
     errorMessage.value = ''
     const requestId = createAiRequestId()
+    const currentRevision = revision
     activeRequestId = requestId
     messages.value.push({ id: requestId, role: 'user', text: question, status: 'completed' })
     messages.value.push({ id: `${requestId}-answer`, role: 'assistant', text: '', status: 'streaming' })
     const answer = messages.value[messages.value.length - 1]
-    readerAbort = new AbortController()
+    const reader = new AbortController()
+    readerAbort = reader
     phase.value = 'streaming'
     try {
       const done = await streamAiMessage(current.sessionId, requestId, question, {
-        onDelta: (chunk: string) => { answer.text += chunk },
-      }, readerAbort.signal)
-      applyTerminal(answer, done.status, done.answer, done.error?.message)
+        onDelta: (chunk: string) => {
+          if (currentRevision === revision) answer.text += chunk
+        },
+      }, reader.signal)
+      if (currentRevision === revision) applyTerminal(answer, done.status, done.answer, done.error?.message)
     } catch (error: unknown) {
-      applyInterrupted(answer, error)
+      if (currentRevision === revision) applyInterrupted(answer, error)
     } finally {
-      readerAbort = null
-      activeRequestId = ''
-      phase.value = 'idle'
+      if (currentRevision === revision) {
+        readerAbort = null
+        activeRequestId = ''
+        phase.value = 'idle'
+      }
     }
   }
 
@@ -134,12 +150,14 @@ export function useAiConsultation() {
   async function stop(): Promise<void> {
     const current = session.value
     if (!current || phase.value !== 'streaming' || !activeRequestId) return
+    const currentRevision = revision
+    const requestId = activeRequestId
     phase.value = 'stopping'
     try {
-      await abortAiSession(current.sessionId, activeRequestId)
+      await abortAiSession(current.sessionId, requestId)
     } catch (error: unknown) {
-      // 停止未确认：保留 stopping，等待原流终态或由用户关闭会话。
-      errorMessage.value = toMessage(error)
+      // 停止未确认：保留 stopping，等待原流终态或由用户结束会话。
+      if (currentRevision === revision && activeRequestId === requestId) errorMessage.value = toMessage(error)
     }
   }
 

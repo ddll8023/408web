@@ -28,13 +28,6 @@
       />
     </div>
 
-    <AiConsultationDialog
-      v-if="consultVisible"
-      :visible="consultVisible"
-      question-kind="adaptation"
-      :question-id="adaptation.id"
-      @update:visible="consultVisible = false"
-    />
   </div>
 </template>
 
@@ -47,11 +40,11 @@ import { ref, type PropType } from 'vue'
 import type { AdaptationQuestion } from '@/types'
 import AdaptationItemHeader from '@/components/business/AdaptationItemHeader.vue'
 import ExamQuestionCard from '@/components/business/ExamQuestionCard.vue'
-import AiConsultationDialog from '@/components/business/AiConsultationDialog.vue'
+import { useAiConsultationPanel } from '@/composables/useAiConsultationPanel'
 import { useQuestionFullscreen } from '@/composables/useQuestionFullscreen'
 import { useToast } from '@/composables/useToast'
 
-defineProps({
+const props = defineProps({
   adaptation: {
     type: Object as PropType<AdaptationQuestion>,
     required: true
@@ -91,8 +84,7 @@ const { isActive, isImmersive, toggleFullscreen, exit } = useQuestionFullscreen(
 
 const { showToast } = useToast()
 
-/** 咨询面板可见性；面板按需挂载，关闭后不再保留内存会话。 */
-const consultVisible = ref(false)
+const { openQuestion } = useAiConsultationPanel()
 
 /** 退出全屏或沉浸失败时不打开咨询，也不发起任何模型请求。 */
 async function openConsultation(): Promise<void> {
@@ -101,7 +93,8 @@ async function openConsultation(): Promise<void> {
     showToast('请先手动退出全屏再打开 AI 咨询', 'warning')
     return
   }
-  consultVisible.value = true
+  const adaptation = props.adaptation
+  await openQuestion('adaptation', adaptation.id, `改编题 #${adaptation.id} · ${adaptation.sourceSummary || '未标注来源'}`)
 }
 </script>
 

@@ -27,13 +27,6 @@
       />
     </div>
 
-    <AiConsultationDialog
-      v-if="consultVisible"
-      :visible="consultVisible"
-      question-kind="mock"
-      :question-id="mock.id"
-      @update:visible="consultVisible = false"
-    />
   </div>
 </template>
 
@@ -48,14 +41,14 @@ import type { MockQuestion } from '@/types'
  */
 import MockItemHeader from '@/components/business/MockItemHeader.vue'
 import ExamQuestionCard from '@/components/business/ExamQuestionCard.vue'
-import AiConsultationDialog from '@/components/business/AiConsultationDialog.vue'
+import { useAiConsultationPanel } from '@/composables/useAiConsultationPanel'
 import { useQuestionFullscreen } from '@/composables/useQuestionFullscreen'
 import { useToast } from '@/composables/useToast'
 
 /**
  * Props 定义
  */
-defineProps({
+const props = defineProps({
   /** 模拟题对象 */
   mock: {
     type: Object as PropType<MockQuestion>,
@@ -95,8 +88,7 @@ const { isActive, isImmersive, toggleFullscreen, exit } = useQuestionFullscreen(
 
 const { showToast } = useToast()
 
-/** 咨询面板可见性；面板按需挂载，关闭后不再保留内存会话。 */
-const consultVisible = ref(false)
+const { openQuestion } = useAiConsultationPanel()
 
 /** 退出全屏或沉浸失败时不打开咨询，也不发起任何模型请求。 */
 async function openConsultation(): Promise<void> {
@@ -105,7 +97,9 @@ async function openConsultation(): Promise<void> {
     showToast('请先手动退出全屏再打开 AI 咨询', 'warning')
     return
   }
-  consultVisible.value = true
+  const mock = props.mock
+  const number = mock.questionNumber != null ? `第${mock.questionNumber}题` : `#${mock.id}`
+  await openQuestion('mock', mock.id, `模拟题 · ${mock.title || mock.source} · ${number}`)
 }
 </script>
 

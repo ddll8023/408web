@@ -29,13 +29,6 @@
       />
     </div>
 
-    <AiConsultationDialog
-      v-if="consultVisible"
-      :visible="consultVisible"
-      question-kind="exam"
-      :question-id="exam.id"
-      @update:visible="consultVisible = false"
-    />
   </div>
 </template>
 
@@ -50,14 +43,14 @@ import type { ExamQuestion } from '@/types'
  */
 import ExamItemHeader from '@/components/business/ExamItemHeader.vue'
 import ExamQuestionCard from '@/components/business/ExamQuestionCard.vue'
-import AiConsultationDialog from '@/components/business/AiConsultationDialog.vue'
+import { useAiConsultationPanel } from '@/composables/useAiConsultationPanel'
 import { useQuestionFullscreen } from '@/composables/useQuestionFullscreen'
 import { useToast } from '@/composables/useToast'
 
 /**
  * Props 定义
  */
-defineProps({
+const props = defineProps({
   /** 题目对象 */
   exam: {
     type: Object as PropType<ExamQuestion>,
@@ -105,8 +98,7 @@ const { isActive, isImmersive, toggleFullscreen, exit } = useQuestionFullscreen(
 
 const { showToast } = useToast()
 
-/** 咨询面板可见性；面板按需挂载，关闭后不再保留内存会话。 */
-const consultVisible = ref(false)
+const { openQuestion } = useAiConsultationPanel()
 
 /** 退出全屏或沉浸失败时不打开咨询，也不发起任何模型请求。 */
 async function openConsultation(): Promise<void> {
@@ -115,7 +107,11 @@ async function openConsultation(): Promise<void> {
     showToast('请先手动退出全屏再打开 AI 咨询', 'warning')
     return
   }
-  consultVisible.value = true
+  const exam = props.exam
+  const label = exam.questionNumber != null
+    ? `${exam.year}年 第${exam.questionNumber}题`
+    : `${exam.year}年 真题 #${exam.id}`
+  await openQuestion('exam', exam.id, label)
 }
 </script>
 
