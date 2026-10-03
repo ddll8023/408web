@@ -392,8 +392,9 @@ const optionStatusLabel = (key: string) => {
   transition: background-color 0.15s ease, border-color 0.15s ease;
 }
 
+/* 基准尺寸取 0：长选项不按 max-content 参与 flex 分行，避免正文被挤到徽标下方单独占一行。 */
 .exam-question-card__option-body {
-  flex: 1 1 auto;
+  flex: 1 1 0;
   min-width: 0;
 }
 
@@ -404,6 +405,7 @@ const optionStatusLabel = (key: string) => {
 
 .exam-question-card__option-letter {
   display: flex;
+  flex: none;
   align-items: center;
   justify-content: center;
   width: 28px;
@@ -416,6 +418,11 @@ const optionStatusLabel = (key: string) => {
   font-weight: 600;
   line-height: 1;
   transition: color 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
+}
+
+/* 取消 github 主题给正文的 16px 32px 32px 内边距，使选项与题干排版一致。 */
+.exam-question-card__option-body :deep(.github-markdown-body) {
+  padding: 0;
 }
 
 /* 仅调整阅读选项的排版，保留 Markdown 的媒体尺寸变量和复制规则。 */
@@ -549,8 +556,9 @@ const optionStatusLabel = (key: string) => {
     padding: 8px 10px;
   }
 
-  /* 窄屏状态下状态文字独占一行，不再靠右挤压题干。 */
+  /* 窄屏状态下状态文字独占一行，不再靠右挤压题干；基准宽度占满整行以保证换行。 */
   .exam-question-card__option-status {
+    flex-basis: 100%;
     margin-left: 0;
     margin-top: 0;
   }
