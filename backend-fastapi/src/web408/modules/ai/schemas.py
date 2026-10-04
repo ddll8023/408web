@@ -5,8 +5,9 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, Field, SecretStr, StringConstraints, field_validator
 
 
-# 与 Node 的准入窗口一致；必须在读取配置之前固定，解密和网络等待不延长。
+# 与历史实现的准入窗口一致；必须在读取配置之前固定，解密和网络等待不延长。
 AGENT_ADMISSION_MS = 60_000
+# 配置层输入模式；本批运行时不读取该字段，按题目是否含图片自动判定，仅保留给历史配置。
 AiInputMode = Literal["text", "text_image"]
 ProviderId = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=100, pattern=r"^[a-z0-9][a-z0-9-]*$")]
 ModelId = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=200)]
@@ -33,7 +34,7 @@ class AiProviderSaveRequest(AiProviderRequest):
     @field_validator("api_key")
     @classmethod
     def normalize_api_key(cls, value: SecretStr | None) -> SecretStr | None:
-        """空白保留原 Key，认证载荷与 Node 一致只接受可打印 ASCII。"""
+        """空白保留原 Key，认证载荷与历史实现一致只接受可打印 ASCII。"""
         if value is None:
             return None
         key = value.get_secret_value().strip()
@@ -130,7 +131,7 @@ class AiModelsView(AiSchema):
 
 
 class AiModelCheckRequest(AiProviderRequest):
-    """显式确认一次真实请求，UUID 防止相同请求在 Node 重复执行。"""
+    """显式确认一次真实请求，UUID 防止同一请求被重复执行。"""
 
     model_id: ModelId
     provider_revision: UUID

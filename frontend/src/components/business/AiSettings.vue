@@ -20,7 +20,7 @@
             </div>
             <CustomButton v-if="savedSettings" size="sm" :disabled="busy" :loading="operation === 'clear'" @click="clearDefault">清除默认选择</CustomButton>
           </div>
-          <p class="mt-2 text-xs text-ink-soft">题目页聊天入口和图片处理仍未接入；完成配置不代表整项题目咨询已完成。</p>
+          <p class="mt-2 text-xs text-ink-soft">保存与启用不代表账号具备该型号的调用权限，权限在真实咨询时才会暴露。</p>
         </div>
         <div class="grid gap-5 xl:grid-cols-[220px_minmax(0,1fr)]">
           <aside class="min-w-0">
@@ -53,7 +53,7 @@
                     <Switch id="ai-consultation-enabled" v-model="defaultEnabled" :disabled="busy" aria-label="启用默认题目咨询配置" />
                     <FormLabel label="启用默认题目咨询配置" for-id="ai-consultation-enabled" />
                   </div>
-                  <p class="text-xs text-ink-soft">当前默认输入为纯文本。模型图像能力由目录元数据标注，本站图片咨询链路尚未完成。</p>
+                  <p class="text-xs text-ink-soft">题目中的本站上传图片会随咨询自动发送（受张数与体积上限限制）。模型图像能力由目录元数据标注，不支持图像的型号无法咨询含图题目。</p>
                   <div class="flex flex-wrap gap-2">
                     <CustomButton type="primary" :disabled="!canSaveDefault" :loading="operation === 'save'" @click="saveDefault">保存为默认咨询模型</CustomButton>
                     <CustomButton :disabled="busy" @click="loadSettings">重新加载配置</CustomButton>

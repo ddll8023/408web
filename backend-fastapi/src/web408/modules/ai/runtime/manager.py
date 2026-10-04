@@ -3,6 +3,7 @@
 启动只准备内存结构与回收任务，不读取凭据、不联网、不预热模型；
 调用方传入经过认证与校验的账号、双修订、型号和已解密凭据，模块不回写数据库。
 """
+from collections.abc import Sequence
 from dataclasses import dataclass
 
 from web408.core.config import AiConfig
@@ -23,7 +24,13 @@ from web408.modules.ai.schemas import (
     AiModelCheckView,
     AiModelsView,
 )
-from web408.modules.ai.session_schemas import AiSessionActionView, AiSessionView, QuestionKind
+from web408.modules.ai.session_schemas import (
+    AiOmittedQuestionImage,
+    AiQuestionImage,
+    AiSessionActionView,
+    AiSessionView,
+    QuestionKind,
+)
 
 
 @dataclass(slots=True)
@@ -104,14 +111,16 @@ class AiRuntime:
 
     def create_session(self, *, user_id: int, provider_id: str, model_id: str, kind: QuestionKind,
                        question_id: int, snapshot: str, default_revision: str, provider_revision: str,
-                       admission_expires_at: int, api_key: str) -> AiSessionView:
-        """固定可信快照创建内存会话；创建本身不调用模型。"""
+                       admission_expires_at: int, api_key: str, images: Sequence[AiQuestionImage] = (),
+                       omitted: Sequence[AiOmittedQuestionImage] = ()) -> AiSessionView:
+        """固定可信快照与已读取的图片数据创建内存会话；创建本身不调用模型。"""
         if provider_id != PROVIDER_ID:
             raise AiRuntimeError("PROVIDER_UNSUPPORTED")
         return self.consultation.create(
             user_id=user_id, model_id=model_id, kind=kind, question_id=question_id, snapshot=snapshot,
             default_revision=default_revision, provider_revision=provider_revision,
             admission_expires_at=admission_expires_at, api_key=api_key,
+            images=images, omitted=omitted,
         )
 
     def reserve_message(self, *, user_id: int, session_id: str, request_id: str, message: str,

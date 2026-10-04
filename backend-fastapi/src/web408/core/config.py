@@ -130,6 +130,13 @@ class AiConfig(BaseModel):
     check_timeout_seconds: int = Field(default=30, ge=5, le=120)
     question_text_max_bytes: int = Field(default=65536, ge=1024, le=65536)
     stream_event_max_bytes: int = Field(default=524288, ge=131072, le=1048576)
+    # 题目图片预算：单题张数、单图字节与单题总字节，超限的图不发送只登记原因。
+    question_image_max_count: int = Field(default=6, ge=0, le=20)
+    question_image_max_bytes: int = Field(default=4 * 1024 * 1024, ge=1024, le=20 * 1024 * 1024)
+    question_image_total_max_bytes: int = Field(default=8 * 1024 * 1024, ge=1024, le=40 * 1024 * 1024)
+    # 内联 SVG 以源码文本进入上下文，单独限额，不得挤占题目文本上限。
+    question_svg_max_bytes: int = Field(default=8192, ge=0, le=65536)
+    question_svg_total_max_bytes: int = Field(default=32768, ge=0, le=65536)
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 

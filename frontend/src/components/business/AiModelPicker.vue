@@ -32,7 +32,7 @@
         <CustomButton size="sm" :disabled="disabled || busy || page.offset + page.limit >= page.total" @click="load(page.offset + page.limit)">下一页</CustomButton>
       </div>
     </div>
-    <p class="text-xs text-ink-soft">模型支持图像不代表本站已完成图片咨询链路。未收录型号不会按猜测的协议接入。</p>
+    <p class="text-xs text-ink-soft">「图像」表示该型号支持图像输入，含本站上传图片的题目只能选择这类型号。未收录型号不会按猜测的协议接入。</p>
   </section>
 </template>
 

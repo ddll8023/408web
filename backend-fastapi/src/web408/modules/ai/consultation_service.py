@@ -1,4 +1,4 @@
-"""文本咨询编排，释放数据库读事务后再读取本地凭据或等待模型生成。"""
+"""题目咨询编排，释放数据库读事务后再读取本地凭据、题目图片或等待模型生成。"""
 import asyncio
 from time import time_ns
 from uuid import UUID
@@ -9,6 +9,7 @@ from web408.core.config import settings
 from web408.core.exceptions import ConflictException, ValidationException
 from web408.modules.ai.key_cipher import decrypt_api_key
 from web408.modules.ai.question_context import build_question_snapshot
+from web408.modules.ai.question_images import load_question_images
 from web408.modules.ai.repository import AiSettingsRepository
 from web408.modules.ai.runtime.manager import AiRuntime
 from web408.modules.ai.runtime.session import ADMISSION_MS, AiStream
@@ -49,17 +50,26 @@ class AiConsultationService:
                 self.session,
                 request.question_kind,
                 request.question_id,
-                settings.ai.question_text_max_bytes,
+                settings.ai,
             )
         finally:
             # AuthUser 依赖与业务读取共用会话；只复制普通字段，不跨文件或网络等待使用 ORM。
             await self.session.rollback()
+        # 图片字节读取属于受控本地文件 IO，不占用数据库读事务，也不发起网络请求。
+        payload = await load_question_images(
+            snapshot.images,
+            settings.upload.upload_dir,
+            max_count=settings.ai.question_image_max_count,
+            max_image_bytes=settings.ai.question_image_max_bytes,
+            max_total_bytes=settings.ai.question_image_total_max_bytes,
+        )
         api_key = await asyncio.to_thread(decrypt_api_key, ciphertext, key_version)
         if not api_key.get_secret_value().strip():
             raise ValidationException("AI 凭据为空，请重新填写 API Key")
         return self.runtime.create_session(
             user_id=user_id, provider_id=provider_id, model_id=model_id,
             kind=request.question_kind, question_id=request.question_id, snapshot=snapshot.text,
+            images=payload.images, omitted=payload.omitted,
             default_revision=revision, provider_revision=provider_revision,
             admission_expires_at=expires_at, api_key=api_key.get_secret_value(),
         )

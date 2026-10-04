@@ -136,8 +136,9 @@ class AiSettingsService:
         models = runtime.models(CatalogQuery(model_id=request.model_id, limit=1), request.provider_id)
         if not models.models:
             raise ValidationException("模型目录未收录该型号，请重新选择")
+        # 该字段本批不启用：运行时按题目是否含图片自动判定，此校验只防历史遗留值。
         if request.input_mode == "text_image" and not models.models[0].supports_images:
-            raise ValidationException("该型号不支持图像输入，请选择纯文本")
+            raise ValidationException("该型号不支持图像输入，请选择支持图像的型号")
         provider = await self.repository.get_provider(user_id, request.provider_id)
         if provider is None or not provider.enabled or not provider.api_key_ciphertext:
             raise ConflictException("请先保存并启用该供应商的 API Key")

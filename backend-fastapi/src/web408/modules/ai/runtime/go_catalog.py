@@ -19,7 +19,7 @@ SESSION_HEADER: Final = "x-opencode-session"
 CLIENT_HEADER: Final = "x-opencode-client"
 # Pi 0.99.2 使用的是 'pi'；本站不是 Pi 客户端，按设计约定不伪装客户端身份，只保留归属头。
 CLIENT_LABEL: Final = "408web"
-# Go 目录声明的图像缩放上限，本批不附图，仅作为注册表事实保留。
+# Go 目录声明的图像缩放上限；本站按原始字节发送，不在此缩放，仅作为注册表事实保留。
 REMOTE_IMAGE_MAX_BYTES: Final = 4718592
 
 _COMPLETIONS: Final = "openai-completions"

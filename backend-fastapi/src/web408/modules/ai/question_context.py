@@ -1,32 +1,106 @@
-"""从三类详情形成有界文本快照，忽略图片载荷和个人信息，不访问素材文件。"""
+"""从三类详情形成有界文本快照，登记题目图片引用但不读取素材文件。
+
+本模块只做文本解析与引用登记：图片字节由业务层按受控目录读取，本模块不接触文件系统。
+"""
+from collections.abc import Sequence
+from dataclasses import dataclass, replace
 from html.parser import HTMLParser
+from typing import Final
 
 from markdown_it import MarkdownIt
 from markdown_it.token import Token
 from sqlmodel.ext.asyncio.session import AsyncSession
 
+from web408.core.config import AiConfig
 from web408.core.exceptions import ValidationException
 from web408.modules.adaptation.query_service import AdaptationQueryService
 from web408.modules.adaptation.schemas import AdaptationResponse
-from web408.modules.ai.session_schemas import AiQuestionSnapshot, QuestionKind
+from web408.modules.ai.question_images import (
+    EXTERNAL_REASON,
+    INLINE_REASON,
+    OMIT_TEXTS,
+    SVG_REASON,
+    resolve_local_image,
+)
+from web408.modules.ai.session_schemas import (
+    AiOmittedQuestionImage,
+    AiQuestionImageRef,
+    AiQuestionSnapshot,
+    ImageOmissionReason,
+    QuestionKind,
+)
 from web408.modules.exam.query_service import ExamQueryService
 from web408.modules.exam.schemas import ExamResponse
 from web408.modules.mock.query_service import MockQueryService
 from web408.modules.mock.schemas import MockResponse
 
 
+# 快照头部固定说明：向模型交代图号语义与参考解析的可靠性，不随题目变化。
+SNAPSHOT_HEADER: Final = (
+    "当前题目固定文本快照（[图 N] 表示题目第 N 张图，是否附带见会话说明；参考解析不保证正确）："
+)
+
+
+@dataclass(frozen=True, slots=True)
+class SnapshotLimits:
+    """一次快照渲染的文本与 SVG 预算；图片数量与体积在业务层读取时再限制。"""
+
+    max_bytes: int
+    svg_max_bytes: int
+    svg_total_max_bytes: int
+    keep_svg: bool
+
+
+def _attribute(attrs: Sequence[tuple[str, str | None]], name: str) -> str | None:
+    """按属性名取 HTML 属性值；缺失时返回 None。"""
+    for key, value in attrs:
+        if key.lower() == name:
+            return value
+    return None
+
+
 class TextSnapshotBuilder(HTMLParser):
-    """结构化移除图像和非正文 HTML，保留文字、公式及普通代码。"""
+    """结构化移除图片和非正文 HTML，登记图片引用，保留文字、公式及普通代码。"""
 
-    def __init__(self) -> None:
+    def __init__(self, limits: SnapshotLimits) -> None:
+        """绑定本次渲染预算；图片引用与未附带登记跨字段累积，图号保持连续。"""
         super().__init__(convert_charrefs=True)
+        self.limits = limits
         self.parts: list[str] = []
-        self.omitted_images = 0
+        self.images: list[AiQuestionImageRef] = []
+        self.omitted: list[AiOmittedQuestionImage] = []
         self.suppressed_tags: list[str] = []
+        self.image_count = 0
+        self.svg_bytes = 0
 
-    def image_placeholder(self) -> None:
-        self.omitted_images += 1
-        self.parts.append(f"[图 {self.omitted_images}：纯文本咨询未提供]")
+    def omit(self, index: int, reason: ImageOmissionReason) -> None:
+        """登记一张未附带图片并写明固定原因；文案不携带文件名以外任何地址信息。"""
+        self.omitted.append(AiOmittedQuestionImage(index=index, reason=reason))
+        self.parts.append(f"[图 {index}：未附带（{OMIT_TEXTS[reason]}）]")
+
+    def image_placeholder(self, url: str | None, unresolved_reason: ImageOmissionReason) -> None:
+        """登记一次图片引用：能映射到本站上传目录就等待业务层读取，否则只留占位说明。"""
+        self.image_count += 1
+        index = self.image_count
+        resolved = resolve_local_image(url) if url else None
+        if resolved is None:
+            self.omit(index, unresolved_reason)
+            return
+        filename, media_type = resolved
+        self.images.append(AiQuestionImageRef(index=index, filename=filename, media_type=media_type))
+        self.parts.append(f"[图 {index}]")
+
+    def svg_block(self, source: str) -> None:
+        """内联 SVG 以源码文本进入上下文；超过单块或总量预算时回退为占位。"""
+        self.image_count += 1
+        index = self.image_count
+        size = len(source.encode("utf-8"))
+        if (not self.limits.keep_svg or size > self.limits.svg_max_bytes
+                or self.svg_bytes + size > self.limits.svg_total_max_bytes):
+            self.omit(index, SVG_REASON)
+            return
+        self.svg_bytes += size
+        self.parts.append(f"\n[图 {index} 为 SVG 源码，见下]\n```svg\n{source}\n```\n")
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         if self.suppressed_tags:
@@ -34,7 +108,7 @@ class TextSnapshotBuilder(HTMLParser):
                 self.suppressed_tags.append(tag)
             return
         if tag in {"svg", "img", "image"}:
-            self.image_placeholder()
+            self.image_placeholder(_attribute(attrs, "src"), INLINE_REASON)
         if tag in {"svg", "script", "style", "iframe", "object", "video"}:
             self.suppressed_tags.append(tag)
         elif tag in {"br", "p", "div", "li", "tr"}:
@@ -52,9 +126,11 @@ class TextSnapshotBuilder(HTMLParser):
             self.parts.append("\n")
 
     def handle_startendtag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
-        if not self.suppressed_tags and tag in {"svg", "img", "image"}:
-            self.image_placeholder()
-        elif not self.suppressed_tags and tag in {"br", "hr"}:
+        if self.suppressed_tags:
+            return
+        if tag in {"svg", "img", "image"}:
+            self.image_placeholder(_attribute(attrs, "src"), INLINE_REASON)
+        elif tag in {"br", "hr"}:
             self.parts.append("\n")
 
     def handle_data(self, data: str) -> None:
@@ -68,11 +144,11 @@ class TextSnapshotBuilder(HTMLParser):
             elif self.suppressed_tags:
                 continue
             elif token.type == "image":
-                self.image_placeholder()
+                self.image_placeholder(token.attrGet("src"), EXTERNAL_REASON)
             elif token.type == "fence":
                 language = token.info.strip().split(maxsplit=1)
                 if language and language[0].lower() == "svg":
-                    self.image_placeholder()
+                    self.svg_block(token.content)
                 else:
                     self.parts.append(f"\n{token.content}\n")
             elif token.children:
@@ -108,11 +184,22 @@ def ensure_text_budget(values: list[str], max_bytes: int) -> None:
         raise ValidationException("题目包含无效 Unicode 字符，无法创建咨询快照") from None
 
 
+def _render_fields(
+    fields: Sequence[tuple[str, str]],
+    limits: SnapshotLimits,
+) -> tuple[str, list[AiQuestionImageRef], list[AiOmittedQuestionImage], int]:
+    """按给定预算渲染一次完整快照，返回文本、图片引用、未附带登记与 SVG 实际字节。"""
+    builder = TextSnapshotBuilder(limits)
+    rendered = [f"{label}：\n{builder.convert(value)}" for label, value in fields]
+    text = SNAPSHOT_HEADER + "\n\n" + "\n\n".join(rendered)
+    return text, builder.images, builder.omitted, builder.svg_bytes
+
+
 async def build_question_snapshot(
     session: AsyncSession,
     kind: QuestionKind,
     question_id: int,
-    max_bytes: int,
+    config: AiConfig,
 ) -> AiQuestionSnapshot:
     """复用详情查询，只选择题型、题干、选项、参考解析和目录信息。"""
     question: ExamResponse | MockResponse | AdaptationResponse
@@ -132,14 +219,23 @@ async def build_question_snapshot(
     if question.options is not None:
         fields.extend((f"选项 {letter}", text) for letter, text in question.options.model_dump().items())
     fields.append(("参考答案解析", question.answer or "未提供"))
-    ensure_text_budget([value for _, value in fields], max_bytes)
-    builder = TextSnapshotBuilder()
-    rendered = [f"{label}：\n{builder.convert(value)}" for label, value in fields]
-    text = "当前题目固定文本快照（图片未提供，参考解析不保证正确）：\n\n" + "\n\n".join(rendered)
-    ensure_text_budget([text], max_bytes)
+    ensure_text_budget([value for _, value in fields], config.question_text_max_bytes)
+
+    limits = SnapshotLimits(
+        max_bytes=config.question_text_max_bytes,
+        svg_max_bytes=config.question_svg_max_bytes,
+        svg_total_max_bytes=config.question_svg_total_max_bytes,
+        keep_svg=True,
+    )
+    text, images, omitted, svg_bytes = _render_fields(fields, limits)
+    if svg_bytes and len(text.encode("utf-8")) > limits.max_bytes:
+        # SVG 源码把快照顶出文本上限时整体回退为占位，保证改动前可用的题目仍可咨询。
+        text, images, omitted, _ = _render_fields(fields, replace(limits, keep_svg=False))
+    ensure_text_budget([text], config.question_text_max_bytes)
     return AiQuestionSnapshot(
         question_kind=kind,
         question_id=question_id,
         text=text,
-        omitted_images=builder.omitted_images,
+        images=tuple(images),
+        omitted=tuple(omitted),
     )

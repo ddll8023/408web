@@ -7,7 +7,7 @@ import type { ApiResponse } from '@/types'
 import { API_BASE_URL } from './request'
 import { getToken } from '@/utils/token'
 import { convertKeysToSnake } from '@/utils/convertKeys'
-import { aiRequest } from './ai'
+import { aiRequest, type AiInputMode } from './ai'
 import { AiSettingsError, boolean, integer, invalid, providerId, record, revision, string } from './aiGuards'
 
 /** 三类题目共用一套咨询会话，题目归属由后端按认证账号重新读取。 */
@@ -20,14 +20,14 @@ export interface AiSessionView {
   questionKind: AiQuestionKind
   questionId: number
   model: AiSessionModelView
-  inputMode: 'text'
+  inputMode: AiInputMode
   contextNote: string
 }
 export interface AiStreamMetaView {
   sessionId: string
   requestId: string
   model: AiSessionModelView
-  inputMode: 'text'
+  inputMode: AiInputMode
 }
 export interface AiStreamErrorView { code: number; message: string }
 export interface AiStreamDoneView {
@@ -65,9 +65,9 @@ function parseStreamModel(value: unknown): AiSessionModelView {
   return { provider: providerId(item.provider), id: string(item.id), name: string(item.name),
     supportsImages: boolean(item.supports_images) }
 }
-/** 只接受文本输入模式，图像链路未实现前不把其他模式当作可用。 */
-function requireTextMode(value: unknown): 'text' {
-  if (value !== 'text') return invalid()
+/** 后端按本次是否真的附带图片返回输入模式；未声明的模式一律按格式错误处理。 */
+function requireInputMode(value: unknown): AiInputMode {
+  if (value !== 'text' && value !== 'text_image') return invalid()
   return value
 }
 /** 解析会话创建结果（camelCase），题目与型号都必须是后端已核对的公开字段。 */
@@ -76,13 +76,13 @@ function parseSession(value: unknown): AiSessionView {
   const kind = item.questionKind
   if (kind !== 'exam' && kind !== 'mock' && kind !== 'adaptation') return invalid()
   return { sessionId: revision(item.sessionId), questionKind: kind, questionId: integer(item.questionId),
-    model: parseSessionModel(item.model), inputMode: requireTextMode(item.inputMode), contextNote: string(item.contextNote, 300) }
+    model: parseSessionModel(item.model), inputMode: requireInputMode(item.inputMode), contextNote: string(item.contextNote, 300) }
 }
 /** 解析首帧 meta（snake_case 原文）；缺少 meta 时无法把增量绑定到本次提问。 */
 function parseMeta(value: unknown): AiStreamMetaView {
   const item = record(value)
   return { sessionId: revision(item.session_id), requestId: revision(item.request_id),
-    model: parseStreamModel(item.model), inputMode: requireTextMode(item.input_mode) }
+    model: parseStreamModel(item.model), inputMode: requireInputMode(item.input_mode) }
 }
 /** 解析流错误对象，拒绝未声明的错误码以免误报为可重试。 */
 function parseStreamError(value: unknown): AiStreamErrorView {

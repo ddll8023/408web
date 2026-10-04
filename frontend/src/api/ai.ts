@@ -8,6 +8,7 @@ import { AiSettingsError, boolean, integer, invalid, providerId, record, revisio
 // 错误类型随共用校验迁出，仍从本模块导出，既有引用点无需改动。
 export { AiSettingsError } from './aiGuards'
 
+/** 配置层的输入模式取值；本批运行时不读取该字段，是否带图按题目是否含图片自动判定。 */
 export type AiInputMode = 'text' | 'text_image'
 export interface AiSettingsView {
   providerId: string

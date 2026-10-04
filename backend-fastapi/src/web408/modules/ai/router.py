@@ -1,4 +1,4 @@
-"""AI 设置与文本咨询接口，沿用网站鉴权，流响应保证断线后的原请求清理。"""
+"""AI 设置与题目咨询接口，沿用网站鉴权，流响应保证断线后的原请求清理。"""
 import asyncio
 from collections.abc import Coroutine
 from typing import Annotated, TypeVar
@@ -161,7 +161,7 @@ async def delete_settings(
     return ApiResponse(message="AI 设置已清除")
 
 
-@router.post("/sessions/create", response_model=ApiResponse[AiSessionView], summary="创建文本咨询会话")
+@router.post("/sessions/create", response_model=ApiResponse[AiSessionView], summary="创建题目咨询会话")
 async def create_session(
     request: AiSessionCreateRequest,
     session: SessionDep,
