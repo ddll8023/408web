@@ -24,28 +24,21 @@ class ReportingExporter:
     @staticmethod
     def flatten_category_rows(
         nodes: list[ExamCategoryStatsTreeItem],
-    ) -> list[tuple[str, str, int, int, int]]:
-        """按树顺序展平分类，并选择章节或知识点的统计口径。"""
-        rows: list[tuple[str, str, int, int, int]] = []
+    ) -> list[tuple[str, int, int, int]]:
+        """按树顺序展平分类，并选择章节或知识点的统计口径。
+
+        层级只由名称前的全角缩进表示，不再输出「统计口径」列：页面已改用章级权重带
+        与分类组标记表达同样的信息，导出与页面保持同一口径。
+        """
+        rows: list[tuple[str, int, int, int]] = []
 
         def append_nodes(
             current_nodes: list[ExamCategoryStatsTreeItem],
             level: int,
         ) -> None:
             for node in current_nodes:
-                is_chapter = level == 0 and not node.is_unfiled
                 has_children = bool(node.children)
                 use_subtree = has_children or level == 0
-                if node.is_unfiled and level == 0:
-                    scope = "未归档汇总"
-                elif is_chapter:
-                    scope = "章节合计"
-                elif has_children:
-                    scope = "知识点组汇总"
-                elif node.is_unfiled:
-                    scope = "未归档标签"
-                else:
-                    scope = "知识点直接引用"
                 choice_count = (
                     node.subtree_choice_count
                     if use_subtree
@@ -58,7 +51,7 @@ class ReportingExporter:
                 )
                 count = node.subtree_count if use_subtree else node.count
                 label = f"{'　' * level}{node.category_name}"
-                rows.append((label, scope, choice_count, subjective_count, count))
+                rows.append((label, choice_count, subjective_count, count))
                 append_nodes(node.children, level + 1)
 
         append_nodes(nodes, 0)
@@ -77,13 +70,15 @@ class ReportingExporter:
             "",
             "## 分类统计",
             "",
+            "章级为子树合计，知识点为自身引用；分类名前的全角缩进表示层级。",
+            "",
         ]
         if not stats.category_tree:
             lines.extend(
                 [
-                    "| 分类 | 统计口径 | 选择题数量 | 主观题数量 | 总题数 |",
-                    "| --- | --- | ---: | ---: | ---: |",
-                    "| 暂无分类数据 | - | 0 | 0 | 0 |",
+                    "| 分类 | 选择题数量 | 主观题数量 | 总题数 |",
+                    "| --- | ---: | ---: | ---: |",
+                    "| 暂无分类数据 | 0 | 0 | 0 |",
                 ]
             )
             return "\n".join(lines).rstrip() + "\n"
@@ -93,19 +88,18 @@ class ReportingExporter:
                 [
                     f"### {subject_stats.subject_name}",
                     "",
-                    "| 分类 | 统计口径 | 选择题数量 | 主观题数量 | 总题数 |",
-                    "| --- | --- | ---: | ---: | ---: |",
+                    "| 分类 | 选择题数量 | 主观题数量 | 总题数 |",
+                    "| --- | ---: | ---: | ---: |",
                 ]
             )
             rows = cls.flatten_category_rows(subject_stats.categories)
             if not rows:
-                lines.append("| 暂无分类数据 | - | 0 | 0 | 0 |")
+                lines.append("| 暂无分类数据 | 0 | 0 | 0 |")
                 continue
-            for label, scope, choice_count, subjective_count, count in rows:
+            for label, choice_count, subjective_count, count in rows:
                 lines.append(
-                    "| {name} | {scope} | {choice} | {subjective} | {count} |".format(
+                    "| {name} | {choice} | {subjective} | {count} |".format(
                         name=label.replace("|", "\\|"),
-                        scope=scope.replace("|", "\\|"),
                         choice=choice_count,
                         subjective=subjective_count,
                         count=count,
@@ -127,28 +121,26 @@ class ReportingExporter:
             [
                 "科目",
                 "分类",
-                "统计口径",
                 "选择题数量",
                 "主观题数量",
                 "总题数",
             ],
         ]
         for subject_stats in stats.category_tree:
-            for label, scope, choice_count, subjective_count, count in cls.flatten_category_rows(
+            for label, choice_count, subjective_count, count in cls.flatten_category_rows(
                 subject_stats.categories
             ):
                 rows.append(
                     [
                         subject_stats.subject_name,
                         label,
-                        scope,
                         choice_count,
                         subjective_count,
                         count,
                     ]
                 )
         if len(rows) == 6:
-            rows.append(["", "暂无分类数据", "-", 0, 0, 0])
+            rows.append(["", "暂无分类数据", 0, 0, 0])
 
         return cls.build_xlsx(rows)
     @staticmethod

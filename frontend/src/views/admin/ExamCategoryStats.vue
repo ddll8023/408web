@@ -1,4 +1,4 @@
-<!-- 真题分类统计页面：支持响应式筛选、分组和横向明细表。 -->
+<!-- 真题分类统计页面：按科目展示章节权重带与两层明细行（名称行 + 度量行），支持筛选、排序、折叠与导出。 -->
 <template>
   <main class="min-h-[var(--app-page-height)]">
     <div class="stats-page mx-auto max-w-[1400px] px-4 py-6 md:px-6 md:py-8">
@@ -54,9 +54,8 @@
             id="stats-subject"
             v-model="statsSubjectId"
             :options="subjectOptions"
-            placeholder="全部科目"
+            placeholder="请选择科目"
             aria-label="统计科目"
-            clearable
             @change="loadStats"
             class="w-full sm:w-64"
           />
@@ -117,7 +116,16 @@
                   正在刷新
                 </span>
               </div>
-              <p class="mb-0 mt-1 text-xs text-gray-500">章节与分类组显示子树合计，末级知识点显示自身引用；总题数紧跟名称，题型分布列于下方，条形用于比较同章节分类题量。</p>
+              <ul class="stats-legend" aria-label="分类明细阅读说明">
+                <li><span class="stats-legend__marker is-parent" aria-hidden="true"></span>分类组（汇总其下级知识点）</li>
+                <li><span class="stats-legend__marker is-leaf" aria-hidden="true"></span>知识点（自身引用题数）</li>
+                <li><span class="stats-legend__tick" aria-hidden="true"></span>0 题只留刻度，不画空轨道</li>
+                <li>题量右侧「选 · 主」＝选择题 · 主观题</li>
+                <li class="stats-legend__wide">
+                  <span class="stats-legend__seg" aria-hidden="true"><i class="is-choice"></i><i class="is-subject"></i></span>
+                  条长按分组最大值等比缩放：章级满格＝本科目最大章节题量，子级满格＝同章节最大知识点，只用于同组内比较。
+                </li>
+              </ul>
             </div>
             <div class="flex items-center gap-1">
               <CustomButton type="text" size="sm" @click="expandAllSections">
@@ -156,103 +164,71 @@
                 >
                   <button
                     type="button"
-                    class="flex w-full items-start gap-3 px-4 py-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent md:items-center"
-                    :class="section.row.isUnfiled ? 'bg-amber-50 hover:bg-amber-100' : 'bg-surface/70 hover:bg-surface'"
+                    class="stats-band"
+                    :class="{ 'is-unfiled': section.row.isUnfiled }"
                     :aria-expanded="isSectionExpanded(section.key)"
                     :aria-controls="`${getSectionDomId(section.key)}-content`"
                     @click="toggleSection(section.key)"
                   >
-                    <span
-                      class="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-xs md:mt-0"
-                      :class="section.row.isUnfiled ? 'bg-amber-100 text-amber-700' : 'bg-accent/10 text-accent'"
-                    >
-                      <font-awesome-icon
-                        :icon="isSectionExpanded(section.key) ? ['fas', 'chevron-down'] : ['fas', 'chevron-right']"
-                        aria-hidden="true"
-                      />
+                    <span class="stats-band__no">{{ section.chapterNo }}</span>
+                    <span class="stats-band__name">
+                      <span class="stats-band__title">{{ section.row.category }}</span>
+                      <span v-if="!section.row.enabled && !section.row.isUnfiled" class="stats-band__tag">已禁用</span>
                     </span>
-                    <div class="flex min-w-0 flex-1 flex-wrap items-center gap-x-2.5 gap-y-2">
-                      <span
-                        class="flex h-7 w-7 shrink-0 items-center justify-center rounded-md"
-                        :class="section.row.isUnfiled ? 'bg-amber-500 text-white' : 'bg-accent text-white'"
-                      >
-                        <font-awesome-icon :icon="section.row.isUnfiled ? ['fas', 'triangle-exclamation'] : ['fas', 'folder-open']" aria-hidden="true" />
-                      </span>
-                      <span class="min-w-0 break-words font-semibold" :class="section.row.isUnfiled ? 'text-amber-900' : 'text-gray-800'">
-                        {{ section.row.category }}
-                      </span>
-                      <span
-                        class="inline-flex shrink-0 items-baseline gap-1 rounded-md px-2 py-1"
-                        :class="section.row.isUnfiled ? 'bg-white text-amber-800' : 'bg-white text-accent'"
-                      >
-                        <b class="text-base font-semibold">{{ formatNumber(section.row.count) }}</b>
-                        <span class="text-[11px]">题</span>
-                      </span>
-                      <span
-                        class="shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium"
-                        :class="section.row.isUnfiled ? 'bg-white/80 text-amber-700' : 'bg-white text-gray-500'"
-                      >
-                        {{ section.row.scope }}
-                      </span>
-                      <span v-if="!section.row.enabled && !section.row.isUnfiled" class="shrink-0 rounded-full bg-orange-50 px-2 py-0.5 text-[11px] font-medium text-orange-600">已禁用</span>
-                      <span class="inline-flex items-center gap-1 whitespace-nowrap rounded-md bg-white/80 px-2 py-1 text-[11px] text-[#5D88AE]">
-                        选择题 <b class="font-semibold">{{ formatNumber(section.row.choiceCount) }}</b>
-                      </span>
-                      <span class="inline-flex items-center gap-1 whitespace-nowrap rounded-md bg-white/80 px-2 py-1 text-[11px] text-[#B87542]">
-                        主观题 <b class="font-semibold">{{ formatNumber(section.row.subjectiveCount) }}</b>
-                      </span>
-                    </div>
+                    <span class="stats-band__count">
+                      <b>{{ formatNumber(section.row.count) }}</b><span class="unit"> 题</span>
+                    </span>
+                    <span class="stats-band__share">占科目 {{ getShare(section.row.count, view.group.totalCount) }}</span>
+                    <span class="stats-band__caret" aria-hidden="true"></span>
+                    <span class="sr-only">
+                      选择题 {{ formatNumber(section.row.choiceCount) }} 题，主观题 {{ formatNumber(section.row.subjectiveCount) }} 题
+                    </span>
+                    <span class="stats-band__strip" aria-hidden="true">
+                      <i class="is-choice" :style="{ width: getBarWidth(section.row.choiceCount, view.maxChapterCount) }"></i>
+                      <i
+                        class="is-subject"
+                        :style="{
+                          left: getBarWidth(section.row.choiceCount, view.maxChapterCount),
+                          width: getBarWidth(section.row.subjectiveCount, view.maxChapterCount)
+                        }"
+                      ></i>
+                    </span>
                   </button>
 
                   <div v-show="isSectionExpanded(section.key)" :id="`${getSectionDomId(section.key)}-content`" class="border-t border-gray-100 bg-white">
-                    <div v-if="section.children.length > 0" class="bg-white">
+                    <div v-if="section.children.length > 0">
                       <ul
-                        class="divide-y divide-gray-100 px-4"
+                        class="stats-rows"
                         :aria-label="`${section.row.category}下级分类统计`"
                       >
                         <li
                           v-for="row in section.children"
                           :key="row.id"
-                          class="px-2 py-3 first:pt-4 last:pb-4"
-                          :class="row.isUnfiled ? 'bg-amber-50/60' : ''"
+                          class="stats-row"
+                          :data-level="getRowDepth(row.level)"
+                          :class="{
+                            'is-group': row.hasChildren,
+                            'is-disabled': !row.enabled && !row.isUnfiled,
+                            'is-unfiled': row.isUnfiled
+                          }"
                         >
-                          <div
-                            class="flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-2"
-                            :style="{ paddingLeft: `${Math.max(0, row.level - 1) * 1.25}rem` }"
-                          >
-                            <span class="tree-marker" :class="row.hasChildren ? 'tree-marker-parent' : 'tree-marker-leaf'" aria-hidden="true"></span>
-                            <span class="min-w-0 break-words text-sm font-medium" :class="row.enabled || row.isUnfiled ? 'text-gray-700' : 'text-gray-400'">
-                              {{ row.category }}
-                            </span>
-                            <span class="inline-flex shrink-0 items-baseline gap-1 rounded-md bg-accent/10 px-2 py-1 text-accent">
-                              <b class="text-sm font-semibold">{{ formatNumber(row.count) }}</b>
-                              <span class="text-[10px]">题</span>
-                            </span>
-                            <div class="h-1.5 w-14 shrink-0 overflow-hidden rounded-full bg-gray-100 md:w-20" aria-hidden="true">
-                              <div
-                                class="h-full rounded-full bg-accent/65 transition-[width] duration-300"
-                                :style="{ width: getBarWidth(row.count, section.maxChildCount) }"
-                              ></div>
-                            </div>
-                            <span
-                              class="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium"
-                              :class="row.isUnfiled ? 'bg-gray-100 text-gray-500' : row.hasChildren ? 'bg-accent/10 text-accent' : 'bg-blue-50 text-blue-600'"
-                            >
-                              {{ row.scope }}
-                            </span>
-                            <span v-if="!row.enabled && !row.isUnfiled" class="shrink-0 text-[10px] text-orange-500">已禁用</span>
-                          </div>
-                          <div
-                            class="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs"
-                            :style="{ paddingLeft: `${Math.max(0, row.level - 1) * 1.25 + 1.25}rem` }"
-                          >
-                            <span class="inline-flex items-center gap-1 rounded-md bg-blue-50 px-2 py-1 text-[#5D88AE]">
-                              选择题 <b class="font-semibold">{{ formatNumber(row.choiceCount) }}</b>
-                            </span>
-                            <span class="inline-flex items-center gap-1 rounded-md bg-orange-50 px-2 py-1 text-[#B87542]">
-                              主观题 <b class="font-semibold">{{ formatNumber(row.subjectiveCount) }}</b>
-                            </span>
-                          </div>
+                          <span class="stats-row__name">
+                            <i class="stats-row__marker" :class="row.hasChildren ? 'is-parent' : 'is-leaf'" aria-hidden="true"></i>
+                            <span class="stats-row__text" :title="row.category">{{ row.category }}</span>
+                            <span v-if="!row.enabled && !row.isUnfiled" class="stats-row__tag is-disabled">已禁用</span>
+                            <span v-if="row.isUnfiled" class="stats-row__tag is-unfiled">未归档</span>
+                          </span>
+                          <span class="stats-row__count">
+                            <b>{{ formatNumber(row.count) }}</b><span class="unit"> 题</span>
+                          </span>
+                          <span class="stats-row__types">
+                            <span class="key">选</span><b class="is-choice">{{ formatNumber(row.choiceCount) }}</b>
+                            <span class="sep">·</span>
+                            <span class="key">主</span><b class="is-subject">{{ formatNumber(row.subjectiveCount) }}</b>
+                          </span>
+                          <span class="stats-row__rail" :data-zero="row.count <= 0" aria-hidden="true">
+                            <i :style="{ width: getBarWidth(row.count, section.maxChildCount) }"></i>
+                          </span>
                         </li>
                       </ul>
                     </div>
@@ -335,11 +311,8 @@ type DisplayCounts = {
 
 type StatsRow = DisplayCounts & {
   id: string
-  subjectName: string
   category: string
-  scope: string
   level: number
-  isChapter: boolean
   hasChildren: boolean
   enabled: boolean
   isUnfiled: boolean
@@ -350,6 +323,8 @@ type CategorySection = {
   row: StatsRow
   children: StatsRow[]
   maxChildCount: number
+  /** 章号：本科目目录顺序序号，未归档块为「!」；切换排序后保持不变 */
+  chapterNo: string
 }
 
 type StatsGroupView = {
@@ -357,6 +332,8 @@ type StatsGroupView = {
   chapters: CategorySection[]
   unfiled: CategorySection[]
   sections: CategorySection[]
+  /** 本科目最大正式章节题量，作为章级权重带的满格基准 */
+  maxChapterCount: number
 }
 
 const statsLoading = ref(false)
@@ -400,31 +377,17 @@ const getDisplayCounts = (node: ExamCategoryStatsTreeItem, level: number): Displ
   }
 }
 
-const getScope = (node: ExamCategoryStatsTreeItem, level: number) => {
-  const isChapter = level === 0
-  const hasChildren = node.children.length > 0
-  if (node.isUnfiled && isChapter) return '待整理汇总'
-  if (isChapter) return '章节合计'
-  if (hasChildren) return '分类组汇总'
-  if (node.isUnfiled) return '未归档标签'
-  return '知识点直接引用'
-}
-
 const createStatsRow = (
   node: ExamCategoryStatsTreeItem,
   level: number,
-  parentKey: string,
-  subjectName = ''
+  parentKey: string
 ): StatsRow => {
   const counts = getDisplayCounts(node, level)
   return {
     ...counts,
     id: getNodeKey(node, parentKey),
-    subjectName,
     category: node.categoryName,
-    scope: getScope(node, level),
     level,
-    isChapter: level === 0,
     hasChildren: node.children.length > 0,
     enabled: node.enabled,
     isUnfiled: node.isUnfiled
@@ -457,16 +420,15 @@ const flattenNodes = (
   nodes: ExamCategoryStatsTreeItem[],
   level: number,
   parentKey: string,
-  subjectName: string,
   shouldSort: boolean
 ): StatsRow[] => {
   const rows: StatsRow[] = []
   const orderedNodes = shouldSort ? getSortedNodes(nodes, level) : nodes
 
   orderedNodes.forEach(node => {
-    const row = createStatsRow(node, level, parentKey, subjectName)
+    const row = createStatsRow(node, level, parentKey)
     rows.push(row)
-    rows.push(...flattenNodes(node.children, level + 1, row.id, subjectName, shouldSort))
+    rows.push(...flattenNodes(node.children, level + 1, row.id, shouldSort))
   })
 
   return rows
@@ -480,7 +442,7 @@ const flattenCategoryTree = (groups: ExamSubjectCategoryStats[]): StatsRow[] => 
 
   groups.forEach(group => {
     const subjectKey = getSubjectKey(group)
-    rows.push(...flattenNodes(group.categories, 0, subjectKey, group.subjectName, false))
+    rows.push(...flattenNodes(group.categories, 0, subjectKey, false))
   })
 
   return rows
@@ -489,34 +451,46 @@ const flattenCategoryTree = (groups: ExamSubjectCategoryStats[]): StatsRow[] => 
 const buildSection = (
   node: ExamCategoryStatsTreeItem,
   parentKey: string,
-  subjectName: string
+  chapterNo: string
 ): CategorySection => {
-  const row = createStatsRow(node, 0, parentKey, subjectName)
-  const children = flattenNodes(node.children, 1, row.id, subjectName, true)
+  const row = createStatsRow(node, 0, parentKey)
+  const children = flattenNodes(node.children, 1, row.id, true)
   return {
     key: row.id,
     row,
     children,
-    maxChildCount: Math.max(0, ...children.map(child => child.count))
+    maxChildCount: Math.max(0, ...children.map(child => child.count)),
+    chapterNo
   }
 }
 
 const detailGroups = computed<StatsGroupView[]>(() => {
   return statsTree.value.map(group => {
     const subjectKey = getSubjectKey(group)
-    const formalNodes = getSortedNodes(
-      group.categories.filter(node => !node.isUnfiled),
-      0
-    )
+    const formalNodes = group.categories.filter(node => !node.isUnfiled)
+    const sortedFormalNodes = getSortedNodes(formalNodes, 0)
     const unfiledNodes = group.categories.filter(node => node.isUnfiled)
-    const chapters = formalNodes.map(node => buildSection(node, subjectKey, group.subjectName))
-    const unfiled = unfiledNodes.map(node => buildSection(node, subjectKey, group.subjectName))
+
+    // 章号取自未排序的目录顺序，避免切换排序后编号与视觉顺序矛盾
+    const chapterNoMap = new Map<string, number>()
+    formalNodes.forEach((node, index) => {
+      chapterNoMap.set(getNodeKey(node, subjectKey), index + 1)
+    })
+
+    const chapters = sortedFormalNodes.map(node =>
+      buildSection(node, subjectKey, String(chapterNoMap.get(getNodeKey(node, subjectKey)) ?? ''))
+    )
+
+    const unfiled = unfiledNodes.map(node => buildSection(node, subjectKey, '!'))
+
+    const maxChapterCount = Math.max(0, ...formalNodes.map(node => getDisplayCounts(node, 0).count))
 
     return {
       group,
       chapters,
       unfiled,
-      sections: [...chapters, ...unfiled]
+      sections: [...chapters, ...unfiled],
+      maxChapterCount
     }
   })
 })
@@ -576,6 +550,19 @@ const getBarWidth = (value: number, max: number) => {
   return `${Math.min(100, Math.max(0, (value / max) * 100))}%`
 }
 
+/**
+ * 明细行的层级深度，封顶 4 级（与样式中的 --tree-slot 宽度对应）。
+ */
+const getRowDepth = (level: number) => Math.min(Math.max(level, 1), 4)
+
+/**
+ * 占本科目题量的百分比文案；总量缺失时用破折号占位。
+ */
+const getShare = (count: number, total: number) => {
+  if (total <= 0) return '—'
+  return `${((count / total) * 100).toFixed(1)}%`
+}
+
 const isSortActive = (prop: FrequencySortProp | null) => {
   return prop === null ? sortConfig.value.prop === null : sortConfig.value.prop === prop
 }
@@ -598,13 +585,14 @@ const handleSortOption = (prop: FrequencySortProp | null) => {
 }
 
 /**
- * 加载科目选项。
+ * 加载科目选项，并把统计科目默认设为第一个启用科目。
  */
 const loadSubjectOptions = async () => {
   try {
     const res = await getEnabledSubjects()
     if (res.code === 200) {
       subjectOptions.value = res.data || []
+      statsSubjectId.value = subjectOptions.value[0]?.id ?? null
     }
   } catch (error) {
     console.error('加载科目列表失败:', error)
@@ -721,8 +709,8 @@ const handleExportCommand = async (command: string) => {
   }
 }
 
-onMounted(() => {
-  loadSubjectOptions()
+onMounted(async () => {
+  await loadSubjectOptions()
   loadStats()
 })
 </script>
@@ -730,36 +718,516 @@ onMounted(() => {
 <style scoped>
 .stats-page {
   color-scheme: light;
+
+  /* 明细行几何与层级配色（配色 B：只有分类组带一档底色，其余白底）。
+     导轨、分隔线、轨道色由品牌色 --brand-accent(#8B6F47) 降透明度得到，改色只需改 tailwind.css。 */
+  --tree-step: 22px;
+  --tree-slot: 88px;
+  --rail-max: 620px;
+  --guide: rgba(139, 111, 71, 0.16);
+  --row-track: rgba(139, 111, 71, 0.14);
+  --row-divider: rgba(139, 111, 71, 0.09);
+  --row-divider-strong: rgba(139, 111, 71, 0.16);
+  --row-hover: rgba(139, 111, 71, 0.04);
+  --row-group-bg: #f6f4f0;
+  --row-unfiled: #e7d3ae;
+  --row-unfiled-ink: #8a6b3e;
+  --row-unfiled-fill: #c79a5b;
+  --row-disabled-ink: #c2703a;
+  /* 主观题橙：页面既有配色，无对应令牌 */
+  --row-subject: #b87542;
 }
 
-.tree-marker {
-  position: relative;
-  display: inline-block;
-  width: 10px;
-  height: 10px;
-  flex: 0 0 10px;
+/* ==================== 图例：全页只出现一次，替代原先逐行重复的范围标签 ==================== */
+.stats-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+  color: var(--brand-ink-soft);
+  font-size: 12px;
 }
 
-.tree-marker-parent::before {
-  position: absolute;
-  top: 1px;
-  left: 1px;
-  width: 8px;
-  height: 8px;
-  border: 2px solid #8b6f47;
-  border-radius: 3px;
-  content: '';
+.stats-legend > li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
-.tree-marker-leaf::before {
-  position: absolute;
-  top: 3px;
-  left: 3px;
+.stats-legend__wide { flex: 1 1 100%; }
+
+.stats-legend__marker { display: block; }
+
+.stats-legend__marker.is-parent {
+  width: 9px;
+  height: 9px;
+  border-radius: 1px;
+  background: var(--brand-accent);
+  transform: rotate(45deg);
+}
+
+.stats-legend__marker.is-leaf {
   width: 5px;
   height: 5px;
-  border-radius: 9999px;
-  background: #9ca3af;
+  border-radius: 50%;
+  background: var(--brand-ink-mute);
+}
+
+.stats-legend__tick {
+  display: block;
+  width: 8px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--brand-line);
+}
+
+.stats-legend__seg { display: inline-flex; }
+
+.stats-legend__seg i {
+  display: block;
+  width: 18px;
+  height: 6px;
+}
+
+.stats-legend__seg i.is-choice {
+  border-radius: 3px 0 0 3px;
+  background: var(--theme-exam-accent);
+}
+
+.stats-legend__seg i.is-subject {
+  border-radius: 0 3px 3px 0;
+  background: var(--row-subject);
+}
+
+/* ==================== 章级带：章号 + 名称 + 题量 + 占比 + 全宽权重带 ==================== */
+.stats-band {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr) 66px 104px 18px;
+  grid-template-rows: auto auto;
+  align-items: center;
+  gap: 4px 12px;
+  width: 100%;
+  padding: 12px 16px 10px;
+  border: 0;
+  background: var(--brand-surface);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 150ms ease;
+}
+
+.stats-band:hover { background: #f6f0e7; }
+
+.stats-band:focus-visible {
+  outline: 2px solid var(--brand-accent);
+  outline-offset: -3px;
+}
+
+.stats-band.is-unfiled { box-shadow: inset 3px 0 0 var(--row-unfiled-fill); }
+
+.stats-band__no {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  background: var(--brand-accent);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.stats-band.is-unfiled .stats-band__no { background: var(--row-unfiled-fill); }
+
+.stats-band__name {
+  grid-column: 2;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  font-size: 15.5px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.stats-band__title { min-width: 0; overflow-wrap: anywhere; }
+
+.stats-band__tag {
+  flex: 0 0 auto;
+  padding: 1.5px 7px;
+  border: 1px solid rgba(194, 112, 58, 0.3);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--row-disabled-ink);
+  font-size: 10.5px;
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+.stats-band__count {
+  grid-column: 3;
+  text-align: right;
+  color: var(--theme-exam-strong);
+  font-size: 15px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.stats-band__count .unit {
+  font-size: 10.5px;
+  font-weight: 500;
+  color: var(--brand-ink-mute);
+}
+
+.stats-band__share {
+  grid-column: 4;
+  text-align: right;
+  color: var(--brand-ink-mute);
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.stats-band__caret {
+  grid-column: 5;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--brand-accent);
+}
+
+.stats-band__caret::before {
   content: '';
+  width: 7px;
+  height: 7px;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: translateY(-2px) rotate(45deg);
+  transition: transform 150ms ease;
+}
+
+.stats-band[aria-expanded='false'] .stats-band__caret::before {
+  transform: translateY(-1px) rotate(-45deg);
+}
+
+/* 章级权重带：满格 = 本科目最大正式章节题量，蓝段为选择题、棕段为主观题 */
+.stats-band__strip {
+  position: relative;
+  grid-column: 1 / -1;
+  grid-row: 2;
+  height: 6px;
+  margin-top: 6px;
+  border-radius: 3px;
+  background: var(--brand-line);
+  overflow: hidden;
+}
+
+.stats-band__strip i {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  transition: width 200ms ease;
+}
+
+.stats-band__strip i.is-choice { left: 0; background: var(--theme-exam-accent); }
+
+.stats-band__strip i.is-subject {
+  border-radius: 0 3px 3px 0;
+  background: var(--row-subject);
+}
+
+.stats-band.is-unfiled .stats-band__strip i.is-choice { background: var(--row-unfiled-fill); }
+
+/* ==================== 明细行：名称行（标记 + 名称 + 题量 + 选/主）+ 度量行（条形） ==================== */
+.stats-rows {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.stats-row {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(140px, 240px) 62px 116px minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  align-items: center;
+  gap: 3px 10px;
+  padding: 9px 16px 8px 8px;
+  background: #fff;
+}
+
+.stats-row + .stats-row { border-top: 1px solid var(--row-divider); }
+
+/* 层级只由导轨与标记位置表达；配色 B 只给分类组一档底色 */
+.stats-row[data-level='1'] { --depth: 1; }
+
+.stats-row[data-level='2'] {
+  --depth: 2;
+  border-top-color: var(--row-divider-strong);
+}
+
+.stats-row[data-level='3'] {
+  --depth: 3;
+  border-top-color: var(--row-divider-strong);
+}
+
+.stats-row[data-level='4'] {
+  --depth: 4;
+  border-top-color: var(--row-divider-strong);
+}
+
+/* 导轨：每深一级多一条竖线，位置只由层级决定，因此跨行严格对齐 */
+.stats-row::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 8px;
+  width: calc((var(--depth) - 1) * var(--tree-step));
+  background-image: repeating-linear-gradient(
+    to right,
+    var(--guide) 0 1px,
+    transparent 1px var(--tree-step)
+  );
+  background-repeat: repeat;
+  background-position: calc(var(--tree-step) / 2) 0;
+  background-size: var(--tree-step) 100%;
+  pointer-events: none;
+}
+
+/* hover 用叠加层，避免盖掉层级底色 */
+.stats-row::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--row-hover);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 150ms ease;
+}
+
+.stats-row:hover::after { opacity: 1; }
+
+.stats-row.is-group { background: var(--row-group-bg); }
+
+.stats-row.is-unfiled { box-shadow: inset 2px 0 0 var(--row-unfiled); }
+
+.stats-row__name {
+  grid-column: 1;
+  grid-row: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding-left: calc((var(--depth) - 1) * var(--tree-step) + 6px);
+  color: var(--brand-ink-soft);
+  font-size: 13.5px;
+  font-weight: 500;
+}
+
+.stats-row.is-group .stats-row__name {
+  color: var(--brand-ink);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.stats-row.is-disabled .stats-row__name { color: var(--brand-ink-mute); }
+
+.stats-row__marker {
+  display: flex;
+  flex: 0 0 10px;
+  align-items: center;
+  justify-content: center;
+  width: 10px;
+  height: 10px;
+}
+
+.stats-row__marker::before { content: ''; display: block; }
+
+.stats-row__marker.is-parent::before {
+  width: 9px;
+  height: 9px;
+  border-radius: 1px;
+  background: var(--brand-accent);
+  transform: rotate(45deg);
+}
+
+.stats-row__marker.is-leaf::before {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--brand-ink-mute);
+}
+
+.stats-row__text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stats-row__tag {
+  flex: 0 0 auto;
+  padding: 1.5px 7px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+.stats-row__tag.is-disabled {
+  border-color: rgba(194, 112, 58, 0.3);
+  background: #fff;
+  color: var(--row-disabled-ink);
+}
+
+.stats-row__tag.is-unfiled {
+  border-color: var(--row-unfiled);
+  background: #fff;
+  color: var(--row-unfiled-ink);
+}
+
+.stats-row__count {
+  grid-column: 2;
+  grid-row: 1;
+  text-align: right;
+  color: var(--theme-exam-strong);
+  font-size: 14px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.stats-row__count .unit {
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--brand-ink-mute);
+}
+
+.stats-row.is-disabled .stats-row__count { color: var(--brand-ink-mute); }
+
+.stats-row__types {
+  grid-column: 3;
+  grid-row: 1;
+  display: flex;
+  align-items: baseline;
+  gap: 3px;
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.stats-row__types .key,
+.stats-row__types .sep {
+  color: var(--brand-ink-mute);
+  font-size: 11px;
+}
+
+.stats-row__types .sep { margin: 0 1px; }
+
+.stats-row__types .is-choice {
+  color: var(--theme-exam-accent);
+  font-weight: 600;
+}
+
+.stats-row__types .is-subject {
+  color: var(--row-subject);
+  font-weight: 600;
+}
+
+.stats-row.is-disabled .stats-row__types .is-choice { color: var(--brand-ink-mute); }
+
+/* 度量行：条形起点固定（对齐树槽宽度），封顶 --rail-max；0 题只留刻度 */
+.stats-row__rail {
+  position: relative;
+  grid-column: 1 / -1;
+  grid-row: 2;
+  height: 8px;
+  margin-left: var(--tree-slot);
+  max-width: var(--rail-max);
+  border-radius: 4px;
+  background: var(--row-track);
+  overflow: hidden;
+}
+
+.stats-row__rail i {
+  display: block;
+  height: 100%;
+  border-radius: 4px;
+  background: var(--theme-exam-accent);
+  transition: width 200ms ease;
+}
+
+.stats-row__rail[data-zero='true'] { background: transparent; }
+
+.stats-row__rail[data-zero='true']::before {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 0;
+  width: 8px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--brand-line);
+}
+
+.stats-row.is-disabled .stats-row__rail i { background: rgba(86, 115, 138, 0.32); }
+
+.stats-row.is-unfiled .stats-row__rail i { background: var(--row-unfiled-fill); }
+
+/* ==================== 窄屏：名称行 + 题型行 + 条形独占，题量右上角 ==================== */
+@media (max-width: 639px) {
+  .stats-band { grid-template-columns: 32px minmax(0, 1fr) 66px 18px; }
+  .stats-band__count { grid-column: 3; }
+  .stats-band__share {
+    grid-column: 2 / 4;
+    grid-row: 3;
+    text-align: left;
+  }
+  .stats-band__caret { grid-column: 4; }
+  .stats-band__strip { grid-row: 4; }
+
+  .stats-row { display: block; padding: 11px 14px 8px 8px; }
+
+  .stats-row::before {
+    left: 0;
+    width: calc((var(--depth) - 1) * 14px);
+    background-position: 7px 0;
+    background-size: 14px 100%;
+  }
+
+  .stats-row__name {
+    padding-left: calc((var(--depth) - 1) * 14px + 2px);
+    padding-right: 72px;
+  }
+
+  .stats-row__text {
+    overflow: visible;
+    white-space: normal;
+    text-overflow: clip;
+  }
+
+  .stats-row__count {
+    position: absolute;
+    top: 12px;
+    right: 14px;
+  }
+
+  .stats-row__types { margin-top: 3px; }
+
+  .stats-row__rail {
+    width: 100%;
+    max-width: none;
+    margin-top: 6px;
+    margin-left: 0;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
