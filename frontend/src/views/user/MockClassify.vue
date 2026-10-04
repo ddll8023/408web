@@ -110,6 +110,7 @@
                     density="compact"
                     @copy="(cmd) => handleCopy(cmd, mock)"
                     @edit="handleEdit"
+                    @generate-answer="handleGenerateAnswer"
                     @delete="handleDelete"
                     @toggle-answer="toggleAnswer(mock.id)"
                     @answered="(payload) => handleAnswered(mock, payload)"
@@ -150,8 +151,18 @@
           v-model:visible="editDialogVisible"
           :mock-id="editingMockId"
           :mock-data="editingMockData"
+          :answer-candidate="answerCandidate"
           @success="handleEditSuccess"
         />
+
+      <AiAnswerGenerationDialog
+        v-if="isAdmin && answerGenerationTarget"
+        v-model:visible="aiAnswerVisible"
+        question-kind="mock"
+        :question-id="answerGenerationTarget.id"
+        :source="answerSourceFromQuestion(answerGenerationTarget)"
+        @adopt="handleAdoptGeneratedAnswer"
+      />
 
       <BackTop :right="32" :bottom="32" />
   </ReadingLayout>
@@ -194,6 +205,9 @@ import CategoryOutline from '@/components/business/CategoryOutline.vue'
 import CategorySectionHeader from '@/components/business/CategorySectionHeader.vue'
 import MockEntryCard from '@/components/business/MockEntryCard.vue'
 import MockEditDialog from '@/components/business/MockEditDialog.vue'
+import AiAnswerGenerationDialog from '@/components/business/AiAnswerGenerationDialog.vue'
+import type { AiAnswerCandidate } from '@/types/aiAnswer'
+import { answerSourceFromQuestion } from '@/utils/aiAnswer'
 import { useCategoryOutline } from '@/composables/useCategoryOutline'
 import { useInfiniteQuestionList } from '@/composables/useInfiniteQuestionList'
 import { getDifficultyLabel, getDifficultyType } from '@/constants/exam'
@@ -214,6 +228,20 @@ const isAdmin = computed(() => authStore.isAdmin())
 // 编辑弹窗状态
 const editDialogVisible = ref(false)
 const editingMockId = ref<number | null>(null)
+const answerCandidate = ref<AiAnswerCandidate | null>(null)
+const aiAnswerVisible = ref(false)
+const answerGenerationTarget = ref<MockQuestion | null>(null)
+
+function handleGenerateAnswer(question: MockQuestion): void {
+  if (!isAdmin.value || aiAnswerVisible.value) return
+  answerGenerationTarget.value = question
+  aiAnswerVisible.value = true
+}
+
+function handleAdoptGeneratedAnswer(candidate: AiAnswerCandidate): void {
+  const target = answerGenerationTarget.value
+  if (isAdmin.value && target?.id === candidate.questionId) handleEdit(target, candidate)
+}
 const editingMockData = ref<MockQuestion | null>(null)  // 编辑时传递的完整数据（避免重复请求API）
 
 // UI State
@@ -825,10 +853,12 @@ const handleCopy = async (command: string, mock: MockQuestion) => {
   }
 }
 
-const handleEdit = (mock: MockQuestion) => {
+const handleEdit = (mock: MockQuestion, candidate: AiAnswerCandidate | null = null) => {
   if (!mock?.id) return
+  answerCandidate.value = candidate
   editingMockId.value = mock.id
-  editingMockData.value = mock  // 传递完整数据，避免重复请求API
+  // 采用生成答案时重新读取题目，防止旧列表内容覆盖生成后的题库修改。
+  editingMockData.value = candidate ? null : mock
   editDialogVisible.value = true
 }
 

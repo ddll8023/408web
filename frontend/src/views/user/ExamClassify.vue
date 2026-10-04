@@ -112,6 +112,7 @@
                       density="compact"
                       @copy="(cmd) => handleCopy(cmd, exam)"
                       @edit="handleEdit"
+                      @generate-answer="handleGenerateAnswer"
                       @delete="(id: number) => handleDelete(id)"
                       @toggle-answer="toggleAnswer(exam.id)"
                       @show-adaptations="handleShowAdaptations"
@@ -151,7 +152,17 @@
           v-if="isAdmin"
           v-model:visible="editDialogVisible"
           :exam-id="editingExamId"
+          :answer-candidate="answerCandidate"
           @success="handleEditSuccess"
+        />
+
+        <AiAnswerGenerationDialog
+          v-if="isAdmin && answerGenerationTarget"
+          v-model:visible="aiAnswerVisible"
+          question-kind="exam"
+          :question-id="answerGenerationTarget.id"
+          :source="answerSourceFromQuestion(answerGenerationTarget)"
+          @adopt="handleAdoptGeneratedAnswer"
         />
 
         <AdaptationRelatedDialog
@@ -199,6 +210,9 @@ import CategoryOutline from '@/components/business/CategoryOutline.vue'
 import CategorySectionHeader from '@/components/business/CategorySectionHeader.vue'
 import ExamEntryCard from '@/components/business/ExamEntryCard.vue'
 import ExamEditDialog from '@/components/business/ExamEditDialog.vue'
+import AiAnswerGenerationDialog from '@/components/business/AiAnswerGenerationDialog.vue'
+import type { AiAnswerCandidate } from '@/types/aiAnswer'
+import { answerSourceFromQuestion } from '@/utils/aiAnswer'
 import AdaptationRelatedDialog from '@/components/business/AdaptationRelatedDialog.vue'
 import { useCategoryOutline } from '@/composables/useCategoryOutline'
 import { useInfiniteQuestionList } from '@/composables/useInfiniteQuestionList'
@@ -224,6 +238,20 @@ const subjectsLoadError = ref('')
 // 题目编辑弹窗状态
 const editDialogVisible = ref(false)
 const editingExamId = ref<number | null>(null)
+const answerCandidate = ref<AiAnswerCandidate | null>(null)
+const aiAnswerVisible = ref(false)
+const answerGenerationTarget = ref<ExamQuestion | null>(null)
+
+function handleGenerateAnswer(question: ExamQuestion): void {
+  if (!isAdmin.value || aiAnswerVisible.value) return
+  answerGenerationTarget.value = question
+  aiAnswerVisible.value = true
+}
+
+function handleAdoptGeneratedAnswer(candidate: AiAnswerCandidate): void {
+  const target = answerGenerationTarget.value
+  if (isAdmin.value && target?.id === candidate.questionId) handleEdit(target, candidate)
+}
 const adaptationDialogVisible = ref(false)
 const selectedAdaptationExam = ref<ExamQuestion | null>(null)
 
@@ -815,11 +843,12 @@ watch(
   }
 )
 
-const handleEdit = (exam: ExamQuestion) => {
+const handleEdit = (exam: ExamQuestion, candidate: AiAnswerCandidate | null = null) => {
   if (!exam || !exam.id) {
     return
   }
 
+  answerCandidate.value = candidate
   editingExamId.value = exam.id
   editDialogVisible.value = true
 }

@@ -111,7 +111,11 @@
 
       </section>
       <section class="edit-section">
-        <div class="edit-section-heading"><h4 class="edit-section-title">答案解析</h4><span class="edit-hint m-0">可选</span></div>
+        <div class="edit-section-heading">
+          <h4 class="edit-section-title">答案解析</h4>
+          <CustomButton v-if="isEditMode && authStore.isAdmin()" size="sm" type="text-primary" :disabled="loading || saving" @click="aiAnswerVisible = true">AI 生成答案</CustomButton>
+          <span class="edit-hint m-0">可选</span>
+        </div>
         <MarkdownEditor
           id="adaptation-answer"
           v-model="form.answer"
@@ -121,6 +125,16 @@
         />
       </section>
     </form>
+
+    <AiAnswerGenerationDialog
+      v-if="props.visible && aiAnswerVisible && props.adaptationId"
+      v-model:visible="aiAnswerVisible"
+      question-kind="adaptation"
+      :question-id="Number(props.adaptationId)"
+      :source="aiAnswerSource"
+      draft
+      @adopt="applyGeneratedAnswer"
+    />
 
     <template #footer>
       <div class="edit-footer">
@@ -149,6 +163,10 @@
  */
 import type { AdaptationQuestion, AdaptationSourceRefInput } from '@/types'
 import type { PropType } from 'vue'
+import type { AiAnswerCandidate } from '@/types/aiAnswer'
+import { answerSourceFromForm, answerSourceKey } from '@/utils/aiAnswer'
+import { useAuthStore } from '@/stores/auth'
+import AiAnswerGenerationDialog from '@/components/business/AiAnswerGenerationDialog.vue'
 import { computed, ref, toRef, watch } from 'vue'
 import {
   createAdaptation,
@@ -171,6 +189,7 @@ import '@/styles/edit-form.css'
 const props = defineProps({
   visible: { type: Boolean, default: false },
   adaptationId: { type: [Number, String] as PropType<number | string | null>, default: null },
+  answerCandidate: { type: Object as PropType<AiAnswerCandidate | null>, default: null },
   initialSources: {
     type: Array as PropType<AdaptationSourceRefInput[]>,
     default: () => []
@@ -202,6 +221,21 @@ const {
 } = useQuestionForm()
 
 const { showToast } = useToast()
+const authStore = useAuthStore()
+const aiAnswerVisible = ref(false)
+const aiAnswerSource = computed(() => answerSourceFromForm(form))
+
+/** 只填答案；题面或原答案在生成后变化时拒绝覆盖。 */
+function applyGeneratedAnswer(candidate: AiAnswerCandidate): void {
+  if (!props.visible || !authStore.isAdmin() || candidate.questionKind !== 'adaptation'
+    || candidate.questionId !== Number(props.adaptationId)) return
+  if (answerSourceKey(candidate.source) !== answerSourceKey(aiAnswerSource.value)) {
+    showToast('题面或原答案已变化，未填入新答案，请重新生成', 'warning')
+    return
+  }
+  form.answer = candidate.answer
+  showToast('新答案已填入，点击保存后才会更新题库', 'success')
+}
 const {
   jsonInput,
   parseJsonWithRelaxedSupport,
@@ -286,6 +320,7 @@ const loadAdaptationData = async (id: number | string) => {
       return
     }
     await fillFormFromData(question)
+    if (props.answerCandidate) applyGeneratedAnswer(props.answerCandidate)
     sources.value = (question.sources || []).map(source => ({
       sourceYear: source.sourceYear,
       sourceQuestionNumber: source.sourceQuestionNumber
@@ -313,6 +348,7 @@ const resetDialog = () => {
 }
 
 watch(() => props.visible, async visible => {
+  aiAnswerVisible.value = false
   if (!visible) return
   resetDialog()
   if (!props.adaptationId) {

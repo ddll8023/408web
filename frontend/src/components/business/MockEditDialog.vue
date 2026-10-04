@@ -137,11 +137,25 @@
                 </div>
               </section>
               <section class="edit-section">
-                <div class="edit-section-heading"><h4 class="edit-section-title">答案解析</h4><span class="edit-hint m-0">可选</span></div>
+                <div class="edit-section-heading">
+                  <h4 class="edit-section-title">答案解析</h4>
+                  <CustomButton v-if="isEditMode && authStore.isAdmin()" size="sm" type="text-primary" :disabled="loading || saving" @click="aiAnswerVisible = true">AI 生成答案</CustomButton>
+                  <span class="edit-hint m-0">可选</span>
+                </div>
                 <MarkdownEditor :id="form.questionType === 'CHOICE' ? 'mock-choice-answer' : 'mock-essay-answer'" aria-label="答案解析" v-model="form.answer" height="260px" placeholder="请输入答案与解析..." />
               </section>
             </div>
           </div>
+
+    <AiAnswerGenerationDialog
+      v-if="props.visible && aiAnswerVisible && editId"
+      v-model:visible="aiAnswerVisible"
+      question-kind="mock"
+      :question-id="Number(editId)"
+      :source="aiAnswerSource"
+      draft
+      @adopt="applyGeneratedAnswer"
+    />
 
     <template #footer>
       <div class="edit-footer">
@@ -161,6 +175,10 @@
 <script setup lang="ts">
 import type { MockCreateRequest, MockQuestion } from '@/types'
 import type { PropType } from 'vue'
+import type { AiAnswerCandidate } from '@/types/aiAnswer'
+import { answerSourceFromForm, answerSourceKey } from '@/utils/aiAnswer'
+import { useAuthStore } from '@/stores/auth'
+import AiAnswerGenerationDialog from '@/components/business/AiAnswerGenerationDialog.vue'
 /**
  * MockEditDialog 模拟题编辑弹窗组件
  * 功能：创建和编辑模拟题题目，支持选择题和主观题两种题型
@@ -186,7 +204,8 @@ import '@/styles/edit-form.css'
 const props = defineProps({
   visible: { type: Boolean, default: false },
   mockId: { type: [Number, String] as PropType<number | string | null>, default: null },
-  mockData: { type: Object as PropType<MockQuestion | null>, default: null }  // 优先使用的编辑数据（来自列表）
+  mockData: { type: Object as PropType<MockQuestion | null>, default: null }, // 优先使用的编辑数据（来自列表）
+  answerCandidate: { type: Object as PropType<AiAnswerCandidate | null>, default: null }
 })
 
 const emit = defineEmits<{ 'update:visible': [visible: boolean]; success: [question: MockQuestion | null] }>()
@@ -214,6 +233,21 @@ const {
 })
 
 const { showToast } = useToast()
+const authStore = useAuthStore()
+const aiAnswerVisible = ref(false)
+const aiAnswerSource = computed(() => answerSourceFromForm(form))
+
+/** 只填答案；题面或原答案在生成后变化时拒绝覆盖。 */
+function applyGeneratedAnswer(candidate: AiAnswerCandidate): void {
+  if (!props.visible || !authStore.isAdmin() || candidate.questionKind !== 'mock'
+    || candidate.questionId !== Number(editId.value)) return
+  if (answerSourceKey(candidate.source) !== answerSourceKey(aiAnswerSource.value)) {
+    showToast('题面或原答案已变化，未填入新答案，请重新生成', 'warning')
+    return
+  }
+  form.answer = candidate.answer
+  showToast('新答案已填入，点击保存修改后才会更新题库', 'success')
+}
 
 const {
   jsonInput,
@@ -296,6 +330,7 @@ const loadMockData = async (id: number | string | null) => {
       await fillFormFromData(data)
       form.source = data.source || ''
       form.questionNumber = data.questionNumber ?? null
+      if (props.answerCandidate) applyGeneratedAnswer(props.answerCandidate)
     } else {
       showToast(response.message || '加载失败', 'error')
     }
@@ -336,6 +371,7 @@ const initDialog = async () => {
     // 还需要填充额外字段（模拟题特有的字段）
     form.source = props.mockData.source || ''
     form.questionNumber = props.mockData.questionNumber ?? null
+    if (props.answerCandidate) applyGeneratedAnswer(props.answerCandidate)
     loading.value = false  // 关闭 loading 状态
   } else if (hasId) {
     await loadMockData(editId.value)
@@ -343,6 +379,7 @@ const initDialog = async () => {
 }
 
 watch(() => props.visible, async (visible) => {
+  aiAnswerVisible.value = false
   if (visible) {
     await initDialog()
     if (!isEditMode.value) resetContentScroll()

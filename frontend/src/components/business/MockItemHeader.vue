@@ -26,15 +26,17 @@
       </div>
     </div>
     <div class="question-actions flex shrink-0 flex-wrap items-center gap-1">
-      <CustomButton
-        size="sm"
-        type="text-primary"
-        title="AI 咨询本题"
-        aria-label="AI 咨询本题"
-        @click="$emit('consult')"
-      >
-        AI 咨询
-      </CustomButton>
+      <Dropdown trigger="click" @command="handleAiCommand">
+        <template #trigger>
+          <CustomButton size="sm" type="text-primary" title="AI 题目工具" aria-label="AI 题目工具">
+            AI <span aria-hidden="true" class="ml-1 text-xs">▾</span>
+          </CustomButton>
+        </template>
+        <template #dropdown>
+          <DropdownItem command="consult">咨询本题</DropdownItem>
+          <DropdownItem v-if="isAdmin" command="generate-answer">生成答案</DropdownItem>
+        </template>
+      </Dropdown>
       <CustomButton
         size="sm"
         type="text"
@@ -65,18 +67,26 @@ import type { MockQuestion } from '@/types'
  * 格式: {title} · 第{questionNumber}题
  */
 import CustomButton from '@/components/basic/CustomButton.vue'
+import Dropdown from '@/components/basic/Dropdown.vue'
+import DropdownItem from '@/components/basic/DropdownItem.vue'
 import QuestionCopyMenu from '@/components/business/QuestionCopyMenu.vue'
 import Tag from '@/components/basic/Tag.vue'
 import { getDifficultyLabel, getDifficultyType } from '@/constants/exam'
 
-defineProps({
+const props = defineProps({
   mock: { type: Object as PropType<MockQuestion>, required: true },
   isAdmin: { type: Boolean, default: false },
   /** 当前卡片是否处于全屏或沉浸模式 */
   fullscreenActive: { type: Boolean, default: false }
 })
 
-defineEmits<{ copy: [command: string]; edit: [question: MockQuestion]; delete: [id: number]; 'toggle-fullscreen': []; consult: [] }>()
+const emit = defineEmits<{ copy: [command: string]; edit: [question: MockQuestion]; delete: [id: number]; 'toggle-fullscreen': []; consult: []; 'generate-answer': [] }>()
+
+/** 菜单只分发已有操作，生成入口保持管理员限制。 */
+function handleAiCommand(command: string): void {
+  if (command === 'consult') emit('consult')
+  else if (command === 'generate-answer' && props.isAdmin) emit('generate-answer')
+}
 </script>
 
 <style scoped>

@@ -27,6 +27,7 @@ from pydantic_ai.messages import (
 )
 from pydantic_ai.models import ModelRequestParameters
 
+from web408.modules.ai.answer_prompt import ANSWER_SYSTEM_PROMPT
 from web408.modules.ai.question_images import OMIT_TEXTS
 from web408.modules.ai.runtime.errors import PUBLIC_ERRORS, AiRuntimeError
 from web408.modules.ai.runtime.go_catalog import PROVIDER_ID, GoModel, find_model
@@ -85,7 +86,9 @@ def _encode(name: str, payload: BaseModel) -> bytes:
     return f"event: {name}\ndata: {body}\n\n".encode("utf-8")
 
 
-def _context_note(images: Sequence[AiQuestionImage], omitted: Sequence[AiOmittedQuestionImage]) -> str:
+def _context_note(
+    images: Sequence[AiQuestionImage], omitted: Sequence[AiOmittedQuestionImage], answer_generation: bool = False,
+) -> str:
     """按本次实际附带情况生成会话说明；未附带的图只给图号与固定原因，不含地址。"""
     parts = ["使用创建时的题目固定文本"]
     if images:
@@ -94,8 +97,12 @@ def _context_note(images: Sequence[AiQuestionImage], omitted: Sequence[AiOmitted
         listed = "、".join(f"图 {item.index}（{OMIT_TEXTS[item.reason]}）" for item in omitted[:OMITTED_NOTE_LIMIT])
         suffix = f" 等 {len(omitted)} 张" if len(omitted) > OMITTED_NOTE_LIMIT else ""
         parts.append("未附带：" + listed + suffix)
-    parts.append("参考解析可能透露答案")
-    parts.append("编辑题目后需重新咨询")
+    if answer_generation:
+        parts.append("原答案未发送给模型")
+        parts.append("编辑题面后需重新生成")
+    else:
+        parts.append("参考解析可能透露答案")
+        parts.append("编辑题目后需重新咨询")
     return "；".join(parts) + "。"
 
 
@@ -114,6 +121,7 @@ class _Session:
     default_revision: str
     provider_revision: str
     view: AiSessionView
+    answer_generation: bool = False
     built: BuiltModel | None = None
     messages: list[ModelMessage] = field(default_factory=list)
     rounds: int = 0
@@ -202,7 +210,8 @@ class AiStream:
         built = self.session.built
         if built is None:
             raise AiRuntimeError("SDK_UNAVAILABLE")
-        messages = [ModelRequest(parts=[SystemPromptPart(SYSTEM_PROMPT)]), *self.session.messages, self.request]
+        prompt = ANSWER_SYSTEM_PROMPT if self.session.answer_generation else SYSTEM_PROMPT
+        messages = [ModelRequest(parts=[SystemPromptPart(prompt)]), *self.session.messages, self.request]
         settings = built.settings(
             level=CONSULTATION_LEVEL, session_id=self.session.id,
             timeout_seconds=self.manager.generation_timeout, max_tokens=self.session.model.max_tokens,
@@ -399,7 +408,8 @@ class AiConsultationManager:
     def create(self, *, user_id: int, model_id: str, kind: QuestionKind, question_id: int, snapshot: str,
                default_revision: str, provider_revision: str, admission_expires_at: int,
                api_key: str, images: Sequence[AiQuestionImage] = (),
-               omitted: Sequence[AiOmittedQuestionImage] = ()) -> AiSessionView:
+               omitted: Sequence[AiOmittedQuestionImage] = (),
+               answer_generation: bool = False) -> AiSessionView:
         """固定可信快照、图片数据与双修订创建内存会话；创建不调用模型、不联网。"""
         if self.closing:
             raise AiRuntimeError("SERVER_CLOSING")
@@ -421,12 +431,13 @@ class AiConsultationManager:
         view = AiSessionView(
             session_id=UUID(session_id), question_kind=kind, question_id=question_id,
             model=_model_view(model), input_mode="text_image" if images else "text",
-            context_note=_context_note(images, omitted),
+            context_note=_context_note(images, omitted, answer_generation),
         )
         built = build_model(model, api_key, self.generation_timeout)
         session = _Session(
             id=session_id, owner=user_id, model=model, default_revision=default_revision,
-            provider_revision=provider_revision, view=view, built=built, last_used=time.monotonic(),
+            provider_revision=provider_revision, view=view, answer_generation=answer_generation,
+            built=built, last_used=time.monotonic(),
         )
         # 图片与题目文本同属会话固定上下文：图号顺序与文本中的 [图 N] 一一对应。
         content: list[str | BinaryImage] = [snapshot]
@@ -453,6 +464,11 @@ class AiConsultationManager:
             raise AiRuntimeError("BUSY")
         if session.rounds >= TURNS_LIMIT or session.history_bytes + len(message.encode("utf-8")) > HISTORY_BYTES:
             raise AiRuntimeError("HISTORY_LIMIT")
+        if session.answer_generation:
+            # 生成指令固定在服务端；重新生成必须创建新会话，不能混入聊天历史或用户指令。
+            if session.rounds:
+                raise AiRuntimeError("HISTORY_LIMIT")
+            message = "请按题型生成完整答案解析，仅输出答案 Markdown。"
         stream = AiStream(self, session, request_id, message)
         session.seen.add(request_id)
         session.active = stream

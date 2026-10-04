@@ -1,9 +1,10 @@
 /**
- * AI 题目咨询会话接口：创建、流式提问、停止与关闭。
+ * AI 题目咨询与管理员答案生成会话接口：创建、流式输出、停止与关闭。
  * axios 无法消费流式响应，增量转发使用 fetch + ReadableStream；base URL 与令牌仍取自
  * api/request.ts 与 utils/token 的既有出口，不新建 Axios 实例，也不回传原始上游错误。
  */
 import type { ApiResponse } from '@/types'
+import type { AiAnswerDraft, AiAnswerSource } from '@/types/aiAnswer'
 import { API_BASE_URL } from './request'
 import { getToken } from '@/utils/token'
 import { convertKeysToSnake } from '@/utils/convertKeys'
@@ -22,6 +23,8 @@ export interface AiSessionView {
   model: AiSessionModelView
   inputMode: AiInputMode
   contextNote: string
+  /** 仅答案生成会话返回，普通咨询不包含原文对比基线。 */
+  answerSource?: AiAnswerSource
 }
 export interface AiStreamMetaView {
   sessionId: string
@@ -76,7 +79,24 @@ function parseSession(value: unknown): AiSessionView {
   const kind = item.questionKind
   if (kind !== 'exam' && kind !== 'mock' && kind !== 'adaptation') return invalid()
   return { sessionId: revision(item.sessionId), questionKind: kind, questionId: integer(item.questionId),
-    model: parseSessionModel(item.model), inputMode: requireInputMode(item.inputMode), contextNote: string(item.contextNote, 300) }
+    model: parseSessionModel(item.model), inputMode: requireInputMode(item.inputMode), contextNote: string(item.contextNote, 300),
+    ...(item.answerSource === undefined ? {} : { answerSource: parseAnswerSource(item.answerSource) }) }
+}
+
+/** 生成对比使用服务端实际来源，显式校验题型、选项和原答案。 */
+function parseAnswerSource(value: unknown): AiAnswerSource {
+  const item = record(value)
+  if (item.questionType !== 'CHOICE' && item.questionType !== 'ESSAY') return invalid()
+  const subjectId = item.subjectId === null ? null : integer(item.subjectId)
+  if (subjectId === 0) return invalid()
+  const options = item.options === null ? null : record(item.options)
+  if ((item.questionType === 'CHOICE') !== (options !== null)) return invalid()
+  return {
+    questionType: item.questionType, subjectId, content: string(item.content, 65536),
+    options: options ? { A: string(options.A, 65536), B: string(options.B, 65536),
+      C: string(options.C, 65536), D: string(options.D, 65536) } : null,
+    answer: item.answer === null ? null : rawText(item.answer, 1024 * 1024),
+  }
 }
 /** 解析首帧 meta（snake_case 原文）；缺少 meta 时无法把增量绑定到本次提问。 */
 function parseMeta(value: unknown): AiStreamMetaView {
@@ -108,21 +128,28 @@ export function createAiRequestId(): string {
 }
 
 /**
- * 创建文本咨询会话：只提交题目归属，题干由后端按可信快照固定，创建时不调用模型。
+ * 普通咨询只提交题目归属；答案生成可提交管理员题面草稿，两种创建都不调用模型。
  * 注意：本函数经统一拦截器，响应字段已转为 camelCase。
  */
 export async function createAiSession(
   questionKind: AiQuestionKind,
   questionId: number,
   signal?: AbortSignal,
+  answerGeneration?: { draft?: AiAnswerDraft },
 ): Promise<AiSessionView> {
-  const response = await aiRequest('sessions/create', { questionKind, questionId }, signal)
+  const response = await aiRequest(
+    answerGeneration ? 'answers/sessions/create' : 'sessions/create',
+    { questionKind, questionId, ...(answerGeneration?.draft ? { draft: answerGeneration.draft } : {}) }, signal,
+  )
   const item = record(response.data)
   // 服务端已经建立会话，此时任何字段不符都必须先归还它，
   // 否则客户端拿不到会话标识，该会话只能等闲置回收。
   const sessionId = revision(item.sessionId)
   try {
-    return parseSession(item)
+    const parsed = parseSession(item)
+    if (answerGeneration && !parsed.answerSource) return invalid()
+    if (parsed.questionKind !== questionKind || parsed.questionId !== questionId) return invalid()
+    return parsed
   } catch (error: unknown) {
     await closeAiSession(sessionId).catch(() => undefined)
     throw error

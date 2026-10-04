@@ -110,6 +110,7 @@
                       @copy="(command) => handleCopy(command, adaptation)"
                       @show-sources="handleShowSources"
                       @edit="handleEdit"
+                      @generate-answer="handleGenerateAnswer"
                       @delete="handleDelete"
                       @toggle-answer="toggleAnswer(adaptation.id)"
                     />
@@ -147,7 +148,17 @@
           v-if="isAdmin"
           v-model:visible="editDialogVisible"
           :adaptation-id="editingAdaptationId"
+          :answer-candidate="answerCandidate"
           @success="handleEditSuccess"
+        />
+
+        <AiAnswerGenerationDialog
+          v-if="isAdmin && answerGenerationTarget"
+          v-model:visible="aiAnswerVisible"
+          question-kind="adaptation"
+          :question-id="answerGenerationTarget.id"
+          :source="answerSourceFromQuestion(answerGenerationTarget)"
+          @adopt="handleAdoptGeneratedAnswer"
         />
 
         <AdaptationSourceDialog
@@ -192,6 +203,9 @@ import CategoryOutline from '@/components/business/CategoryOutline.vue'
 import CategorySectionHeader from '@/components/business/CategorySectionHeader.vue'
 import AdaptationEntryCard from '@/components/business/AdaptationEntryCard.vue'
 import AdaptationEditDialog from '@/components/business/AdaptationEditDialog.vue'
+import AiAnswerGenerationDialog from '@/components/business/AiAnswerGenerationDialog.vue'
+import type { AiAnswerCandidate } from '@/types/aiAnswer'
+import { answerSourceFromQuestion } from '@/utils/aiAnswer'
 import AdaptationSourceDialog from '@/components/business/AdaptationSourceDialog.vue'
 import { useCategoryOutline } from '@/composables/useCategoryOutline'
 import { useInfiniteQuestionList } from '@/composables/useInfiniteQuestionList'
@@ -262,6 +276,20 @@ const hasMore = computed(() => activeSubjectId.value !== null && hasMorePages.va
 const showAnswers = ref<Record<number, boolean>>({})
 const editDialogVisible = ref(false)
 const editingAdaptationId = ref<number | null>(null)
+const answerCandidate = ref<AiAnswerCandidate | null>(null)
+const aiAnswerVisible = ref(false)
+const answerGenerationTarget = ref<AdaptationQuestion | null>(null)
+
+function handleGenerateAnswer(question: AdaptationQuestion): void {
+  if (!isAdmin.value || aiAnswerVisible.value) return
+  answerGenerationTarget.value = question
+  aiAnswerVisible.value = true
+}
+
+function handleAdoptGeneratedAnswer(candidate: AiAnswerCandidate): void {
+  const target = answerGenerationTarget.value
+  if (isAdmin.value && target?.id === candidate.questionId) handleEdit(target, candidate)
+}
 const sourceDialogVisible = ref(false)
 const selectedSourceAdaptation = ref<AdaptationQuestion | null>(null)
 const deletingAdaptationId = ref<number | null>(null)
@@ -468,8 +496,9 @@ const handleShowSources = (question: AdaptationQuestion) => {
   sourceDialogVisible.value = true
 }
 
-const handleEdit = (question: AdaptationQuestion) => {
+const handleEdit = (question: AdaptationQuestion, candidate: AiAnswerCandidate | null = null) => {
   if (!isAdmin.value) return
+  answerCandidate.value = candidate
   editingAdaptationId.value = question.id
   editDialogVisible.value = true
 }

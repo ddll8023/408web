@@ -10,6 +10,7 @@ from starlette.types import Receive, Scope, Send
 
 from web408.api.dependencies import SessionDep
 from web408.core.exceptions import BusinessException
+from web408.modules.ai.answer_schemas import AiAnswerSessionCreateRequest, AiAnswerSessionView
 from web408.modules.ai.consultation_service import AiConsultationService
 from web408.modules.ai.model_service import AiModelService
 from web408.modules.ai.runtime.manager import AiRuntime
@@ -28,7 +29,7 @@ from web408.modules.ai.session_schemas import (
     AiSessionCreateRequest,
     AiSessionView,
 )
-from web408.modules.auth.dependencies import AuthUser, get_current_user
+from web408.modules.auth.dependencies import AuthUser, get_current_admin, get_current_user
 from web408.schemas.common import ApiResponse
 
 
@@ -170,6 +171,20 @@ async def create_session(
 ) -> ApiResponse[AiSessionView]:
     """读取可信题目并固定文本，创建时不调用模型。"""
     data = await AiConsultationService(session, runtime).create(current_user.user_id, request)
+    return ApiResponse(data=data)
+
+
+@router.post("/answers/sessions/create", response_model=ApiResponse[AiAnswerSessionView], summary="创建管理员答案生成会话")
+async def create_answer_session(
+    request: AiAnswerSessionCreateRequest,
+    session: SessionDep,
+    runtime: RuntimeDep,
+    admin: Annotated[AuthUser, Depends(get_current_admin)],
+) -> ApiResponse[AiAnswerSessionView]:
+    """只固定题面与对比基线，不调用模型、不修改题库。"""
+    data = await AiConsultationService(session, runtime).create(admin.user_id, request)
+    if not isinstance(data, AiAnswerSessionView):
+        raise BusinessException(503, "答案生成会话创建失败")
     return ApiResponse(data=data)
 
 

@@ -9,12 +9,15 @@ from typing import Final
 
 from markdown_it import MarkdownIt
 from markdown_it.token import Token
+from pydantic import ValidationError as PydanticValidationError
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from web408.core.config import AiConfig
 from web408.core.exceptions import ValidationException
 from web408.modules.adaptation.query_service import AdaptationQueryService
 from web408.modules.adaptation.schemas import AdaptationResponse
+from web408.modules.ai.answer_schemas import AiAnswerSessionCreateRequest, AiAnswerSource
+from web408.modules.catalog.read_service import CatalogReadService
 from web408.modules.ai.question_images import (
     EXTERNAL_REASON,
     INLINE_REASON,
@@ -187,21 +190,19 @@ def ensure_text_budget(values: list[str], max_bytes: int) -> None:
 def _render_fields(
     fields: Sequence[tuple[str, str]],
     limits: SnapshotLimits,
+    header: str = SNAPSHOT_HEADER,
 ) -> tuple[str, list[AiQuestionImageRef], list[AiOmittedQuestionImage], int]:
     """按给定预算渲染一次完整快照，返回文本、图片引用、未附带登记与 SVG 实际字节。"""
     builder = TextSnapshotBuilder(limits)
     rendered = [f"{label}：\n{builder.convert(value)}" for label, value in fields]
-    text = SNAPSHOT_HEADER + "\n\n" + "\n\n".join(rendered)
+    text = header + "\n\n" + "\n\n".join(rendered)
     return text, builder.images, builder.omitted, builder.svg_bytes
 
 
-async def build_question_snapshot(
-    session: AsyncSession,
-    kind: QuestionKind,
-    question_id: int,
-    config: AiConfig,
-) -> AiQuestionSnapshot:
-    """复用详情查询，只选择题型、题干、选项、参考解析和目录信息。"""
+async def read_question(
+    session: AsyncSession, kind: QuestionKind, question_id: int,
+) -> ExamResponse | MockResponse | AdaptationResponse:
+    """读取已保存题目，生成草稿也必须以存在的题目为目标。"""
     question: ExamResponse | MockResponse | AdaptationResponse
     if kind == "exam":
         question = await ExamQueryService(session).get_by_id(question_id)
@@ -210,6 +211,14 @@ async def build_question_snapshot(
     else:
         question = await AdaptationQueryService(session).get_by_id(question_id)
 
+    return question
+
+
+async def build_question_snapshot(
+    session: AsyncSession, kind: QuestionKind, question_id: int, config: AiConfig,
+) -> AiQuestionSnapshot:
+    """咨询保留参考解析，生成答案走独立的无参考答案快照。"""
+    question = await read_question(session, kind, question_id)
     fields: list[tuple[str, str]] = [
         ("科目", question.subject_name or "未分类"),
         ("分类", "、".join(question.category or [])),
@@ -219,6 +228,49 @@ async def build_question_snapshot(
     if question.options is not None:
         fields.extend((f"选项 {letter}", text) for letter, text in question.options.model_dump().items())
     fields.append(("参考答案解析", question.answer or "未提供"))
+    return render_question_snapshot(fields, kind, question_id, config)
+
+
+async def build_answer_snapshot(
+    session: AsyncSession, request: AiAnswerSessionCreateRequest, config: AiConfig,
+) -> tuple[AiQuestionSnapshot, AiAnswerSource]:
+    """固定实际题面与对比基线；只把题面发送给模型，原答案仅返回浏览器。"""
+    question = await read_question(session, request.question_kind, request.question_id)
+    if request.draft is not None:
+        source = AiAnswerSource(**request.draft.model_dump(), answer=None)
+    else:
+        values = [question.content]
+        if question.options is not None:
+            values.extend(question.options.model_dump().values())
+        ensure_text_budget(values, config.question_text_max_bytes)
+        try:
+            source = AiAnswerSource(
+                question_type=question.question_type.value, subject_id=question.subject_id,
+                content=question.content, options=question.options, answer=question.answer,
+            )
+        except PydanticValidationError:
+            raise ValidationException("已保存题面不完整，请在编辑框修正后生成") from None
+    subject_name = await CatalogReadService(session).get_subject_name(source.subject_id)
+    if source.subject_id is not None and subject_name is None:
+        raise ValidationException("草稿科目不存在，请重新选择")
+    fields: list[tuple[str, str]] = [
+        ("科目", subject_name or "未分类"),
+        ("题型", source.question_type),
+        ("题干", source.content),
+    ]
+    if source.options is not None:
+        fields.extend((f"选项 {letter}", text) for letter, text in source.options.model_dump().items())
+    snapshot = render_question_snapshot(
+        fields, request.question_kind, request.question_id, config, answer_generation=True,
+    )
+    return snapshot, source
+
+
+def render_question_snapshot(
+    fields: Sequence[tuple[str, str]], kind: QuestionKind, question_id: int, config: AiConfig,
+    *, answer_generation: bool = False,
+) -> AiQuestionSnapshot:
+    """咨询与生成共用文本和图片预算，不截断题面，也不额外读取文件。"""
     ensure_text_budget([value for _, value in fields], config.question_text_max_bytes)
 
     limits = SnapshotLimits(
@@ -227,10 +279,14 @@ async def build_question_snapshot(
         svg_total_max_bytes=config.question_svg_total_max_bytes,
         keep_svg=True,
     )
-    text, images, omitted, svg_bytes = _render_fields(fields, limits)
+    header = (
+        "当前题目固定题面（不含原答案；[图 N] 表示第 N 张图，是否附带见会话说明）："
+        if answer_generation else SNAPSHOT_HEADER
+    )
+    text, images, omitted, svg_bytes = _render_fields(fields, limits, header)
     if svg_bytes and len(text.encode("utf-8")) > limits.max_bytes:
         # SVG 源码把快照顶出文本上限时整体回退为占位，保证改动前可用的题目仍可咨询。
-        text, images, omitted, _ = _render_fields(fields, replace(limits, keep_svg=False))
+        text, images, omitted, _ = _render_fields(fields, replace(limits, keep_svg=False), header)
     ensure_text_budget([text], config.question_text_max_bytes)
     return AiQuestionSnapshot(
         question_kind=kind,

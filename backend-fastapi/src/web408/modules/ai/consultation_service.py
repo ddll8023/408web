@@ -8,7 +8,8 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from web408.core.config import settings
 from web408.core.exceptions import ConflictException, ValidationException
 from web408.modules.ai.key_cipher import decrypt_api_key
-from web408.modules.ai.question_context import build_question_snapshot
+from web408.modules.ai.answer_schemas import AiAnswerSessionCreateRequest, AiAnswerSessionView
+from web408.modules.ai.question_context import build_answer_snapshot, build_question_snapshot
 from web408.modules.ai.question_images import load_question_images
 from web408.modules.ai.repository import AiSettingsRepository
 from web408.modules.ai.runtime.manager import AiRuntime
@@ -30,7 +31,9 @@ class AiConsultationService:
         self.runtime = runtime
         self.repository = AiSettingsRepository(session)
 
-    async def create(self, user_id: int, request: AiSessionCreateRequest) -> AiSessionView:
+    async def create(
+        self, user_id: int, request: AiSessionCreateRequest | AiAnswerSessionCreateRequest,
+    ) -> AiSessionView:
         """固定题目、双修订与读取前的登记期限；释放事务后解密，不调用模型。"""
         expires_at = time_ns() // 1_000_000 + ADMISSION_MS
         try:
@@ -46,12 +49,13 @@ class AiConsultationService:
             provider_id = provider.provider_id
             provider_revision = provider.revision
             model_id = config.model_id
-            snapshot = await build_question_snapshot(
-                self.session,
-                request.question_kind,
-                request.question_id,
-                settings.ai,
-            )
+            answer_source = None
+            if isinstance(request, AiAnswerSessionCreateRequest):
+                snapshot, answer_source = await build_answer_snapshot(self.session, request, settings.ai)
+            else:
+                snapshot = await build_question_snapshot(
+                    self.session, request.question_kind, request.question_id, settings.ai,
+                )
         finally:
             # AuthUser 依赖与业务读取共用会话；只复制普通字段，不跨文件或网络等待使用 ORM。
             await self.session.rollback()
@@ -66,13 +70,17 @@ class AiConsultationService:
         api_key = await asyncio.to_thread(decrypt_api_key, ciphertext, key_version)
         if not api_key.get_secret_value().strip():
             raise ValidationException("AI 凭据为空，请重新填写 API Key")
-        return self.runtime.create_session(
+        view = self.runtime.create_session(
             user_id=user_id, provider_id=provider_id, model_id=model_id,
             kind=request.question_kind, question_id=request.question_id, snapshot=snapshot.text,
             images=payload.images, omitted=payload.omitted,
             default_revision=revision, provider_revision=provider_revision,
             admission_expires_at=expires_at, api_key=api_key.get_secret_value(),
+            answer_generation=answer_source is not None,
         )
+        if answer_source is not None:
+            return AiAnswerSessionView(**view.model_dump(), answer_source=answer_source)
+        return view
 
     async def messages(
         self,

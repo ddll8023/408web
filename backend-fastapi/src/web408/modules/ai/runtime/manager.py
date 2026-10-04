@@ -112,7 +112,8 @@ class AiRuntime:
     def create_session(self, *, user_id: int, provider_id: str, model_id: str, kind: QuestionKind,
                        question_id: int, snapshot: str, default_revision: str, provider_revision: str,
                        admission_expires_at: int, api_key: str, images: Sequence[AiQuestionImage] = (),
-                       omitted: Sequence[AiOmittedQuestionImage] = ()) -> AiSessionView:
+                       omitted: Sequence[AiOmittedQuestionImage] = (),
+                       answer_generation: bool = False) -> AiSessionView:
         """固定可信快照与已读取的图片数据创建内存会话；创建本身不调用模型。"""
         if provider_id != PROVIDER_ID:
             raise AiRuntimeError("PROVIDER_UNSUPPORTED")
@@ -120,7 +121,7 @@ class AiRuntime:
             user_id=user_id, model_id=model_id, kind=kind, question_id=question_id, snapshot=snapshot,
             default_revision=default_revision, provider_revision=provider_revision,
             admission_expires_at=admission_expires_at, api_key=api_key,
-            images=images, omitted=omitted,
+            images=images, omitted=omitted, answer_generation=answer_generation,
         )
 
     def reserve_message(self, *, user_id: int, session_id: str, request_id: str, message: str,

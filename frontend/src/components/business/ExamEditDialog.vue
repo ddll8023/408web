@@ -140,11 +140,25 @@
             </div>
           </section>
           <section class="edit-section">
-            <div class="edit-section-heading"><h4 class="edit-section-title">答案解析</h4><span class="edit-hint m-0">可选</span></div>
+            <div class="edit-section-heading">
+              <h4 class="edit-section-title">答案解析</h4>
+              <CustomButton v-if="isEditMode && authStore.isAdmin()" size="sm" type="text-primary" :disabled="loading || saving" @click="aiAnswerVisible = true">AI 生成答案</CustomButton>
+              <span class="edit-hint m-0">可选</span>
+            </div>
             <MarkdownEditor :id="form.questionType === 'CHOICE' ? 'exam-choice-answer' : 'exam-essay-answer'" aria-label="答案解析" v-model="form.answer" height="400px" placeholder="请输入答案与解析..." />
           </section>
         </div>
       </div>
+
+    <AiAnswerGenerationDialog
+      v-if="props.visible && aiAnswerVisible && props.examId"
+      v-model:visible="aiAnswerVisible"
+      question-kind="exam"
+      :question-id="Number(props.examId)"
+      :source="aiAnswerSource"
+      draft
+      @adopt="applyGeneratedAnswer"
+    />
 
     <template #footer>
       <div class="edit-footer">
@@ -164,6 +178,10 @@
 <script setup lang="ts">
 import type { ExamCreateRequest, ExamQuestion } from '@/types'
 import type { PropType } from 'vue'
+import type { AiAnswerCandidate } from '@/types/aiAnswer'
+import { answerSourceFromForm, answerSourceKey } from '@/utils/aiAnswer'
+import { useAuthStore } from '@/stores/auth'
+import AiAnswerGenerationDialog from '@/components/business/AiAnswerGenerationDialog.vue'
 /**
  * ExamEditDialog 真题编辑弹窗组件
  * 功能：创建和编辑考研真题题目，支持选择题和主观题两种题型
@@ -187,7 +205,8 @@ import '@/styles/edit-form.css'
 
 const props = defineProps({
   visible: { type: Boolean, default: false },
-  examId: { type: [Number, String] as PropType<number | string | null>, default: null }
+  examId: { type: [Number, String] as PropType<number | string | null>, default: null },
+  answerCandidate: { type: Object as PropType<AiAnswerCandidate | null>, default: null }
 })
 
 const emit = defineEmits<{ 'update:visible': [visible: boolean]; success: [question: ExamQuestion | null] }>()
@@ -212,6 +231,21 @@ const {
 })
 
 const { showToast } = useToast()
+const authStore = useAuthStore()
+const aiAnswerVisible = ref(false)
+const aiAnswerSource = computed(() => answerSourceFromForm(form))
+
+/** 只填答案；题面或原答案在生成后变化时拒绝覆盖。 */
+function applyGeneratedAnswer(candidate: AiAnswerCandidate): void {
+  if (!props.visible || !authStore.isAdmin() || candidate.questionKind !== 'exam'
+    || candidate.questionId !== Number(props.examId)) return
+  if (answerSourceKey(candidate.source) !== answerSourceKey(aiAnswerSource.value)) {
+    showToast('题面或原答案已变化，未填入新答案，请重新生成', 'warning')
+    return
+  }
+  form.answer = candidate.answer
+  showToast('新答案已填入，点击保存修改后才会更新题库', 'success')
+}
 
 const {
   jsonInput,
@@ -281,6 +315,7 @@ const loadExamData = async (id: number | string | null) => {
       await fillFormFromData(data)
       form.year = data.year
       form.questionNumber = data.questionNumber ?? null
+      if (props.answerCandidate) applyGeneratedAnswer(props.answerCandidate)
     } else {
       showToast(response.message || '加载失败', 'error')
     }
@@ -321,6 +356,7 @@ const initDialog = async () => {
 }
 
 watch(() => props.visible, async (visible) => {
+  aiAnswerVisible.value = false
   if (visible) await initDialog()
 })
 

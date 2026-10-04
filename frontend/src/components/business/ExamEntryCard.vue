@@ -16,6 +16,7 @@
       @show-adaptations="$emit('show-adaptations', exam)"
       @toggle-fullscreen="toggleFullscreen"
       @consult="openConsultation"
+      @generate-answer="openAnswerGeneration"
     />
 
     <!-- 题目内容与答案卡片 -->
@@ -81,12 +82,13 @@ const props = defineProps({
  * @property {Function} toggle-answer - 切换答案显示
  * @property {Function} answered - 用户作答事件
  */
-defineEmits<{
+const emit = defineEmits<{
   copy: [command: string]
   edit: [question: ExamQuestion]
   delete: [id: number]
   'show-adaptations': [question: ExamQuestion]
   'toggle-answer': []
+  'generate-answer': [question: ExamQuestion]
   answered: [payload: { optionKey: string; correct: boolean }]
 }>()
 
@@ -99,6 +101,17 @@ const { isActive, isImmersive, toggleFullscreen, exit } = useQuestionFullscreen(
 const { showToast } = useToast()
 
 const { openQuestion } = useAiConsultationPanel()
+
+/** 生成对比与编辑均使用普通视口；退出失败时不发起模型请求。 */
+async function openAnswerGeneration(): Promise<void> {
+  if (!props.isAdmin) return
+  await exit()
+  if (isActive.value) {
+    showToast('请先手动退出全屏再生成答案', 'warning')
+    return
+  }
+  emit('generate-answer', props.exam)
+}
 
 /** 退出全屏或沉浸失败时不打开咨询，也不发起任何模型请求。 */
 async function openConsultation(): Promise<void> {

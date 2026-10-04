@@ -16,6 +16,7 @@
       @delete="(id) => $emit('delete', id)"
       @toggle-fullscreen="toggleFullscreen"
       @consult="openConsultation"
+      @generate-answer="openAnswerGeneration"
     />
 
     <div>
@@ -67,12 +68,13 @@ const props = defineProps({
   }
 })
 
-defineEmits<{
+const emit = defineEmits<{
   copy: [command: string]
   'show-sources': [question: AdaptationQuestion]
   edit: [question: AdaptationQuestion]
   delete: [id: number]
   'toggle-answer': []
+  'generate-answer': [question: AdaptationQuestion]
   answered: [payload: { optionKey: string; correct: boolean }]
 }>()
 
@@ -85,6 +87,17 @@ const { isActive, isImmersive, toggleFullscreen, exit } = useQuestionFullscreen(
 const { showToast } = useToast()
 
 const { openQuestion } = useAiConsultationPanel()
+
+/** 生成对比与编辑均使用普通视口；退出失败时不发起模型请求。 */
+async function openAnswerGeneration(): Promise<void> {
+  if (!props.isAdmin) return
+  await exit()
+  if (isActive.value) {
+    showToast('请先手动退出全屏再生成答案', 'warning')
+    return
+  }
+  emit('generate-answer', props.adaptation)
+}
 
 /** 退出全屏或沉浸失败时不打开咨询，也不发起任何模型请求。 */
 async function openConsultation(): Promise<void> {

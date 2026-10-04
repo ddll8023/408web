@@ -1,5 +1,5 @@
 /**
- * AI 题目咨询会话状态机。
+ * AI 题目咨询与答案生成共用的会话状态机。
  * 会话与历史只存在于页面内存：不写数据库、localStorage 或 sessionStorage；收起不销毁，刷新或结束后不可恢复。
  * 只有真实成功的完整终态写入历史并允许追问；停止、失败与断流只把片段标记为不完整。
  */
@@ -15,6 +15,7 @@ import {
   type AiTerminalStatus,
 } from '@/api/aiSession'
 import { AiSettingsError } from '@/api/aiGuards'
+import type { AiAnswerDraft } from '@/types/aiAnswer'
 
 export type AiChatRole = 'user' | 'assistant'
 export type AiChatStatus = 'streaming' | 'completed' | 'cancelled' | 'failed'
@@ -67,13 +68,15 @@ export function useAiConsultation() {
     readerAbort = null
   }
 
-  /** 创建会话：只提交题目归属，题干由后端按可信快照固定，创建时不调用模型。 */
-  async function open(questionKind: AiQuestionKind, questionId: number): Promise<void> {
+  /** 普通咨询读取保存题面；答案生成可使用管理员编辑草稿，创建本身不调用模型。 */
+  async function open(
+    questionKind: AiQuestionKind, questionId: number, answerGeneration?: { draft?: AiAnswerDraft },
+  ): Promise<void> {
     reset()
     const currentRevision = revision
     phase.value = 'creating'
     try {
-      const created = await createAiSession(questionKind, questionId)
+      const created = await createAiSession(questionKind, questionId, undefined, answerGeneration)
       if (currentRevision !== revision) {
         // 即使创建期间已离开页面，也归还迟到的服务端会话。
         await closeAiSession(created.sessionId).catch(() => undefined)
