@@ -89,7 +89,7 @@ const buildBatchContent = async (questions: QuestionRow[]): Promise<RichCopyCont
     contents.push(await renderer.getClipboardContent())
   }
 
-  const separatorHtml = '<p style="height:12pt;margin:0;line-height:12pt;">&nbsp;</p>'
+  const separatorHtml = '<p class="MsoNormal">&nbsp;</p>'
   return {
     html: `<!--StartFragment-->${contents
       .map(content => stripFragmentMarkers(content.html))

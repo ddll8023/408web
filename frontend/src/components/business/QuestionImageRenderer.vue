@@ -236,32 +236,7 @@ const applyInlineStyles = (
   })
 }
 
-// Word/WPS 使用 mso 字体属性区分西文和中文字体，普通 CSS 作为其他富文本应用的回退。
-const wordBodyFontStyles = {
-  fontFamily: '"Times New Roman", "宋体", SimSun, serif',
-  msoAsciiFontFamily: '"Times New Roman"',
-  msoHansiFontFamily: '"Times New Roman"',
-  msoFareastFontFamily: '宋体',
-  msoBidiFontFamily: '"Times New Roman"',
-}
-const wordCodeFontStyles = {
-  fontFamily: 'Consolas, monospace',
-  msoAsciiFontFamily: 'Consolas',
-  msoHansiFontFamily: 'Consolas',
-  msoFareastFontFamily: 'Consolas',
-  msoBidiFontFamily: 'Consolas',
-}
-const wordLineHeight = '1'
-const wordCodeLineHeight = '10pt'
-
-const getFormulaLatex = (formula: Element) => {
-  return formula.querySelector('annotation[encoding="application/x-tex"]')?.textContent?.trim() ||
-    formula.querySelector('annotation')?.textContent?.trim() ||
-    formula.textContent?.trim() ||
-    '公式'
-}
-
-/** 用原始 LaTeX 替换 KaTeX DOM；WPS 公式编辑器不需要 Markdown 的 `$` 分隔符。 */
+/** 将 KaTeX DOM 替换为不带 Markdown `$` 分隔符的 LaTeX 文本，不生成原生 Office 公式。 */
 const replaceFormulaWithLatex = (sourceRoot: HTMLElement, targetRoot: HTMLElement) => {
   const sourceFormulas = Array.from(sourceRoot.querySelectorAll<HTMLElement>('.katex'))
   const targetFormulas = Array.from(targetRoot.querySelectorAll<HTMLElement>('.katex'))
@@ -275,9 +250,6 @@ const replaceFormulaWithLatex = (sourceRoot: HTMLElement, targetRoot: HTMLElemen
     text.textContent = getFormulaLatex(sourceFormula)
     const isDisplay = Boolean(sourceFormula.closest('.katex-display-wrapper'))
     text.style.display = isDisplay ? 'block' : 'inline-block'
-    text.style.fontFamily = '"Times New Roman", serif'
-    text.style.fontSize = isDisplay ? '10.5pt' : 'inherit'
-    text.style.lineHeight = wordLineHeight
     text.style.textAlign = isDisplay ? 'center' : 'left'
     text.style.whiteSpace = isDisplay ? 'normal' : 'nowrap'
     text.style.verticalAlign = 'middle'
@@ -286,70 +258,11 @@ const replaceFormulaWithLatex = (sourceRoot: HTMLElement, targetRoot: HTMLElemen
   })
 }
 
-const wordChineseCharacterPattern = /[\u3400-\u4DBF\u4E00-\u9FFF\uF900-\uFAFF\u3000-\u303F\uFF00-\uFFEF]/
-const wordTextPartPattern = /[\u3400-\u4DBF\u4E00-\u9FFF\uF900-\uFAFF\u3000-\u303F\uFF00-\uFFEF]+|[^\u3400-\u4DBF\u4E00-\u9FFF\uF900-\uFAFF\u3000-\u303F\uFF00-\uFFEF]+/g
-const wordChineseFontStyles = {
-  fontFamily: '"宋体", SimSun, serif',
-  msoAsciiFontFamily: '宋体',
-  msoHansiFontFamily: '宋体',
-  msoFareastFontFamily: '宋体',
-  msoBidiFontFamily: '宋体',
-}
-const wordEnglishFontStyles = {
-  fontFamily: '"Times New Roman", serif',
-  msoAsciiFontFamily: '"Times New Roman"',
-  msoHansiFontFamily: '"Times New Roman"',
-  msoFareastFontFamily: '"Times New Roman"',
-  msoBidiFontFamily: '"Times New Roman"',
-}
-
-/**
- * Word 富文本不接受 CSS 变量，导出时必须落成字面色值；
- * 这里在导出时从语义色令牌解析一次，保持 tailwind.css 的 :root 为唯一色值来源。
- */
-const resolveCssColor = (variable: string, fallback: string) => {
-  if (typeof window === 'undefined' || typeof window.getComputedStyle !== 'function') return fallback
-  const value = window.getComputedStyle(document.documentElement).getPropertyValue(variable).trim()
-  return value || fallback
-}
-
-/** 为 Word 文本运行显式指定中西文字体，避免 Word 使用当前文档的默认字体。 */
-const applyWordCharacterFonts = (root: HTMLElement) => {
-  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT)
-  const textNodes: Text[] = []
-  let currentNode = walker.nextNode()
-
-  while (currentNode) {
-    if (currentNode instanceof Text) {
-      const parent = currentNode.parentElement
-      if (parent && !parent.closest('.clipboard-code, .word-formula') && currentNode.nodeValue?.trim()) {
-        textNodes.push(currentNode)
-      }
-    }
-    currentNode = walker.nextNode()
-  }
-
-  textNodes.forEach(textNode => {
-    const value = textNode.nodeValue
-    if (!value) return
-
-    const parts = value.match(wordTextPartPattern)
-    if (!parts) return
-
-    const fragment = document.createDocumentFragment()
-    parts.forEach(part => {
-      const span = document.createElement('span')
-      setInlineStyles(
-        span,
-        wordChineseCharacterPattern.test(part)
-          ? wordChineseFontStyles
-          : wordEnglishFontStyles,
-      )
-      span.textContent = part
-      fragment.appendChild(span)
-    })
-    textNode.replaceWith(fragment)
-  })
+const getFormulaLatex = (formula: Element) => {
+  return formula.querySelector('annotation[encoding="application/x-tex"]')?.textContent?.trim() ||
+    formula.querySelector('annotation')?.textContent?.trim() ||
+    formula.textContent?.trim() ||
+    '公式'
 }
 
 const sanitizeClipboardDom = (root: HTMLElement) => {
@@ -379,11 +292,6 @@ const compactClipboardOptions = (root: HTMLElement) => {
     table.style.margin = '0'
     table.style.borderCollapse = 'collapse'
     table.style.tableLayout = 'fixed'
-    setInlineStyles(table, {
-      ...wordBodyFontStyles,
-      fontSize: '9.5pt',
-      lineHeight: wordLineHeight,
-    })
 
     const body = document.createElement('tbody')
     options.forEach(option => {
@@ -397,20 +305,11 @@ const compactClipboardOptions = (root: HTMLElement) => {
       keyCell.style.width = '28px'
       keyCell.style.padding = '2px 6px 2px 0'
       keyCell.style.border = '0'
-      setInlineStyles(keyCell, {
-        ...wordBodyFontStyles,
-        color: '#8b6f47',
-        fontSize: '9.5pt',
-        fontWeight: '700',
-        lineHeight: wordLineHeight,
-        verticalAlign: 'top',
-      })
+      keyCell.style.fontWeight = '700'
+      keyCell.style.verticalAlign = 'top'
       setInlineStyles(contentCell, {
-        ...wordBodyFontStyles,
         padding: '2px 0',
         border: '0',
-        fontSize: '9pt',
-        lineHeight: wordLineHeight,
         verticalAlign: 'top',
       })
 
@@ -449,7 +348,6 @@ const compactClipboardCode = (root: HTMLElement) => {
       if (index < lines.length - 1) replacement.appendChild(document.createElement('br'))
     })
     setInlineStyles(replacement, {
-      ...wordCodeFontStyles,
       boxSizing: 'border-box',
       display: 'block',
       width: '100%',
@@ -458,19 +356,9 @@ const compactClipboardCode = (root: HTMLElement) => {
       background: '#f6f8fa',
       border: '1px solid #e5e7eb',
       borderRadius: '3px',
-      fontSize: '8pt',
-      lineHeight: wordCodeLineHeight,
-      msoLineHeightRule: 'exactly',
-      msoLineHeightAlt: wordCodeLineHeight,
       whiteSpace: 'normal',
       overflowWrap: 'anywhere',
     })
-    // CSSOM 可能丢弃 mso-* 属性，直接补入 style 属性确保 Word 识别为“固定值”。
-    const codeStyle = replacement.getAttribute('style') || ''
-    replacement.setAttribute(
-      'style',
-      `${codeStyle};line-height:${wordCodeLineHeight};mso-line-height-rule:exactly;mso-line-height-alt:${wordCodeLineHeight};`,
-    )
     pre.replaceWith(replacement)
   })
 }
@@ -484,7 +372,7 @@ const parseClipboardDimension = (value: string | null) => {
 }
 
 const getSvgDimensions = (svg: SVGSVGElement) => {
-  const viewBox = (svg.getAttribute('viewBox') || '').trim().split(/[\\s,]+/).map(Number)
+  const viewBox = (svg.getAttribute('viewBox') || '').trim().split(/[\s,]+/).map(Number)
   const hasViewBox = viewBox.length === 4 && viewBox[2] > 0 && viewBox[3] > 0
   const rect = svg.getBoundingClientRect()
   const width = parseClipboardDimension(svg.getAttribute('width')) ||
@@ -714,49 +602,19 @@ const prepareClipboardClone = (root: HTMLElement) => {
   clone.style.width = '100%'
   clone.style.maxWidth = '760px'
   clone.style.padding = '0'
-  clone.style.backgroundColor = '#ffffff'
   clone.style.pointerEvents = 'auto'
-  setInlineStyles(clone, {
-    ...wordBodyFontStyles,
-    lineHeight: wordLineHeight,
-  })
 
   applyInlineStyles(clone, '.question-image-renderer__header', {
-    ...wordBodyFontStyles,
     paddingBottom: '6px',
-    borderBottom: '1px solid #e5e7eb',
   })
   applyInlineStyles(clone, '.question-image-renderer__title', {
     margin: '0',
-    ...wordBodyFontStyles,
-    color: '#374151',
-    fontSize: '13pt',
-    fontWeight: '700',
-    lineHeight: wordLineHeight,
-  })
-  applyInlineStyles(clone, '.question-image-renderer__meta', {
-    display: 'block',
-    ...wordBodyFontStyles,
-    marginTop: '3px',
-    color: '#8b6f47',
-    fontSize: '8.5pt',
-    lineHeight: wordLineHeight,
-  })
-  applyInlineStyles(clone, '.question-image-renderer__meta span', {
-    display: 'inline',
-    marginRight: '4px',
-    padding: '0',
   })
   applyInlineStyles(clone, '.question-image-renderer__section', {
     marginTop: '6px',
   })
   applyInlineStyles(clone, '.question-image-renderer__section h2', {
-    ...wordBodyFontStyles,
     margin: '0 0 2px',
-    color: '#4b5563',
-    fontSize: '10pt',
-    fontWeight: '700',
-    lineHeight: wordLineHeight,
   })
   applyInlineStyles(clone, '.question-image-renderer__options', {
     display: 'block',
@@ -767,16 +625,6 @@ const prepareClipboardClone = (root: HTMLElement) => {
     marginBottom: '3px',
     padding: '2px 0',
   })
-  applyInlineStyles(clone, '.question-image-renderer__option-key', {
-    display: 'inline-block',
-    marginRight: '6px',
-    ...wordBodyFontStyles,
-    color: '#8b6f47',
-    fontSize: '9.5pt',
-    fontWeight: '700',
-    lineHeight: wordLineHeight,
-    verticalAlign: 'top',
-  })
   applyInlineStyles(clone, '.question-image-renderer__option .markdown-viewer', {
     display: 'block',
     width: '100%',
@@ -784,50 +632,19 @@ const prepareClipboardClone = (root: HTMLElement) => {
     verticalAlign: 'top',
   })
   applyInlineStyles(clone, '.markdown-viewer, .v-md-editor-preview, .github-markdown-body', {
-    ...wordBodyFontStyles,
     width: '100%',
     minHeight: 'auto',
     padding: '0',
-    backgroundColor: 'transparent',
-    fontSize: '9.5pt',
-    lineHeight: wordLineHeight,
-  })
-  applyInlineStyles(clone, '.markdown-viewer.is-option, .markdown-viewer.is-option .github-markdown-body', {
-    ...wordBodyFontStyles,
-    fontSize: '9pt',
-    lineHeight: wordLineHeight,
-  })
-  applyInlineStyles(clone, '.question-image-renderer__option .markdown-viewer', {
-    display: 'block',
-    width: '100%',
-    minWidth: '0',
-    verticalAlign: 'top',
   })
   applyInlineStyles(clone, '.markdown-viewer h1, .markdown-viewer h2, .markdown-viewer h3', {
-    ...wordBodyFontStyles,
     margin: '4px 0 2px',
-    fontWeight: '700',
-    lineHeight: wordLineHeight,
-  })
-  applyInlineStyles(clone, '.markdown-viewer h1', {
-    fontSize: '11.5pt',
-  })
-  applyInlineStyles(clone, '.markdown-viewer h2', {
-    fontSize: '10.5pt',
-  })
-  applyInlineStyles(clone, '.markdown-viewer h3', {
-    fontSize: '10pt',
   })
   applyInlineStyles(clone, 'hr', {
     margin: '4px 0',
   })
   applyInlineStyles(clone, 'p', {
-    ...wordBodyFontStyles,
     margin: '0',
     padding: '0',
-    lineHeight: wordLineHeight,
-    msoMarginTopAlt: '0',
-    msoMarginBottomAlt: '0',
   })
   applyInlineStyles(clone, 'ul, ol', {
     paddingLeft: '2em',
@@ -835,8 +652,6 @@ const prepareClipboardClone = (root: HTMLElement) => {
   applyInlineStyles(clone, 'blockquote', {
     margin: '0.5em 0',
     paddingLeft: '0.75em',
-    borderLeft: '3px solid #dfe2e5',
-    color: '#57606a',
   })
   applyInlineStyles(clone, 'table', {
     borderCollapse: 'collapse',
@@ -911,21 +726,13 @@ const getClipboardContent = async (): Promise<RichCopyContent> => {
   const clone = prepareClipboardClone(root)
   replaceFormulaWithLatex(root, clone)
   await prepareClipboardMedia(clone, root)
-  applyWordCharacterFonts(clone)
+  // 使用 Office 正文段落标识请求样式映射，不定义字体或行距；最终识别由 Word/WPS 决定。
+  clone.querySelectorAll<HTMLElement>('.markdown-viewer p, .markdown-viewer li').forEach(paragraph => {
+    paragraph.classList.add('MsoNormal')
+  })
   sanitizeClipboardDom(clone)
 
   const wrapper = document.createElement('div')
-  setInlineStyles(wrapper, {
-    ...wordBodyFontStyles,
-    boxSizing: 'border-box',
-    width: '100%',
-    maxWidth: '760px',
-    padding: '0',
-    background: '#fff',
-    color: resolveCssColor('--brand-ink', '#333'),
-    fontSize: '9.5pt',
-    lineHeight: wordLineHeight,
-  })
   wrapper.innerHTML = clone.innerHTML
 
   return {
