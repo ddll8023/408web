@@ -35,11 +35,10 @@
       <RouterLink to="/exam/classify" class="nav-link">真题分类</RouterLink>
       <RouterLink to="/mock" class="nav-link">模拟题</RouterLink>
       <RouterLink to="/adaptation" class="nav-link">改编题</RouterLink>
-      <span class="nav-link disabled" aria-disabled="true">资源</span>
 
       <Dropdown v-if="isAdmin" trigger="hover" @command="handleManageCommand">
         <template #trigger>
-          <span class="nav-link dropdown-trigger">
+          <span class="nav-link">
             管理
             <font-awesome-icon :icon="['fas', 'chevron-down']" class="ml-1.5 text-xs" aria-hidden="true" />
           </span>
@@ -232,15 +231,10 @@ const handleManageCommand = (command: string | number) => {
   transition: background-color 0.2s ease, color 0.2s ease;
 }
 
-.nav-link:not(.disabled):hover,
-.nav-link.router-link-active:not(.disabled) {
+.nav-link:hover,
+.nav-link.router-link-active {
   background: color-mix(in srgb, var(--brand-accent) 10%, transparent);
   color: #6b5537;
-}
-
-.nav-link.disabled {
-  color: #9ca3af;
-  cursor: not-allowed;
 }
 
 .nav-user {

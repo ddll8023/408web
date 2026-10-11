@@ -48,7 +48,6 @@
         <RouterLink to="/exam/classify" class="mobile-link" @click="closeMenu">真题分类</RouterLink>
         <RouterLink to="/mock" class="mobile-link" @click="closeMenu">模拟题</RouterLink>
         <RouterLink to="/adaptation" class="mobile-link" @click="closeMenu">改编题</RouterLink>
-        <span class="mobile-link disabled" aria-disabled="true">资源</span>
       </div>
 
       <section v-if="isAdmin" class="mobile-manage" aria-labelledby="mobile-manage-title">
@@ -291,10 +290,6 @@ const handleManageCommand = (command: ManageCommand) => {
     background: color-mix(in srgb, var(--brand-accent) 10%, transparent);
     color: #6b5537;
     font-weight: 600;
-  }
-
-  .mobile-link.disabled {
-    color: #9ca3af;
   }
 
   .mobile-manage {
