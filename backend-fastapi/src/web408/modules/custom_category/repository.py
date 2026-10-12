@@ -114,6 +114,40 @@ class CustomCategoryRepository:
         )
         return result.one() or 0
 
+    async def list_category_scope_names(
+        self,
+        subject_id: int,
+        category_name: str,
+    ) -> list[str]:
+        """返回启用自定义分类节点及其全部启用子孙分类名称。"""
+        categories = await self.list_by_subject(
+            subject_id,
+            enabled_only=True,
+            include_subject=False,
+        )
+        selected = next(
+            (category for category in categories if category.name == category_name),
+            None,
+        )
+        if selected is None:
+            # 兼容题目中仍存在、但分类已删除或停用的历史标签。
+            return [category_name]
+
+        children_by_parent: dict[int | None, list[CustomCategory]] = {}
+        for category in categories:
+            children_by_parent.setdefault(category.parent_id, []).append(category)
+
+        scope_names: list[str] = []
+        pending = [selected]
+        index = 0
+        while index < len(pending):
+            category = pending[index]
+            index += 1
+            scope_names.append(category.name)
+            pending.extend(children_by_parent.get(category.id, []))
+
+        return scope_names
+
     async def count_name_conflicts(
         self,
         subject_id: int,

@@ -12,6 +12,7 @@ from web408.core.exceptions import NotFoundException
 from web408.modules.auth.read_service import AuthReadService
 from web408.modules.exam.models import ExamQuestion
 from web408.modules.catalog.read_service import CatalogReadService
+from web408.modules.custom_category.read_service import CustomCategoryReadService
 from web408.modules.exam.mapper import to_exam_response
 from web408.modules.exam.repository import ExamQuery, ExamRepository
 from web408.modules.exam.schemas import (
@@ -61,6 +62,7 @@ class ExamQueryService:
         self.session = session
         self.repository = ExamRepository(session)
         self.catalog_read_service = CatalogReadService(session)
+        self.custom_category_read_service = CustomCategoryReadService(session)
         self.auth_read_service = AuthReadService(session)
 
     async def get_paginated(self, params: ExamQueryParams) -> PaginatedExamResponse:
@@ -81,6 +83,15 @@ class ExamQueryService:
                 )
             )
 
+        custom_category_names: Optional[tuple[str, ...]] = None
+        if params.custom_category and params.subject_id is not None:
+            custom_category_names = tuple(
+                await self.custom_category_read_service.get_category_scope_names(
+                    params.subject_id,
+                    params.custom_category,
+                )
+            )
+
         total, questions = await self.repository.list_paginated(
             ExamQuery(
                 page=params.page,
@@ -92,6 +103,8 @@ class ExamQueryService:
                 keyword=params.keyword,
                 sort_field=params.sort_field,
                 sort_order=params.sort_order,
+                custom_category=params.custom_category,
+                custom_category_names=custom_category_names,
                 category_names=category_names,
             )
         )

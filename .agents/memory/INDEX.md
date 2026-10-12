@@ -7,3 +7,4 @@
 ## 主题导航
 
 - 约定：`topics/conventions/exam-category-stats.md`——改「真题分类统计」页面或 `modules/reporting` 导出的层级、题量条、题型分布表达方式时读取。
+- 约定：`topics/conventions/custom-category-tags.md`——改真题的自定义分类标签存储、按分类筛选、改名同步或分类删除保护时读取。

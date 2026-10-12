@@ -568,7 +568,7 @@ const subjectStats = computed(() => subjectOptions.value.map(subject => {
     name: subject.name,
     count: stat?.categoryCount ?? 0,
     enabledCount: stat?.enabledCategoryCount ?? 0,
-    questionCount: stat?.categoryCount ?? 0,
+    questionCount: stat?.questionCount ?? 0,
   }
 }))
 

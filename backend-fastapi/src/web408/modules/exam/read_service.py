@@ -46,11 +46,32 @@ class ExamReadService:
         """返回指定分类名称的引用数，供使用检查和删除保护调用。"""
         return await self.repository.count_question_references(subject_id, category_name)
 
+    async def count_custom_category_references(
+        self,
+        subject_id: int,
+        category_name: str,
+    ) -> int:
+        """返回指定自定义分类名称的引用数，供删除保护调用。"""
+        return await self.repository.count_custom_category_references(
+            subject_id,
+            category_name,
+        )
+
     async def count_by_subject(self, subject_ids: set[int]) -> dict[int, int]:
         """批量返回科目题目数，未出现的科目由调用方补零。"""
         if not subject_ids:
             return {}
         rows = await self.repository.count_by_subject(subject_ids)
+        return {row.subject_id: row.count for row in rows}
+
+    async def count_by_subject_with_custom_category(
+        self,
+        subject_ids: set[int],
+    ) -> dict[int, int]:
+        """批量返回科目中已挂自定义分类的题目数，未出现的科目由调用方补零。"""
+        if not subject_ids:
+            return {}
+        rows = await self.repository.count_by_subject_with_custom_category(subject_ids)
         return {row.subject_id: row.count for row in rows}
 
     async def resolve_sources(

@@ -23,6 +23,8 @@ from web408.modules.custom_category.schemas import (
     CustomCategoryResponse,
     CustomCategoryUpdateRequest,
 )
+from web408.modules.exam.custom_category_tag_service import ExamCustomCategoryTagService
+from web408.modules.exam.read_service import ExamReadService
 
 
 class CustomCategoryCommandService:
@@ -36,6 +38,8 @@ class CustomCategoryCommandService:
         self.session = session
         self.repository = CustomCategoryRepository(session)
         self.query_service = query_service
+        self.exam_read_service = ExamReadService(session)
+        self.exam_custom_category_tag_service = ExamCustomCategoryTagService(session)
 
     async def _lock_structure(self) -> None:
         """在自定义分类写用例内取得 SQLite 写锁。"""
@@ -151,6 +155,13 @@ class CustomCategoryCommandService:
         old_name = category.name
         for field, value in update_data.items():
             setattr(category, field, value)
+
+        if category.name != old_name:
+            await self.exam_custom_category_tag_service.rename_category(
+                subject_id,
+                old_name,
+                category.name,
+            )
 
         # 编码同时包含层级路径和名称首字母，两者任一变化都要重建整棵子树编码。
         if category.parent_id != old_parent_id or category.name != old_name:
@@ -270,6 +281,12 @@ class CustomCategoryCommandService:
             raise NotFoundException(f"分类不存在：ID={category_id}")
         if await self.repository.count_children(category_id) > 0:
             raise ConflictException("该分类存在子分类，无法删除")
+        exam_count = await self.exam_read_service.count_custom_category_references(
+            category.subject_id,
+            category.name,
+        )
+        if exam_count > 0:
+            raise ConflictException(f"该分类被 {exam_count} 道真题引用，无法删除")
         await self.session.delete(category)
         await self.session.commit()
 

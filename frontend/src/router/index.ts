@@ -50,6 +50,11 @@ const routes: RouteRecordRaw[] = [
     meta: { keepAlive: true }
   },
   {
+    path: '/exam/custom-classify',
+    component: () => import('@/views/user/CustomCategoryClassify.vue'),
+    meta: { keepAlive: true }
+  },
+  {
     path: '/exam/:year',
     component: () => import('@/views/user/ExamList.vue'),
     meta: { keepAlive: true }

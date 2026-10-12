@@ -12,6 +12,7 @@ from web408.modules.custom_category.schemas import (
     CustomCategorySubjectStatItem,
     CustomCategoryTreeResponse,
 )
+from web408.modules.exam.read_service import ExamReadService
 
 
 class CustomCategoryQueryService:
@@ -19,6 +20,7 @@ class CustomCategoryQueryService:
 
     def __init__(self, session: AsyncSession) -> None:
         self.repository = CustomCategoryRepository(session)
+        self.exam_read_service = ExamReadService(session)
 
     async def get_category_tree(
         self,
@@ -45,11 +47,17 @@ class CustomCategoryQueryService:
         return [self.to_response(category) for category in categories]
 
     async def get_subject_stats(self) -> CustomCategoryStatResponse:
-        """按科目统计自定义分类数量，供管理页筛选栏使用。"""
+        """按科目统计分类数量与已挂自定义分类的题目数，供管理页筛选栏和用户端浏览页使用。"""
         subject_stats: list[CustomCategorySubjectStatItem] = []
         total_categories = 0
         enabled_categories = 0
-        for subject in await self.repository.list_subjects():
+        subjects = await self.repository.list_subjects()
+        question_counts = (
+            await self.exam_read_service.count_by_subject_with_custom_category(
+                {subject.id for subject in subjects}
+            )
+        )
+        for subject in subjects:
             category_count = await self.repository.count_categories(subject.id)
             enabled_count = await self.repository.count_categories(
                 subject.id,
@@ -61,6 +69,7 @@ class CustomCategoryQueryService:
                     subject_name=subject.name,
                     category_count=category_count,
                     enabled_category_count=enabled_count,
+                    question_count=question_counts.get(subject.id, 0),
                 )
             )
             total_categories += category_count

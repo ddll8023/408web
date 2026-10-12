@@ -2,7 +2,7 @@
 
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from web408.models.enums import DifficultyEnum, QuestionTypeEnum
 from web408.modules.question_content.schemas import (
@@ -17,6 +17,16 @@ ExamSortField = Literal["id", "year", "update_time", "question_number"]
 SortOrder = Literal["asc", "desc"]
 
 
+def normalize_custom_category(value: list[str] | None) -> list[str] | None:
+    """按与题目分类相同的规则规范化自定义分类名称列表。"""
+    if value is None:
+        return None
+    normalized = [item.strip() for item in value]
+    if any(not item for item in normalized):
+        raise ValueError("自定义分类名称不能为空")
+    return normalized
+
+
 class ExamQueryParams(BaseModel):
     """真题分页查询参数。"""
 
@@ -24,6 +34,7 @@ class ExamQueryParams(BaseModel):
     page_size: int = Field(default=10, ge=1, le=100, description="每页大小", examples=[10])
     year: int | None = Field(default=None, ge=1990, le=2100, description="年份筛选")
     category: str | None = Field(default=None, description="分类筛选")
+    custom_category: str | None = Field(default=None, description="自定义分类筛选")
     subject_id: int | None = Field(default=None, ge=1, description="科目 ID 筛选")
     no_category: bool | None = Field(default=None, description="是否筛选无分类")
     keyword: str | None = Field(default=None, max_length=200, description="关键词搜索")
@@ -81,6 +92,16 @@ class ExamCreateRequest(QuestionCreateFields):
 
     question_number: int | None = Field(default=None, ge=1, le=1000, description="题号")
     year: int = Field(..., ge=1990, le=2100, description="年份", examples=[2023])
+    custom_category: list[str] | None = Field(
+        default=None,
+        description="自定义分类名称列表",
+    )
+
+    @field_validator("custom_category")
+    @classmethod
+    def validate_custom_category(cls, value: list[str] | None) -> list[str] | None:
+        """校验自定义分类名称列表。"""
+        return normalize_custom_category(value)
 
     model_config = ConfigDict(
         json_schema_extra={
@@ -106,6 +127,16 @@ class ExamUpdateRequest(QuestionUpdateFields):
 
     year: int | None = Field(default=None, ge=1990, le=2100, description="年份")
     question_number: int | None = Field(default=None, ge=1, le=1000, description="题号")
+    custom_category: list[str] | None = Field(
+        default=None,
+        description="自定义分类名称列表",
+    )
+
+    @field_validator("custom_category")
+    @classmethod
+    def validate_custom_category(cls, value: list[str] | None) -> list[str] | None:
+        """校验自定义分类名称列表。"""
+        return normalize_custom_category(value)
 
 
 class ExamResponse(BaseModel):
@@ -120,6 +151,7 @@ class ExamResponse(BaseModel):
     options: QuestionOptions | None = Field(default=None, description="选择题选项")
     answer: str | None = Field(default=None, description="答案")
     category: list[str] | None = Field(default=None, description="分类列表")
+    custom_category: list[str] | None = Field(default=None, description="自定义分类列表")
     subject_id: int | None = Field(default=None, ge=1, description="科目 ID")
     subject_name: str | None = Field(default=None, description="科目名称")
     difficulty: DifficultyEnum | None = Field(default=None, description="难度")

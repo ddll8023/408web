@@ -7,6 +7,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from web408.core.exceptions import ConflictException, NotFoundException, ValidationException
 from web408.modules.exam.models import ExamQuestion
 from web408.modules.catalog.read_service import CatalogReadService
+from web408.modules.custom_category.read_service import CustomCategoryReadService
 from web408.modules.exam.query_service import ExamQueryService
 from web408.modules.exam.repository import ExamRepository
 from web408.modules.exam.schemas import ExamCreateRequest, ExamResponse, ExamUpdateRequest
@@ -26,6 +27,7 @@ class ExamCommandService:
         self.repository = ExamRepository(session)
         self.query_service = query_service
         self.catalog_read_service = CatalogReadService(session)
+        self.custom_category_read_service = CustomCategoryReadService(session)
 
     async def create(self, request: ExamCreateRequest, author_id: int) -> ExamResponse:
         """创建真题并提交事务。"""
@@ -33,6 +35,10 @@ class ExamCommandService:
         await self.catalog_read_service.validate_question_scope(
             request.subject_id,
             request.category,
+        )
+        await self.custom_category_read_service.validate_question_scope(
+            request.subject_id,
+            request.custom_category,
         )
 
         if request.question_number is not None:
@@ -54,6 +60,7 @@ class ExamCommandService:
             options=serialize_options(request.options),
             answer=request.answer,
             category=serialize_categories(request.category),
+            custom_category=serialize_categories(request.custom_category),
             subject_id=request.subject_id,
             difficulty=request.difficulty.value if request.difficulty else None,
             author_id=author_id,
@@ -77,6 +84,7 @@ class ExamCommandService:
 
         update_data = request.model_dump(exclude_unset=True)
         existing_categories = parse_categories(question.category)
+        existing_custom_categories = parse_categories(question.custom_category)
         existing_options = parse_options(question.options)
         new_type = (
             request.question_type.value
@@ -95,11 +103,22 @@ class ExamCommandService:
         new_categories = (
             request.category if "category" in update_data else existing_categories
         )
+        new_custom_categories = (
+            request.custom_category
+            if "custom_category" in update_data
+            else existing_custom_categories
+        )
         await self.catalog_read_service.validate_question_scope(
             new_subject_id,
             new_categories,
             existing_subject_id=question.subject_id,
             existing_categories=existing_categories,
+        )
+        await self.custom_category_read_service.validate_question_scope(
+            new_subject_id,
+            new_custom_categories,
+            existing_subject_id=question.subject_id,
+            existing_custom_categories=existing_custom_categories,
         )
 
         new_year = request.year if "year" in update_data else question.year
@@ -139,6 +158,8 @@ class ExamCommandService:
             question.answer = request.answer
         if "category" in update_data or "subject_id" in update_data:
             question.category = serialize_categories(new_categories)
+        if "custom_category" in update_data or "subject_id" in update_data:
+            question.custom_category = serialize_categories(new_custom_categories)
         if "subject_id" in update_data:
             question.subject_id = new_subject_id
         if "difficulty" in update_data:

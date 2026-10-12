@@ -37,6 +37,7 @@ class ExamQuestion(BaseModel, table=True):
     options: str | None = Field(default=None, description="选择题选项(JSON)")
     answer: str | None = Field(default=None, description="答案")
     category: str | None = Field(default=None, description="分类(JSON数组)")
+    custom_category: str | None = Field(default=None, description="自定义分类(JSON数组)")
     subject_id: int | None = Field(
         default=None,
         foreign_key="subject.id",

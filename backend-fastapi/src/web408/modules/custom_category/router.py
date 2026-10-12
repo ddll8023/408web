@@ -12,6 +12,7 @@ from web408.modules.custom_category.schemas import (
     CustomCategoryMoveRequest,
     CustomCategoryResponse,
     CustomCategoryStatResponse,
+    CustomCategoryTreeRequest,
     CustomCategoryTreeResponse,
     CustomCategoryUpdateRequest,
 )
@@ -40,9 +41,13 @@ def _get_command_service(session: SessionDep) -> CustomCategoryCommandService:
 async def get_category_tree_by_subject(
     session: SessionDep,
     subject_id: int = Path(..., ge=1, description="科目 ID"),
+    request: CustomCategoryTreeRequest | None = None,
 ) -> ApiResponse[list[CustomCategoryTreeResponse]]:
-    """查询指定科目的自定义分类树。"""
-    categories = await _get_query_service(session).get_category_tree(subject_id)
+    """查询指定科目的自定义分类树，可按需只返回启用分类。"""
+    categories = await _get_query_service(session).get_category_tree(
+        subject_id,
+        enabled_only=request.enabled_only if request else False,
+    )
     return ApiResponse(data=categories)
 
 

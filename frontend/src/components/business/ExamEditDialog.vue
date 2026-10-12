@@ -59,7 +59,7 @@
                   v-model="form.subjectId"
                   :options="subjectOptions"
                   placeholder="请选择科目"
-                  @change="handleSubjectChange"
+                  @change="handleCustomSubjectChange"
                 />
               </div>
               <div>
@@ -106,6 +106,18 @@
                 :options="categoryTreeOptions"
                 placeholder="请选择分类（支持多个）"
                 aria-label="分类"
+                :disabled="!form.subjectId"
+              />
+            </div>
+            <div class="edit-span-full">
+              <FormLabel label="自定义分类" for-id="exam-custom-category" hint="可选" />
+              <!-- 多选级联选择器 -->
+              <MultiSelectCascader
+                id="exam-custom-category"
+                v-model="customCategory"
+                :options="customCategoryTreeOptions"
+                placeholder="请选择自定义分类（支持多个）"
+                aria-label="自定义分类"
                 :disabled="!form.subjectId"
               />
             </div>
@@ -176,7 +188,7 @@
 </template>
 
 <script setup lang="ts">
-import type { ExamCreateRequest, ExamQuestion } from '@/types'
+import type { CustomCategoryTreeNode, ExamCreateRequest, ExamQuestion } from '@/types'
 import type { PropType } from 'vue'
 import type { AiAnswerCandidate } from '@/types/aiAnswer'
 import { answerSourceFromForm, answerSourceKey } from '@/utils/aiAnswer'
@@ -191,6 +203,7 @@ import AiAnswerGenerationDialog from '@/components/business/AiAnswerGenerationDi
  */
 import { computed, watch, ref } from 'vue'
 import { getExamDetail, updateExam, createExam } from '@/api/exam'
+import { getCustomCategoryTree } from '@/api/customCategory'
 import { useQuestionForm } from '@/composables/useQuestionForm'
 import { useJsonImport } from '@/composables/useJsonImport'
 import { useToast } from '@/composables/useToast'
@@ -229,6 +242,46 @@ const {
 } = useQuestionForm({
   extraFields: { year: new Date().getFullYear(), questionNumber: null }
 })
+
+// 自定义分类打标：仅真题使用，与共用表单状态解耦
+interface CustomCategoryTreeOption {
+  value: string
+  label: string
+  children?: CustomCategoryTreeOption[]
+}
+const customCategory = ref<string[]>([])
+const customCategoryTreeOptions = ref<CustomCategoryTreeOption[]>([])
+
+/** 按科目加载启用的自定义分类树选项。 */
+const loadCustomCategoryTreeOptions = async (subjectId: number | null) => {
+  if (!subjectId) {
+    customCategoryTreeOptions.value = []
+    return
+  }
+  try {
+    const res = await getCustomCategoryTree(subjectId, { enabledOnly: true })
+    if (res.code === 200) {
+      const transformTree = (nodes: CustomCategoryTreeNode[]): CustomCategoryTreeOption[] =>
+        (nodes || []).map(node => ({
+          value: node.name,
+          label: node.name,
+          children: node.children && node.children.length > 0
+            ? transformTree(node.children)
+            : undefined
+        }))
+      customCategoryTreeOptions.value = transformTree(res.data || [])
+    }
+  } catch (error) {
+    console.error('加载自定义分类标签失败:', error)
+  }
+}
+
+/** 科目变更后清空已选自定义分类并重新加载选项。 */
+const handleCustomSubjectChange = async (subjectId: number | '' | null) => {
+  await handleSubjectChange(subjectId)
+  customCategory.value = []
+  await loadCustomCategoryTreeOptions(form.subjectId)
+}
 
 const { showToast } = useToast()
 const authStore = useAuthStore()
@@ -315,6 +368,8 @@ const loadExamData = async (id: number | string | null) => {
       await fillFormFromData(data)
       form.year = data.year
       form.questionNumber = data.questionNumber ?? null
+      customCategory.value = data.customCategory ?? []
+      await loadCustomCategoryTreeOptions(data.subjectId ?? null)
       if (props.answerCandidate) applyGeneratedAnswer(props.answerCandidate)
     } else {
       showToast(response.message || '加载失败', 'error')
@@ -344,6 +399,8 @@ const initDialog = async () => {
     form.questionNumber = null
     jsonInput.value = ''
     jsonImportVisible.value = true // 新建模式展开 JSON 导入区域
+    customCategory.value = []
+    customCategoryTreeOptions.value = []
   }
 
   // 加载科目选项（所有模式都需要）
@@ -440,7 +497,8 @@ const handleSubmit = async () => {
       answer: form.answer || null,
       difficulty: form.difficulty || null,
       questionNumber: form.questionNumber || null,
-      category: form.category ? (Array.isArray(form.category) ? form.category : [form.category]) : []
+      category: form.category ? (Array.isArray(form.category) ? form.category : [form.category]) : [],
+      customCategory: customCategory.value
     }
 
     // 选择题额外字段

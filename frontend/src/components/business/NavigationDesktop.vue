@@ -33,6 +33,7 @@
     <div class="nav-menu">
       <RouterLink to="/exam" class="nav-link">真题首页</RouterLink>
       <RouterLink to="/exam/classify" class="nav-link">真题分类</RouterLink>
+      <RouterLink to="/exam/custom-classify" class="nav-link">自定义分类</RouterLink>
       <RouterLink to="/mock" class="nav-link">模拟题</RouterLink>
       <RouterLink to="/adaptation" class="nav-link">改编题</RouterLink>
 

@@ -5,6 +5,16 @@ from typing import Literal
 from pydantic import AliasChoices, BaseModel, ConfigDict, Field, model_validator
 
 
+class CustomCategoryTreeRequest(BaseModel):
+    """自定义分类树查询请求。"""
+
+    enabled_only: bool = Field(
+        default=False,
+        description="是否仅返回启用分类",
+        validation_alias=AliasChoices("enabled_only", "enabledOnly"),
+    )
+
+
 class CustomCategoryCreateRequest(BaseModel):
     """自定义分类创建请求；分类编码由服务端自动生成。"""
 
@@ -163,12 +173,13 @@ class CustomCategoryTreeResponse(CustomCategoryResponse):
 
 
 class CustomCategorySubjectStatItem(BaseModel):
-    """按科目的自定义分类数量统计项。"""
+    """按科目的自定义分类数量与已挂题目数统计项。"""
 
     subject_id: int = Field(..., ge=1, description="科目ID")
     subject_name: str = Field(..., description="科目名称")
     category_count: int = Field(..., ge=0, description="分类数量")
     enabled_category_count: int = Field(..., ge=0, description="启用分类数量")
+    question_count: int = Field(..., ge=0, description="已挂自定义分类的题目数")
 
 
 class CustomCategoryStatResponse(BaseModel):

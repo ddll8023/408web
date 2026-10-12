@@ -12,10 +12,11 @@ import type {
 import request from './request'
 import { convertKeysToSnake } from '@/utils/convertKeys'
 
-export const getCustomCategoryTree = (subjectId: number) => {
+export const getCustomCategoryTree = (subjectId: number, options: { enabledOnly?: boolean } = {}) => {
   return request<CustomCategoryTreeNode[]>({
     url: `/api/custom-category/subject/${subjectId}/tree`,
-    method: 'post'
+    method: 'post',
+    data: { enabledOnly: options.enabledOnly ?? false }
   })
 }
 

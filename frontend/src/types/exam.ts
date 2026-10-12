@@ -15,6 +15,8 @@ export interface ExamQuestion {
   answer?: string | null
   /** 拦截器已将后端 JSON 字符串统一解析为数组，此处是前端视图形状而非线格式 */
   category?: string[] | null
+  /** 自定义分类名称数组，解析规则同 category */
+  customCategory?: string[] | null
   subjectId?: number | null
   subjectName?: string | null
   difficulty?: Difficulty | null
@@ -32,6 +34,7 @@ export interface ExamQueryParams {
   size?: number
   year?: number | null
   category?: string | null
+  customCategory?: string | null
   subjectId?: number | null
   noCategory?: boolean | null
   keyword?: string | null
@@ -132,10 +135,14 @@ export interface ExamDuplicateCheck {
 export interface ExamCreateRequest extends QuestionCreateFields {
   year: number
   questionNumber?: number | null
+  /** 自定义分类名称列表，本版仅真题使用 */
+  customCategory?: string[] | null
 }
 
 /** 真题更新请求（对应 ExamUpdateRequest） */
 export interface ExamUpdateRequest extends QuestionUpdateFields {
   year?: number | null
   questionNumber?: number | null
+  /** 自定义分类名称列表，本版仅真题使用 */
+  customCategory?: string[] | null
 }

@@ -21,6 +21,7 @@ def to_exam_response(
         options=parse_options(question.options),
         answer=question.answer,
         category=parse_categories(question.category),
+        custom_category=parse_categories(question.custom_category),
         subject_id=question.subject_id,
         subject_name=subject_name,
         difficulty=question.difficulty,

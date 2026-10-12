@@ -26,6 +26,8 @@ class ExamQuery:
     keyword: str | None
     sort_field: str
     sort_order: str
+    custom_category: str | None = None
+    custom_category_names: tuple[str, ...] | None = None
     category_names: tuple[str, ...] | None = None
 
 
@@ -188,11 +190,61 @@ class ExamRepository:
         )
         return result.all()
 
+    async def count_custom_category_references(
+        self,
+        subject_id: int,
+        category_name: str,
+    ) -> int:
+        """按原始自定义分类名称统计引用，不去空白或展开子分类。"""
+        result = await self.session.exec(
+            select(func.count()).select_from(ExamQuestion).where(
+                ExamQuestion.subject_id == subject_id,
+                ExamQuestion.custom_category.isnot(None),
+                ExamQuestion.custom_category.like(
+                    self._json_category_like_pattern(category_name), escape="\\",
+                ),
+            )
+        )
+        return result.one() or 0
+
+    async def list_by_custom_category_tag(
+        self,
+        subject_id: int,
+        category_name: str,
+    ) -> list[ExamQuestion]:
+        """返回科目下自定义分类 JSON 含指定名称的真题，供分类改名同步标签。"""
+        result = await self.session.exec(
+            select(ExamQuestion).where(
+                ExamQuestion.subject_id == subject_id,
+                ExamQuestion.custom_category.isnot(None),
+                ExamQuestion.custom_category.like(
+                    self._json_category_like_pattern(category_name), escape="\\",
+                ),
+            )
+        )
+        return result.all()
+
     async def count_by_subject(self, subject_ids: set[int]) -> list[Any]:
         """批量统计指定科目的真题数量，不读取目录模型。"""
         result = await self.session.exec(
             select(ExamQuestion.subject_id, func.count(ExamQuestion.id).label("count"))
             .where(ExamQuestion.subject_id.in_(subject_ids))
+            .group_by(ExamQuestion.subject_id)
+        )
+        return result.all()
+
+    async def count_by_subject_with_custom_category(
+        self,
+        subject_ids: set[int],
+    ) -> list[Any]:
+        """批量统计指定科目已挂自定义分类的真题数量。"""
+        result = await self.session.exec(
+            select(ExamQuestion.subject_id, func.count(ExamQuestion.id).label("count"))
+            .where(
+                ExamQuestion.subject_id.in_(subject_ids),
+                ExamQuestion.custom_category.isnot(None),
+                ExamQuestion.custom_category != "",
+            )
             .group_by(ExamQuestion.subject_id)
         )
         return result.all()
@@ -339,6 +391,16 @@ class ExamRepository:
         return result.all()
 
     @staticmethod
+    def _custom_category_conditions(custom_category: str | None) -> list[Any]:
+        """构造 JSON 自定义分类名称的过滤条件。"""
+        if not custom_category or not custom_category.strip():
+            return []
+        return ExamRepository._json_conditions_for_names(
+            ExamQuestion.custom_category,
+            (custom_category.strip(),),
+        )
+
+    @staticmethod
     def _category_conditions(category: str | None) -> list[Any]:
         """构造 JSON 分类名称的兼容过滤条件。"""
         if not category or not category.strip():
@@ -350,27 +412,43 @@ class ExamRepository:
         category_names: tuple[str, ...],
     ) -> list[Any]:
         """构造匹配多个分类名称的 JSON 过滤条件。"""
+        return ExamRepository._json_conditions_for_names(
+            ExamQuestion.category,
+            category_names,
+        )
+
+    @staticmethod
+    def _custom_category_conditions_for_names(
+        custom_category_names: tuple[str, ...],
+    ) -> list[Any]:
+        """构造匹配多个自定义分类名称的 JSON 过滤条件。"""
+        return ExamRepository._json_conditions_for_names(
+            ExamQuestion.custom_category,
+            custom_category_names,
+        )
+
+    @staticmethod
+    def _json_conditions_for_names(column: Any, names: tuple[str, ...]) -> list[Any]:
+        """构造匹配 JSON 名称列的条件，按 JSON 字符串元素边界匹配名称。"""
         normalized_names = tuple(
-            dict.fromkeys(
-                name.strip() for name in category_names if name and name.strip()
-            )
+            dict.fromkeys(name.strip() for name in names if name and name.strip())
         )
         if not normalized_names:
             return []
 
-        category_conditions = [
+        name_conditions = [
             and_(
-                ExamQuestion.category.isnot(None),
-                ExamQuestion.category.like(
+                column.isnot(None),
+                column.like(
                     ExamRepository._json_category_like_pattern(name),
                     escape="\\",
                 ),
             )
             for name in normalized_names
         ]
-        if len(category_conditions) == 1:
-            return category_conditions
-        return [or_(*category_conditions)]
+        if len(name_conditions) == 1:
+            return name_conditions
+        return [or_(*name_conditions)]
 
     @staticmethod
     def _build_query_conditions(params: ExamQuery) -> list[Any]:
@@ -397,6 +475,17 @@ class ExamRepository:
                 )
             else:
                 conditions.extend(ExamRepository._category_conditions(params.category))
+
+        if params.custom_category_names is not None:
+            conditions.extend(
+                ExamRepository._custom_category_conditions_for_names(
+                    params.custom_category_names
+                )
+            )
+        else:
+            conditions.extend(
+                ExamRepository._custom_category_conditions(params.custom_category)
+            )
 
         if params.keyword and params.keyword.strip():
             keyword_pattern = f"%{params.keyword.strip()}%"

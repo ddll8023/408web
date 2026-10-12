@@ -46,6 +46,7 @@
       <div class="mobile-links" aria-label="主要导航">
         <RouterLink to="/exam" class="mobile-link" @click="closeMenu">真题首页</RouterLink>
         <RouterLink to="/exam/classify" class="mobile-link" @click="closeMenu">真题分类</RouterLink>
+        <RouterLink to="/exam/custom-classify" class="mobile-link" @click="closeMenu">自定义分类</RouterLink>
         <RouterLink to="/mock" class="mobile-link" @click="closeMenu">模拟题</RouterLink>
         <RouterLink to="/adaptation" class="mobile-link" @click="closeMenu">改编题</RouterLink>
       </div>

@@ -52,12 +52,14 @@ export interface CustomCategoryMoveRequest {
   position: CustomCategoryMovePosition
 }
 
-/** 按科目的自定义分类数量统计项（对应 CustomCategorySubjectStatItem） */
+/** 按科目的自定义分类数量与已挂题目数统计项（对应 CustomCategorySubjectStatItem） */
 export interface CustomCategorySubjectStat {
   subjectId: number
   subjectName: string
   categoryCount: number
   enabledCategoryCount: number
+  /** 该科目已挂自定义分类的题目数 */
+  questionCount: number
 }
 
 /** 自定义分类统计（对应 CustomCategoryStatResponse） */

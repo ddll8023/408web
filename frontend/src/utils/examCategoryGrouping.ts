@@ -164,6 +164,8 @@ const groupQuestionsByCategory = <T extends CategorizedQuestion>(
   questions: readonly T[],
   categories: readonly CategoryTreeNode[],
   selectedCategory = '',
+  getCategories: (question: T) => string[] = (question) =>
+    Array.isArray(question.category) ? question.category : [],
 ): CategoryQuestionGroup<T>[] => {
   if (questions.length === 0) return []
 
@@ -178,9 +180,7 @@ const groupQuestionsByCategory = <T extends CategorizedQuestion>(
   const groups = new Map<string, T[]>()
 
   questions.forEach((question) => {
-    const rawCategories = Array.isArray(question.category)
-      ? question.category.filter((category) => category.length > 0)
-      : []
+    const rawCategories = getCategories(question).filter((category) => category.length > 0)
     const questionCategories = new Set(rawCategories)
     const matchedCategories = scopeEntries.filter((entry) => questionCategories.has(entry.name))
 
@@ -229,6 +229,20 @@ export const groupExamQuestionsByCategory = (
     uniqueExamQuestions(questions),
     categories,
     selectedCategory,
+  )
+}
+
+/** 按自定义分类树分组真题，标签取自 customCategory 字段。 */
+export const groupExamQuestionsByCustomCategory = (
+  questions: readonly ExamQuestion[],
+  categories: readonly CategoryTreeNode[],
+  selectedCategory = '',
+): ExamQuestionGroup[] => {
+  return groupQuestionsByCategory(
+    uniqueExamQuestions(questions),
+    categories,
+    selectedCategory,
+    (question) => question.customCategory ?? [],
   )
 }
 

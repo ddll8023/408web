@@ -39,8 +39,8 @@ export const convertKeysToCamel = (data: unknown): unknown => {
   const result: Record<string, unknown> = {}
   for (const [key, value] of Object.entries(data)) {
     const camelKey = snakeToCamel(key)
-    // 递归转换嵌套对象，但排除category字段（它是JSON字符串，需要特殊处理）
-    if (key === 'category' && typeof value === 'string') {
+    // 递归转换嵌套对象，但排除分类字段（它们是JSON字符串，需要特殊处理）
+    if ((key === 'category' || key === 'custom_category') && typeof value === 'string') {
       result[camelKey] = convertCategoryString(value)
     } else if (typeof value === 'object' && value !== null) {
       result[camelKey] = convertKeysToCamel(value)
