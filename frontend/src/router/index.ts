@@ -71,6 +71,11 @@ const routes: RouteRecordRaw[] = [
     meta: { layout: 'admin', requiresAuth: true, requiresAdmin: true }
   },
   {
+    path: '/manage/custom-category',
+    component: () => import('@/views/admin/CustomCategoryManage.vue'),
+    meta: { layout: 'admin', requiresAuth: true, requiresAdmin: true }
+  },
+  {
     path: '/manage/exam-category',
     component: () => import('@/views/admin/ExamCategoryStats.vue'),
     meta: { layout: 'admin', requiresAuth: true, requiresAdmin: true }

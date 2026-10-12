@@ -1,0 +1,295 @@
+"""自定义分类写入用例。"""
+from sqlalchemy.exc import OperationalError
+from sqlmodel.ext.asyncio.session import AsyncSession
+
+from web408.core.exceptions import (
+    ConflictException,
+    NotFoundException,
+    ValidationException,
+)
+from web408.modules.catalog.category_code import (
+    build_category_code,
+    next_sibling_sequence,
+    pinyin_initials,
+    rebuild_subtree_codes,
+    renumber_category_codes,
+)
+from web408.modules.custom_category.models import CustomCategory
+from web408.modules.custom_category.query_service import CustomCategoryQueryService
+from web408.modules.custom_category.repository import CustomCategoryRepository
+from web408.modules.custom_category.schemas import (
+    CustomCategoryCreateRequest,
+    CustomCategoryMoveRequest,
+    CustomCategoryResponse,
+    CustomCategoryUpdateRequest,
+)
+
+
+class CustomCategoryCommandService:
+    """编排自定义分类新增、编辑、移动和删除。"""
+
+    def __init__(
+        self,
+        session: AsyncSession,
+        query_service: CustomCategoryQueryService,
+    ) -> None:
+        self.session = session
+        self.repository = CustomCategoryRepository(session)
+        self.query_service = query_service
+
+    async def _lock_structure(self) -> None:
+        """在自定义分类写用例内取得 SQLite 写锁。"""
+        try:
+            await self.repository.lock_structure()
+        except OperationalError as exc:
+            code = getattr(exc.orig, "sqlite_errorcode", 0) or 0
+            if (code & 0xFF) in (5, 6):
+                raise ConflictException("分类正在被修改，请刷新后重试") from exc
+            raise
+
+    async def create(
+        self,
+        request: CustomCategoryCreateRequest,
+    ) -> CustomCategoryResponse:
+        """创建自定义分类并自动生成层级编码。"""
+        await self._lock_structure()
+        subject = await self.repository.get_subject(request.subject_id)
+        if subject is None:
+            raise NotFoundException("科目")
+
+        categories = await self.repository.list_by_subject(
+            request.subject_id,
+            include_subject=False,
+        )
+        parent = None
+        if request.parent_id is not None:
+            parent = await self.repository.get_by_id(request.parent_id)
+            if parent is None:
+                raise NotFoundException(f"父分类不存在：ID={request.parent_id}")
+            if parent.subject_id != request.subject_id:
+                raise ConflictException("父分类不属于指定的科目")
+
+        if await self.repository.count_name_conflicts(
+            request.subject_id,
+            request.name,
+        ) > 0:
+            raise ConflictException(f"分类名称已存在：{request.name}")
+
+        code = build_category_code(
+            self._subject_prefix(subject.name),
+            parent.code if parent else None,
+            next_sibling_sequence(categories, request.parent_id),
+            request.name,
+        )
+        if await self.repository.count_code_conflicts(
+            request.subject_id,
+            code,
+        ) > 0:
+            raise ConflictException("分类编码生成冲突，请刷新后重试")
+
+        category = CustomCategory(
+            subject_id=request.subject_id,
+            parent_id=request.parent_id,
+            name=request.name,
+            code=code,
+            description=request.description,
+            order_num=request.order_num,
+            enabled=request.enabled,
+        )
+        self.session.add(category)
+        await self.session.flush()
+        await self.session.refresh(category, attribute_names=["subject"])
+        response = self.query_service.to_response(category)
+        await self.session.commit()
+        return response
+
+    async def update(
+        self,
+        category_id: int,
+        request: CustomCategoryUpdateRequest,
+    ) -> CustomCategoryResponse:
+        """更新自定义分类并提交事务。"""
+        await self._lock_structure()
+        category = await self.repository.get_by_id(
+            category_id,
+            include_subject=True,
+        )
+        if category is None:
+            raise NotFoundException(f"分类不存在：ID={category_id}")
+
+        update_data = request.model_dump(exclude_unset=True)
+        subject_id = update_data.get("subject_id", category.subject_id)
+        if subject_id is None:
+            raise ValidationException("分类必须属于一个科目")
+        if subject_id != category.subject_id:
+            raise ConflictException("分类所属科目创建后不可修改")
+        subject = await self.repository.get_subject(subject_id)
+        if subject is None:
+            raise NotFoundException("科目")
+
+        parent_id = update_data.get("parent_id", category.parent_id)
+        if parent_id is not None:
+            if parent_id == category_id:
+                raise ConflictException("不能将分类设置为自己的父分类")
+            if parent_id in await self.query_service.get_descendant_ids(category_id):
+                raise ConflictException("不能将分类移动到自己的子孙分类下")
+            parent = await self.repository.get_by_id(parent_id)
+            if parent is None:
+                raise NotFoundException(f"父分类不存在：ID={parent_id}")
+            if parent.subject_id != subject_id:
+                raise ConflictException("父分类不属于指定的科目")
+
+        if request.name is not None and request.name != category.name:
+            if await self.repository.count_name_conflicts(
+                subject_id,
+                request.name,
+                exclude_id=category_id,
+            ) > 0:
+                raise ConflictException(f"分类名称已被其他分类使用：{request.name}")
+
+        old_parent_id = category.parent_id
+        old_name = category.name
+        for field, value in update_data.items():
+            setattr(category, field, value)
+
+        # 编码同时包含层级路径和名称首字母，两者任一变化都要重建整棵子树编码。
+        if category.parent_id != old_parent_id or category.name != old_name:
+            categories = await self.repository.list_for_reorder(subject_id)
+            self._apply_rebuilt_codes(categories, category_id, subject.name)
+
+        await self.session.flush()
+        response = self.query_service.to_response(category)
+        await self.session.commit()
+        return response
+
+    async def move(
+        self,
+        category_id: int,
+        request: CustomCategoryMoveRequest,
+    ) -> list[CustomCategoryResponse]:
+        """原子移动整棵子树并重排同级节点。"""
+        await self._lock_structure()
+        category = await self.repository.get_by_id(category_id)
+        if category is None:
+            raise NotFoundException("分类")
+
+        target = None
+        if request.target_id is not None:
+            target = await self.repository.get_by_id(request.target_id)
+            if target is None:
+                raise NotFoundException("目标分类")
+            if target.subject_id != category.subject_id:
+                raise ConflictException("不能跨科目移动分类")
+            if target.id == category_id:
+                raise ConflictException("不能将分类移动到自身")
+            if target.id in await self.query_service.get_descendant_ids(category_id):
+                raise ConflictException("不能将分类移动到自己的子孙分类中")
+
+        old_parent_id = category.parent_id
+        new_parent_id = (
+            None
+            if target is None
+            else target.id if request.position == "inside" else target.parent_id
+        )
+        categories = await self.repository.list_for_reorder(category.subject_id)
+        siblings = [
+            item
+            for item in categories
+            if item.parent_id == new_parent_id and item.id != category_id
+        ]
+        index = len(siblings)
+        if target is not None and request.position != "inside":
+            index = next(i for i, item in enumerate(siblings) if item.id == target.id)
+            if request.position == "after":
+                index += 1
+        siblings.insert(index, category)
+        category.parent_id = new_parent_id
+        for order_num, item in enumerate(siblings):
+            item.order_num = order_num
+
+        if old_parent_id != new_parent_id:
+            old_siblings = [
+                item
+                for item in categories
+                if item.parent_id == old_parent_id and item.id != category_id
+            ]
+            for order_num, item in enumerate(old_siblings):
+                item.order_num = order_num
+
+            subject = await self.repository.get_subject(category.subject_id)
+            if subject is None:
+                raise NotFoundException("科目")
+            self._apply_rebuilt_codes(categories, category_id, subject.name)
+
+        await self.session.flush()
+        response = await self.query_service.get_categories_by_subject(category.subject_id)
+        await self.session.commit()
+        return response
+
+    async def rebuild_codes(
+        self,
+        subject_id: int,
+        root_id: int | None = None,
+    ) -> list[CustomCategoryResponse]:
+        """按当前显示顺序重排同级序号并重建层级编码。"""
+        await self._lock_structure()
+        subject = await self.repository.get_subject(subject_id)
+        if subject is None:
+            raise NotFoundException("科目")
+        if root_id is not None:
+            root = await self.repository.get_by_id(root_id)
+            if root is None:
+                raise NotFoundException(f"分类不存在：ID={root_id}")
+            if root.subject_id != subject_id:
+                raise ConflictException("分类不属于指定的科目")
+
+        categories = await self.repository.list_for_reorder(subject_id)
+        codes = renumber_category_codes(
+            categories,
+            self._subject_prefix(subject.name),
+            root_id,
+        )
+        # 同级序号可能互换，先写入唯一临时编码，避免唯一约束在批量更新中瞬时冲突。
+        for item in categories:
+            if item.id in codes:
+                item.code = f"tmp-{item.id}"
+        await self.session.flush()
+        for item in categories:
+            if item.id in codes:
+                item.code = codes[item.id]
+        await self.session.flush()
+        response = await self.query_service.get_categories_by_subject(subject_id)
+        await self.session.commit()
+        return response
+
+    async def delete(self, category_id: int) -> None:
+        """删除没有子分类的自定义分类。"""
+        await self._lock_structure()
+        category = await self.repository.get_by_id(category_id)
+        if category is None:
+            raise NotFoundException(f"分类不存在：ID={category_id}")
+        if await self.repository.count_children(category_id) > 0:
+            raise ConflictException("该分类存在子分类，无法删除")
+        await self.session.delete(category)
+        await self.session.commit()
+
+    @staticmethod
+    def _subject_prefix(subject_name: str) -> str:
+        """生成自定义分类专用编码前缀，与大纲分类编码区分。"""
+        return f"{pinyin_initials(subject_name)}-zdy"
+
+    def _apply_rebuilt_codes(
+        self,
+        categories: list[CustomCategory],
+        root_id: int,
+        subject_name: str,
+    ) -> None:
+        """按当前名称与层级重建子树编码，保持编码与分类树同步。"""
+        codes = rebuild_subtree_codes(
+            categories,
+            root_id,
+            self._subject_prefix(subject_name),
+        )
+        for item in categories:
+            if item.id in codes:
+                item.code = codes[item.id]

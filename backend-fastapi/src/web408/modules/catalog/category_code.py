@@ -1,9 +1,22 @@
-"""分类层级编码生成工具。"""
+"""分类层级编码生成工具。
+
+编码规则供大纲分类和自定义分类共用，因此只依赖分类节点上的
+id、parent_id、name、code、order_num 字段，不绑定具体模型。
+"""
 from collections import Counter
 from collections.abc import Iterable, Sequence
+from typing import Protocol
 import re
 
-from web408.modules.catalog.models import ExamCategory
+
+class CategoryCodeNode(Protocol):
+    """分类层级编码所需的分类节点最小接口。"""
+
+    id: int | None
+    parent_id: int | None
+    name: str
+    code: str
+    order_num: int
 
 
 # GB2312 编码对应的拼音首字母区间。使用标准库即可完成常用中文名称转换，
@@ -62,7 +75,7 @@ def pinyin_initials(value: str) -> str:
 
 
 def subject_code_prefix(
-    categories: Iterable[ExamCategory],
+    categories: Iterable[CategoryCodeNode],
     subject_name: str,
 ) -> str:
     """优先沿用当前科目已有前缀，没有时按科目名称生成。"""
@@ -83,7 +96,7 @@ def extract_last_sequence(code: str) -> int | None:
 
 
 def next_sibling_sequence(
-    categories: Iterable[ExamCategory],
+    categories: Iterable[CategoryCodeNode],
     parent_id: int | None,
 ) -> int:
     """返回同一父分类下的新编号。"""
@@ -109,7 +122,7 @@ def build_category_code(
 
 
 def rebuild_subtree_codes(
-    categories: Sequence[ExamCategory],
+    categories: Sequence[CategoryCodeNode],
     root_id: int,
     subject_prefix: str,
 ) -> dict[int, str]:
@@ -119,7 +132,7 @@ def rebuild_subtree_codes(
     if root is None:
         return {}
 
-    children_by_parent: dict[int | None, list[ExamCategory]] = {}
+    children_by_parent: dict[int | None, list[CategoryCodeNode]] = {}
     for category in categories:
         children_by_parent.setdefault(category.parent_id, []).append(category)
     for children in children_by_parent.values():
@@ -128,7 +141,7 @@ def rebuild_subtree_codes(
     codes: dict[int, str] = {}
 
     def assign_children(
-        parent: ExamCategory,
+        parent: CategoryCodeNode,
         parent_code: str,
     ) -> None:
         children = children_by_parent.get(parent.id, [])
@@ -178,7 +191,7 @@ def rebuild_subtree_codes(
 
 
 def renumber_category_codes(
-    categories: Sequence[ExamCategory],
+    categories: Sequence[CategoryCodeNode],
     subject_prefix: str,
     root_id: int | None = None,
 ) -> dict[int, str]:
@@ -188,7 +201,7 @@ def renumber_category_codes(
     该节点及其祖先的编码保持不变。
     """
     by_id = {category.id: category for category in categories}
-    children_by_parent: dict[int | None, list[ExamCategory]] = {}
+    children_by_parent: dict[int | None, list[CategoryCodeNode]] = {}
     for category in categories:
         children_by_parent.setdefault(category.parent_id, []).append(category)
     for children in children_by_parent.values():

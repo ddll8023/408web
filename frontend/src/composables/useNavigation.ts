@@ -23,6 +23,7 @@ export const searchTypeOptions = [
 export const manageItems = [
   { command: 'subject', label: '科目管理' },
   { command: 'category', label: '分类标签管理' },
+  { command: 'custom-category', label: '自定义分类' },
   { command: 'exam', label: '真题管理' },
   { command: 'mock', label: '模拟题管理' },
   { command: 'adaptation', label: '改编题管理' },
@@ -37,6 +38,7 @@ export type ManageItem = typeof manageItems[number]
 const manageRouteMap: Record<ManageCommand, string> = {
   subject: '/manage/subject',
   category: '/manage/category',
+  'custom-category': '/manage/custom-category',
   exam: '/manage/exam',
   mock: '/manage/mock',
   adaptation: '/manage/adaptation',

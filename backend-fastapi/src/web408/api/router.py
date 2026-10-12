@@ -5,6 +5,7 @@ from web408.modules.auth.router import router as auth_router
 from web408.modules.ai.router import router as ai_router
 from web408.modules.adaptation.router import router as adaptation_router
 from web408.modules.catalog.router import router as catalog_router
+from web408.modules.custom_category.router import router as custom_category_router
 from web408.modules.exam.router import router as exam_router
 from web408.modules.mock.router import router as mock_router
 from web408.modules.reporting.router import router as reporting_router
@@ -16,6 +17,7 @@ router = APIRouter()
 router.include_router(auth_router, prefix="/auth", tags=["认证"])
 router.include_router(ai_router, prefix="/ai", tags=["个人 AI 设置"])
 router.include_router(catalog_router, tags=["目录管理"])
+router.include_router(custom_category_router, prefix="/custom-category", tags=["自定义分类管理"])
 router.include_router(reporting_router, prefix="/exam", tags=["真题管理"])
 router.include_router(exam_router, prefix="/exam", tags=["真题管理"])
 router.include_router(mock_router, prefix="/mock", tags=["模拟题管理"])

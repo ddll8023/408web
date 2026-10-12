@@ -10,6 +10,7 @@ from fastapi.staticfiles import StaticFiles
 from web408.modules.auth import models as _auth_models
 from web408.modules.ai import models as _ai_models
 from web408.modules.catalog import models as _catalog_models
+from web408.modules.custom_category import models as _custom_category_models
 from web408.modules.adaptation import models as _adaptation_models
 from web408.modules.exam import models as _exam_models
 from web408.modules.mock import models as _mock_models
