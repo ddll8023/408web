@@ -37,6 +37,9 @@ class ExamQueryParams(BaseModel):
     custom_category: str | None = Field(default=None, description="自定义分类筛选")
     subject_id: int | None = Field(default=None, ge=1, description="科目 ID 筛选")
     no_category: bool | None = Field(default=None, description="是否筛选无分类")
+    has_custom_category: bool | None = Field(
+        default=None, description="是否只筛选已挂自定义分类的真题"
+    )
     keyword: str | None = Field(default=None, max_length=200, description="关键词搜索")
     sort_field: ExamSortField = Field(default="update_time", description="排序字段")
     sort_order: SortOrder = Field(default="desc", description="排序方向")
@@ -51,6 +54,7 @@ class ExamQueryParams(BaseModel):
                     "category": "栈",
                     "subject_id": 1,
                     "no_category": False,
+                    "has_custom_category": False,
                     "keyword": "链表",
                     "sort_field": "update_time",
                     "sort_order": "desc",

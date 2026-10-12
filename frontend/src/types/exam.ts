@@ -37,6 +37,8 @@ export interface ExamQueryParams {
   customCategory?: string | null
   subjectId?: number | null
   noCategory?: boolean | null
+  /** 对应后端 has_custom_category：只返回已挂自定义分类的真题 */
+  hasCustomCategory?: boolean | null
   keyword?: string | null
   sortField?: string
   sortOrder?: 'asc' | 'desc'

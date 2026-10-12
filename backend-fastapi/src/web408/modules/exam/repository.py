@@ -29,6 +29,7 @@ class ExamQuery:
     custom_category: str | None = None
     custom_category_names: tuple[str, ...] | None = None
     category_names: tuple[str, ...] | None = None
+    has_custom_category: bool = False
 
 
 class ExamRepository:
@@ -485,6 +486,14 @@ class ExamRepository:
         else:
             conditions.extend(
                 ExamRepository._custom_category_conditions(params.custom_category)
+            )
+
+        if params.has_custom_category:
+            conditions.append(
+                and_(
+                    ExamQuestion.custom_category.isnot(None),
+                    ExamQuestion.custom_category != "",
+                )
             )
 
         if params.keyword and params.keyword.strip():

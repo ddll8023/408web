@@ -221,6 +221,8 @@ const {
     sortField: 'year',
     sortOrder: 'asc',
     customCategory: filterCategory.value || undefined,
+    // 科目级视图（未选分类）只看已挂自定义分类的题目，避免列出全量真题
+    hasCustomCategory: filterCategory.value ? undefined : true,
   }),
   {
     pageSize: 50,

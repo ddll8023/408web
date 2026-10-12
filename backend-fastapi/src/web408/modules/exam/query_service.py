@@ -106,6 +106,7 @@ class ExamQueryService:
                 custom_category=params.custom_category,
                 custom_category_names=custom_category_names,
                 category_names=category_names,
+                has_custom_category=params.has_custom_category is True,
             )
         )
         data_list = await self._to_responses(questions)
