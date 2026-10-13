@@ -446,8 +446,13 @@ const categories = ref<CustomCategoryNode[]>([])
 // 科目选项
 const subjectOptions = ref<Subject[]>([])
 
-// 各科目分类数量统计
-const subjectStatsRaw = ref<{ subjectId: number; categoryCount: number; enabledCategoryCount: number }[]>([])
+// 各科目分类数量与已挂自定义分类的题目数统计
+const subjectStatsRaw = ref<{
+  subjectId: number
+  categoryCount: number
+  enabledCategoryCount: number
+  questionCount: number
+}[]>([])
 
 // 筛选科目ID
 const filterSubjectId = ref<number | null>(null)
@@ -596,7 +601,7 @@ const loadSubjectOptions = async () => {
   }
 }
 
-/** 加载各科目的自定义分类数量统计。 */
+/** 加载各科目的自定义分类数量与已挂题目数统计。 */
 const loadSubjectStats = async () => {
   try {
     const response = await getCustomCategoryStats()
@@ -606,6 +611,7 @@ const loadSubjectStats = async () => {
         subjectId: item.subjectId,
         categoryCount: item.categoryCount,
         enabledCategoryCount: item.enabledCategoryCount,
+        questionCount: item.questionCount,
       }))
     }
   } catch (error) {

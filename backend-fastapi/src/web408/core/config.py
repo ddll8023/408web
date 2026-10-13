@@ -126,7 +126,7 @@ class LoggingConfig(BaseSettings):
 class AiConfig(BaseModel):
     """固定的 AI 运行默认值，不读取环境配置或承载个人配置与系统凭据。"""
 
-    generation_timeout_seconds: int = Field(default=120, ge=5, le=300)
+    generation_timeout_seconds: int = Field(default=300, ge=5, le=300)
     check_timeout_seconds: int = Field(default=30, ge=5, le=120)
     question_text_max_bytes: int = Field(default=65536, ge=1024, le=65536)
     stream_event_max_bytes: int = Field(default=524288, ge=131072, le=1048576)
