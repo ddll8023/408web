@@ -24,7 +24,7 @@
 <script setup lang="ts">
 /**
  * 将已选题目合并为一次 Word 富文本复制。
- * 每道题继续使用 QuestionImageRenderer，确保公式、代码和图片处理规则一致。
+ * 每道题继续使用 QuestionImageRenderer，确保公式、代码、图片和列表处理规则一致。
  */
 import { computed, nextTick, onBeforeUpdate, ref } from 'vue'
 import type { AdaptationQuestion, MockQuestion } from '@/types'

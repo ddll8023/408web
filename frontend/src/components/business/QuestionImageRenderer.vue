@@ -363,6 +363,97 @@ const compactClipboardCode = (root: HTMLElement) => {
   })
 }
 
+/** 复制用 DOM 中需要展开为行内内容的块级标签；表格保留结构，避免破坏选项表与答案表。 */
+const clipboardFlattenTags = new Set(['P', 'DIV', 'BLOCKQUOTE', 'UL', 'OL'])
+const isClipboardFlattenBlock = (element: Element) => clipboardFlattenTags.has(element.tagName)
+
+/** 把嵌套列表展开成带行首符号的行：无序列表用「• 」，有序列表沿用自身起始编号。 */
+const buildClipboardListLines = (list: Element): Node[][] => {
+  const start = Number(list.getAttribute('start'))
+  const offset = list.tagName === 'OL' && Number.isInteger(start) && start > 0 ? start - 1 : 0
+  return Array.from(list.children)
+    .filter(child => child.tagName === 'LI')
+    .map((item, index) => {
+      const prefix = document.createTextNode(list.tagName === 'OL' ? `${index + 1 + offset}. ` : '• ')
+      return [prefix, ...Array.from(item.childNodes)]
+    })
+}
+
+/** 把列表项内的块级子元素拍平为段落内换行：Word/WPS 会把 li 内的块拆成「空编号段落 + 无编号正文」。 */
+const flattenClipboardListItems = (root: HTMLElement) => {
+  // 由内到外处理，保证内层列表先展开成行，外层展开时不再遗留嵌套块结构。
+  Array.from(root.querySelectorAll<HTMLLIElement>('.markdown-viewer li')).reverse().forEach(item => {
+    if (!Array.from(item.children).some(isClipboardFlattenBlock)) return
+
+    const lines: Node[][] = [[]]
+    const startNewLine = () => {
+      if (lines[lines.length - 1].length > 0) lines.push([])
+    }
+
+    item.childNodes.forEach(node => {
+      if (node.nodeType !== Node.ELEMENT_NODE || !isClipboardFlattenBlock(node as Element)) {
+        lines[lines.length - 1].push(node)
+        return
+      }
+
+      const block = node as Element
+      if (block.tagName === 'UL' || block.tagName === 'OL') {
+        startNewLine()
+        buildClipboardListLines(block).forEach(line => lines.push(line))
+        lines.push([])
+        return
+      }
+
+      Array.from(block.childNodes).forEach(child => lines[lines.length - 1].push(child))
+      startNewLine()
+    })
+
+    const isBlankLine = (line: Node[]) =>
+      line.every(node => node.nodeType === Node.TEXT_NODE && !(node.textContent || '').trim())
+    const fragment = document.createDocumentFragment()
+    lines.filter(line => line.length > 0 && !isBlankLine(line)).forEach((line, index) => {
+      if (index > 0) fragment.appendChild(document.createElement('br'))
+      line.forEach(node => fragment.appendChild(node))
+    })
+    item.replaceChildren(fragment)
+  })
+}
+
+/** 合并被段落打断的续号有序列表：Word/WPS 丢弃 ol 的 start 属性，每个片段都会从 1 重新编号。 */
+const mergeClipboardContinuedLists = (root: HTMLElement) => {
+  Array.from(root.querySelectorAll<HTMLOListElement>('.markdown-viewer ol')).forEach(list => {
+    const start = Number(list.getAttribute('start'))
+    if (!Number.isInteger(start) || start <= 1) return
+
+    const between: Element[] = []
+    let cursor: Element | null = list.previousElementSibling
+    while (cursor && cursor.tagName !== 'OL') {
+      between.unshift(cursor)
+      cursor = cursor.previousElementSibling
+    }
+
+    const previousList = cursor
+    if (!previousList) return
+
+    const previousItems = Array.from(previousList.children).filter(child => child.tagName === 'LI')
+    const lastItem = previousItems[previousItems.length - 1]
+    // 只有「起始编号正好接在上一个列表末尾」时才视为同一逻辑列表，避免合并用户手写的独立列表。
+    if (!lastItem || start !== previousItems.length + 1) return
+
+    between.forEach(block => lastItem.appendChild(block))
+    Array.from(list.children)
+      .filter(child => child.tagName === 'LI')
+      .forEach(item => previousList.appendChild(item))
+    list.remove()
+  })
+}
+
+/** 复制到 Word 前的列表规范化：先合并续号列表，再拍平列表项内的块级内容。 */
+const normalizeClipboardLists = (root: HTMLElement) => {
+  mergeClipboardContinuedLists(root)
+  flattenClipboardListItems(root)
+}
+
 const clipboardMediaScale = 2
 const parseClipboardDimension = (value: string | null) => {
   if (!value) return null
@@ -726,6 +817,7 @@ const getClipboardContent = async (): Promise<RichCopyContent> => {
   const clone = prepareClipboardClone(root)
   replaceFormulaWithLatex(root, clone)
   await prepareClipboardMedia(clone, root)
+  normalizeClipboardLists(clone)
   // 使用 Office 正文段落标识请求样式映射，不定义字体或行距；最终识别由 Word/WPS 决定。
   clone.querySelectorAll<HTMLElement>('.markdown-viewer p, .markdown-viewer li').forEach(paragraph => {
     paragraph.classList.add('MsoNormal')
