@@ -166,6 +166,16 @@ class CustomCategoryResponse(BaseModel):
 class CustomCategoryTreeResponse(CustomCategoryResponse):
     """自定义分类树形响应（带子分类列表）。"""
 
+    question_count: int | None = Field(
+        default=None,
+        ge=0,
+        description="直接挂该分类的真题数",
+    )
+    subtree_question_count: int | None = Field(
+        default=None,
+        ge=0,
+        description="含子孙分类的真题数",
+    )
     children: list["CustomCategoryTreeResponse"] = Field(
         default_factory=list,
         description="子分类列表",

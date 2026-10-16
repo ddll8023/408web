@@ -15,6 +15,14 @@ class ExamCategoryReferenceRead:
 
 
 @dataclass(frozen=True, slots=True)
+class ExamCustomCategoryReferenceRead:
+    """自定义分类统计所需的真题自定义分类引用，只携带标识和原始 JSON。"""
+
+    id: int
+    custom_category: str
+
+
+@dataclass(frozen=True, slots=True)
 class ExamSourceRead:
     """改编题来源解析所需的真题只读数据。"""
 
@@ -37,6 +45,17 @@ class ExamReadService:
         """转换为不可变引用 DTO，不向外暴露 ORM 或数据库行。"""
         rows = await self.repository.list_question_categories(subject_id)
         return [ExamCategoryReferenceRead(id=row.id, category=row.category) for row in rows]
+
+    async def list_question_custom_categories(
+        self,
+        subject_id: int,
+    ) -> list[ExamCustomCategoryReferenceRead]:
+        """转换为不可变引用 DTO，不向外暴露 ORM 或数据库行。"""
+        rows = await self.repository.list_question_custom_categories(subject_id)
+        return [
+            ExamCustomCategoryReferenceRead(id=row.id, custom_category=row.custom_category)
+            for row in rows
+        ]
 
     async def count_questions_with_categories(self, subject_id: int) -> int:
         """返回科目下分类字段非空的去重题目数。"""

@@ -108,6 +108,8 @@
                   :is-admin="false"
                   :show-answer="showAnswers[exam.id]"
                   density="compact"
+                  category-source="custom"
+                  @copy="(cmd) => handleCopy(cmd, exam)"
                   @toggle-answer="toggleAnswer(exam.id)"
                 />
               </div>
@@ -176,6 +178,7 @@ import {
   groupExamQuestionsByCustomCategory,
   uniqueExamQuestions,
 } from '@/utils/examCategoryGrouping'
+import { buildExamTitleLine, copyFullMarkdown } from '@/utils/questionMarkdown'
 
 // UI State
 const isNavCollapsed = ref(false)
@@ -428,6 +431,11 @@ const handleNavSheetOutlineJump = (anchorId: string) => {
 /** 切换指定题目的答案显示状态。 */
 const toggleAnswer = (examId: number | string) => {
   showAnswers.value[Number(examId)] = !showAnswers.value[Number(examId)]
+}
+
+/** Markdown 完整内容复制：标题级别由菜单命令决定。 */
+const handleCopy = async (command: string, exam: ExamQuestion) => {
+  await copyFullMarkdown(command, exam, buildExamTitleLine(exam))
 }
 
 /** 重置或追加加载当前科目的题目。 */

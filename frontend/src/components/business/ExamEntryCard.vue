@@ -10,6 +10,7 @@
       :exam="exam"
       :is-admin="isAdmin"
       :fullscreen-active="isActive"
+      :category-source="categorySource"
       @copy="(cmd) => $emit('copy', cmd)"
       @edit="$emit('edit', exam)"
       @delete="(id) => $emit('delete', id)"
@@ -38,7 +39,7 @@ import { ref, type PropType } from 'vue'
 import type { ExamQuestion } from '@/types'
 /**
  * 题目条目卡片组件
- * 功能描述：整合 ExamItemHeader 与 ExamQuestionCard 的容器组件
+ * 功能描述：整合 ExamItemHeader 与 ExamQuestionCard 的容器组件，并透传分类标签来源
  * 依赖组件：ExamItemHeader, ExamQuestionCard
  * 设计：遵循 KISS/YAGNI 原则，专注题目卡片展示与交互
  */
@@ -71,6 +72,11 @@ const props = defineProps({
   density: {
     type: String,
     default: 'compact'
+  },
+  /** 分类标签来源：outline=大纲分类，custom=自定义分类 */
+  categorySource: {
+    type: String as PropType<'outline' | 'custom'>,
+    default: 'outline'
   }
 })
 

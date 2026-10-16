@@ -150,6 +150,17 @@ class ExamRepository:
         )
         return result.all()
 
+    async def list_question_custom_categories(self, subject_id: int) -> list[Any]:
+        """读取科目下非空自定义分类 JSON 和题目 ID，供自定义分类统计使用。"""
+        result = await self.session.exec(
+            select(ExamQuestion.id, ExamQuestion.custom_category).where(
+                ExamQuestion.subject_id == subject_id,
+                ExamQuestion.custom_category.isnot(None),
+                ExamQuestion.custom_category != "",
+            )
+        )
+        return result.all()
+
     async def count_questions_with_categories(self, subject_id: int) -> int:
         """统计非空分类字段的题目数，保留历史 JSON 统计口径。"""
         result = await self.session.exec(

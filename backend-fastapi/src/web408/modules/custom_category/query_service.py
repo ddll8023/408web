@@ -13,6 +13,7 @@ from web408.modules.custom_category.schemas import (
     CustomCategoryTreeResponse,
 )
 from web408.modules.exam.read_service import ExamReadService
+from web408.modules.question_content.serialization import parse_categories
 
 
 class CustomCategoryQueryService:
@@ -36,7 +37,9 @@ class CustomCategoryQueryService:
         if not categories:
             return []
         responses = [self.to_response(category) for category in categories]
-        return self.build_tree(responses)
+        tree = self.build_tree(responses)
+        await self._apply_question_counts(subject_id, tree)
+        return tree
 
     async def get_categories_by_subject(
         self,
@@ -99,6 +102,42 @@ class CustomCategoryQueryService:
     async def get_descendant_ids(self, category_id: int) -> set[int]:
         """返回分类的全部子孙 ID。"""
         return await self.repository.list_descendants(category_id)
+
+    async def _apply_question_counts(
+        self,
+        subject_id: int,
+        tree: list[CustomCategoryTreeResponse],
+    ) -> None:
+        """按名称匹配真题自定义分类标签，回写直接题量与子树累计题量。"""
+        references = await self.exam_read_service.list_question_custom_categories(
+            subject_id
+        )
+        question_ids_by_category: dict[str, set[int]] = defaultdict(set)
+        for reference in references:
+            for name in set(parse_categories(reference.custom_category) or ()):
+                question_ids_by_category[name].add(reference.id)
+        self._apply_question_counts_recursively(tree, question_ids_by_category)
+
+    @staticmethod
+    def _apply_question_counts_recursively(
+        nodes: list[CustomCategoryTreeResponse],
+        question_ids_by_category: dict[str, set[int]],
+    ) -> set[int]:
+        """递归写入直接题量与子树累计题量，并返回整棵子树的题目 ID。"""
+        collected: set[int] = set()
+        for node in nodes:
+            own_ids = set(question_ids_by_category.get(node.name, set()))
+            node.question_count = len(own_ids)
+            subtree_ids = set(own_ids)
+            subtree_ids.update(
+                CustomCategoryQueryService._apply_question_counts_recursively(
+                    node.children,
+                    question_ids_by_category,
+                )
+            )
+            node.subtree_question_count = len(subtree_ids)
+            collected.update(subtree_ids)
+        return collected
 
     @staticmethod
     def to_response(category: CustomCategory) -> CustomCategoryResponse:

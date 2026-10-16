@@ -179,7 +179,7 @@ import type { AdaptationQuestion, CategoryOutlineItem, CategoryTreeNode, Subject
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { queryString } from '@/utils/storage'
-import { parseQuestionOptions } from '@/utils/questionOptions'
+import { copyFullMarkdown } from '@/utils/questionMarkdown'
 import {
   deleteAdaptation,
   getAdaptationDetail,
@@ -543,85 +543,9 @@ const handleQuestionTypeChange = () => {
   if (activeSubjectId.value !== null) void loadQuestions(true)
 }
 
-const normalizeLineBreaks = (text: string) => {
-  if (!text) return text
-  return text
-    .replace(/(?<!\\n)(?<=\\S)\\s*(\\([1-9]\\d?\\)\\s*)/g, '\\n$1')
-    .replace(/\\n{3,}/g, '\\n\\n')
-}
-
-const formatQuestionMarkdown = (question: AdaptationQuestion) => {
-  return [
-    `## 改编题 #${question.id}`,
-    '',
-    '### 题目',
-    normalizeLineBreaks(question.content),
-  ].join('\\n')
-}
-
-const formatOptionsMarkdown = (question: AdaptationQuestion) => {
-  if (question.questionType !== 'CHOICE') return ''
-  const options = parseQuestionOptions(question.options)
-  if (!options) return ''
-  return ['### 选项', ...Object.entries(options).map(([key, value]) => `${key}. ${normalizeLineBreaks(value)}`)].join('\\n')
-}
-
-const formatAnswerMarkdown = (question: AdaptationQuestion) => {
-  if (!question.answer) return ''
-  return ['### 答案', normalizeLineBreaks(question.answer)].join('\\n')
-}
-
-const formatFullMarkdown = (question: AdaptationQuestion) => {
-  return [
-    formatQuestionMarkdown(question),
-    formatOptionsMarkdown(question),
-    formatAnswerMarkdown(question),
-  ].filter(Boolean).join('\\n\\n')
-}
-
-const copyToClipboard = async (text: string) => {
-  if (navigator.clipboard && window.isSecureContext) {
-    await navigator.clipboard.writeText(text)
-    return
-  }
-
-  const textArea = document.createElement('textarea')
-  textArea.value = text
-  textArea.style.position = 'fixed'
-  textArea.style.left = '-999999px'
-  document.body.appendChild(textArea)
-  try {
-    textArea.focus()
-    textArea.select()
-    if (!document.execCommand('copy')) throw new Error('COPY_FAILED')
-  } finally {
-    document.body.removeChild(textArea)
-  }
-}
-
+/** Markdown 完整内容复制：标题级别由菜单命令决定。 */
 const handleCopy = async (command: string, question: AdaptationQuestion) => {
-  const content = command === 'md-question'
-    ? formatQuestionMarkdown(question)
-    : command === 'md-options'
-      ? formatOptionsMarkdown(question)
-      : command === 'md-answer'
-        ? formatAnswerMarkdown(question)
-        : command === 'md-all'
-          ? formatFullMarkdown(question)
-          : ''
-
-  if (!content) {
-    showToast('没有可复制的内容', 'warning')
-    return
-  }
-
-  try {
-    await copyToClipboard(content)
-    showToast('内容已复制', 'success')
-  } catch (error) {
-    showToast('复制失败，请重试', 'error')
-    console.error('复制改编题失败:', error)
-  }
+  await copyFullMarkdown(command, question, `改编题 #${question.id}`)
 }
 
 const loadQuestions = async (isReset = false) => {

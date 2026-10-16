@@ -20,6 +20,10 @@ export interface CustomCategoryNode {
 
 /** 自定义分类树节点（对应 CustomCategoryTreeResponse） */
 export interface CustomCategoryTreeNode extends CustomCategoryNode {
+  /** 直接挂该分类的真题数 */
+  questionCount?: number | null
+  /** 含子孙分类的真题数 */
+  subtreeQuestionCount?: number | null
   children: CustomCategoryTreeNode[]
 }
 

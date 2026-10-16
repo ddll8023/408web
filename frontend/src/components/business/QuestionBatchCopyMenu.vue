@@ -29,7 +29,7 @@
 import { computed, nextTick, onBeforeUpdate, ref } from 'vue'
 import type { AdaptationQuestion, MockQuestion } from '@/types'
 import type { RichCopyContent, RichCopyResult } from '@/utils/questionCopy'
-import { copyRichContent } from '@/utils/questionCopy'
+import { appendTrailingBlankLine, copyRichContent } from '@/utils/questionCopy'
 import { getQuestionSelectionKey } from '@/composables/useQuestionSelection'
 import { useToast } from '@/composables/useToast'
 import CustomButton from '@/components/basic/CustomButton.vue'
@@ -90,12 +90,12 @@ const buildBatchContent = async (questions: QuestionRow[]): Promise<RichCopyCont
   }
 
   const separatorHtml = '<p class="MsoNormal">&nbsp;</p>'
-  return {
+  return appendTrailingBlankLine({
     html: `<!--StartFragment-->${contents
       .map(content => stripFragmentMarkers(content.html))
       .join(separatorHtml)}<!--EndFragment-->`,
     text: contents.map(content => content.text).join('\n\n'),
-  }
+  })
 }
 
 const copyWord = async () => {

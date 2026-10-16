@@ -60,6 +60,21 @@ const supportsRichClipboard = () => {
     typeof ClipboardItem !== 'undefined'
 }
 
+/** 末尾空段落的 HTML，粘贴到 Word 后光标落在下一行空行。 */
+const trailingBlankParagraphHtml = '<p class="MsoNormal">&nbsp;</p>'
+
+/**
+ * 在富文本内容末尾追加一个空段落与换行，让粘贴后光标落在下一行空行。
+ * 单题与批量复制都只在最终结果上调用一次，避免题目之间出现多余空行。
+ */
+export const appendTrailingBlankLine = (content: RichCopyContent): RichCopyContent => {
+  const endMarker = '<!--EndFragment-->'
+  const html = content.html.includes(endMarker)
+    ? content.html.replace(endMarker, `${trailingBlankParagraphHtml}${endMarker}`)
+    : `${content.html}${trailingBlankParagraphHtml}`
+  return { html, text: `${content.text}\n` }
+}
+
 const copyPlainText = async (text: string) => {
   if (typeof window !== 'undefined' && typeof navigator !== 'undefined' &&
     typeof navigator.clipboard?.writeText === 'function' && window.isSecureContext) {

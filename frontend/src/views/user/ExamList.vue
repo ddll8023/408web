@@ -145,7 +145,7 @@
 <script setup lang="ts">
 import type { CategoryOutlineItem, ExamNavQuestion, ExamNavYear, ExamQuestion, Subject, CategoryTreeNode } from "@/types"
 import { queryString } from "@/utils/storage"
-import { parseQuestionOptions } from "@/utils/questionOptions"
+import { buildExamTitleLine, copyFullMarkdown } from '@/utils/questionMarkdown'
 /**
  * 真题年份页面
  * 功能：左侧年份导航，题目区按题型展示该年份全部真题，宽屏右侧提供题号导航
@@ -159,7 +159,6 @@ import { parseQuestionOptions } from "@/utils/questionOptions"
 import { ref, computed, watch, onMounted, nextTick, onActivated } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { getExamNavIndex, getExamByYear, deleteExam } from '@/api/exam'
-import { getDifficultyLabel } from '@/constants/exam'
 import { useCategoryOutline } from '@/composables/useCategoryOutline'
 import { useAuthStore } from '@/stores/auth'
 import toast from '@/utils/toast'
@@ -295,35 +294,6 @@ const navCache = new Map<string, NavYear[]>()
 let navRequestVersion = 0
 let examsRequestVersion = 0
 
-// 复制工具函数
-const copyToClipboard = async (text: string) => {
-  try {
-    if (navigator.clipboard && window.isSecureContext) {
-      await navigator.clipboard.writeText(text)
-    } else {
-      const textArea = document.createElement('textarea')
-      textArea.value = text
-      textArea.style.position = 'fixed'
-      textArea.style.left = '-999999px'
-      textArea.style.top = '-999999px'
-      document.body.appendChild(textArea)
-      textArea.focus()
-      textArea.select()
-      try {
-        document.execCommand('copy')
-      } catch (err) {
-        console.error('复制失败:', err)
-        throw err
-      }
-      document.body.removeChild(textArea)
-    }
-    return true
-  } catch (error) {
-    console.error('复制失败:', error)
-    throw error
-  }
-}
-
 // 从 sessionStorage 中读取并应用返回滚动位置
 const applyReturnScrollIfNeeded = () => {
   try {
@@ -342,197 +312,11 @@ const applyReturnScrollIfNeeded = () => {
   }
 }
 
-// ==================== 格式化工具函数 ====================
-
-/**
- * 获取题目元信息标签（用于标题）
- * @param {Object} exam - 题目对象
- * @returns {string} 格式化的标签字符串，如 "[选择题] [数据结构]"
- */
-const getExamTags = (exam: ExamQuestion) => {
-  const questionType = exam.questionType === 'CHOICE' ? '选择题' : '主观题'
-  const category = Array.isArray(exam.category) ? exam.category.join(', ') : (exam.category || '')
-  const difficulty = exam.difficulty ? getDifficultyLabel(exam.difficulty) : ''
-  const tags = [questionType, category, difficulty].filter(Boolean)
-  return tags.length > 0 ? `[${tags.join('] [')}]` : ''
-}
-
-/**
- * 解析选项JSON为对象
- * @param {Object} exam - 题目对象
- * @returns {Object} 选项对象
- */
-const parseOptions = (exam: ExamQuestion) => {
-  if (exam?.questionType !== 'CHOICE' || !exam?.options) return null
-  try {
-    return parseQuestionOptions(exam.options)
-  } catch (e) {
-    console.error('解析选项失败:', e)
-    return null
-  }
-}
-
-/**
- * 智能换行处理函数
- * 识别常见的编号模式并在其前面添加换行符，解决复制后内容连在一起的问题
- * 支持的模式：
- * - 罗马数字：I. II. III. IV. V. VI. VII. VIII. IX. X. 等
- * - 圆括号数字：(1) (2) (3) 等
- * - 带圈数字：① ② ③ ④ ⑤ 等
- * - 方括号数字：[1] [2] [3] 等
- * - 大写字母 + 括号：(A) (B) (C) (D) 等
- */
-const normalizeLineBreaks = (text: string) => {
-  if (!text || typeof text !== 'string') return text
-  
-  const patterns = [
-    // 罗马数字模式: I. II. III. IV. V. VI. VII. VIII. IX. X. XI. XII.
-    /(?<!\n)(?<=\S)\s*((?:I{1,3}|IV|VI{0,3}|IX|X{1,3}|XI{1,3}|XII)\.\s)/gi,
-    // 圆括号数字模式: (1) (2) (3) ...
-    /(?<!\n)(?<=\S)\s*(\([1-9]\d?\)\s*)/g,
-    // 带圈数字模式: ① ② ③ ④ ⑤ ⑥ ⑦ ⑧ ⑨ ⑩ 等
-    /(?<!\n)(?<=\S)\s*([①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮])/g,
-    // 方括号数字模式: [1] [2] [3] ...
-    /(?<!\n)(?<=\S)\s*(\[[1-9]\d?\]\s*)/g,
-    // 大写字母括号模式: (A) (B) (C) (D) 等
-    /(?<!\n)(?<=\S)\s*(\([A-Z]\)\s*)/g
-  ]
-  
-  let result = text
-  patterns.forEach(pattern => {
-    result = result.replace(pattern, '\n$1')
-  })
-  result = result.replace(/\n{3,}/g, '\n\n')
-  
-  return result
-}
-
-// ==================== Markdown 格式化函数 ====================
-
-/**
- * 格式化题目为 Markdown（与导出格式一致）
- */
-const formatQuestionMarkdown = (exam: ExamQuestion) => {
-  if (!exam?.content) return ''
-  const parts = []
-  const questionNumber = exam.questionNumber || ''
-  const tags = getExamTags(exam)
-  // 标题行：第X题 [标签]
-  parts.push(`## 第${questionNumber}题 ${tags}`)
-  parts.push('')
-  parts.push('### 题目')
-  parts.push(normalizeLineBreaks(exam.content))
-  return parts.join('\n')
-}
-
-/**
- * 格式化选项为 Markdown
- */
-const formatOptionsMarkdown = (exam: ExamQuestion) => {
-  const optionsObj = parseOptions(exam)
-  if (!optionsObj) return ''
-  const optionKeys = Object.keys(optionsObj).sort()
-  const parts = []
-  parts.push('### 选项')
-  optionKeys.forEach(key => {
-    parts.push(`${key}. ${normalizeLineBreaks(optionsObj[key])}`)
-  })
-  return parts.join('\n')
-}
-
-/**
- * 格式化答案为 Markdown
- */
-const formatAnswerMarkdown = (exam: ExamQuestion) => {
-  if (!exam?.answer) return ''
-  const parts = []
-  parts.push('### 答案')
-  parts.push(normalizeLineBreaks(exam.answer))
-  return parts.join('\n')
-}
-
-/**
- * 格式化完整内容为 Markdown（与导出格式一致）
- */
-const formatFullMarkdown = (exam: ExamQuestion) => {
-  const parts = []
-  const questionNumber = exam.questionNumber || ''
-  const tags = getExamTags(exam)
-  
-  // 标题行
-  parts.push(`## 第${questionNumber}题 ${tags}`)
-  parts.push('')
-  
-  // 题目内容
-  if (exam?.content) {
-    parts.push('### 题目')
-    parts.push(normalizeLineBreaks(exam.content))
-    parts.push('')
-  }
-  
-  // 选项（仅选择题）
-  if (exam?.questionType === 'CHOICE') {
-    const optionsObj = parseOptions(exam)
-    if (optionsObj) {
-      const optionKeys = Object.keys(optionsObj).sort()
-      parts.push('### 选项')
-      optionKeys.forEach(key => {
-        parts.push(`${key}. ${normalizeLineBreaks(optionsObj[key])}`)
-      })
-      parts.push('')
-    }
-  }
-  
-  // 答案
-  if (exam?.answer) {
-    parts.push('### 答案')
-    parts.push(normalizeLineBreaks(exam.answer))
-  }
-  
-  return parts.join('\n')
-}
-
-// 统一处理复制逻辑（仅支持 Markdown 格式）
+// 统一处理复制逻辑（仅支持 Markdown 完整内容）
+/** Markdown 完整内容复制：标题级别由菜单命令决定。 */
 const handleCopy = async (command: string, exam: ExamQuestion) => {
-  let text = ''
-  let message = ''
-
-  try {
-    switch (command) {
-      // Markdown 格式
-      case 'md-question':
-        text = formatQuestionMarkdown(exam)
-        message = '题目已复制 (Markdown)'
-        break
-      case 'md-options':
-        text = formatOptionsMarkdown(exam)
-        message = '选项已复制 (Markdown)'
-        break
-      case 'md-answer':
-        text = formatAnswerMarkdown(exam)
-        message = '答案已复制 (Markdown)'
-        break
-      case 'md-all':
-        text = formatFullMarkdown(exam)
-        message = '完整内容已复制 (Markdown)'
-        break
-      default:
-        return
-    }
-
-    if (!text) {
-      toast.warning('没有可复制的内容')
-      return
-    }
-
-    await copyToClipboard(text)
-    toast.success(message)
-  } catch (error) {
-    toast.error('复制失败，请重试')
-  }
+  await copyFullMarkdown(command, exam, buildExamTitleLine(exam))
 }
-
-// getDifficultyLabel 已从 @/constants/exam 导入
 
 /**
  * 切换答案显示/隐藏(年份视图,指定题目ID)

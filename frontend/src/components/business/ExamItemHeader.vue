@@ -13,7 +13,7 @@
           {{ getDifficultyLabel(exam.difficulty) }}
         </Tag>
         <Tag
-          v-for="cat in (Array.isArray(exam.category) ? exam.category : [])"
+          v-for="cat in displayCategories"
           :key="cat"
           class="question-tag"
           size="sm"
@@ -66,10 +66,11 @@
 
 <script setup lang="ts">
 import type { PropType } from 'vue'
+import { computed } from 'vue'
 import type { ExamQuestion } from '@/types'
 /**
  * 题目头部组件
- * 功能描述：显示题目年份、题号、类型/难度/分类标签和操作按钮
+ * 功能描述：显示题目年份、题号、类型/难度/分类标签和操作按钮，分类标签可按来源切换为大纲分类或自定义分类
  * 依赖组件：CustomButton, QuestionCopyMenu, ExamProcessMenu, Tag
  */
 
@@ -96,7 +97,18 @@ const props = defineProps({
   fullscreenActive: {
     type: Boolean,
     default: false
+  },
+  /** 分类标签来源：outline=大纲分类，custom=自定义分类 */
+  categorySource: {
+    type: String as PropType<'outline' | 'custom'>,
+    default: 'outline'
   }
+})
+
+/** 分类标签按来源取值，兼容空值。 */
+const displayCategories = computed(() => {
+  const source = props.categorySource === 'custom' ? props.exam.customCategory : props.exam.category
+  return Array.isArray(source) ? source : []
 })
 
 // 3. Emits 定义

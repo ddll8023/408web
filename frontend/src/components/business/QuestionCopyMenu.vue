@@ -66,6 +66,7 @@ import type { PropType } from 'vue'
 import { computed, nextTick, ref } from 'vue'
 import type { AdaptationQuestion, ExamQuestion, MockQuestion } from '@/types'
 import {
+  appendTrailingBlankLine,
   copyImageBlob,
   copyRichContent,
   getImageCopyScope,
@@ -142,12 +143,10 @@ const menuSections = computed<CopyMenuSection[]>(() => [
     description: '保留排版',
     icon: ['fas', 'file-lines'],
     items: [
-      { command: 'md-question', label: '复制题目' },
-      ...(hasOptions.value ? [{ command: 'md-options', label: '复制选项' }] : []),
-      ...(hasAnswer.value ? [{ command: 'md-answer', label: '复制答案' }] : []),
-      ...((hasAnswer.value || hasOptions.value)
-        ? [{ command: 'md-all', label: '复制完整内容', wide: true }]
-        : [])
+      { command: 'md-all-1', label: '复制完整内容（一级标题）', wide: true },
+      { command: 'md-all-2', label: '复制完整内容（二级标题）', wide: true },
+      { command: 'md-all-3', label: '复制完整内容（三级标题）', wide: true },
+      { command: 'md-all-4', label: '复制完整内容（四级标题）', wide: true }
     ]
   },
   {
@@ -235,7 +234,7 @@ const handleWordCopy = async (scope: QuestionRichCopyScope): Promise<RichCopyRes
     const renderer = imageRenderer.value
     if (!renderer) throw new Error('IMAGE_RENDERER_NOT_READY')
 
-    const contentPromise = renderer.getClipboardContent()
+    const contentPromise = renderer.getClipboardContent().then(appendTrailingBlankLine)
     const result = await copyRichContent(contentPromise)
     if (result === 'rich') {
       showToast('内容已复制，可直接粘贴到 Word', 'success')
