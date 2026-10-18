@@ -74,7 +74,7 @@
 
           <div v-if="questionsLoadError" class="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700" role="alert">
             {{ questionsLoadError }}
-            <CustomButton size="sm" type="text" :disabled="questionsLoading" @click="loadQuestions(true)">重试</CustomButton>
+            <CustomButton size="sm" type="text" :disabled="questionsLoading" @click="loadQuestions()">重试</CustomButton>
           </div>
 
           <!-- 分类分组列表：标题显式区分模拟题、父子层级和题目数量 -->
@@ -133,16 +133,6 @@
             :description="activeSubjectId ? '该科目暂无模拟题' : '请选择左侧科目'"
           />
 
-          <!-- 加载更多按钮 -->
-              <div v-if="hasMore" class="flex justify-center py-8 mt-4">
-                <CustomButton
-                  :loading="questionsLoading"
-                  type="primary"
-                  @click="loadQuestions(false)"
-                >
-                  {{ questionsLoading ? '加载中...' : '加载更多模拟题' }}
-                </CustomButton>
-              </div>
           </div>
         </div>
 
@@ -276,10 +266,9 @@ const {
   items: questionList,
   loading: initialQuestionsLoading,
   loadingMore: loadingMoreQuestions,
+  loadingAll: loadingAllQuestions,
   error: questionsLoadError,
-  hasMore: hasMorePages,
-  reload: reloadQuestions,
-  loadMore: loadMoreQuestions,
+  loadAll: loadAllQuestions,
   reset: resetQuestions,
 } = useInfiniteQuestionList<MockQuestion>(
   (page, pageSize) => getMockQuestions({
@@ -289,15 +278,16 @@ const {
     category: filterCategory.value || undefined,
   }),
   {
-    pageSize: 50,
+    pageSize: 100,
     getHasMore: (items, pagination) => items.length < pagination.total,
     fallbackErrorMessage: '模拟题读取失败，请重试。',
     stopOnResponseError: true,
     onRequestError: error => console.error('加载模拟题失败:', error),
   },
 )
-const questionsLoading = computed(() => initialQuestionsLoading.value || loadingMoreQuestions.value)
-const hasMore = computed(() => activeSubjectId.value !== null && hasMorePages.value)
+const questionsLoading = computed(() =>
+  initialQuestionsLoading.value || loadingMoreQuestions.value || loadingAllQuestions.value,
+)
 const showAnswers = ref<Record<number, boolean>>({})
 const contentScroller = ref<HTMLElement | null>(null)
 const setContentScroller = (element: HTMLElement | null) => {
@@ -474,7 +464,7 @@ const handleHashScroll = async () => {
 
     if (targetMock.category && targetMock.category.length > 0) {
       filterCategory.value = targetMock.category[0]
-      await loadQuestions(true)
+      await loadQuestions()
     }
 
     if (!questionList.value.some(question => question.id === targetMock.id)) {
@@ -532,7 +522,7 @@ const handleSubjectSelect = async (subject: Subject) => {
 
   await Promise.all([
     loadCategoriesForSubject(subject.id),
-    loadQuestions(true)
+    loadQuestions()
   ])
 }
 
@@ -562,7 +552,7 @@ const handleCategorySelect = (subject: Subject, category: string) => {
   }
 
   showAnswers.value = {}
-  loadQuestions(true)
+  loadQuestions()
 }
 
 /**
@@ -606,19 +596,14 @@ const handleAnswered = (
 // 难度辅助函数已从 @/constants/exam 导入
 
 // Core: Load Questions
-const loadQuestions = async (isReset = false) => {
+const loadQuestions = async () => {
   if (!activeSubjectId.value) {
     resetQuestions()
     return
   }
 
-  if (isReset) {
-    showAnswers.value = {}
-    await reloadQuestions()
-    return
-  }
-
-  await loadMoreQuestions()
+  showAnswers.value = {}
+  await loadAllQuestions()
 }
 
 // keep-alive 页面再次复用时同步外部科目/分类查询参数
@@ -635,7 +620,7 @@ watch(
     }
     if (subject && categoryName !== filterCategory.value) {
       filterCategory.value = categoryName
-      await loadQuestions(true)
+      await loadQuestions()
     }
   }
 )
@@ -655,7 +640,7 @@ const handleEdit = (mock: MockQuestion, candidate: AiAnswerCandidate | null = nu
 }
 
 const handleEditSuccess = async () => {
-  await loadQuestions(true)
+  await loadQuestions()
   // 重置编辑数据
   editingMockId.value = null
   editingMockData.value = null
@@ -675,7 +660,7 @@ const handleDelete = async (id: number) => {
     const response = await deleteMockQuestion(id)
     if (response.code === 200) {
       showToast('删除成功', 'success')
-      await loadQuestions(true)
+      await loadQuestions()
     } else {
       showToast(response.message || '删除失败', 'error')
     }

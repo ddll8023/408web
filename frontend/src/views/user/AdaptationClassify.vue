@@ -73,7 +73,7 @@
 
             <div v-if="questionsLoadError" class="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700" role="alert">
               {{ questionsLoadError }}
-              <CustomButton size="sm" type="text" :disabled="questionsLoading" @click="loadQuestions(true)">重试</CustomButton>
+              <CustomButton size="sm" type="text" :disabled="questionsLoading" @click="loadQuestions()">重试</CustomButton>
             </div>
 
             <div
@@ -132,15 +132,6 @@
               :description="activeSubjectId ? '该科目暂无改编题' : '请选择左侧科目'"
             />
 
-            <div v-if="hasMore" class="mt-4 flex justify-center py-8">
-              <CustomButton
-                :loading="questionsLoading"
-                type="primary"
-                @click="loadQuestions(false)"
-              >
-                {{ questionsLoading ? '加载中...' : '加载更多改编题' }}
-              </CustomButton>
-            </div>
           </div>
         </div>
 
@@ -246,10 +237,9 @@ const {
   items: questionList,
   loading: initialQuestionsLoading,
   loadingMore: loadingMoreQuestions,
+  loadingAll: loadingAllQuestions,
   error: questionsLoadError,
-  hasMore: hasMorePages,
-  reload: reloadQuestions,
-  loadMore: loadMoreQuestions,
+  loadAll: loadAllQuestions,
   reset: resetQuestions,
 } = useInfiniteQuestionList<AdaptationQuestion>(
   (page, pageSize) => getAdaptationList({
@@ -262,7 +252,7 @@ const {
     sortOrder: 'desc',
   }),
   {
-    pageSize: 50,
+    pageSize: 100,
     mergePageItems: (currentItems, nextItems) =>
       uniqueAdaptationQuestions([...currentItems, ...nextItems]),
     getHasMore: (items, pagination) => items.length < pagination.total,
@@ -271,8 +261,9 @@ const {
     onRequestError: error => console.error('加载改编题失败:', error),
   },
 )
-const questionsLoading = computed(() => initialQuestionsLoading.value || loadingMoreQuestions.value)
-const hasMore = computed(() => activeSubjectId.value !== null && hasMorePages.value)
+const questionsLoading = computed(() =>
+  initialQuestionsLoading.value || loadingMoreQuestions.value || loadingAllQuestions.value,
+)
 const showAnswers = ref<Record<number, boolean>>({})
 const editDialogVisible = ref(false)
 const editingAdaptationId = ref<number | null>(null)
@@ -400,7 +391,7 @@ const loadSubjects = async () => {
       await handleSubjectSelect(initialSubject)
       if (categoryFromRoute) {
         filterCategory.value = categoryFromRoute
-        await loadQuestions(true)
+        await loadQuestions()
       }
 
       subjects.value.forEach(subject => {
@@ -446,7 +437,7 @@ const handleSubjectSelect = async (subject: Subject) => {
 
   await Promise.all([
     loadCategoriesForSubject(subject.id),
-    loadQuestions(true),
+    loadQuestions(),
   ])
 }
 
@@ -474,7 +465,7 @@ const handleCategorySelect = (subject: Subject, category: string) => {
 
   filterCategory.value = filterCategory.value === category ? '' : category
   showAnswers.value = {}
-  void loadQuestions(true)
+  void loadQuestions()
 }
 
 const handleNavSheetCategorySelect = (selection: { subject: Subject; category: string }) => {
@@ -506,7 +497,7 @@ const handleEdit = (question: AdaptationQuestion, candidate: AiAnswerCandidate |
 const handleEditSuccess = async () => {
   editDialogVisible.value = false
   editingAdaptationId.value = null
-  await loadQuestions(true)
+  await loadQuestions()
 }
 
 const handleDelete = async (id: number) => {
@@ -527,7 +518,7 @@ const handleDelete = async (id: number) => {
     const response = await deleteAdaptation(id)
     if (response.code === 200) {
       showToast('删除成功', 'success')
-      await loadQuestions(true)
+      await loadQuestions()
     } else {
       showToast(response.message || '删除失败', 'error')
     }
@@ -540,7 +531,7 @@ const handleDelete = async (id: number) => {
 }
 
 const handleQuestionTypeChange = () => {
-  if (activeSubjectId.value !== null) void loadQuestions(true)
+  if (activeSubjectId.value !== null) void loadQuestions()
 }
 
 /** Markdown 完整内容复制：标题级别由菜单命令决定。 */
@@ -548,19 +539,14 @@ const handleCopy = async (command: string, question: AdaptationQuestion) => {
   await copyFullMarkdown(command, question, `改编题 #${question.id}`)
 }
 
-const loadQuestions = async (isReset = false) => {
+const loadQuestions = async () => {
   if (!activeSubjectId.value) {
     resetQuestions()
     return
   }
 
-  if (isReset) {
-    showAnswers.value = {}
-    await reloadQuestions()
-    return
-  }
-
-  await loadMoreQuestions()
+  showAnswers.value = {}
+  await loadAllQuestions()
 }
 
 const handleHashScroll = async () => {
@@ -582,7 +568,7 @@ const handleHashScroll = async () => {
 
     if (target.category?.length && filterCategory.value !== target.category[0]) {
       filterCategory.value = target.category[0]
-      await loadQuestions(true)
+      await loadQuestions()
     }
 
     if (!questionList.value.some(question => question.id === target.id)) {
@@ -615,7 +601,7 @@ watch(
     }
     if (subject && categoryName !== filterCategory.value) {
       filterCategory.value = categoryName
-      await loadQuestions(true)
+      await loadQuestions()
     }
   },
 )

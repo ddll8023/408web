@@ -76,7 +76,7 @@
 
             <div v-if="questionsLoadError" class="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700" role="alert">
               {{ questionsLoadError }}
-              <CustomButton size="sm" type="text" :disabled="questionsLoading" @click="loadQuestions(true)">重试</CustomButton>
+              <CustomButton size="sm" type="text" :disabled="questionsLoading" @click="loadQuestions()">重试</CustomButton>
             </div>
 
             <!-- 分类分组列表：标题显式区分真题、父子层级和题目数量 -->
@@ -134,17 +134,6 @@
               v-if="!questionsLoadError && !subjectsLoadError && groupedQuestions.length === 0"
               :description="activeSubjectId ? '该科目暂无真题' : '请选择左侧科目'"
             />
-
-            <!-- 加载更多按钮 -->
-            <div v-if="hasMore" class="flex justify-center py-8 mt-4">
-              <CustomButton
-                :loading="questionsLoading"
-                type="primary"
-                @click="loadQuestions(false)"
-              >
-                {{ questionsLoading ? '加载中...' : '加载更多真题' }}
-              </CustomButton>
-            </div>
           </div>
         </div>
 
@@ -279,10 +268,9 @@ const {
   items: questionList,
   loading: initialQuestionsLoading,
   loadingMore: loadingMoreQuestions,
+  loadingAll: loadingAllQuestions,
   error: questionsLoadError,
-  hasMore: hasMorePages,
-  reload: reloadQuestions,
-  loadMore: loadMoreQuestions,
+  loadAll: loadAllQuestions,
   reset: resetQuestions,
 } = useInfiniteQuestionList<ExamQuestion>(
   (page, pageSize) => getExamList({
@@ -294,7 +282,7 @@ const {
     category: filterCategory.value || undefined,
   }),
   {
-    pageSize: 50,
+    pageSize: 100,
     mergePageItems: (currentItems, nextItems) =>
       uniqueExamQuestions([...currentItems, ...nextItems]),
     getHasMore: (items, pagination) => items.length < pagination.total,
@@ -303,8 +291,9 @@ const {
     onRequestError: error => console.error('加载真题失败:', error),
   },
 )
-const questionsLoading = computed(() => initialQuestionsLoading.value || loadingMoreQuestions.value)
-const hasMore = computed(() => activeSubjectId.value !== null && hasMorePages.value)
+const questionsLoading = computed(() =>
+  initialQuestionsLoading.value || loadingMoreQuestions.value || loadingAllQuestions.value,
+)
 const showAnswers = ref<Record<number, boolean>>({}) // map: { examId: boolean }
 const contentScroller = ref<HTMLElement | null>(null)
 const setContentScroller = (element: HTMLElement | null) => {
@@ -423,7 +412,7 @@ const loadSubjects = async () => {
           // 在科目选择后再设置分类筛选
           if (categoryFromRoute) {
             filterCategory.value = categoryFromRoute
-            await loadQuestions(true)
+            await loadQuestions()
           }
           
           // 处理URL hash跳转（从管理页面"查看"按钮跳转过来）
@@ -493,7 +482,7 @@ const handleHashScroll = async () => {
       // 使用第一个分类作为筛选条件
       filterCategory.value = targetExam.category[0]
       // 重新加载该分类下的题目
-      await loadQuestions(true)
+      await loadQuestions()
     }
     
     // 3. 检查题目是否已在当前列表中，如果不在则直接插入到列表开头
@@ -567,7 +556,7 @@ const handleSubjectSelect = async (subject: Subject) => {
   // 并行加载分类和题目，减少等待时间
   await Promise.all([
     loadCategoriesForSubject(subject.id),
-    loadQuestions(true)
+    loadQuestions()
   ])
 }
 
@@ -607,7 +596,7 @@ const handleCategorySelect = (subject: Subject, category: string) => {
 
   showAnswers.value = {}
 
-  loadQuestions(true)
+  loadQuestions()
 }
 
 /**
@@ -643,19 +632,14 @@ const handleCopy = async (command: string, exam: ExamQuestion) => {
 }
 
 // Core: Load Questions
-const loadQuestions = async (isReset = false) => {
+const loadQuestions = async () => {
   if (!activeSubjectId.value) {
     resetQuestions()
     return
   }
 
-  if (isReset) {
-    showAnswers.value = {}
-    await reloadQuestions()
-    return
-  }
-
-  await loadMoreQuestions()
+  showAnswers.value = {}
+  await loadAllQuestions()
 }
 
 // keep-alive 页面再次复用时同步外部科目/分类查询参数
@@ -672,7 +656,7 @@ watch(
     }
     if (subject && categoryName !== filterCategory.value) {
       filterCategory.value = categoryName
-      await loadQuestions(true)
+      await loadQuestions()
     }
   }
 )
@@ -719,7 +703,7 @@ const handleDelete = async (id: number) => {
     const response = await deleteExam(id)
     if (response.code === 200) {
       toast.success('删除成功')
-      await loadQuestions(true)
+      await loadQuestions()
     } else {
       toast.error(response.message || '删除失败')
     }

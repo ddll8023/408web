@@ -50,6 +50,7 @@ import FormLabel from '@/components/basic/FormLabel.vue'
 import Switch from '@/components/basic/Switch.vue'
 import { useConfirm } from '@/composables/useConfirm'
 import { useToast } from '@/composables/useToast'
+import { createUuid } from '@/utils/uuid'
 import { useAuthStore } from '@/stores/auth'
 
 const props = defineProps<{ provider: AiProviderView; model: AiCatalogModelView | null; disabled?: boolean }>()
@@ -149,7 +150,7 @@ async function check(): Promise<void> {
       confirmText: '确认并检测', cancelText: '取消', type: 'warning' })
     if (!confirmed || !current(context)) return
     const response = await checkAiModel({ providerId: context.providerId, providerRevision: revision,
-      modelId: model.id, requestId: crypto.randomUUID(), confirmUsage: true }, context.abort.signal)
+      modelId: model.id, requestId: createUuid(), confirmUsage: true }, context.abort.signal)
     if (!current(context) || props.provider.revision !== revision || props.model?.id !== model.id || dirty.value) return
     if (!response.data) throw new AiSettingsError('检测响应缺少结果')
     checkedModel.value = `${model.name}（${model.id}）`

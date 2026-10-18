@@ -1,4 +1,4 @@
-<!-- 自定义分类阅读页面：按科目与自定义分类树浏览真题，页面结构与真题分类页保持一致。 -->
+<!-- 自定义分类阅读页面：按科目与自定义分类树浏览真题，页面结构与真题分类页保持一致，管理员可直接在卡片上编辑题目。 -->
 <template>
   <ReadingLayout @content-ready="setContentScroller">
     <template #wide-nav>
@@ -74,7 +74,7 @@
 
         <div v-if="questionsLoadError" class="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700" role="alert">
           {{ questionsLoadError }}
-          <CustomButton size="sm" type="text" :disabled="questionsLoading" @click="loadQuestions(true)">重试</CustomButton>
+          <CustomButton size="sm" type="text" :disabled="questionsLoading" @click="loadQuestions()">重试</CustomButton>
         </div>
 
         <!-- 分类分组列表：标题显式区分自定义分类层级和题目数量 -->
@@ -105,12 +105,16 @@
                   :key="exam.id"
                   :id="`exam-${exam.id}`"
                   :exam="exam"
-                  :is-admin="false"
+                  :is-admin="isAdmin"
                   :show-answer="showAnswers[exam.id]"
                   density="compact"
                   category-source="custom"
                   @copy="(cmd) => handleCopy(cmd, exam)"
+                  @edit="handleEdit"
+                  @generate-answer="handleGenerateAnswer"
+                  @delete="(id: number) => handleDelete(id)"
                   @toggle-answer="toggleAnswer(exam.id)"
+                  @show-adaptations="handleShowAdaptations"
                 />
               </div>
             </section>
@@ -129,18 +133,30 @@
           v-if="!questionsLoadError && !subjectsLoadError && groupedQuestions.length === 0"
           :description="activeSubjectId ? '该科目暂无自定义分类真题' : '请选择左侧科目'"
         />
-
-        <div v-if="hasMore" class="flex justify-center py-8 mt-4">
-          <CustomButton
-            :loading="questionsLoading"
-            type="primary"
-            @click="loadQuestions(false)"
-          >
-            {{ questionsLoading ? '加载中...' : '加载更多真题' }}
-          </CustomButton>
-        </div>
       </div>
     </div>
+
+    <ExamEditDialog
+      v-if="isAdmin"
+      v-model:visible="editDialogVisible"
+      :exam-id="editingExamId"
+      :answer-candidate="answerCandidate"
+      @success="handleEditSuccess"
+    />
+
+    <AiAnswerGenerationDialog
+      v-if="isAdmin && answerGenerationTarget"
+      v-model:visible="aiAnswerVisible"
+      question-kind="exam"
+      :question-id="answerGenerationTarget.id"
+      :source="answerSourceFromQuestion(answerGenerationTarget)"
+      @adopt="handleAdoptGeneratedAnswer"
+    />
+
+    <AdaptationRelatedDialog
+      v-model:visible="adaptationDialogVisible"
+      :exam="selectedAdaptationExam"
+    />
 
     <BackTop :right="32" :bottom="32" />
   </ReadingLayout>
@@ -150,13 +166,17 @@
 /**
  * 自定义分类浏览页面
  * 功能：按科目展示已启用的自定义分类树，并按自定义分类标签分组浏览真题
- * 设计哲学：只读浏览，编辑与管理入口保留在真题分类页与后台
+ * 设计哲学：默认只读浏览；管理员可直接在卡片上编辑、删除题目并查看改编题
  */
 import type { CategoryOutlineItem, CategoryTreeNode, ExamQuestion, Subject } from '@/types'
+import type { AiAnswerCandidate } from '@/types/aiAnswer'
 import { computed, onMounted, ref } from 'vue'
 import { getEnabledSubjects } from '@/api/subject'
-import { getExamList } from '@/api/exam'
+import { deleteExam, getExamList } from '@/api/exam'
 import { getCustomCategoryStats, getCustomCategoryTree } from '@/api/customCategory'
+import { useAuthStore } from '@/stores/auth'
+import { useConfirm } from '@/composables/useConfirm'
+import { answerSourceFromQuestion } from '@/utils/aiAnswer'
 import toast from '@/utils/toast'
 import CustomButton from '@/components/basic/CustomButton.vue'
 import Tag from '@/components/basic/Tag.vue'
@@ -170,6 +190,9 @@ import MobileQuestionNav from '@/components/business/MobileQuestionNav.vue'
 import CategoryOutline from '@/components/business/CategoryOutline.vue'
 import CategorySectionHeader from '@/components/business/CategorySectionHeader.vue'
 import ExamEntryCard from '@/components/business/ExamEntryCard.vue'
+import ExamEditDialog from '@/components/business/ExamEditDialog.vue'
+import AiAnswerGenerationDialog from '@/components/business/AiAnswerGenerationDialog.vue'
+import AdaptationRelatedDialog from '@/components/business/AdaptationRelatedDialog.vue'
 import { useCategoryOutline } from '@/composables/useCategoryOutline'
 import { useInfiniteQuestionList } from '@/composables/useInfiniteQuestionList'
 import {
@@ -179,6 +202,22 @@ import {
   uniqueExamQuestions,
 } from '@/utils/examCategoryGrouping'
 import { buildExamTitleLine, copyFullMarkdown } from '@/utils/questionMarkdown'
+
+const authStore = useAuthStore()
+const { showConfirm } = useConfirm()
+
+/** 是否管理员：决定题目卡片上的编辑、删除与生成答案入口 */
+const isAdmin = computed(() => authStore.isAdmin())
+
+// 题目编辑与答案生成弹窗状态
+const editDialogVisible = ref(false)
+const editingExamId = ref<number | null>(null)
+const answerCandidate = ref<AiAnswerCandidate | null>(null)
+const aiAnswerVisible = ref(false)
+const answerGenerationTarget = ref<ExamQuestion | null>(null)
+// 关联改编题弹窗状态
+const adaptationDialogVisible = ref(false)
+const selectedAdaptationExam = ref<ExamQuestion | null>(null)
 
 // UI State
 const isNavCollapsed = ref(false)
@@ -211,10 +250,9 @@ const {
   items: questionList,
   loading: initialQuestionsLoading,
   loadingMore: loadingMoreQuestions,
+  loadingAll: loadingAllQuestions,
   error: questionsLoadError,
-  hasMore: hasMorePages,
-  reload: reloadQuestions,
-  loadMore: loadMoreQuestions,
+  loadAll: loadAllQuestions,
   reset: resetQuestions,
 } = useInfiniteQuestionList<ExamQuestion>(
   (page, pageSize) => getExamList({
@@ -228,7 +266,7 @@ const {
     hasCustomCategory: filterCategory.value ? undefined : true,
   }),
   {
-    pageSize: 50,
+    pageSize: 100,
     mergePageItems: (currentItems, nextItems) =>
       uniqueExamQuestions([...currentItems, ...nextItems]),
     getHasMore: (items, pagination) => items.length < pagination.total,
@@ -237,8 +275,9 @@ const {
     onRequestError: error => console.error('加载真题失败:', error),
   },
 )
-const questionsLoading = computed(() => initialQuestionsLoading.value || loadingMoreQuestions.value)
-const hasMore = computed(() => activeSubjectId.value !== null && hasMorePages.value)
+const questionsLoading = computed(() =>
+  initialQuestionsLoading.value || loadingMoreQuestions.value || loadingAllQuestions.value,
+)
 const showAnswers = ref<Record<number, boolean>>({})
 const contentScroller = ref<HTMLElement | null>(null)
 const setContentScroller = (element: HTMLElement | null) => {
@@ -383,7 +422,7 @@ const handleSubjectSelect = async (subject: Subject) => {
 
   await Promise.all([
     loadCategoriesForSubject(subject.id),
-    loadQuestions(true),
+    loadQuestions(),
   ])
 }
 
@@ -413,7 +452,7 @@ const handleCategorySelect = (subject: Subject, category: string) => {
   filterCategory.value = filterCategory.value === category ? '' : category
   showAnswers.value = {}
 
-  void loadQuestions(true)
+  void loadQuestions()
 }
 
 /** 抽屉内选择分类：先收起抽屉再加载该分类题目。 */
@@ -438,19 +477,92 @@ const handleCopy = async (command: string, exam: ExamQuestion) => {
   await copyFullMarkdown(command, exam, buildExamTitleLine(exam))
 }
 
-/** 重置或追加加载当前科目的题目。 */
-const loadQuestions = async (isReset = false) => {
+/** 打开题目编辑弹窗；采用 AI 生成答案时携带候选答案。 */
+const handleEdit = (exam: ExamQuestion, candidate: AiAnswerCandidate | null = null) => {
+  if (!isAdmin.value || !exam?.id) return
+  answerCandidate.value = candidate
+  editingExamId.value = exam.id
+  editDialogVisible.value = true
+}
+
+/**
+ * 编辑成功后原位更新：列表重载会把滚动容器压回顶部，
+ * 因此不再重新拉取；groupedQuestions 是 computed，标签改动会自动重新分组。
+ */
+const handleEditSuccess = (updatedExam: ExamQuestion | null) => {
+  editDialogVisible.value = false
+  editingExamId.value = null
+  answerCandidate.value = null
+  if (!updatedExam) return
+
+  const index = questionList.value.findIndex(item => item.id === updatedExam.id)
+  if (index === -1) return
+
+  // 改到其他科目或清空自定义分类标签后，该题已不属于本页任何视图
+  const tags = Array.isArray(updatedExam.customCategory) ? updatedExam.customCategory : []
+  if (updatedExam.subjectId !== activeSubjectId.value || tags.length === 0) {
+    questionList.value.splice(index, 1)
+    return
+  }
+
+  questionList.value[index] = updatedExam
+}
+
+/** 管理员删除真题；服务端已确认删除，本地移除以避免重载重置滚动位置。 */
+const handleDelete = async (id: number) => {
+  if (!isAdmin.value) return
+  const confirmed = await showConfirm({
+    title: '警告',
+    message: '此操作将永久删除该真题，是否继续？',
+    confirmText: '确定',
+    cancelText: '取消',
+    type: 'danger',
+  })
+  if (!confirmed) return
+
+  try {
+    const response = await deleteExam(id)
+    if (response.code === 200) {
+      toast.success('删除成功')
+      const index = questionList.value.findIndex(item => item.id === id)
+      if (index !== -1) questionList.value.splice(index, 1)
+    } else {
+      toast.error(response.message || '删除失败')
+    }
+  } catch (error) {
+    toast.error('删除失败')
+    console.error('删除真题失败:', error)
+  }
+}
+
+/** 打开 AI 生成答案弹窗，同一时间只允许一个生成任务。 */
+const handleGenerateAnswer = (exam: ExamQuestion) => {
+  if (!isAdmin.value || aiAnswerVisible.value) return
+  answerGenerationTarget.value = exam
+  aiAnswerVisible.value = true
+}
+
+/** 采纳生成的答案后转入编辑弹窗，由管理员确认后再保存。 */
+const handleAdoptGeneratedAnswer = (candidate: AiAnswerCandidate) => {
+  const target = answerGenerationTarget.value
+  if (isAdmin.value && target?.id === candidate.questionId) handleEdit(target, candidate)
+}
+
+/** 查看该真题的关联改编题；无题号的历史数据不提供该入口。 */
+const handleShowAdaptations = (exam: ExamQuestion) => {
+  if (exam.questionNumber == null) return
+  selectedAdaptationExam.value = exam
+  adaptationDialogVisible.value = true
+}
+
+/** 重置并一次性加载当前范围的全部题目。 */
+const loadQuestions = async () => {
   if (!activeSubjectId.value) {
     resetQuestions()
     return
   }
 
-  if (isReset) {
-    showAnswers.value = {}
-    await reloadQuestions()
-    return
-  }
-
-  await loadMoreQuestions()
+  showAnswers.value = {}
+  await loadAllQuestions()
 }
 </script>

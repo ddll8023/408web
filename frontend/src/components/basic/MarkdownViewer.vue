@@ -219,11 +219,12 @@ const processContent = () => {
     return
   }
   
-  const normalized = normalizeImageUrls(props.content.replace(/\\n/g, '\n'))
-  const { safeText, expressions } = extractMath(normalized)
+  // 先提取公式再修复字面换行残留：否则 `\\ne`、`\\neq`、`\\neg` 等命令会被替换成含换行的文本，
+  // 而行内公式正则排除换行后匹配失败，整段 $...$ 会降级为普通文本。
+  const { safeText, expressions } = extractMath(props.content)
   mathExpressions.value = expressions
-  
-  safeContent.value = safeText
+
+  safeContent.value = normalizeImageUrls(safeText.replace(/\\n/g, '\n'))
 
   // 递增 key 强制 v-md-preview 重新渲染
   previewKey.value++

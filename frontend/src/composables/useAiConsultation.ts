@@ -113,7 +113,10 @@ export function useAiConsultation() {
     if (!cancelled) message.errorMessage = toMessage(error)
   }
 
-  /** 发送一轮提问并消费增量；重复点击与无会话状态在此直接拒绝。 */
+  /**
+   * 发送一轮提问并消费增量；重复点击与无会话状态在此直接拒绝。
+   * 请求标识在进入状态机前生成，生成失败会同步抛出，调用方必须捕获并提示。
+   */
   async function send(text: string): Promise<void> {
     const current = session.value
     const question = text.trim()

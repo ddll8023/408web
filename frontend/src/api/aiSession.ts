@@ -8,6 +8,7 @@ import type { AiAnswerDraft, AiAnswerSource } from '@/types/aiAnswer'
 import { API_BASE_URL } from './request'
 import { getToken } from '@/utils/token'
 import { convertKeysToSnake } from '@/utils/convertKeys'
+import { createUuid } from '@/utils/uuid'
 import { aiRequest, type AiInputMode } from './ai'
 import { AiSettingsError, boolean, integer, invalid, providerId, record, revision, string } from './aiGuards'
 
@@ -122,9 +123,12 @@ function parseDone(value: unknown): AiStreamDoneView {
   return { requestId: revision(item.request_id), status, answer, error }
 }
 
-/** 生成一次发送意图的标识，停止接口据此只取消原请求。 */
+/**
+ * 生成一次发送意图的标识，停止接口据此只取消原请求。
+ * 统一走 createUuid：局域网 http 属非安全上下文，crypto.randomUUID 在那里不可用。
+ */
 export function createAiRequestId(): string {
-  return crypto.randomUUID()
+  return createUuid()
 }
 
 /**

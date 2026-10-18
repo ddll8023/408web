@@ -60,6 +60,7 @@ import { useAiConsultation } from '@/composables/useAiConsultation'
 import { useAuthStore } from '@/stores/auth'
 import { useConfirm } from '@/composables/useConfirm'
 import { answerSourceError, answerSourceKey, generatedAnswerError } from '@/utils/aiAnswer'
+import { AiSettingsError } from '@/api/aiGuards'
 import ResponsiveDialog from '@/components/basic/ResponsiveDialog.vue'
 import CustomButton from '@/components/basic/CustomButton.vue'
 import AiGeneratedAnswerViewer from '@/components/basic/AiGeneratedAnswerViewer.vue'
@@ -99,7 +100,10 @@ const statusText = computed(() => {
   return failure.value ? '生成失败' : '尚未生成'
 })
 
-/** 每次重建独立会话，不沿用旧候选或咨询历史；迟到创建不得触发发送。 */
+/**
+ * 每次重建独立会话，不沿用旧候选或咨询历史；迟到创建不得触发发送。
+ * 建立请求前的异常写入 localError 由界面提示，避免只回退按钮而不说明原因。
+ */
 async function generate(): Promise<void> {
   if (working.value || busy.value || !props.visible || !auth.isAdmin()) return
   const currentRevision = ++revision
@@ -121,6 +125,12 @@ async function generate(): Promise<void> {
     if (!actual) { localError.value = '缺少生成来源，请重新生成'; return }
     baseline.value = props.draft ? { ...actual, answer: source.answer } : actual
     await send('请生成本题的完整答案解析。')
+  } catch (error: unknown) {
+    // 建立请求前就失败（如生成请求标识失败）不会进入会话状态机，必须在此暴露原因，
+    // 否则按钮会静默回退为“重新生成”而不给出任何提示。
+    if (currentRevision === revision) {
+      localError.value = error instanceof AiSettingsError ? error.message : '生成请求失败，请稍后重试'
+    }
   } finally {
     if (currentRevision === revision) working.value = false
   }

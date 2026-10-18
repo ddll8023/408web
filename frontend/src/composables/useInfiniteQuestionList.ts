@@ -1,6 +1,7 @@
 /**
  * 题目无限滚动列表逻辑。
- * 使用后端分页接口分段加载数据，页面不展示传统分页条，并保留请求竞态保护。
+ * 使用后端分页接口分段加载数据，页面不展示传统分页条，并保留请求竞态保护；
+ * 分类阅读页可调用 loadAll 一次性取回当前范围的全部题目，保证分类大纲完整。
  */
 import { computed, ref } from 'vue'
 import type { Ref } from 'vue'
@@ -21,6 +22,9 @@ interface Options<T> {
   onRequestError?: (error: unknown) => void
 }
 
+/** 全量加载的最大翻页轮次，避免分页元数据异常时无限请求。 */
+const MAX_LOAD_ALL_PAGES = 50
+
 export function useInfiniteQuestionList<T>(
   loadPage: (page: number, pageSize: number) => Promise<ApiResponse<Paginated<T>>>,
   options: Options<T> = {},
@@ -38,9 +42,11 @@ export function useInfiniteQuestionList<T>(
   const totalPages = ref(0)
   const loading = ref(false)
   const loadingMore = ref(false)
+  const loadingAll = ref(false)
   const error = ref('')
   const responseFailed = ref(false)
   let requestVersion = 0
+  let loadAllVersion = 0
 
   const hasMore = computed(() => {
     if (options.stopOnResponseError && responseFailed.value) return false
@@ -136,6 +142,26 @@ export function useInfiniteQuestionList<T>(
     await loadMoreInternal(requestVersion)
   }
 
+  /** 重置并连续补页直到取回当前范围的全部题目。 */
+  const loadAll = async () => {
+    const loadAllToken = ++loadAllVersion
+    loadingAll.value = true
+    try {
+      await reload()
+      let pageCount = 0
+      while (hasMore.value && !error.value && pageCount < MAX_LOAD_ALL_PAGES) {
+        const previousCount = items.value.length
+        await loadMoreInternal(requestVersion)
+        pageCount += 1
+        // 后端 total 与去重后的实际条数不一致时停止，避免持续请求空页。
+        if (items.value.length === previousCount) break
+      }
+    } finally {
+      // 只由最后一次 loadAll 收尾，避免旧请求提前关闭加载状态。
+      if (loadAllToken === loadAllVersion) loadingAll.value = false
+    }
+  }
+
   const retry = async () => {
     if (currentPage.value === 0) {
       await reload()
@@ -165,10 +191,12 @@ export function useInfiniteQuestionList<T>(
     hasMore,
     loading,
     loadingMore,
+    loadingAll,
     error,
     pageSize,
     reload,
     loadMore,
+    loadAll,
     retry,
     reset,
   }

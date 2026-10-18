@@ -126,6 +126,7 @@ import { computed, nextTick, ref, watch } from 'vue'
 import CustomButton from '@/components/basic/CustomButton.vue'
 import AiAnswerViewer from '@/components/basic/AiAnswerViewer.vue'
 import { useAiConsultationPanel } from '@/composables/useAiConsultationPanel'
+import { toast } from '@/utils/toast'
 
 const MAX_MESSAGE_CHARS = 2000
 const {
@@ -162,12 +163,18 @@ async function scrollToLatest(): Promise<void> {
   if (list && expanded.value) list.scrollTop = list.scrollHeight
 }
 
-/** 发送前清空草稿，重复发送仍由会话状态机拒绝。 */
+/** 发送前清空草稿，重复发送仍由会话状态机拒绝；建立请求前失败时还原草稿并提示。 */
 async function submit(): Promise<void> {
   if (!canSend.value || switching.value || !draft.value.trim()) return
   const question = draft.value
   draft.value = ''
-  await send(question)
+  try {
+    await send(question)
+  } catch {
+    // 同步异常不会进入会话状态机，界面不会出现任何错误状态，因此在此还原输入并提示。
+    if (!draft.value) draft.value = question
+    toast.error('发送失败，请重试')
+  }
 }
 
 /** 输入法确认候选词时不能误发送；Shift+Enter 保留换行。 */
