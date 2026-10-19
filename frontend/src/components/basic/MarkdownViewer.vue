@@ -1,3 +1,4 @@
+<!-- 公共 Markdown 查看器：统一渲染公式与媒体，并在 DOM 就绪后交付带源码范围的预览快照。 -->
 <template>
   <div
     ref="rootRef"
@@ -7,11 +8,10 @@
     @click.capture="handleMediaPreview"
     @keydown.capture="handleMediaPreview"
   >
-    <!-- 使用 key 强制 v-md-preview 在内容变化时重新渲染 -->
     <v-md-preview
-      :key="previewKey"
-      :text="safeContent"
-    ></v-md-preview>
+      :text="content"
+      @change="handlePreviewChange"
+    />
   </div>
 
   <ImageViewer
@@ -29,7 +29,7 @@
  * 遵循KISS原则：功能简单清晰
  * 
  * Source: @kangc/v-md-editor 官方文档
- * KaTeX 通过组件内预处理完成公式渲染
+ * 解析器保留公式原文及源码范围，安全清洗后生成公式 DOM，再发布同版本的预览快照
  */
 import { ref, watch, nextTick, onBeforeUnmount, type PropType } from 'vue'
 import VMdPreview from '@kangc/v-md-editor/lib/preview'
@@ -39,12 +39,10 @@ import githubTheme from '@kangc/v-md-editor/lib/theme/github.js'
 import '@kangc/v-md-editor/lib/theme/style/github.css'
 // 代码高亮
 import hljs from 'highlight.js'
-// 数学公式支持（KaTeX）- 使用预处理保护方案
-import katex from 'katex'
 import 'katex/dist/katex.min.css'
+import { configureMarkdownSourceMapping, renderParsedMarkdownMath, type MarkdownRenderSnapshot } from '@/utils/markdownSourceMapping'
 // 共享的 XSS 白名单配置
 import { getViewerWhitelist, configureSvgFence } from './config/xssWhitelist'
-import { normalizeImageUrls } from '@/api/upload'
 import { prepareMarkdownImage, prepareMarkdownMedia, type MarkdownContentRole } from '@/utils/markdownMedia'
 import ImageViewer from './ImageViewer.vue'
 import { useMarkdownMediaResize } from '@/composables/useMarkdownMediaResize'
@@ -61,6 +59,7 @@ VMdPreview.use(githubTheme, {
     md.set({ html: true })
     // 使用共享的 SVG 代码块渲染配置
     configureSvgFence(md)
+    configureMarkdownSourceMapping(md)
   },
 })
 
@@ -101,133 +100,24 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits<{ rendered: [] }>()
+const emit = defineEmits<{ rendered: [snapshot: MarkdownRenderSnapshot] }>()
 const rootRef = ref<HTMLElement | null>(null)
 const mediaResize = useMarkdownMediaResize({ getRoot: () => rootRef.value })
+let renderRevision = 0
+let disposed = false
 
-// 存储提取的公式
-interface MathExpression { placeholder: string; content: string; display: boolean; original: string }
-const mathExpressions = ref<MathExpression[]>([])
-
-/**
- * 公式提取与保护
- * 按优先级匹配：块级公式 → 行内公式
- * 使用唯一占位符替换，防止 Markdown 解析破坏
- */
-const extractMath = (text: string) => {
-  const expressions: MathExpression[] = []
-  let index = 0
-  
-  // 占位符使用反引号包裹，Markdown 渲染为 <code> 标签
-  const placeholder = (i: number, isBlock: boolean) =>
-    `\`KATEX${isBlock ? 'B' : 'I'}${i}PH\``
-  
-  // 正则模式（按优先级排序）
-  const patterns = [
-    { regex: /\$\$([\s\S]+?)\$\$/g, display: true },
-    { regex: /\\\[([\s\S]+?)\\\]/g, display: true },
-    { regex: /\$([^\$\n]+?)\$/g, display: false },
-    { regex: /\\\(([\s\S]+?)\\\)/g, display: false },
-  ]
-  
-  let result = text
-  
-  for (const { regex, display } of patterns) {
-    result = result.replace(regex, (match, content) => {
-      const ph = placeholder(index, display)
-      expressions.push({
-        placeholder: ph,
-        content: content,
-        display: display,
-        original: match
-      })
-      index++
-      return ph
-    })
-  }
-  
-  return { safeText: result, expressions }
-}
-
-/**
- * 将公式内容渲染为 HTML 字符串
- */
-const renderMathToHtml = (content: string, display: boolean) => {
-  try {
-    // 预处理：将 KaTeX 不支持的语法转换为兼容格式
-    let processed = content
-      .replace(/@\{[^}]*\}/g, '')
-      .replace(/\\\\?\s*\\hline\s*/g, '\\\\ \\hline ')
-    
-    return katex.renderToString(processed, {
-      displayMode: display,
-      throwOnError: false,
-      strict: false,
-      trust: false,
-    })
-  } catch (e) {
-    return `<span class="katex-error">${escapeHtml(content)}</span>`
-  }
-}
-
-/**
- * HTML 转义
- */
-const escapeHtml = (text: string) => {
-  const div = document.createElement('div')
-  div.textContent = text
-  return div.innerHTML
-}
-
-/**
- * 在 DOM 中恢复公式并渲染
- */
-const restoreAndRenderMath = () => {
-  if (!rootRef.value || mathExpressions.value.length === 0) return
-  
-  const container = rootRef.value.querySelector('.v-md-editor-preview') || rootRef.value
-  
-  let html = container.innerHTML
-  
-  for (const expr of mathExpressions.value) {
-    const wrapperClass = expr.display ? 'katex-display-wrapper' : 'katex-inline-wrapper'
-    const renderedMath = renderMathToHtml(expr.content, expr.display)
-    const replacement = `<span class="${wrapperClass}">${renderedMath}</span>`
-    
-    const placeholderText = expr.placeholder.replace(/`/g, '')
-    const codeTagPattern = new RegExp(`<code[^>]*>${placeholderText}</code>`, 'g')
-    
-    html = html.replace(codeTagPattern, replacement)
-  }
-  
-  container.innerHTML = html
-}
-
-// 安全内容（公式已替换为占位符）
-const safeContent = ref('')
-
-// 用于强制 v-md-preview 重新渲染的 key
-const previewKey = ref(0)
-
-/**
- * 处理内容变化：提取公式并生成安全内容
- */
-const processContent = () => {
-  if (!props.content) {
-    safeContent.value = ''
-    mathExpressions.value = []
-    return
-  }
-  
-  // 先提取公式再修复字面换行残留：否则 `\\ne`、`\\neq`、`\\neg` 等命令会被替换成含换行的文本，
-  // 而行内公式正则排除换行后匹配失败，整段 $...$ 会降级为普通文本。
-  const { safeText, expressions } = extractMath(props.content)
-  mathExpressions.value = expressions
-
-  safeContent.value = normalizeImageUrls(safeText.replace(/\\n/g, '\n'))
-
-  // 递增 key 强制 v-md-preview 重新渲染
-  previewKey.value++
+/** 清洗后的 DOM 提交后先完成公式和媒体，再通知滚动控制器测量，避免使用中间态高度。 */
+const handlePreviewChange = (source: string) => {
+  const revision = ++renderRevision
+  nextTick(() => {
+    if (disposed || revision !== renderRevision || source !== props.content) return
+    const root = rootRef.value
+    if (!root) return
+    mediaResize.dispose()
+    renderParsedMarkdownMath(root)
+    prepareMedia()
+    emit('rendered', { source, revision })
+  })
 }
 
 const previewUrl = ref('')
@@ -249,7 +139,7 @@ const handleMediaLoad = (event: Event) => {
   }
 }
 
-/** 媒体尺寸在公式恢复后统一处理，交互入口只添加到非链接插图。 */
+/** DOM 提交后统一准备媒体，交互入口只添加到非链接插图。 */
 const prepareMedia = () => {
   if (!rootRef.value) return
   for (const media of prepareMarkdownMedia(rootRef.value)) {
@@ -297,38 +187,15 @@ const handleMediaPreview = (event: MouseEvent | KeyboardEvent) => {
   }
 }
 
-/**
- * 延迟执行公式恢复，等待 v-md-preview 完成渲染
- */
-let renderTimer: ReturnType<typeof setTimeout> | undefined
-
-const delayedRestore = () => {
-  nextTick(() => {
-    if (renderTimer) clearTimeout(renderTimer)
-    // 增加延迟确保 v-md-preview 完成渲染
-    renderTimer = setTimeout(() => {
-      renderTimer = undefined
-      restoreAndRenderMath()
-      prepareMedia()
-      emit('rendered')
-    }, 100)
-  })
-}
-
-// 监听内容变化，使用 flush: 'post' 确保在 DOM 更新后执行
-watch(
-  () => props.content,
-  () => {
-    closeMediaPreview()
-    processContent()
-    // 双重 nextTick 确保 v-md-preview 完成渲染
-    delayedRestore()
-  },
-  { immediate: true, flush: 'post' }
-)
+// 同步作废尚未提交的通知，避免 A → B → A 的快速修改交付旧任务。
+watch(() => props.content, () => {
+  renderRevision += 1
+  closeMediaPreview()
+}, { flush: 'sync' })
 
 onBeforeUnmount(() => {
-  if (renderTimer) clearTimeout(renderTimer)
+  disposed = true
+  renderRevision += 1
   mediaResize.dispose()
   closeMediaPreview()
 })

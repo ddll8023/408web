@@ -7,13 +7,13 @@
       :id="undefined"
       class="markdown-editor"
       :class="{ 'is-compact': contentRole === 'option', 'is-fullscreen': isFullscreen }"
-      :style="isFullscreen ? undefined : { height }"
+      :style="isFullscreen ? undefined : { height: editorBoxHeight, maxHeight: height }"
       :role="isFullscreen ? 'dialog' : 'group'"
       :aria-modal="isFullscreen || undefined"
       :aria-label="`${ariaLabel || 'Markdown'}编辑器`"
       @keydown="handleFullscreenKeydown"
     >
-      <div class="editor-header">
+      <div ref="headerRef" class="editor-header">
         <span class="editor-heading">{{ ariaLabel || 'Markdown' }}<span v-if="ariaLabel" class="editor-format">Markdown</span></span>
         <div class="editor-view-controls" role="group" aria-label="编辑器视图">
           <button type="button" :aria-pressed="displayMode === 'edit'" @click="selectedMode = 'edit'">编辑</button>
@@ -56,7 +56,13 @@
           tabindex="0"
         >
           <div class="preview-content">
-            <MarkdownViewer v-if="localContent.trim()" :content="localContent" variant="plain" :content-role="contentRole" />
+            <MarkdownViewer
+              v-if="localContent.trim()"
+              :content="localContent"
+              variant="plain"
+              :content-role="contentRole"
+              @rendered="handlePreviewRendered"
+            />
             <p v-else class="preview-empty">输入内容后在这里查看排版、公式和图片。</p>
           </div>
         </div>
@@ -72,7 +78,7 @@
  * 遵循KISS原则：功能简单清晰
  * 
  * Source: @kangc/v-md-editor 官方文档
- * KaTeX 由右侧 MarkdownViewer 统一预处理
+ * KaTeX 与源码范围由右侧 MarkdownViewer 的解析器统一生成
  */
 import { ref, computed, watch, nextTick, onMounted, onUpdated, onUnmounted, useAttrs, type PropType } from 'vue'
 import { MEDIA_QUERIES } from '@/shared/responsive/breakpoints'
@@ -90,6 +96,8 @@ import '@kangc/v-md-editor/lib/theme/style/github.css'
 import hljs from 'highlight.js'
 // 导入 MarkdownViewer（用于右侧预览）
 import MarkdownViewer from './MarkdownViewer.vue'
+import { useMarkdownScrollSync } from '@/composables/useMarkdownScrollSync'
+import type { MarkdownRenderSnapshot } from '@/utils/markdownSourceMapping'
 // 共享的 XSS 白名单配置
 import { getEditorWhitelist, configureSvgFence } from './config/xssWhitelist'
 
@@ -122,7 +130,7 @@ const props = defineProps({
     default: ''
   },
   /**
-   * 编辑器高度
+   * 编辑器最大高度；白框按内容自适应，达到该高度后改为白框内部滚动
    */
   height: {
     type: String,
@@ -158,6 +166,7 @@ const emit = defineEmits<{ 'update:modelValue': [value: string]; save: [content:
 const attrs = useAttrs()
 const editorRef = ref<EditorInstance | null>(null)
 const rootRef = ref<HTMLElement | null>(null)
+const headerRef = ref<HTMLElement | null>(null)
 const fullscreenButtonRef = ref<HTMLButtonElement | null>(null)
 const isCompactViewport = useMediaQuery(MEDIA_QUERIES.compact)
 const selectedMode = ref<'edit' | 'split' | 'preview' | null>(null)
@@ -169,6 +178,8 @@ const isFullscreen = ref(false)
 const toolbarHeight = ref(0)
 const previewWidth = ref(0)
 const editorInputMinHeight = ref(0)
+/** 白框自适应高度；空串表示交给样式里的下限高度。 */
+const editorBoxHeight = ref('')
 let layoutObserver: ResizeObserver | null = null
 let previousBodyOverflow = ''
 
@@ -181,6 +192,8 @@ watch(isFullscreen, async fullscreen => {
     document.body.style.overflow = previousBodyOverflow
   }
   await nextTick()
+  // 全屏与退出全屏都会改变可视宽度，需要重新按内容定高。
+  fitEditorBox()
   fullscreenButtonRef.value?.focus()
 })
 
@@ -237,6 +250,21 @@ watch(
   { immediate: true }
 )
 
+/** 外置预览不能使用库内置同步，由源码范围控制器统一接管。 */
+const syncScrollEnabled = ref(true)
+const scrollSync = useMarkdownScrollSync({
+  getEditor: () => editorRef.value?.$el.querySelector<HTMLElement>('.v-md-editor__editor-wrapper .scrollbar__wrap') ?? null,
+  getPreview: () => rootRef.value?.querySelector<HTMLElement>('.preview-content') ?? null,
+  getContent: () => localContent.value,
+  isEnabled: () => syncScrollEnabled.value,
+  isSplit: () => displayMode.value === 'split'
+})
+
+/** 开启后由控制器按编辑区当前位置对齐，避免模式切换和开关各自写滚动位置。 */
+const toggleSyncScroll = () => {
+  syncScrollEnabled.value = !syncScrollEnabled.value
+}
+
 /**
  * 左侧工具栏配置
  * 移除默认image，使用自定义my-image按钮（包含下拉菜单）
@@ -248,6 +276,15 @@ const leftToolbar = 'undo redo clear | h bold italic strikethrough quote | ul ol
  * 自定义工具栏按钮配置
  */
 const customToolbar = {
+  // 覆盖库内置 sync-scroll：库实现依赖库自身预览面板，在 edit 模式下直接返回，对本组件无效。
+  'sync-scroll': {
+    title: () => (syncScrollEnabled.value ? '关闭同步滚动' : '开启同步滚动'),
+    icon: 'v-md-icon-sync',
+    active: () => syncScrollEnabled.value,
+    action() {
+      toggleSyncScroll()
+    }
+  },
   // 自定义image按钮（包含下拉菜单）
   'my-image': {
     title: '图片',
@@ -432,6 +469,85 @@ const handlePaste = async (event: ClipboardEvent) => {
 }
 
 /**
+ * 测量当前可见内容的高度（像素）
+ * 编辑区取镜像 pre 最后一行的底边，预览区取预览内容底边，都不含白框头部与工具栏。
+ */
+const measureContentHeight = () => {
+  const editorElement = editorRef.value?.$el
+  if (editorElement && displayMode.value !== 'preview') {
+    const pre = editorElement.querySelector<HTMLElement>('.v-md-textarea-editor pre')
+    const lastLine = pre?.lastElementChild
+    if (pre && lastLine instanceof HTMLElement) {
+      // 镜像 pre 的最小高度会被撑到可视高度，因此只按行元素位置推算真实内容高度。
+      const paddingBottom = parseFloat(getComputedStyle(pre).paddingBottom) || 0
+      return lastLine.offsetTop + lastLine.offsetHeight + paddingBottom
+    }
+  }
+
+  // 预览模式没有可编辑内容，改按右侧预览的真实高度收敛白框。
+  const previewContent = rootRef.value?.querySelector<HTMLElement>('.preview-content')
+  if (previewContent && displayMode.value !== 'edit') {
+    const paneTop = previewContent.getBoundingClientRect().top
+    const lastChild = previewContent.lastElementChild
+    // 预览区可能已滚动，换算回滚动内容坐标再累加下内边距。
+    const contentBottom = (lastChild?.getBoundingClientRect().bottom ?? paneTop) - paneTop + previewContent.scrollTop
+    const paddingBottom = parseFloat(getComputedStyle(previewContent).paddingBottom) || 0
+    return Math.max(0, contentBottom + paddingBottom)
+  }
+
+  return 0
+}
+
+/**
+ * 解析 height 属性给出的像素上限
+ * 上限仍是像素字符串时直接取值；无法解析时不做钳制，交给样式的 max-height。
+ */
+const editorBoxMaxHeight = () => {
+  const parsed = Number.parseFloat(props.height)
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : Number.POSITIVE_INFINITY
+}
+
+/**
+ * 按内容重算白框高度
+ * 输出内容加头部、工具栏的高度，并钳到 height 上限，避免写回超过上限的值再被样式砍回。
+ */
+const fitEditorBox = () => {
+  // 内容或宽度变化后由控制器重测块位置；全屏也需要失效布局。
+  scrollSync.invalidateLayout()
+  if (isFullscreen.value) return
+  const root = rootRef.value
+  const contentHeight = measureContentHeight()
+  if (!root || !contentHeight) {
+    editorBoxHeight.value = ''
+    return
+  }
+  // 白框是 border-box，需补上上下边框，否则内容区会差 1-2px 而出现多余滚动条。
+  const borderHeight = root.offsetHeight - root.clientHeight
+  const totalHeight = contentHeight + (headerRef.value?.offsetHeight ?? 0) + toolbarHeight.value + borderHeight
+  editorBoxHeight.value = `${Math.min(totalHeight, editorBoxMaxHeight())}px`
+}
+
+// 内容变化后等编辑区镜像 pre 重新渲染完再量高。
+watch(localContent, () => {
+  nextTick(fitEditorBox)
+})
+
+/** 同版本预览完成 DOM 更新后，控制器才允许恢复双栏同步。 */
+const handlePreviewRendered = (snapshot: MarkdownRenderSnapshot) => {
+  if (snapshot.source !== localContent.value) return
+  scrollSync.acceptRender(snapshot)
+  fitEditorBox()
+}
+
+// 视图切换只刷新布局，滚动主动侧与重新对齐由控制器统一管理。
+watch(displayMode, () => {
+  nextTick(() => {
+    fitEditorBox()
+    scrollSync.refresh()
+  })
+})
+
+/**
  * 组件挂载时添加粘贴事件监听
  */
 onMounted(() => {
@@ -449,12 +565,17 @@ onMounted(() => {
       editorInputMinHeight.value = inputWrapper.clientHeight
       // 大纲打开后右侧工作区会变窄，预览按真实工作区宽度定位。
       previewWidth.value = rightArea.clientWidth / 2
+      // 宽度变化会改变换行与行位置，白框高度与同步滚动都要重新对齐。
+      fitEditorBox()
+      scrollSync.refresh()
     }
     syncLayout()
     layoutObserver = new ResizeObserver(syncLayout)
     layoutObserver.observe(toolbar)
     layoutObserver.observe(inputWrapper)
   }
+  scrollSync.refresh()
+  fitEditorBox()
 })
 
 /** 卸载时清理监听器，并恢复全屏前的页面滚动状态。 */
@@ -617,7 +738,8 @@ onUnmounted(() => {
   font-weight: 600;
 }
 
-/* 库只在 height 属性变化时更新镜像最小高度；全屏与工具栏换行改用真实输入视口高度。 */
+/* 库只在 height 属性变化时更新镜像最小高度；这里改用真实输入视口高度，
+   既保证占位提示与空白区域可点击，也让白框按内容收敛时不出现滚动错位。 */
 .editor-workspace :deep(.v-md-textarea-editor pre) {
   min-height: var(--editor-input-min-height) !important;
 }
@@ -632,6 +754,8 @@ onUnmounted(() => {
   line-height: 1.7;
 }
 
+/* 预览面板必须自裁剪：预览内容的绝对定位后代以外层为包含块时会漏出面板，
+   把弹窗滚动区撑出屏幕上画不出来的空滚程。 */
 .preview-pane {
   position: absolute;
   right: 0;
@@ -640,6 +764,7 @@ onUnmounted(() => {
   width: 100%;
   min-height: 0;
   flex-direction: column;
+  overflow: hidden;
   border-radius: 0 0 8px 8px;
   background: #fff;
 }
@@ -651,6 +776,7 @@ onUnmounted(() => {
 }
 
 .preview-content {
+  position: relative;
   flex: 1;
   min-height: 0;
   overflow: auto;
@@ -705,8 +831,8 @@ onUnmounted(() => {
 }
 
 @media (max-width: 767px) {
-  /* 手机工具栏换行时保证至少一行正文可见，不强行挤进桌面端的 140px。 */
-  .markdown-editor.is-compact {
+  /* 手机工具栏多处换行会挤占正文高度，统一抬高下限，保证占位提示与首行正文可见。 */
+  .markdown-editor {
     min-height: 180px;
   }
 

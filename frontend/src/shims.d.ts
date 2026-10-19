@@ -24,7 +24,7 @@ declare module '@kangc/v-md-editor' {
 declare module '@kangc/v-md-editor/lib/preview' {
   import type { DefineComponent } from 'vue'
   import type { MarkdownStatic } from '@kangc/v-md-editor'
-  const preview: DefineComponent<{ text?: string }, {}, {}, {}, {}, {}, {}, { imageClick: (images: string[], index: number) => void }> & MarkdownStatic
+  const preview: DefineComponent<{ text?: string }, {}, {}, {}, {}, {}, {}, { imageClick: (images: string[], index: number) => void; change: (text: string, html: string) => void }> & MarkdownStatic
   export default preview
 }
 declare module '@kangc/v-md-editor/lib/theme/github.js' {

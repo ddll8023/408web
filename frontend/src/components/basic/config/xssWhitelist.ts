@@ -1,3 +1,4 @@
+/** 编辑器与查看器共享的安全白名单，以及保留源码定位属性的 SVG 围栏渲染。 */
 import type MarkdownIt from 'markdown-it'
 
 /**
@@ -141,7 +142,9 @@ export const configureSvgFence = (md: MarkdownIt) => {
     
     // 如果是 svg 代码块，直接渲染 SVG 内容
     if (info === 'svg') {
-      return `<div class="custom-svg-block">${token.content}</div>`
+      // 定位插件把原始源码范围写入 token；自定义渲染必须透传，不能丢掉图块锚点。
+      token.attrJoin('class', 'custom-svg-block')
+      return `<div${self.renderAttrs(token)}>${token.content}</div>`
     }
     
     // 其他代码块使用默认渲染

@@ -229,6 +229,25 @@
   padding: 16px;
 }
 
+/* JSON 区域滑入动画：过渡作用在子组件内部的 .edit-import-body 上，必须写在这里才能命中。 */
+.edit-import-body.slide-fade-enter-active {
+  transition: all 0.3s ease-out;
+}
+
+.edit-import-body.slide-fade-leave-active {
+  transition: all 0.2s ease-in;
+}
+
+.edit-import-body.slide-fade-enter-from {
+  opacity: 0;
+  transform: translateY(-10px);
+}
+
+.edit-import-body.slide-fade-leave-to {
+  opacity: 0;
+  transform: translateY(-5px);
+}
+
 .edit-json-input {
   min-height: 128px;
   font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
