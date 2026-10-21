@@ -1,11 +1,11 @@
-<!-- 个人模型服务：按供应商管理凭据与目录，默认咨询选择独立保存，敏感状态仅存组件内存。 -->
+<!-- 个人模型服务：内置与自建供应商统一管理凭据和目录，默认咨询选择独立保存，敏感状态仅存组件内存。 -->
 <template>
   <section class="rounded-lg border border-line bg-white" aria-labelledby="ai-settings-title" :aria-busy="busy">
     <header class="border-b border-line p-4 sm:px-6">
       <h2 id="ai-settings-title" class="m-0 flex items-center gap-2 text-xl text-ink">
         <font-awesome-icon :icon="['fas', 'cog']" class="text-accent" aria-hidden="true" />模型服务
       </h2>
-      <p class="mt-2 text-sm text-ink-soft">供应商凭据、模型目录和默认咨询选择分开管理。保存不自动检测，也不发送生成请求。</p>
+      <p class="mt-2 text-sm text-ink-soft">供应商凭据、模型目录和默认咨询选择分开管理。除内置供应商外，可新增自定义供应商接入第三方 API；保存不自动检测，也不发送生成请求。</p>
     </header>
     <div class="p-4 sm:p-6">
       <p v-if="operation === 'load'" role="status" aria-live="polite" class="py-6 text-ink-soft">正在加载模型服务…</p>
@@ -25,6 +25,7 @@
         <div class="grid gap-5 xl:grid-cols-[220px_minmax(0,1fr)]">
           <aside class="min-w-0">
             <CustomInput id="ai-provider-search" v-model="providerSearch" label="模型供应商" placeholder="搜索名称或 ID" :disabled="busy" />
+            <CustomButton class="mt-2 w-full" size="sm" :disabled="busy" @click="customDialogVisible = true">新增自定义供应商</CustomButton>
             <nav aria-label="模型供应商" class="mt-3 max-h-[420px] space-y-1 overflow-y-auto pr-1">
               <button v-for="provider in filteredProviders" :key="provider.id" type="button" :disabled="busy"
                 :aria-pressed="selectedProviderId === provider.id"
@@ -32,7 +33,7 @@
                 :class="selectedProviderId === provider.id ? 'border-accent bg-accent/10' : 'border-transparent hover:bg-surface'"
                 @click="selectProvider(provider.id)">
                 <span class="block text-sm font-medium text-ink">{{ provider.name }}</span>
-                <span class="mt-1 block text-xs text-ink-soft">{{ !provider.supported ? '需要额外配置 · 暂不接入' : provider.hasApiKey ? (provider.enabled ? '凭据已保存' : '已暂停') : '未配置' }}</span>
+                <span class="mt-1 block text-xs text-ink-soft">{{ provider.custom ? '自定义 · ' : '' }}{{ !provider.supported ? '需要额外配置 · 暂不接入' : provider.hasApiKey ? (provider.enabled ? '凭据已保存' : '已暂停') : '未配置' }}</span>
               </button>
               <p v-if="!filteredProviders.length" class="p-3 text-sm text-ink-soft">没有匹配的供应商。</p>
             </nav>
@@ -40,12 +41,15 @@
           <div class="min-w-0 space-y-5">
             <template v-if="selectedProvider">
               <AiProviderSettings :key="selectedProvider.id" :provider="selectedProvider" :model="selectedModel"
-                :disabled="operation !== null || pickerBusy" @saved="providerSaved" @deleted="providerDeleted" @busy-change="providerBusy = $event" />
+                :disabled="operation !== null || pickerBusy || managerBusy" @saved="providerSaved" @deleted="providerDeleted" @busy-change="providerBusy = $event" />
               <template v-if="selectedProvider.supported">
                 <div class="border-t border-line pt-5">
-                  <AiModelPicker :key="selectedProvider.id" :provider-id="selectedProvider.id" :model-value="selectedModel?.id ?? ''"
+                  <AiModelPicker v-if="!selectedProvider.custom" :key="selectedProvider.id" :provider-id="selectedProvider.id" :model-value="selectedModel?.id ?? ''"
                     :disabled="operation !== null || providerBusy"
-                    @select="selectedModel = $event" @busy-change="pickerBusy = $event" />
+                    @select="selectModel" @busy-change="pickerBusy = $event" />
+                  <AiCustomModelManager v-else :key="selectedProvider.id" :provider-id="selectedProvider.id" :model-value="selectedModel?.id ?? ''"
+                    :disabled="operation !== null || providerBusy"
+                    @select="selectModel" @busy-change="managerBusy = $event" @changed="refreshProviders" />
                 </div>
                 <div class="space-y-3 border-t border-line pt-5">
                   <p class="break-all text-sm text-ink">{{ selectedModel ? `所选型号：${selectedModel.name}（${selectedModel.id}）` : '尚未选择型号，不会自动替你选择。' }}</p>
@@ -53,7 +57,7 @@
                     <Switch id="ai-consultation-enabled" v-model="defaultEnabled" :disabled="busy" aria-label="启用默认题目咨询配置" />
                     <FormLabel label="启用默认题目咨询配置" for-id="ai-consultation-enabled" />
                   </div>
-                  <p class="text-xs text-ink-soft">题目中的本站上传图片会随咨询自动发送（受张数与体积上限限制）。模型图像能力由目录元数据标注，不支持图像的型号无法咨询含图题目。</p>
+                  <p class="text-xs text-ink-soft">题目中的本站上传图片会随咨询自动发送（受张数与体积上限限制）。模型图像能力由目录元数据或你的声明标注，不支持图像的型号无法咨询含图题目。</p>
                   <div class="flex flex-wrap gap-2">
                     <CustomButton type="primary" :disabled="!canSaveDefault" :loading="operation === 'save'" @click="saveDefault">保存为默认咨询模型</CustomButton>
                     <CustomButton :disabled="busy" @click="loadSettings">重新加载配置</CustomButton>
@@ -62,23 +66,26 @@
                 </div>
               </template>
             </template>
-            <p v-else class="rounded-md border border-line bg-surface p-6 text-sm text-ink-soft">请选择供应商。只接入服务端固定审核的供应商，不开放自定义端点或订阅 OAuth。</p>
+            <p v-else class="rounded-md border border-line bg-surface p-6 text-sm text-ink-soft">请选择供应商。内置供应商由服务端固定目录接入；自定义供应商由你填写第三方接口地址、协议与型号。</p>
           </div>
         </div>
       </template>
     </div>
+    <AiCustomProviderDialog v-model:visible="customDialogVisible" @created="customProviderCreated" />
   </section>
 </template>
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { AiSettingsError, deleteAiSettings, queryAiProviders, queryAiSettings, saveAiSettings,
-  type AiCatalogModelView, type AiProviderConfigView, type AiProviderView, type AiSettingsView } from '@/api/ai'
+  type AiCatalogModelView, type AiCustomProviderView, type AiProviderConfigView, type AiProviderView, type AiSettingsView } from '@/api/ai'
 import Alert from '@/components/basic/Alert.vue'
 import CustomButton from '@/components/basic/CustomButton.vue'
 import CustomInput from '@/components/basic/CustomInput.vue'
 import FormLabel from '@/components/basic/FormLabel.vue'
 import Switch from '@/components/basic/Switch.vue'
+import AiCustomModelManager from '@/components/business/AiCustomModelManager.vue'
+import AiCustomProviderDialog from '@/components/business/AiCustomProviderDialog.vue'
 import AiModelPicker from '@/components/business/AiModelPicker.vue'
 import AiProviderSettings from '@/components/business/AiProviderSettings.vue'
 import { useConfirm } from '@/composables/useConfirm'
@@ -98,8 +105,11 @@ const loaded = ref(false)
 const operation = ref<'load' | 'save' | 'clear' | null>(null)
 const providerBusy = ref(false)
 const pickerBusy = ref(false)
-// 汇总父页与两类子操作状态，避免配置和检测互相覆盖。
-const busy = computed(() => operation.value !== null || providerBusy.value || pickerBusy.value)
+const managerBusy = ref(false)
+const customDialogVisible = ref(false)
+// 汇总父页、子操作与新增弹窗状态，避免配置和检测互相覆盖。
+const busy = computed(() => operation.value !== null || providerBusy.value ||
+  pickerBusy.value || managerBusy.value || customDialogVisible.value)
 const errorMessage = ref('')
 // 从目录映射当前供应商，不把导航状态写入浏览器持久化存储。
 const selectedProvider = computed(() => providers.value.find(provider => provider.id === selectedProviderId.value) ?? null)
@@ -161,15 +171,68 @@ function selectProvider(id: string): void {
   selectedModel.value = null
   selectedProviderId.value = id
 }
-/** 合并该供应商的公开保存结果，不改动其他供应商或默认选择。 */
-function providerSaved(config: AiProviderConfigView): void {
-  providers.value = providers.value.map(provider => provider.id === config.providerId
-    ? { ...provider, configured: true, enabled: config.enabled, hasApiKey: config.hasApiKey, revision: config.revision } : provider)
+/** 型号选择同时接受清空，删除当前型号后父页不能继续引用失效行。 */
+function selectModel(model: AiCatalogModelView | null): void {
+  selectedModel.value = model
 }
-/** 清除对应供应商的本地保存状态，并同步移除服务端已连带删除的默认引用。 */
+/** 新供应商加入列表并直接选中；型号留空，等用户明确选择。 */
+function customProviderCreated(provider: AiCustomProviderView): void {
+  providers.value = [...providers.value, {
+    id: provider.providerId, name: provider.name, supported: true, unsupportedReason: null,
+    baseUrls: [provider.baseUrl], modelCount: provider.modelCount, custom: true,
+    baseUrl: provider.baseUrl, protocol: provider.protocol, configured: true,
+    enabled: provider.enabled, hasApiKey: provider.hasApiKey, revision: provider.revision,
+  }]
+  selectedModel.value = null
+  selectedProviderId.value = provider.providerId
+}
+/** 型号增删会提升服务端供应商修订并可能清除默认选择，静默同步二者以免后续操作被旧状态拒绝。 */
+async function refreshProviders(): Promise<void> {
+  if (!authStore.token) return
+  try {
+    const response = await queryAiProviders()
+    if (!response.data) return
+    const fresh = new Map(response.data.providers.map(provider => [provider.id, provider]))
+    providers.value = providers.value.map(provider => {
+      const next = fresh.get(provider.id)
+      return next ? { ...provider, revision: next.revision, enabled: next.enabled, hasApiKey: next.hasApiKey,
+        modelCount: next.modelCount, configured: next.configured } : provider
+    })
+  } catch {
+    // 刷新失败不覆盖当前列表，下一次显式操作会提示重新加载。
+  }
+  try {
+    const settings = await queryAiSettings()
+    savedSettings.value = settings.data
+    defaultEnabled.value = settings.data?.enabled ?? true
+  } catch {
+    // 默认选择同样等下一次显式操作时再纠正。
+  }
+}
+/** 合并该供应商的公开保存结果，内置与自定义供应商共用同一列表。 */
+function providerSaved(config: AiProviderConfigView | AiCustomProviderView): void {
+  const custom = 'baseUrl' in config ? config : null
+  providers.value = providers.value.map(provider => provider.id === config.providerId
+    ? { ...provider,
+        name: custom?.name ?? provider.name,
+        custom: custom ? true : provider.custom,
+        baseUrl: custom?.baseUrl ?? provider.baseUrl,
+        protocol: custom?.protocol ?? provider.protocol,
+        baseUrls: custom ? [custom.baseUrl] : provider.baseUrls,
+        modelCount: custom?.modelCount ?? provider.modelCount,
+        configured: true, enabled: config.enabled, hasApiKey: config.hasApiKey, revision: config.revision }
+    : provider)
+}
+/** 自定义供应商连同型号整体删除后移出列表；内置供应商只清空本地保存状态。 */
 function providerDeleted(id: string): void {
-  providers.value = providers.value.map(provider => provider.id === id
-    ? { ...provider, configured: false, enabled: false, hasApiKey: false, revision: null } : provider)
+  const target = providers.value.find(provider => provider.id === id)
+  if (target?.custom) {
+    providers.value = providers.value.filter(provider => provider.id !== id)
+    if (selectedProviderId.value === id) { selectedProviderId.value = ''; selectedModel.value = null }
+  } else {
+    providers.value = providers.value.map(provider => provider.id === id
+      ? { ...provider, configured: false, enabled: false, hasApiKey: false, revision: null } : provider)
+  }
   if (savedSettings.value?.providerId === id) { savedSettings.value = null; defaultEnabled.value = true }
 }
 /** 只保存用户明确所选的纯文本默认型号，不携带 Key 或自动发起检测。 */
@@ -211,6 +274,8 @@ function reset(): void {
   operation.value = null
   providerBusy.value = false
   pickerBusy.value = false
+  managerBusy.value = false
+  customDialogVisible.value = false
   providers.value = []
   savedSettings.value = null
   selectedProviderId.value = ''

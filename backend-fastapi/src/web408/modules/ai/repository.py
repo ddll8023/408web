@@ -2,7 +2,7 @@
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from web408.modules.ai.models import UserAiConfig, UserAiProviderConfig
+from web408.modules.ai.models import UserAiConfig, UserAiCustomModel, UserAiProviderConfig
 
 
 class AiSettingsRepository:
@@ -16,7 +16,7 @@ class AiSettingsRepository:
         return result.first()
 
     async def list_providers(self, user_id: int) -> list[UserAiProviderConfig]:
-        """仅列出该账号保存的供应商，按标识排序。"""
+        """仅列出该账号保存的供应商（内置与自定义），按标识排序。"""
         result = await self.session.exec(
             select(UserAiProviderConfig).where(UserAiProviderConfig.user_id == user_id)
             .order_by(UserAiProviderConfig.provider_id)
@@ -30,9 +30,32 @@ class AiSettingsRepository:
         ))
         return result.first()
 
-    def save(self, config: UserAiConfig | UserAiProviderConfig) -> None:
+    async def list_custom_models(self, user_id: int, provider_id: str) -> list[UserAiCustomModel]:
+        """列出该账号某个自定义供应商下已声明的型号，不跨账号或跨供应商读取。"""
+        result = await self.session.exec(
+            select(UserAiCustomModel).where(
+                UserAiCustomModel.user_id == user_id, UserAiCustomModel.provider_id == provider_id,
+            ).order_by(UserAiCustomModel.model_id)
+        )
+        return list(result.all())
+
+    async def get_custom_model(
+        self, user_id: int, provider_id: str, model_id: str,
+    ) -> UserAiCustomModel | None:
+        """按账号、供应商与型号精确定位自定义型号。"""
+        result = await self.session.exec(select(UserAiCustomModel).where(
+            UserAiCustomModel.user_id == user_id, UserAiCustomModel.provider_id == provider_id,
+            UserAiCustomModel.model_id == model_id,
+        ))
+        return result.first()
+
+    def save(self, config: UserAiConfig | UserAiProviderConfig | UserAiCustomModel) -> None:
         """将配置加入当前写事务，提交责任留给业务用例。"""
         self.session.add(config)
+
+    async def delete(self, row: UserAiCustomModel) -> None:
+        """暂存自定义型号删除，保留供应商凭据且不提交事务。"""
+        await self.session.delete(row)
 
     async def delete_by_user_id(self, user_id: int) -> str | None:
         """暂存默认选择删除并返回旧修订，保留供应商凭据且不提交事务。"""
@@ -54,6 +77,24 @@ class AiSettingsRepository:
             default_revision = default.revision
             await self.session.delete(default)
             await self.session.flush()
+        revision = provider.revision
+        await self.session.delete(provider)
+        return revision, default_revision
+
+    async def delete_custom_provider(self, user_id: int, provider_id: str) -> tuple[str | None, str | None]:
+        """删除自定义供应商及其型号与默认引用，返回两类旧修订但不提交事务。"""
+        provider = await self.get_provider(user_id, provider_id)
+        if provider is None or provider.base_url is None:
+            return None, None
+        default = await self.get_by_user_id(user_id)
+        default_revision = None
+        if default is not None and default.provider_id == provider_id:
+            default_revision = default.revision
+            await self.session.delete(default)
+            await self.session.flush()
+        for model in await self.list_custom_models(user_id, provider_id):
+            await self.session.delete(model)
+        await self.session.flush()
         revision = provider.revision
         await self.session.delete(provider)
         return revision, default_revision

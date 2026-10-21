@@ -30,8 +30,8 @@ from pydantic_ai.models import ModelRequestParameters
 from web408.modules.ai.answer_prompt import ANSWER_SYSTEM_PROMPT
 from web408.modules.ai.question_images import OMIT_TEXTS
 from web408.modules.ai.runtime.errors import PUBLIC_ERRORS, AiRuntimeError
-from web408.modules.ai.runtime.go_catalog import PROVIDER_ID, GoModel, find_model
 from web408.modules.ai.runtime.model_factory import BuiltModel, build_model
+from web408.modules.ai.runtime.model_spec import ModelSpec
 from web408.modules.ai.schemas import AiModelCheckView, AiModelView
 from web408.modules.ai.session_schemas import (
     AiDeltaEvent,
@@ -106,9 +106,10 @@ def _context_note(
     return "；".join(parts) + "。"
 
 
-def _model_view(model: GoModel) -> AiModelView:
+def _model_view(model: ModelSpec) -> AiModelView:
     """对外只公开型号归属、标识、名称和图像能力，不暴露协议与地址。"""
-    return AiModelView(provider=PROVIDER_ID, id=model.id, name=model.name, supports_images=model.supports_images)
+    return AiModelView(provider=model.provider_id, id=model.id, name=model.name,
+                       supports_images=model.supports_images)
 
 
 @dataclass(slots=True)
@@ -117,7 +118,7 @@ class _Session:
 
     id: str
     owner: int
-    model: GoModel
+    model: ModelSpec
     default_revision: str
     provider_revision: str
     view: AiSessionView
@@ -405,7 +406,7 @@ class AiConsultationManager:
             raise AiRuntimeError("UNKNOWN_SESSION")
         return session
 
-    def create(self, *, user_id: int, model_id: str, kind: QuestionKind, question_id: int, snapshot: str,
+    def create(self, *, user_id: int, model: ModelSpec, kind: QuestionKind, question_id: int, snapshot: str,
                default_revision: str, provider_revision: str, admission_expires_at: int,
                api_key: str, images: Sequence[AiQuestionImage] = (),
                omitted: Sequence[AiOmittedQuestionImage] = (),
@@ -413,12 +414,9 @@ class AiConsultationManager:
         """固定可信快照、图片数据与双修订创建内存会话；创建不调用模型、不联网。"""
         if self.closing:
             raise AiRuntimeError("SERVER_CLOSING")
-        self._admit(user_id, PROVIDER_ID, provider_revision, default_revision, admission_expires_at)
+        self._admit(user_id, model.provider_id, provider_revision, default_revision, admission_expires_at)
         if len(snapshot.encode("utf-8")) > 64 * 1024:
             raise AiRuntimeError("INVALID_REQUEST")
-        model = find_model(model_id)
-        if model is None:
-            raise AiRuntimeError("MODEL_UNSUPPORTED")
         # 只有确实要发送图片时才要求型号具备图像输入能力，SVG 源码属文本资料。
         if images and not model.supports_images:
             raise AiRuntimeError("IMAGE_UNSUPPORTED")
@@ -451,8 +449,8 @@ class AiConsultationManager:
         """发送前完成归属、修订、容量与重复校验，只有明确发送才占用生成位。"""
         if self.closing:
             raise AiRuntimeError("SERVER_CLOSING")
-        self._admit(user_id, PROVIDER_ID, provider_revision, default_revision, admission_expires_at)
         session = self._owned(user_id, session_id)
+        self._admit(user_id, session.model.provider_id, provider_revision, default_revision, admission_expires_at)
         if session.default_revision != default_revision or session.provider_revision != provider_revision:
             self._mark_closed(session, "config")
             raise AiRuntimeError("CONFIG_CHANGED")
@@ -550,12 +548,12 @@ class AiConsultationManager:
 
     # ---- 主动检测 ----
 
-    async def check(self, *, user_id: int, model_id: str, provider_revision: str, admission_expires_at: int,
+    async def check(self, *, user_id: int, model: ModelSpec, provider_revision: str, admission_expires_at: int,
                     api_key: str, request_id: str) -> AiModelCheckView:
         """用已保存凭据发一次短文本检测，与咨询共享生成位并拒绝重复 UUID。"""
         if self.closing:
             raise AiRuntimeError("SERVER_CLOSING")
-        self._admit(user_id, PROVIDER_ID, provider_revision, None, admission_expires_at)
+        self._admit(user_id, model.provider_id, provider_revision, None, admission_expires_at)
         self._purge()
         key = f"{user_id}/{request_id}"
         if key in self.checked:
@@ -564,9 +562,6 @@ class AiConsultationManager:
             raise AiRuntimeError("BUSY")
         if len(self.checked) >= CHECKED_REQUESTS_LIMIT or len(self.sessions) + self.check_count >= SESSIONS_LIMIT:
             raise AiRuntimeError("CAPACITY")
-        model = find_model(model_id)
-        if model is None:
-            raise AiRuntimeError("MODEL_UNSUPPORTED")
         self.checked[key] = _now_ms() + CHECKED_REQUESTS_MS
         self.check_count += 1
         built = build_model(model, api_key, self.check_timeout)
@@ -580,7 +575,7 @@ class AiConsultationManager:
                 pass
         return AiModelCheckView(request_id=UUID(request_id), model=_model_view(model), success=True)
 
-    async def _run_check(self, built: BuiltModel, model: GoModel) -> None:
+    async def _run_check(self, built: BuiltModel, model: ModelSpec) -> None:
         """执行一次短文本请求并校验完整非空回答，超时后等待任务真实收尾。"""
         settings = built.settings(
             level=CHECK_LEVEL, session_id=str(uuid4()), timeout_seconds=self.check_timeout,

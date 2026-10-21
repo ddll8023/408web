@@ -1,5 +1,6 @@
 """模型服务的公开及内部契约；Key 只允许进入保存和私有发送边界。"""
 from typing import Annotated, Literal
+from urllib.parse import urlsplit
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, SecretStr, StringConstraints, field_validator
@@ -9,8 +10,38 @@ from pydantic import BaseModel, ConfigDict, Field, SecretStr, StringConstraints,
 AGENT_ADMISSION_MS = 60_000
 # 配置层输入模式；本批运行时不读取该字段，按题目是否含图片自动判定，仅保留给历史配置。
 AiInputMode = Literal["text", "text_image"]
+# 自定义供应商可选的三种上游协议；地址与会话头由所选协议决定。
+AiProtocol = Literal["openai-completions", "openai-responses", "anthropic-messages"]
 ProviderId = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=100, pattern=r"^[a-z0-9][a-z0-9-]*$")]
 ModelId = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=200)]
+
+
+def _clean_api_key(value: SecretStr | None) -> SecretStr | None:
+    """空白保留原 Key，认证载荷与历史实现一致只接受可打印 ASCII。"""
+    if value is None:
+        return None
+    key = value.get_secret_value().strip()
+    if not key:
+        return None
+    if any(not 0x21 <= ord(char) <= 0x7E for char in key):
+        raise ValueError("API Key 格式无效，请重新填写")
+    return SecretStr(key)
+
+
+def _clean_base_url(value: str) -> str:
+    """只接受带主机名的 http(s) 地址，拒绝控制字符、内嵌凭据、查询串与片段。
+
+    自定义端点由账号自行填写，服务端不探测、不重定向；协议与主机合法性在此收口。
+    """
+    url = value.strip()
+    if len(url) > 2048 or any(ord(char) < 0x20 or ord(char) == 0x7F for char in url):
+        raise ValueError("接口地址格式无效，请填写 http(s) 地址")
+    parsed = urlsplit(url)
+    if parsed.scheme not in {"http", "https"} or not parsed.hostname:
+        raise ValueError("接口地址格式无效，请填写 http(s) 地址")
+    if parsed.username or parsed.password or parsed.query or parsed.fragment:
+        raise ValueError("接口地址不能包含账号、查询串或片段")
+    return url
 
 
 class AiSchema(BaseModel):
@@ -35,14 +66,7 @@ class AiProviderSaveRequest(AiProviderRequest):
     @classmethod
     def normalize_api_key(cls, value: SecretStr | None) -> SecretStr | None:
         """空白保留原 Key，认证载荷与历史实现一致只接受可打印 ASCII。"""
-        if value is None:
-            return None
-        key = value.get_secret_value().strip()
-        if not key:
-            return None
-        if any(not 0x21 <= ord(char) <= 0x7E for char in key):
-            raise ValueError("API Key 格式无效，请重新填写")
-        return SecretStr(key)
+        return _clean_api_key(value)
 
 
 class AiProviderConfigView(AiSchema):
@@ -59,6 +83,10 @@ class AiCatalogProviderView(AiSchema):
     unsupported_reason: str | None = Field(default=None, max_length=300)
     base_urls: list[str] = Field(max_length=8)
     model_count: int = Field(ge=0)
+    # 自定义供应商标记与可编辑的接口信息；内置供应商保持默认值。
+    custom: bool = False
+    base_url: str | None = Field(default=None, max_length=2048)
+    protocol: AiProtocol | None = None
 
 
 class AgentProvidersView(AiSchema):
@@ -74,6 +102,69 @@ class AiProviderView(AiCatalogProviderView):
 
 class AiProvidersView(AiSchema):
     providers: list[AiProviderView] = Field(max_length=100)
+
+
+class AiCustomProviderSaveRequest(AiSchema):
+    """新建或更新当前账号的自定义供应商；未提供 provider_id 时由服务端生成标识。"""
+
+    provider_id: ProviderId | None = None
+    name: str = Field(min_length=1, max_length=200)
+    base_url: str = Field(min_length=8, max_length=2048)
+    protocol: AiProtocol
+    enabled: bool = Field(strict=True)
+    api_key: SecretStr | None = Field(default=None, max_length=4096, repr=False)
+
+    @field_validator("name")
+    @classmethod
+    def clean_name(cls, value: str) -> str:
+        """名称必须包含非空白字符，不保留首尾空白。"""
+        name = value.strip()
+        if not name:
+            raise ValueError("请填写供应商名称")
+        return name
+
+    @field_validator("base_url")
+    @classmethod
+    def validate_base_url(cls, value: str) -> str:
+        """只接受 http(s) 地址，服务端不探测、不跟随重定向。"""
+        return _clean_base_url(value)
+
+    @field_validator("api_key")
+    @classmethod
+    def normalize_api_key(cls, value: SecretStr | None) -> SecretStr | None:
+        """空值表示保留旧 Key；新值只接受可打印 ASCII。"""
+        return _clean_api_key(value)
+
+
+class AiCustomProviderView(AiProviderConfigView):
+    name: str = Field(min_length=1, max_length=200)
+    base_url: str = Field(min_length=1, max_length=2048)
+    protocol: AiProtocol
+    model_count: int = Field(ge=0)
+
+
+class AiCustomModelRequest(AiProviderRequest):
+    """自定义型号操作都以供应商与型号精确定位。"""
+
+    model_id: ModelId
+
+
+class AiCustomModelSaveRequest(AiCustomModelRequest):
+    """手工录入型号能力；服务端不探测上游真实能力。"""
+
+    name: str = Field(min_length=1, max_length=200)
+    supports_images: bool = Field(strict=True)
+    context_window: int = Field(ge=0, le=10_000_000, strict=True)
+    max_tokens: int = Field(ge=1, le=1_000_000, strict=True)
+
+    @field_validator("name")
+    @classmethod
+    def clean_name(cls, value: str) -> str:
+        """名称必须包含非空白字符，不保留首尾空白。"""
+        name = value.strip()
+        if not name:
+            raise ValueError("请填写型号名称")
+        return name
 
 
 class AiSettingsSaveRequest(AiProviderRequest):
@@ -127,7 +218,7 @@ class AiModelsView(AiSchema):
     total: int = Field(ge=0)
     offset: int = Field(ge=0)
     limit: int = Field(ge=1, le=100)
-    source: Literal["bundled"]
+    source: Literal["bundled", "custom"]
 
 
 class AiModelCheckRequest(AiProviderRequest):

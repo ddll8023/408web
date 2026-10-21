@@ -1,14 +1,15 @@
-"""OpenCode Go 型号注册表：协议、固定地址、能力与逐型号 thinking 元数据的唯一来源。
+"""内置 OpenCode Go 型号注册表：协议、固定地址、能力与逐型号 thinking 元数据。
 
 数据提取自 @earendil-works/pi-coding-agent 0.99.2 内嵌模型目录（MIT，2026-10-03 提取）。
-原 Node 服务与 Pi 依赖已从工作区删除，本表是唯一副本，无法再自动生成，新增型号只能手工维护。
-协议、固定地址、会话头与参数形状均以本文件为准，不接受浏览器传入端点、请求头或协议。
+原 Node 服务与 Pi 依赖已从工作区删除，本表是内置目录的唯一副本，无法再自动生成，新增型号只能手工维护。
+内置目录的协议、固定地址、会话头与参数形状以本文件为准；账号自定义供应商的地址与协议
+由业务层校验后构造 ModelSpec，不进入本表。
 """
 from dataclasses import dataclass
-from typing import Final, Literal, Mapping
+from typing import Final, Mapping
 
+from web408.modules.ai.runtime.model_spec import ApiProtocol, ModelSpec, ThinkingSpec
 
-ApiProtocol = Literal["openai-completions", "openai-responses", "anthropic-messages"]
 
 PROVIDER_ID: Final = "opencode-go"
 PROVIDER_NAME: Final = "OpenCode Go"
@@ -67,14 +68,17 @@ class GoModel:
         """按协议返回固定地址，不使用任何浏览器或环境提供的端点。"""
         return ANTHROPIC_BASE_URL if self.api == _ANTHROPIC else OPENAI_BASE_URL
 
-    def effort_for(self, level: str) -> str | None:
-        """把档位映射为 reasoning_effort；off 档只有显式字符串才发送，其余按 ?? 语义回退档位名。"""
-        levels = self.thinking_levels or {}
-        if level == "off":
-            value = levels.get("off")
-            return value if isinstance(value, str) else None
-        value = levels.get(level)
-        return level if value is None else value
+    def spec(self) -> ModelSpec:
+        """转换为运行时定义；内置目录固定携带 Go 会话头与 thinking 元数据。"""
+        return ModelSpec(
+            provider_id=PROVIDER_ID, id=self.id, name=self.name, api=self.api, base_url=self.base_url,
+            context_window=self.context_window, max_tokens=self.max_tokens, reasoning=self.reasoning,
+            supports_images=self.supports_images, provider_headers=True,
+            thinking=ThinkingSpec(
+                levels=self.thinking_levels or {}, toggle=self.thinking_toggle,
+                reasoning_required=self.reasoning_required, allow_empty_signature=self.allow_empty_signature,
+            ),
+        )
 
 
 MODELS: Final[tuple[GoModel, ...]] = (
@@ -136,6 +140,7 @@ MODELS: Final[tuple[GoModel, ...]] = (
 MODEL_INDEX: Final[dict[str, GoModel]] = {model.id: model for model in MODELS}
 
 
-def find_model(model_id: str) -> GoModel | None:
-    """按精确型号标识查询；未收录型号只能拒绝，不猜测协议或能力。"""
-    return MODEL_INDEX.get(model_id)
+def find_spec(model_id: str) -> ModelSpec | None:
+    """按精确型号标识返回内置型号的运行时定义，未收录时返回空。"""
+    model = MODEL_INDEX.get(model_id)
+    return model.spec() if model is not None else None

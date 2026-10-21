@@ -9,10 +9,13 @@ from web408.core.config import settings
 from web408.core.exceptions import ConflictException, ValidationException
 from web408.modules.ai.key_cipher import decrypt_api_key
 from web408.modules.ai.answer_schemas import AiAnswerSessionCreateRequest, AiAnswerSessionView
+from web408.modules.ai.models import UserAiProviderConfig
 from web408.modules.ai.question_context import build_answer_snapshot, build_question_snapshot
 from web408.modules.ai.question_images import load_question_images
 from web408.modules.ai.repository import AiSettingsRepository
+from web408.modules.ai.runtime.go_catalog import find_spec
 from web408.modules.ai.runtime.manager import AiRuntime
+from web408.modules.ai.runtime.model_spec import ModelSpec, custom_spec
 from web408.modules.ai.runtime.session import ADMISSION_MS, AiStream
 from web408.modules.ai.session_schemas import (
     AiMessageRequest,
@@ -31,6 +34,23 @@ class AiConsultationService:
         self.runtime = runtime
         self.repository = AiSettingsRepository(session)
 
+    async def _resolve_model(self, user_id: int, provider: UserAiProviderConfig, model_id: str) -> ModelSpec:
+        """把默认型号解析为运行时定义；自定义型号能力完全按账号声明，不做探测。"""
+        if provider.base_url is not None:
+            model = await self.repository.get_custom_model(user_id, provider.provider_id, model_id)
+            if model is None:
+                raise ValidationException("默认模型已不在该供应商下，请重新配置")
+            return custom_spec(
+                provider_id=provider.provider_id, base_url=provider.base_url,
+                protocol=provider.protocol or "openai-completions", model_id=model.model_id,
+                name=model.name, supports_images=model.supports_images,
+                context_window=model.context_window, max_tokens=model.max_tokens,
+            )
+        spec = find_spec(model_id)
+        if spec is None:
+            raise ValidationException("模型目录未收录该型号，请重新配置")
+        return spec
+
     async def create(
         self, user_id: int, request: AiSessionCreateRequest | AiAnswerSessionCreateRequest,
     ) -> AiSessionView:
@@ -46,9 +66,8 @@ class AiConsultationService:
             ciphertext = provider.api_key_ciphertext
             key_version = provider.key_version
             revision = config.revision
-            provider_id = provider.provider_id
             provider_revision = provider.revision
-            model_id = config.model_id
+            model = await self._resolve_model(user_id, provider, config.model_id)
             answer_source = None
             if isinstance(request, AiAnswerSessionCreateRequest):
                 snapshot, answer_source = await build_answer_snapshot(self.session, request, settings.ai)
@@ -71,7 +90,7 @@ class AiConsultationService:
         if not api_key.get_secret_value().strip():
             raise ValidationException("AI 凭据为空，请重新填写 API Key")
         view = self.runtime.create_session(
-            user_id=user_id, provider_id=provider_id, model_id=model_id,
+            user_id=user_id, model=model,
             kind=request.question_kind, question_id=request.question_id, snapshot=snapshot.text,
             images=payload.images, omitted=payload.omitted,
             default_revision=revision, provider_revision=provider_revision,

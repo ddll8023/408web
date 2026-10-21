@@ -1,7 +1,7 @@
-"""AI 运行模块门面：固定供应商目录、型号查询、检测与咨询编排。
+"""AI 运行模块门面：内置供应商目录、型号查询、检测与咨询编排。
 
 启动只准备内存结构与回收任务，不读取凭据、不联网、不预热模型；
-调用方传入经过认证与校验的账号、双修订、型号和已解密凭据，模块不回写数据库。
+调用方传入经过认证与校验的账号、双修订、型号定义和已解密凭据，模块不回写数据库。
 """
 from collections.abc import Sequence
 from dataclasses import dataclass
@@ -14,8 +14,8 @@ from web408.modules.ai.runtime.go_catalog import (
     OPENAI_BASE_URL,
     PROVIDER_ID,
     PROVIDER_NAME,
-    find_model,
 )
+from web408.modules.ai.runtime.model_spec import ModelSpec
 from web408.modules.ai.runtime.session import AiConsultationManager, AiStream
 from web408.modules.ai.schemas import (
     AgentProvidersView,
@@ -63,7 +63,7 @@ class AiRuntime:
 
     @staticmethod
     def _provider_view() -> AiCatalogProviderView:
-        """目录只收录固定地址、单一 API Key 的 OpenCode Go；协议映射在注册表中。"""
+        """内置目录只收录固定地址、单一 API Key 的 OpenCode Go；协议映射在注册表中。"""
         return AiCatalogProviderView(
             id=PROVIDER_ID, name=PROVIDER_NAME, supported=True, unsupported_reason=None,
             base_urls=[OPENAI_BASE_URL, ANTHROPIC_BASE_URL], model_count=len(MODELS),
@@ -99,26 +99,22 @@ class AiRuntime:
 
     # ---- 检测与咨询 ----
 
-    async def check(self, *, user_id: int, provider_id: str, model_id: str, provider_revision: str,
+    async def check(self, *, user_id: int, model: ModelSpec, provider_revision: str,
                     admission_expires_at: int, api_key: str, request_id: str) -> AiModelCheckView:
         """账号取自认证与数据库，只有明确确认额度时才调用模型。"""
-        if provider_id != PROVIDER_ID:
-            raise AiRuntimeError("PROVIDER_UNSUPPORTED")
         return await self.consultation.check(
-            user_id=user_id, model_id=model_id, provider_revision=provider_revision,
+            user_id=user_id, model=model, provider_revision=provider_revision,
             admission_expires_at=admission_expires_at, api_key=api_key, request_id=request_id,
         )
 
-    def create_session(self, *, user_id: int, provider_id: str, model_id: str, kind: QuestionKind,
+    def create_session(self, *, user_id: int, model: ModelSpec, kind: QuestionKind,
                        question_id: int, snapshot: str, default_revision: str, provider_revision: str,
                        admission_expires_at: int, api_key: str, images: Sequence[AiQuestionImage] = (),
                        omitted: Sequence[AiOmittedQuestionImage] = (),
                        answer_generation: bool = False) -> AiSessionView:
         """固定可信快照与已读取的图片数据创建内存会话；创建本身不调用模型。"""
-        if provider_id != PROVIDER_ID:
-            raise AiRuntimeError("PROVIDER_UNSUPPORTED")
         return self.consultation.create(
-            user_id=user_id, model_id=model_id, kind=kind, question_id=question_id, snapshot=snapshot,
+            user_id=user_id, model=model, kind=kind, question_id=question_id, snapshot=snapshot,
             default_revision=default_revision, provider_revision=provider_revision,
             admission_expires_at=admission_expires_at, api_key=api_key,
             images=images, omitted=omitted, answer_generation=answer_generation,
@@ -145,7 +141,3 @@ class AiRuntime:
     def invalidate_revision(self, user_id: int, revision: str | None, provider_id: str | None = None) -> None:
         """配置提交后在同一进程内登记旧修订失效，不再依赖跨服务通知送达。"""
         self.consultation.remember_invalidation(user_id, revision, provider_id)
-
-    def find_model(self, model_id: str):
-        """按精确型号查询注册表，供业务层判断型号是否收录。"""
-        return find_model(model_id)

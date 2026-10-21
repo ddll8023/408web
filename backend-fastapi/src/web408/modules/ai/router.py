@@ -16,7 +16,8 @@ from web408.modules.ai.model_service import AiModelService
 from web408.modules.ai.runtime.manager import AiRuntime
 from web408.modules.ai.runtime.session import AiStream
 from web408.modules.ai.schemas import (
-    AiModelCheckRequest, AiModelCheckView, AiModelsQueryRequest, AiModelsView,
+    AiCatalogModelView, AiCustomModelRequest, AiCustomModelSaveRequest, AiCustomProviderSaveRequest,
+    AiCustomProviderView, AiModelCheckRequest, AiModelCheckView, AiModelsQueryRequest, AiModelsView,
     AiProviderConfigView, AiProviderRequest, AiProviderSaveRequest, AiProvidersView,
     AiSettingsActionRequest, AiSettingsSaveRequest, AiSettingsView,
 )
@@ -88,7 +89,7 @@ class ConsultationResponse(StreamingResponse):
 async def query_providers(
     request: AiSettingsActionRequest, session: SessionDep, current_user: CurrentUser, runtime: RuntimeDep,
 ) -> ApiResponse[AiProvidersView]:
-    """以鉴权账号查询固定接入方式和个人保存状态，不返回凭据。"""
+    """查询内置目录与账号自建供应商的个人保存状态，不返回凭据。"""
     return ApiResponse(data=await AiSettingsService(session, runtime).providers(current_user.user_id))
 
 
@@ -96,7 +97,7 @@ async def query_providers(
 async def save_provider(
     request: AiProviderSaveRequest, session: SessionDep, current_user: CurrentUser, runtime: RuntimeDep,
 ) -> ApiResponse[AiProviderConfigView]:
-    """保存该账号供应商的加密 Key 与独立启用状态，不自动检测。"""
+    """保存该账号内置供应商的加密 Key 与独立启用状态，不自动检测。"""
     data = await AiSettingsService(session, runtime).save_provider(current_user.user_id, request)
     return ApiResponse(data=data, message="供应商配置已保存，尚未检测调用权限")
 
@@ -105,16 +106,54 @@ async def save_provider(
 async def delete_provider(
     request: AiProviderRequest, session: SessionDep, current_user: CurrentUser, runtime: RuntimeDep,
 ) -> ApiResponse[None]:
-    """清除当前账号指定供应商及必要默认引用，不操作其他账号或上游 Key。"""
+    """清除当前账号指定内置供应商及必要默认引用，不操作其他账号或上游 Key。"""
     await AiSettingsService(session, runtime).delete_provider(current_user.user_id, request.provider_id)
     return ApiResponse(message="供应商配置已清除")
 
 
-@router.post("/models/query", response_model=ApiResponse[AiModelsView], summary="查询固定模型目录")
+@router.post("/custom-providers/save", response_model=ApiResponse[AiCustomProviderView], summary="保存自定义供应商")
+async def save_custom_provider(
+    request: AiCustomProviderSaveRequest, session: SessionDep, current_user: CurrentUser, runtime: RuntimeDep,
+) -> ApiResponse[AiCustomProviderView]:
+    """保存账号自建供应商的地址、协议与加密 Key，不自动检测调用权限。"""
+    data = await AiSettingsService(session, runtime).save_custom_provider(current_user.user_id, request)
+    return ApiResponse(data=data, message="自定义供应商已保存，尚未检测调用权限")
+
+
+@router.post("/custom-providers/delete", response_model=ApiResponse[None], summary="删除自定义供应商")
+async def delete_custom_provider(
+    request: AiProviderRequest, session: SessionDep, current_user: CurrentUser, runtime: RuntimeDep,
+) -> ApiResponse[None]:
+    """删除账号自建供应商及其型号与默认引用，不撤销上游账户中的 Key。"""
+    await AiSettingsService(session, runtime).delete_custom_provider(current_user.user_id, request.provider_id)
+    return ApiResponse(message="自定义供应商已删除")
+
+
+@router.post("/custom-models/save", response_model=ApiResponse[AiCatalogModelView], summary="保存自定义型号")
+async def save_custom_model(
+    request: AiCustomModelSaveRequest, session: SessionDep, current_user: CurrentUser, runtime: RuntimeDep,
+) -> ApiResponse[AiCatalogModelView]:
+    """手工录入自定义型号及其声明能力，不向上游探测。"""
+    data = await AiSettingsService(session, runtime).save_custom_model(current_user.user_id, request)
+    return ApiResponse(data=data, message="自定义型号已保存")
+
+
+@router.post("/custom-models/delete", response_model=ApiResponse[None], summary="删除自定义型号")
+async def delete_custom_model(
+    request: AiCustomModelRequest, session: SessionDep, current_user: CurrentUser, runtime: RuntimeDep,
+) -> ApiResponse[None]:
+    """删除账号自建型号；默认选择指向它时一并清除。"""
+    await AiSettingsService(session, runtime).delete_custom_model(
+        current_user.user_id, request.provider_id, request.model_id,
+    )
+    return ApiResponse(message="自定义型号已删除")
+
+
+@router.post("/models/query", response_model=ApiResponse[AiModelsView], summary="查询模型目录")
 async def query_models(
     request: AiModelsQueryRequest, session: SessionDep, current_user: CurrentUser, runtime: RuntimeDep,
 ) -> ApiResponse[AiModelsView]:
-    """离线查询随应用发布的固定目录并返回分页能力信息，不要求 Key 或发起生成。"""
+    """离线查询内置目录或账号自建型号并返回分页能力信息，不要求 Key 或发起生成。"""
     return ApiResponse(data=await AiModelService(session, runtime).query(current_user.user_id, request))
 
 
