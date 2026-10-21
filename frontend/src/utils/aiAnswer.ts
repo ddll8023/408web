@@ -23,6 +23,22 @@ const MARKDOWN_HEADING = /^#{1,6}\s/
 const DIVIDER_LINE = /^(?:-{3,}|\*{3,}|_{3,})$/
 const ITALIC_LINE = /^\*[^*\s][^*]*\*$/
 
+/**
+ * 检测行内是否出现题库不采用的公式定界符 \\( \\) \\[ \\]。
+ * 反斜杠连续数须为奇数才算定界，避免把 LaTeX 中的 \\\\[2pt] 之类的换行间距误判。
+ */
+function hasForeignMathDelimiter(line: string): boolean {
+  for (let index = 0; index < line.length; index += 1) {
+    if (line[index] !== '\\') continue
+    let slashes = 0
+    while (line[index + slashes] === '\\') slashes += 1
+    const next = line[index + slashes]
+    if (slashes % 2 === 1 && (next === '(' || next === '[' || next === ')' || next === ']')) return true
+    index += slashes - 1
+  }
+  return false
+}
+
 interface QuestionSource {
   questionType: QuestionType
   subjectId?: number | null
@@ -90,6 +106,7 @@ function answerStructureError(text: string, type: QuestionType): string {
     if (fenceMarker || !line) continue
     if (MARKDOWN_HEADING.test(line)) return '新答案包含 Markdown 标题小节，请重新生成'
     if (DIVIDER_LINE.test(line)) return '新答案包含分隔线，请重新生成'
+    if (hasForeignMathDelimiter(line)) return '新答案使用了 \\(...\\) 或 \\[...\\] 定界公式，请重新生成'
     const bold = line.match(BOLD_LINE)
     if (bold) {
       const title = bold[1].trim()
