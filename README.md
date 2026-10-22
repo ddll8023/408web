@@ -308,12 +308,18 @@ JWT_ALGORITHM=HS256
 - `subject` - 科目表（数据结构、操作系统、计算机网络、计算机组成原理）
 - `chapter` - 章节表
 - `exam_category` - 分类标签表
-- `custom_category` - 自定义分类表
+- `custom_category` - 自定义分类表（与大纲分类并行；真题通过 `exam_question.custom_category` 以名称数组挂载）
 - `exam_question` - 真题表
+- `exam_process_image` - 真题讲解过程图片关联表
 - `mock_question` - 模拟题表
 - `mock_question_exam_mark` - 模拟题出题状态表
+- `mock_question_wrong_count` - 模拟题答错次数表
 - `adaptation_question` - 真题改编题主体表
 - `adaptation_source` - 改编题来源真题引用表
+- `adaptation_question_exam_mark` - 改编题出题状态表
+- `user_ai_provider_config` - 账号模型供应商凭据表（API Key 密文）
+- `user_ai_custom_model` - 账号自定义型号表
+- `user_ai_config` - 账号默认咨询设置表
 
 完整字段、索引、约束和外键以各模块 `backend-fastapi/src/web408/modules/*/models.py` 中的 SQLModel 定义为准。
 
