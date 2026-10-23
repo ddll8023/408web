@@ -13,8 +13,6 @@ import { toast } from '@/utils/toast'
  */
 export function useJsonImport() {
   // 状态
-  // 默认展开JSON导入面板
-  const jsonImportVisible = ref(['jsonImport'])
   const jsonInput = ref('')
 
   /**
@@ -255,7 +253,6 @@ export function useJsonImport() {
 
   return {
     // 状态
-    jsonImportVisible,
     jsonInput,
 
     // 方法

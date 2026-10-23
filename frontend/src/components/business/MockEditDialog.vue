@@ -11,10 +11,12 @@
               v-model="jsonInput"
               v-model:visible="jsonImportVisible"
               show-content-only
+              show-answer-only
               show-example
               @paste="handlePasteJson"
               @parse="handleParseJson"
               @parse-content="handleParseContentJson"
+              @parse-answer="handleParseAnswerJson"
               @clear="handleClearJson"
               @show-example="() => showJsonExample('mock')"
             />
@@ -227,7 +229,7 @@ const {
   subjectOptions, categoryTreeOptions,
   loadSubjectOptions,
   handleSubjectChange, handleQuestionTypeChange,
-  resetForm, fillFormFromData, fillContentFromData, buildSubmitData
+  resetForm, fillFormFromData, fillContentFromData, fillAnswerFromData, buildSubmitData
 } = useQuestionForm({
   extraFields: { source: '', questionNumber: null }
 })
@@ -458,6 +460,32 @@ const handleParseContentJson = () => {
 
     fillContentFromData(data)
     showToast('JSON解析成功，仅更新题目、选项和答案，基础信息未改变', 'success')
+    jsonImportVisible.value = false
+  } catch (e) {
+    showToast('JSON格式错误：' + (e instanceof Error ? e.message : String(e)), 'error')
+  }
+}
+
+// 仅解析并更新答案，不修改题干、选项和基础信息
+const handleParseAnswerJson = () => {
+  if (!jsonInput.value.trim()) {
+    showToast('请先粘贴JSON数据', 'warning')
+    return
+  }
+
+  try {
+    const data = parseJsonWithRelaxedSupport(jsonInput.value)
+    if (data.questionType && data.questionType !== form.questionType) {
+      showToast('仅更新答案时，JSON题型必须与当前题型一致', 'error')
+      return
+    }
+
+    if (!fillAnswerFromData(data)) {
+      showToast('JSON中没有答案字段', 'warning')
+      return
+    }
+
+    showToast('JSON解析成功，仅更新答案，题干、选项和基础信息未改变', 'success')
     jsonImportVisible.value = false
   } catch (e) {
     showToast('JSON格式错误：' + (e instanceof Error ? e.message : String(e)), 'error')

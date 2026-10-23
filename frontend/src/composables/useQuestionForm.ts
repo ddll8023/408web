@@ -289,6 +289,16 @@ export function useQuestionForm(options: { extraFields?: Partial<QuestionForm> }
   }
 
   /**
+   * 仅用 JSON 更新答案解析，不修改题干、选项、题型及其他基础信息。
+   * @returns {boolean} JSON 是否提供 answer 字段；未提供时表单保持不变
+   */
+  const fillAnswerFromData = (data: QuestionFormData): boolean => {
+    if (data.answer === undefined) return false
+    form.answer = data.answer || ''
+    return true
+  }
+
+  /**
    * 构建提交数据
    * @param {Object} extraData - 额外的提交字段
    * @returns {Object} 提交数据
@@ -341,6 +351,7 @@ export function useQuestionForm(options: { extraFields?: Partial<QuestionForm> }
     handleQuestionTypeChange,
     fillFormFromData,
     fillContentFromData,
+    fillAnswerFromData,
     buildSubmitData
   }
 }

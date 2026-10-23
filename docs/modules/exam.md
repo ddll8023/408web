@@ -40,7 +40,7 @@
 | `frontend/src/components/business/ExamEntryCard.vue` | 真题卡片组合（头部 + 题目内容） |
 | `frontend/src/components/business/ExamItemHeader.vue` | 年份/题号/标签/复制/过程图片/管理操作 |
 | `frontend/src/components/business/ExamProcessMenu.vue`、`ExamProcessDialog.vue` | 过程图片入口与查看/删除/排序弹窗 |
-| `frontend/src/components/business/ExamEditDialog.vue` | 新增/编辑弹窗：JSON 完整导入、仅更新内容、Markdown 编辑、分类与自定义分类选择、AI 答案生成 |
+| `frontend/src/components/business/ExamEditDialog.vue` | 新增/编辑弹窗：JSON 完整导入、仅更新内容、仅更新答案、Markdown 编辑、分类与自定义分类选择、AI 答案生成 |
 
 `frontend/src/components/business/ExamQuestionCard.vue` 虽名为 Exam，但被三类题目共用，归[公共记录](shared.md#题目渲染与复制导出共享)的渲染路径；本模块只引用。
 

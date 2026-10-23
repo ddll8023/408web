@@ -31,7 +31,7 @@
 | `frontend/src/types/adaptation.ts` | 领域类型 |
 | `frontend/src/views/user/AdaptationClassify.vue` | 分类阅读页（含表格/答案显隐、新标签页定位） |
 | `frontend/src/views/admin/AdaptationManage.vue` | 管理表格：来源筛选、解析状态、编辑、删除、出题操作 |
-| `frontend/src/components/business/AdaptationEditDialog.vue` | 新增/编辑弹窗（来源维护 + JSON 导入 + AI 答案生成） |
+| `frontend/src/components/business/AdaptationEditDialog.vue` | 新增/编辑弹窗（来源维护 + JSON 导入、仅更新内容、仅更新答案 + AI 答案生成） |
 | `frontend/src/components/business/AdaptationSourceEditor.vue` | 年份/题号/小问来源编辑与即时解析 |
 | `frontend/src/components/business/AdaptationSourceDialog.vue` | 查看改编题关联的来源真题 |
 | `frontend/src/components/business/AdaptationRelatedDialog.vue` | 在真题页面查看关联改编题并新标签页打开定位 |

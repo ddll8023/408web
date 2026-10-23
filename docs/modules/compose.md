@@ -23,7 +23,7 @@
 | `frontend/src/components/business/QuestionBatchCopyMenu.vue` | 按选中顺序合并生成一次 Word 富文本复制 |
 | `frontend/src/components/business/QuestionExamActionMenu.vue` | 「复制到 Word / 导出题目+选项 PNG / 切换出题状态」三项出题操作 |
 | `frontend/src/components/business/QuestionPreviewDrawer.vue` | 完整内容预览抽屉 |
-| `frontend/src/components/business/QuestionJsonImportPanel.vue` | 编辑弹窗内的 JSON 导入面板（三类题目共用） |
+| `frontend/src/components/business/QuestionJsonImportPanel.vue` | 编辑弹窗内的 JSON 导入面板（三类题目共用，支持完整导入、仅更新题目内容、仅更新答案） |
 | `frontend/src/composables/useQuestionSelection.ts` | 临时选题集合与顺序维护 |
 
 `components/business/QuestionImageRenderer.vue`、`utils/questionCopy.ts` 归[公共记录](shared.md#题目渲染与复制导出共享)，本模块引用；`useAdminTable.ts`、`useInfiniteQuestionList.ts`、`useConfirm.ts`、`useToast.ts` 也归公共记录。

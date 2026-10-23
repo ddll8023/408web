@@ -11,8 +11,12 @@
       <QuestionJsonImportPanel
         v-model="jsonInput"
         v-model:visible="jsonImportVisible"
+        show-content-only
+        show-answer-only
         @paste="handlePasteJson"
         @parse="handleParseJson"
+        @parse-content="handleParseContentJson"
+        @parse-answer="handleParseAnswerJson"
         @clear="handleClearJson"
       />
 
@@ -217,7 +221,9 @@ const {
   loadSubjectOptions,
   handleSubjectChange,
   handleQuestionTypeChange,
-  fillFormFromData
+  fillFormFromData,
+  fillContentFromData,
+  fillAnswerFromData
 } = useQuestionForm()
 
 const { showToast } = useToast()
@@ -289,6 +295,56 @@ const handleParseJson = async () => {
       sources.value = data.sources
     }
     showToast('JSON 解析成功，来源请在下方核对', 'success')
+    jsonImportVisible.value = false
+  } catch (error) {
+    showToast(`JSON 格式错误：${error instanceof Error ? error.message : String(error)}`, 'error')
+  }
+}
+
+// 仅解析并更新题干、选项和答案，不修改基础信息
+const handleParseContentJson = () => {
+  if (!jsonInput.value.trim()) {
+    showToast('请先粘贴 JSON 数据', 'warning')
+    return
+  }
+  try {
+    const data = parseJsonWithRelaxedSupport(jsonInput.value)
+    if (data.questionType && data.questionType !== form.questionType) {
+      showToast('仅更新题目内容时，JSON 题型必须与当前题型一致', 'error')
+      return
+    }
+    const hasContentFields = data.content !== undefined ||
+      data.answer !== undefined ||
+      (form.questionType === 'CHOICE' && data.options !== undefined)
+    if (!hasContentFields) {
+      showToast('JSON 中没有当前题型可更新的题干、选项或答案内容', 'warning')
+      return
+    }
+    fillContentFromData(data)
+    showToast('JSON 解析成功，仅更新题干、选项和答案，基础信息未改变', 'success')
+    jsonImportVisible.value = false
+  } catch (error) {
+    showToast(`JSON 格式错误：${error instanceof Error ? error.message : String(error)}`, 'error')
+  }
+}
+
+// 仅解析并更新答案，不修改题干、选项和基础信息
+const handleParseAnswerJson = () => {
+  if (!jsonInput.value.trim()) {
+    showToast('请先粘贴 JSON 数据', 'warning')
+    return
+  }
+  try {
+    const data = parseJsonWithRelaxedSupport(jsonInput.value)
+    if (data.questionType && data.questionType !== form.questionType) {
+      showToast('仅更新答案时，JSON 题型必须与当前题型一致', 'error')
+      return
+    }
+    if (!fillAnswerFromData(data)) {
+      showToast('JSON 中没有答案字段', 'warning')
+      return
+    }
+    showToast('JSON 解析成功，仅更新答案，题干、选项和基础信息未改变', 'success')
     jsonImportVisible.value = false
   } catch (error) {
     showToast(`JSON 格式错误：${error instanceof Error ? error.message : String(error)}`, 'error')

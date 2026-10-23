@@ -37,7 +37,7 @@
           @input="handleInput"
         />
 
-        <p :id="`${panelId}-hint`" class="edit-hint">粘贴单个题目的 JSON，解析后填充下方表单。<span v-if="showContentOnly">“仅更新题目内容”不会修改基础信息。</span></p>
+        <p :id="`${panelId}-hint`" class="edit-hint">粘贴单个题目的 JSON，解析后填充下方表单。<span v-if="showContentOnly">“仅更新题目内容”不会修改基础信息。</span><span v-if="showAnswerOnly">“仅更新答案”只修改答案解析，题干、选项和基础信息保持不变。</span></p>
         <div class="mt-3 flex flex-wrap gap-2">
           <CustomButton size="sm" @click="emit('paste')">
             <font-awesome-icon :icon="['fas', 'clipboard']" class="mr-1.5" aria-hidden="true" />
@@ -55,6 +55,15 @@
           >
             <font-awesome-icon :icon="['fas', 'edit']" class="mr-1.5" aria-hidden="true" />
             仅更新题目内容
+          </CustomButton>
+          <CustomButton
+            v-if="showAnswerOnly"
+            size="sm"
+            title="只更新答案解析，不修改题干、选项和基础信息"
+            @click="emit('parse-answer')"
+          >
+            <font-awesome-icon :icon="['fas', 'check-circle']" class="mr-1.5" aria-hidden="true" />
+            仅更新答案
           </CustomButton>
           <CustomButton size="sm" @click="emit('clear')">
             <font-awesome-icon :icon="['fas', 'trash']" class="mr-1.5" aria-hidden="true" />
@@ -79,11 +88,13 @@ interface Props {
   modelValue: string
   visible: boolean
   showContentOnly?: boolean
+  showAnswerOnly?: boolean
   showExample?: boolean
 }
 
 withDefaults(defineProps<Props>(), {
   showContentOnly: false,
+  showAnswerOnly: false,
   showExample: false,
 })
 
@@ -93,6 +104,7 @@ const emit = defineEmits<{
   paste: []
   parse: []
   'parse-content': []
+  'parse-answer': []
   clear: []
   'show-example': []
 }>()

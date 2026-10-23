@@ -33,7 +33,7 @@
 | `frontend/src/views/user/MockClassify.vue` | 分类阅读 + 选择题作答反馈；答错时静默调用记录接口 |
 | `frontend/src/views/admin/MockManage.vue` | 管理表格：筛选、出题状态、答错次数调整、编辑、删除 |
 | `frontend/src/components/business/MockEntryCard.vue`、`MockItemHeader.vue` | 阅读端卡片与头部（来源、标题、题号、难度、复制/出题操作） |
-| `frontend/src/components/business/MockEditDialog.vue` | 新增/编辑弹窗（来源联动、标题候选、JSON 导入、Markdown 编辑） |
+| `frontend/src/components/business/MockEditDialog.vue` | 新增/编辑弹窗（来源联动、标题候选、JSON 导入、仅更新内容、仅更新答案、Markdown 编辑） |
 
 ## 公共与跨模块引用
 
