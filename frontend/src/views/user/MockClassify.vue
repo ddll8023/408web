@@ -124,7 +124,7 @@
               :items="outlineItems"
               :active-id="activeOutlineId"
               kind="mock"
-              @jump="scrollToCategory"
+              @jump="scrollToCategoryImmediately"
             />
           </div>
 
@@ -342,7 +342,12 @@ const outlineItems = computed<CategoryOutlineItem[]>(() => {
   }))
 })
 
-const { activeId: activeOutlineId, scrollToCategory } = useCategoryOutline({
+const {
+  activeId: activeOutlineId,
+  scrollToCategory,
+  scrollToCategoryImmediately,
+  scrollToElement,
+} = useCategoryOutline({
   containerRef: contentScroller,
   items: outlineItems,
 })
@@ -477,7 +482,7 @@ const handleHashScroll = async () => {
     const element = document.getElementById(`mock-${mockId}`)
     if (!element) return
 
-    element.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    scrollToElement(element, 'center')
     element.classList.add('highlight-card')
     setTimeout(() => {
       element.classList.remove('highlight-card')

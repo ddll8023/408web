@@ -127,7 +127,7 @@
                 :active-id="activeOutlineId"
                 kind="exam"
                 hide-below-xl
-                @jump="scrollToCategory"
+                @jump="scrollToCategoryImmediately"
               />
             </div>
             <Empty
@@ -348,7 +348,12 @@ const outlineItems = computed<CategoryOutlineItem[]>(() => {
   }))
 })
 
-const { activeId: activeOutlineId, scrollToCategory } = useCategoryOutline({
+const {
+  activeId: activeOutlineId,
+  scrollToCategory,
+  scrollToCategoryImmediately,
+  scrollToElement,
+} = useCategoryOutline({
   containerRef: contentScroller,
   items: outlineItems,
 })
@@ -444,10 +449,7 @@ const scrollToExamById = (examId: number | string) => {
   nextTick(() => {
     const targetElement = document.getElementById(`exam-${examId}`)
     if (targetElement) {
-      targetElement.scrollIntoView({
-        behavior: 'smooth',
-        block: 'start'
-      })
+      scrollToElement(targetElement)
     }
   })
 }
@@ -501,7 +503,7 @@ const handleHashScroll = async () => {
     
     if (element) {
       // 滚动到元素位置
-      element.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      scrollToElement(element, 'center')
       
       // 添加高亮效果
       element.classList.add('highlight-card')

@@ -123,7 +123,7 @@
                 :items="outlineItems"
                 :active-id="activeOutlineId"
                 kind="adaptation"
-                @jump="scrollToCategory"
+                @jump="scrollToCategoryImmediately"
               />
             </div>
 
@@ -332,7 +332,12 @@ const outlineItems = computed<CategoryOutlineItem[]>(() => {
   }))
 })
 
-const { activeId: activeOutlineId, scrollToCategory } = useCategoryOutline({
+const {
+  activeId: activeOutlineId,
+  scrollToCategory,
+  scrollToCategoryImmediately,
+  scrollToElement,
+} = useCategoryOutline({
   containerRef: contentScroller,
   items: outlineItems,
 })
@@ -580,7 +585,7 @@ const handleHashScroll = async () => {
     const element = document.getElementById(`adaptation-${adaptationId}`)
     if (!element) return
 
-    element.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    scrollToElement(element, 'center')
     element.classList.add('highlight-card')
     window.setTimeout(() => element.classList.remove('highlight-card'), 2000)
   } catch (error) {

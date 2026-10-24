@@ -73,17 +73,47 @@ export function useCategoryOutline({
     sections.forEach(section => observer?.observe(section))
   }
 
-  const scrollToCategory = (anchorId: string) => {
+  const scrollToElement = (
+    target: HTMLElement,
+    block: 'start' | 'center' = 'start',
+    animate = true,
+  ) => {
+    const root = containerRef.value
+    if (!root || !root.contains(target)) return false
+
+    const rootRect = root.getBoundingClientRect()
+    const targetRect = target.getBoundingClientRect()
+    const targetStyle = getComputedStyle(target)
+    const scrollMarginTop = Number.parseFloat(targetStyle.scrollMarginTop) || 0
+    const scrollMarginBottom = Number.parseFloat(targetStyle.scrollMarginBottom) || 0
+    const scrollportTop = rootRect.top + root.clientTop
+    const targetTop = block === 'center'
+      ? root.scrollTop + targetRect.top + targetRect.height / 2
+        + (scrollMarginTop - scrollMarginBottom) / 2
+        - scrollportTop - root.clientHeight / 2
+      : root.scrollTop + targetRect.top - scrollportTop - scrollMarginTop
+    const prefersReducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches ?? false
+
+    // 只滚动题目内容容器，避免 scrollIntoView 连带移动外层布局。
+    if (!animate || prefersReducedMotion) {
+      root.scrollTop = targetTop
+    } else {
+      root.scrollTo({
+        top: targetTop,
+        behavior: 'smooth',
+      })
+    }
+    return true
+  }
+
+  const scrollToCategory = (anchorId: string, animate = true) => {
     const target = document.getElementById(anchorId)
-    if (!target) return
+    if (!target || !scrollToElement(target, 'start', animate)) return
 
     activeId.value = anchorId
-    const prefersReducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches ?? false
-    target.scrollIntoView({
-      behavior: prefersReducedMotion ? 'auto' : 'smooth',
-      block: 'start',
-    })
   }
+
+  const scrollToCategoryImmediately = (anchorId: string) => scrollToCategory(anchorId, false)
 
   // 布局外壳负责创建滚动容器，容器引用变化时也需要重新建立观察器。
   watch([items, containerRef], refresh, { flush: 'post', immediate: true })
@@ -95,5 +125,7 @@ export function useCategoryOutline({
   return {
     activeId,
     scrollToCategory,
+    scrollToCategoryImmediately,
+    scrollToElement,
   }
 }

@@ -126,7 +126,7 @@
             :active-id="activeOutlineId"
             kind="exam"
             hide-below-xl
-            @jump="scrollToCategory"
+            @jump="scrollToCategoryImmediately"
           />
         </div>
         <Empty
@@ -333,7 +333,11 @@ const outlineItems = computed<CategoryOutlineItem[]>(() => {
   }))
 })
 
-const { activeId: activeOutlineId, scrollToCategory } = useCategoryOutline({
+const {
+  activeId: activeOutlineId,
+  scrollToCategory,
+  scrollToCategoryImmediately,
+} = useCategoryOutline({
   containerRef: contentScroller,
   items: outlineItems,
 })

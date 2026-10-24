@@ -96,7 +96,7 @@
               description="点击跳转到对应题目"
               :show-summary="false"
               variant="number-grid"
-              @jump="scrollToCategory"
+              @jump="scrollToCategoryImmediately"
             />
           </div>
 
@@ -253,7 +253,12 @@ const outlineItems = computed<CategoryOutlineItem[]>(() => {
   return items
 })
 
-const { activeId: activeOutlineId, scrollToCategory } = useCategoryOutline({
+const {
+  activeId: activeOutlineId,
+  scrollToCategory,
+  scrollToCategoryImmediately,
+  scrollToElement,
+} = useCategoryOutline({
   containerRef: contentScroller,
   items: outlineItems,
 })
@@ -461,11 +466,7 @@ const scrollToExam = (examId: number | string | null | undefined) => {
   nextTick(() => {
     const targetElement = document.getElementById(`question-${examId}`)
     if (targetElement) {
-      targetElement.scrollIntoView({
-        behavior: 'smooth',
-        block: 'start',
-        inline: 'nearest'
-      })
+      scrollToElement(targetElement)
     }
   })
 }
