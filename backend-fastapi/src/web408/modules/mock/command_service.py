@@ -6,6 +6,7 @@ from web408.modules.mock.models import MockQuestion, MockQuestionExamMark
 from web408.modules.catalog.read_service import CatalogReadService
 from web408.modules.mock.query_service import MockQueryService
 from web408.modules.mock.repository import MockRepository
+from web408.models.base import utc_now
 from web408.modules.mock.schemas import (
     MockCreateRequest,
     MockExamMarkBatchResponse,
@@ -199,8 +200,10 @@ class MockCommandService:
         existing_mark = await self.repository.get_exam_mark(question_id)
         if marked and existing_mark is None:
             self.session.add(MockQuestionExamMark(mock_question_id=question_id))
+            question.update_time = utc_now()
         elif not marked and existing_mark is not None:
             await self.session.delete(existing_mark)
+            question.update_time = utc_now()
 
         await self.session.flush()
         response = await self.query_service.to_response(question)
@@ -215,7 +218,8 @@ class MockCommandService:
         """在一个事务内批量设置模拟题出题标记。"""
         normalized_ids = list(dict.fromkeys(question_ids))
         questions = await self.repository.get_by_ids(set(normalized_ids))
-        existing_ids = {question.id for question in questions}
+        questions_by_id = {question.id: question for question in questions}
+        existing_ids = set(questions_by_id)
         missing_ids = [
             question_id
             for question_id in normalized_ids
@@ -230,11 +234,14 @@ class MockCommandService:
 
         for question_id in normalized_ids:
             existing_mark = mark_map.get(question_id)
+            question = questions_by_id[question_id]
             if marked and existing_mark is None:
                 self.session.add(MockQuestionExamMark(mock_question_id=question_id))
+                question.update_time = utc_now()
                 updated_count += 1
             elif not marked and existing_mark is not None:
                 await self.session.delete(existing_mark)
+                question.update_time = utc_now()
                 updated_count += 1
 
         await self.session.commit()
