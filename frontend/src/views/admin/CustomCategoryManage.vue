@@ -973,7 +973,8 @@ const handleMove = async (id: number, target: { targetId?: number | null; positi
   } finally {
     if (!disposed) {
       const byId = new Map(categories.value.map(item => [item.id, item]))
-      const keys = new Set(savedKeys.filter(key => byId.has(key)))
+      // 展开键来自节点 id，统一收窄为 number 后再与分类 Map 比对。
+      const keys = new Set(savedKeys.filter((key): key is number => typeof key === 'number' && byId.has(key)))
       const visited = new Set([id])
       let parentId = byId.get(id)?.parentId
       while (parentId && !visited.has(parentId) && byId.has(parentId)) {

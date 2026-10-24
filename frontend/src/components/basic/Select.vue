@@ -166,9 +166,9 @@ import type { SelectInput, SelectOption, OptionValue } from './types'
 import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue'
 
 const props = defineProps({
-  // v-model 绑定值
+  // v-model 绑定值；清空时组件自身会写入空字符串，因此契约必须容纳 ''。
   modelValue: {
-    type: [String, Number, Boolean, null] as PropType<V | null>,
+    type: [String, Number, Boolean, null] as PropType<V | '' | null>,
     default: ''
   },
   // 选项列表

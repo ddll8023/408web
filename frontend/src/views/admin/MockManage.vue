@@ -209,7 +209,7 @@
               <QuestionExamActionMenu
                 :question="row"
                 :status-loading="row.examStatusLoading"
-                @word-copied="() => handleWordCopied(row)"
+                @content-copied="() => handleContentCopied(row)"
                 @toggle-exam-status="handleExamStatusToggle(row)"
               />
               <CustomButton
@@ -259,7 +259,7 @@
               <QuestionExamActionMenu
                 :question="row"
                 :status-loading="row.examStatusLoading"
-                @word-copied="() => handleWordCopied(row)"
+                @content-copied="() => handleContentCopied(row)"
                 @toggle-exam-status="handleExamStatusToggle(row)"
               />
               <CustomButton type="text-danger" size="sm" :loading="row.wrongCountLoading" @click="openWrongCountDialog(row)">错题</CustomButton>
@@ -659,9 +659,9 @@ const saveExamStatus = async (row: QuestionRow, marked: boolean, automatic = fal
 }
 
 /**
- * Word 复制成功后自动设置为已出题；复制失败时不会触发此回调。
+ * 完整内容导出（Markdown 或 Word）成功后自动设置为已出题；复制失败时不会触发此回调。
  */
-const handleWordCopied = async (row: QuestionRow) => {
+const handleContentCopied = async (row: QuestionRow) => {
   if (row.isExamMarked) return
   await saveExamStatus(row, true, true)
 }

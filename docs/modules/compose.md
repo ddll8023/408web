@@ -21,7 +21,7 @@
 | `frontend/src/components/business/QuestionCard.vue` | 单题卡片：摘要、分类、状态、单题出题菜单、编辑入口 |
 | `frontend/src/components/business/QuestionBasket.vue` | 临时出题篮：调整顺序、清空、触发批量复制 |
 | `frontend/src/components/business/QuestionBatchCopyMenu.vue` | 按选中顺序合并生成一次 Word 富文本复制 |
-| `frontend/src/components/business/QuestionExamActionMenu.vue` | 「复制到 Word / 导出题目+选项 PNG / 切换出题状态」三项出题操作 |
+| `frontend/src/components/business/QuestionExamActionMenu.vue` | 单题「出题」菜单：与其他页面同构的 Markdown / Word / 图片分组复制，另附一组切换出题状态 |
 | `frontend/src/components/business/QuestionPreviewDrawer.vue` | 完整内容预览抽屉 |
 | `frontend/src/components/business/QuestionJsonImportPanel.vue` | 编辑弹窗内的 JSON 导入面板（三类题目共用，支持完整导入、仅更新题目内容、仅更新答案） |
 | `frontend/src/composables/useQuestionSelection.ts` | 临时选题集合与顺序维护 |
@@ -43,7 +43,7 @@
 1. 进入页面 → `useAdminTable` 初始化科目筛选，选科目后 `getEnabledCategoryTreeBySubjectWithStats(subjectId, kind)` 取树（此处 kind 为 mock / adaptation），按需追加「未归档」分组。
 2. 选节点 → `useInfiniteQuestionList` 以 `getMockQuestions` 或 `getAdaptationList` 分页加载，两路响应先用 `withQuestionKind` 打标统一成 `QuestionRow`。
 3. 勾选题目 → `useQuestionSelection` 维护顺序 → `QuestionBasket` 内调整 → `QuestionBatchCopyMenu` 调用 `utils/questionCopy.ts` 与 `QuestionImageRenderer.vue` 生成 Word 富文本，一次写入剪贴板。
-4. 单题操作 → `QuestionExamActionMenu`：Markdown 复制、PNG 导出（`html-to-image`）、出题状态切换（单个 `POST /exam-mark`，批量 `/exam-mark/batch`）。
+4. 单题操作 → `QuestionExamActionMenu` 复用 `QuestionCopyMenu` 面板：Markdown 复制内联调用 `utils/questionMarkdown.ts`，PNG 与 Word 分别走 `html-to-image` 与同一隐藏渲染器；完整内容复制成功后组件派发 `content-copied`，页面据此自动标记已出题；出题状态切换调用单个 `POST /exam-mark`，批量 `/exam-mark/batch`。
 
 ## 状态与数据所有者
 
@@ -62,5 +62,5 @@
 
 ## 当前覆盖边界
 
-- `QuestionCompose.vue`（1454 行）的筛选联动、滚动加载与批量操作分支只读主流程，未逐条核对边界。
-- 导出的 PNG/Word 结果未做运行时验证；兼容性取决于浏览器与 Word 实现。
+- `QuestionCompose.vue`（1455 行）的筛选联动、滚动加载与批量操作分支只读主流程，未逐条核对边界。
+- 导出的 Markdown/Word/PNG 结果均未做运行时验证；兼容性取决于浏览器与 Word 实现。

@@ -1,68 +1,62 @@
-<!-- 出题操作菜单：按题目类型提供复制到 Word、导出图片和切换出题状态。 -->
+<!-- 出题操作菜单：复用复制菜单的分组面板，提供 Markdown、Word、图片复制与出题状态切换。 -->
 <template>
-  <Dropdown
-    trigger="click"
-    :disabled="isBusy"
-    menu-class="mock-exam-action-dropdown"
-    @command="handleCommand"
+  <QuestionCopyMenu
+    :question="question"
+    :disabled="statusLoading"
+    menu-aria-label="出题操作"
+    @copy="handleCopy"
+    @word-copied="handleWordCopied"
   >
-    <template #trigger>
+    <template #trigger="{ busy }">
       <CustomButton
         size="sm"
         type="text"
-        :icon="['fas', 'file-word']"
-        :loading="isBusy"
+        :icon="['fas', 'ellipsis']"
+        :loading="busy"
+        :disabled="statusLoading"
         title="出题操作"
       >
-        出题
+        {{ busy ? '生成中' : '出题' }}
       </CustomButton>
     </template>
 
-    <template #dropdown>
-      <div class="mock-exam-action-menu" aria-label="出题操作">
-        <DropdownItem command="copy-word" :disabled="isBusy">
-          <font-awesome-icon :icon="['fas', 'file-word']" aria-hidden="true" />
-          <span>复制到 Word</span>
-        </DropdownItem>
-        <DropdownItem command="copy-image" :disabled="isBusy">
-          <font-awesome-icon :icon="['fas', 'file']" aria-hidden="true" />
-          <span>导出题目图片</span>
-        </DropdownItem>
-        <DropdownItem command="toggle-status" :disabled="isBusy" divided>
-          <font-awesome-icon :icon="['fas', 'rotate']" aria-hidden="true" />
-          <span>切换出题状态</span>
-          <span class="mock-exam-action-menu__current">
-            当前：{{ question.isExamMarked ? '已出题' : '未出题' }}
+    <template #extra="{ busy }">
+      <section class="question-copy-menu__section" aria-label="出题状态" role="group">
+        <div class="question-copy-menu__heading">
+          <span class="question-copy-menu__icon" aria-hidden="true">
+            <font-awesome-icon :icon="['fas', 'rotate']" />
           </span>
-        </DropdownItem>
-      </div>
-    </template>
-  </Dropdown>
+          <span class="question-copy-menu__heading-copy">
+            <span class="question-copy-menu__title">出题状态</span>
+            <span class="question-copy-menu__description">标记本题是否已出题</span>
+          </span>
+        </div>
 
-  <!-- 复用现有 Word/题目图片导出实现，仅隐藏触发器。 -->
-  <QuestionCopyMenu
-    ref="copyMenu"
-    :question="question"
-    headless
-    @word-copied="handleWordCopied"
-  />
+        <div class="question-copy-menu__items">
+          <DropdownItem command="toggle-status" :disabled="busy || statusLoading">
+            <font-awesome-icon :icon="['fas', 'rotate']" aria-hidden="true" />
+            <span class="question-copy-menu__item-label">切换出题状态</span>
+            <span class="question-exam-action-menu__current">
+              当前：{{ question.isExamMarked ? '已出题' : '未出题' }}
+            </span>
+          </DropdownItem>
+        </div>
+      </section>
+    </template>
+  </QuestionCopyMenu>
 </template>
 
 <script setup lang="ts">
 /**
  * 出题操作菜单。
- * 只负责触发复制与切换出题状态，具体标记接口和提示由宿主页面处理。
+ * 复制分组完全复用复制菜单，本组件只补充 Markdown 标题行与出题状态分组；
+ * 具体标记接口和提示由宿主页面处理。
  */
-import { computed, ref } from 'vue'
+import { computed } from 'vue'
 import type { AdaptationQuestion, MockQuestion } from '@/types'
-import type {
-  ImageCopyResult,
-  QuestionImageCopyScope,
-  QuestionRichCopyScope,
-  RichCopyResult,
-} from '@/utils/questionCopy'
+import type { QuestionRichCopyScope, RichCopyResult } from '@/utils/questionCopy'
+import { buildMockTitleLine, copyFullMarkdown, resolveFullMarkdownLevel } from '@/utils/questionMarkdown'
 import CustomButton from '@/components/basic/CustomButton.vue'
-import Dropdown from '@/components/basic/Dropdown.vue'
 import DropdownItem from '@/components/basic/DropdownItem.vue'
 import QuestionCopyMenu from '@/components/business/QuestionCopyMenu.vue'
 
@@ -79,82 +73,44 @@ const props = withDefaults(defineProps<Props>(), {
 })
 
 const emit = defineEmits<{
-  'word-copied': [result: RichCopyResult]
+  'content-copied': []
   'toggle-exam-status': []
 }>()
 
-interface QuestionCopyMenuRef {
-  copyWord: (scope?: QuestionRichCopyScope) => Promise<RichCopyResult | null>
-  copyImage: (scope?: QuestionImageCopyScope) => Promise<ImageCopyResult | null>
+/** Markdown 标题行：模拟题取标题与题号，改编题按编号，与改编题阅读页保持一致。 */
+const markdownTitleLine = computed(() =>
+  'source' in props.question
+    ? buildMockTitleLine(props.question)
+    : `改编题 #${props.question.id}`,
+)
+
+/** 只有完整内容复制才通知宿主标记出题，题目、选项、答案等局部复制不触发。 */
+const handleWordCopied = (_result: RichCopyResult, scope: QuestionRichCopyScope) => {
+  if (scope !== 'all') return
+  emit('content-copied')
 }
 
-const copyMenu = ref<QuestionCopyMenuRef | null>(null)
-const isWordCopying = ref(false)
-const isImageCopying = ref(false)
-const isBusy = computed(() => isWordCopying.value || isImageCopying.value || props.statusLoading)
-
-const handleWordCopied = (result: RichCopyResult) => {
-  emit('word-copied', result)
-}
-
-const copyWord = async () => {
-  if (isBusy.value) return
-
-  const menu = copyMenu.value
-  if (!menu) return
-
-  isWordCopying.value = true
-  try {
-    await menu.copyWord('all')
-  } finally {
-    isWordCopying.value = false
-  }
-}
-
-const copyImage = async () => {
-  if (isBusy.value) return
-
-  const menu = copyMenu.value
-  if (!menu) return
-
-  isImageCopying.value = true
-  try {
-    await menu.copyImage('question-options')
-  } finally {
-    isImageCopying.value = false
-  }
-}
-
-const handleCommand = (command: string) => {
-  if (command === 'copy-word') {
-    void copyWord()
-    return
-  }
-
-  if (command === 'copy-image') {
-    void copyImage()
-    return
-  }
-
+const handleCopy = async (command: string) => {
   if (command === 'toggle-status') {
     emit('toggle-exam-status')
+    return
   }
+
+  if (resolveFullMarkdownLevel(command) === null) return
+  const copied = await copyFullMarkdown(command, props.question, markdownTitleLine.value)
+  if (copied) emit('content-copied')
 }
 </script>
 
 <style scoped>
-.mock-exam-action-menu {
-  min-width: 180px;
-  padding: 4px;
-}
-
-.mock-exam-action-menu__current {
+.question-exam-action-menu__current {
   margin-left: auto;
+  padding-left: 12px;
   color: #98a2b3;
   font-size: 12px;
 }
 
-.mock-exam-action-menu :deep(.dropdown-item) {
+:deep(.question-copy-menu__items .dropdown-item) {
   gap: 8px;
 }
 </style>

@@ -54,7 +54,7 @@
       <QuestionExamActionMenu
         :question="question"
         :status-loading="question.examStatusLoading"
-        @word-copied="handleWordCopied"
+        @content-copied="handleContentCopied"
         @toggle-exam-status="handleToggleExamStatus"
       />
       <CustomButton type="text" size="sm" @click="handlePreview">预览</CustomButton>
@@ -70,7 +70,6 @@
  */
 import { computed, type PropType } from 'vue'
 import type { AdaptationQuestion, MockQuestion } from '@/types'
-import type { RichCopyResult } from '@/utils/questionCopy'
 import { getDifficultyLabel, getDifficultyType } from '@/constants/exam'
 import { formatDateTime } from '@/utils/format'
 import CustomButton from '@/components/basic/CustomButton.vue'
@@ -97,7 +96,7 @@ const emit = defineEmits<{
   select: [selected: boolean]
   preview: []
   edit: []
-  'word-copied': [result: RichCopyResult]
+  'content-copied': []
   'toggle-exam-status': []
 }>()
 
@@ -136,8 +135,8 @@ const handleSelectionChange = (event: Event) => {
   emit('select', event.target.checked)
 }
 
-const handleWordCopied = (result: RichCopyResult) => {
-  emit('word-copied', result)
+const handleContentCopied = () => {
+  emit('content-copied')
 }
 
 const handleToggleExamStatus = () => {

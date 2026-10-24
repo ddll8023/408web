@@ -26,9 +26,9 @@
 | `frontend/src/components/basic/MarkdownEditor.vue` | 编辑 + 预览 + 公式 + 图片上传（保存相对路径）、单栏/双栏与同步滚动 | 三类题目的 `*EditDialog.vue` |
 | `frontend/src/components/basic/AiAnswerViewer.vue` | AI 回答渲染：独立 MarkdownIt 关原始 HTML、独立 XSS 白名单（不含 svg/img/iframe/style） | `AiConsultationDialog.vue`、`AiGeneratedAnswerViewer.vue` |
 | `frontend/src/components/basic/AiGeneratedAnswerViewer.vue` | 生成答案预览，为独立 SVG 代码块开放受限图形 | `AiAnswerGenerationDialog.vue` |
-| `frontend/src/utils/questionMarkdown.ts` | 三类阅读页共用的 Markdown 复制拼装与剪贴板降级 | `ExamList.vue`、`ExamClassify.vue`、`MockClassify.vue`、`AdaptationClassify.vue`、`CustomCategoryClassify.vue` |
+| `frontend/src/utils/questionMarkdown.ts` | 三类题目共用的 Markdown 复制拼装与剪贴板降级 | `ExamList.vue`、`ExamClassify.vue`、`MockClassify.vue`、`AdaptationClassify.vue`、`CustomCategoryClassify.vue`、`QuestionExamActionMenu.vue` |
 | `frontend/src/utils/questionOptions.ts` | 选项解析与 A–D 文本化 | `questionMarkdown.ts`、`utils/aiAnswer.ts`、`QuestionImageRenderer.vue`、`QuestionPreviewDrawer.vue` |
-| `frontend/src/utils/questionCopy.ts` | 复制范围类型（题干/选项/答案/完整）、富文本内容构造 | `QuestionCopyMenu.vue`、`QuestionBatchCopyMenu.vue`、`QuestionCard.vue`、`QuestionChapterSection.vue`、`QuestionExamActionMenu.vue`、`QuestionImageRenderer.vue`、`QuestionCompose.vue` |
+| `frontend/src/utils/questionCopy.ts` | 复制范围类型（题干/选项/答案/完整）、富文本内容构造 | `QuestionCopyMenu.vue`、`QuestionBatchCopyMenu.vue`、`QuestionBasket.vue`、`QuestionExamActionMenu.vue`、`QuestionImageRenderer.vue`、`QuestionCompose.vue` |
 | `frontend/src/components/business/QuestionImageRenderer.vue` | 隐藏渲染器：为 Word / PNG / 富文本复制准备隔离的 Markdown 内容 | `QuestionCopyMenu.vue`、`QuestionBatchCopyMenu.vue` |
 | `frontend/src/utils/markdownMedia.ts` | 图片地址归一与尺寸样式（页面渲染与复制共用） | `MarkdownEditor.vue`、`MarkdownViewer.vue`、`QuestionImageRenderer.vue` |
 | `frontend/src/utils/markdownSourceMapping.ts` | Markdown 源位置与渲染块映射（双栏同步滚动用） | `MarkdownEditor.vue`、`MarkdownViewer.vue`、`useMarkdownScrollSync.ts` |

@@ -42,7 +42,7 @@
 | [公共记录](shared.md) | `question_content/*`、`constants/exam.ts`、`ExamQuestionCard.vue` | 题目字段口径、难度展示、统一渲染 |
 | `catalog` 模块 | `catalog/read_service.py`、`models.Subject` | 科目与分类校验 |
 | `auth` 模块 | `auth/read_service.py`、`auth/dependencies.py` | 作者名、管理员校验 |
-| `compose` 模块（前端） | `QuestionExamActionMenu.vue`（复制到 Word / PNG 导出 / 出题状态） | 管理页复用的出题操作菜单 |
+| `compose` 模块（前端） | `QuestionExamActionMenu.vue`（Markdown / Word / 图片分组复制与出题状态） | 管理页复用的出题操作菜单 |
 
 被引用方向：`catalog`（分类计数与改名回写、未归档标签）、`media`（引用扫描）、`ai`（题目快照）、`compose`（工作台取题与批量复制）。
 

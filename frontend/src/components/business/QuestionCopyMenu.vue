@@ -1,25 +1,26 @@
-<!-- 题目复制菜单：按视口宽度调整菜单列数。 -->
+<!-- 题目复制菜单：按视口宽度调整菜单列数，触发器与面板尾部可由宿主定制。 -->
 <template>
   <Dropdown
-    v-if="!props.headless"
     trigger="click"
-    :disabled="isCopying"
+    :disabled="isBusy"
     menu-class="question-copy-dropdown"
     @command="handleCommand"
   >
     <template #trigger>
-      <CustomButton
-        size="sm"
-        type="text"
-        :icon="['fas', 'copy']"
-        :loading="isCopying"
-      >
-        {{ isCopying ? '生成中' : '复制' }}
-      </CustomButton>
+      <slot name="trigger" :busy="isCopying">
+        <CustomButton
+          size="sm"
+          type="text"
+          :icon="['fas', 'copy']"
+          :loading="isCopying"
+        >
+          {{ isCopying ? '生成中' : '复制' }}
+        </CustomButton>
+      </slot>
     </template>
 
     <template #dropdown>
-      <div class="question-copy-menu" aria-label="复制内容">
+      <div class="question-copy-menu" :aria-label="menuAriaLabel">
         <section
           v-for="section in menuSections"
           :key="section.key"
@@ -42,13 +43,17 @@
               v-for="item in section.items"
               :key="item.command"
               :command="item.command"
-              :disabled="isCopying"
+              :disabled="isBusy"
               :class="{ 'question-copy-menu__item--wide': item.wide }"
             >
               <span class="question-copy-menu__item-label">{{ item.label }}</span>
             </DropdownItem>
           </div>
         </section>
+
+        <div v-if="$slots.extra" class="question-copy-menu__extra">
+          <slot name="extra" :busy="isCopying" />
+        </div>
       </div>
     </template>
   </Dropdown>
@@ -101,21 +106,29 @@ interface CopyMenuSection {
   items: CopyMenuItem[]
 }
 
-/** 题目复制菜单，统一提供 Markdown、Word 富文本和图片复制入口。 */
+/**
+ * 题目复制菜单，统一提供 Markdown、Word 富文本和图片复制入口。
+ * 宿主可用 #trigger 换掉默认触发器、用 #extra 在面板尾部追加自己的分组（如出题状态），
+ * 追加内容沿用面板既有的 question-copy-menu__ 样式类即可与复制分组保持一致。
+ */
 const props = defineProps({
   question: {
     type: Object as PropType<AdaptationQuestion | ExamQuestion | MockQuestion>,
     required: true
   },
-  headless: {
+  disabled: {
     type: Boolean,
     default: false
+  },
+  menuAriaLabel: {
+    type: String,
+    default: '复制内容'
   }
 })
 
 const emit = defineEmits<{
   copy: [command: string]
-  'word-copied': [result: RichCopyResult]
+  'word-copied': [result: RichCopyResult, scope: QuestionRichCopyScope]
 }>()
 const { showToast } = useToast()
 
@@ -129,6 +142,8 @@ const imageRenderer = ref<QuestionRendererRef | null>(null)
 const isImageCopying = ref(false)
 const isWordCopying = ref(false)
 const isCopying = computed(() => isImageCopying.value || isWordCopying.value)
+/** 复制进行中或宿主临时禁用时整体关闭下拉，避免状态操作与复制交叉。 */
+const isBusy = computed(() => isCopying.value || props.disabled)
 
 const hasOptions = computed(() => {
   return props.question.questionType === 'CHOICE' && Boolean(props.question.options)
@@ -256,22 +271,12 @@ const handleWordCopy = async (scope: QuestionRichCopyScope): Promise<RichCopyRes
   }
 }
 
-const copyWord = async (scope: QuestionRichCopyScope = 'all') => {
-  const result = await handleWordCopy(scope)
-  if (result) emit('word-copied', result)
-  return result
-}
-
-const copyImage = async (scope: QuestionImageCopyScope = 'all') => {
-  return handleImageCopy(scope)
-}
-
-defineExpose({ copyWord, copyImage })
-
 const handleCommand = (command: string) => {
   const wordScope = getRichCopyScope(command)
   if (wordScope) {
-    void handleWordCopy(wordScope)
+    void handleWordCopy(wordScope).then(result => {
+      if (result) emit('word-copied', result, wordScope)
+    })
     return
   }
 
@@ -415,6 +420,12 @@ const handleCommand = (command: string) => {
 
 .dropdown-menu.question-copy-dropdown .question-copy-menu__item--wide {
   grid-column: auto;
+}
+
+/* 宿主追加的分组独占一整行，保持在三列复制分组下方。 */
+.question-copy-dropdown .question-copy-menu__extra {
+  grid-column: 1 / -1;
+  min-width: 0;
 }
 
 .question-copy-dropdown .question-copy-menu__item-label {

@@ -216,7 +216,7 @@
               @select-question="handleQuestionSelection"
               @preview="handlePreview"
               @edit="handleEdit"
-              @word-copied="handleQuestionWordCopied"
+              @content-copied="handleQuestionContentCopied"
               @toggle-exam-status="handleExamStatusToggle"
             />
           </div>
@@ -958,7 +958,8 @@ const saveExamStatus = async (row: QuestionRow, marked: boolean, automatic = fal
   }
 }
 
-const handleQuestionWordCopied = (row: QuestionRow, _result: RichCopyResult) => {
+/** 完整内容导出（Markdown 或 Word）后自动标记为已出题。 */
+const handleQuestionContentCopied = (row: QuestionRow) => {
   if (!row.isExamMarked) void saveExamStatus(row, true, true)
 }
 

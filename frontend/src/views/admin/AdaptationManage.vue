@@ -194,7 +194,7 @@
               <QuestionExamActionMenu
                 :question="row"
                 :status-loading="row.examStatusLoading"
-                @word-copied="() => handleQuestionWordCopied(row)"
+                @content-copied="() => handleQuestionContentCopied(row)"
                 @toggle-exam-status="handleExamStatusToggle(row)"
               />
               <CustomButton
@@ -246,7 +246,7 @@
                 <QuestionExamActionMenu
                   :question="row"
                   :status-loading="row.examStatusLoading"
-                  @word-copied="() => handleQuestionWordCopied(row)"
+                  @content-copied="() => handleQuestionContentCopied(row)"
                   @toggle-exam-status="handleExamStatusToggle(row)"
                 />
                 <CustomButton type="text-primary" size="sm" @click="handleEdit(row)">编辑</CustomButton>
@@ -529,7 +529,8 @@ const saveExamStatus = async (row: QuestionRow, marked: boolean, automatic = fal
   }
 }
 
-const handleQuestionWordCopied = (row: QuestionRow) => {
+/** 完整内容导出（Markdown 或 Word）后自动标记为已出题。 */
+const handleQuestionContentCopied = (row: QuestionRow) => {
   if (row.isExamMarked) return
   void saveExamStatus(row, true, true)
 }

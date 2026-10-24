@@ -3,8 +3,8 @@ import { parseQuestionOptions } from '@/utils/questionOptions'
 
 /**
  * 题目 Markdown 复制的公共实现。
- * 真题、模拟题与改编题阅读页共用换行归一、纯文本剪贴板写入和完整内容拼装，
- * 各页面只负责提供自己的标题行，避免同一套逻辑在多处重复导致行为不一致。
+ * 真题、模拟题与改编题的阅读页和出题菜单共用换行归一、纯文本剪贴板写入和完整内容拼装，
+ * 调用方只负责提供自己的标题行，避免同一套逻辑在多处重复导致行为不一致。
  */
 
 /** 参与 Markdown 复制的题目字段，三类题目共用。 */
@@ -223,27 +223,30 @@ export const buildFullMarkdown = (question: MarkdownCopyQuestion, titleLine: str
 
 /**
  * 完整内容复制入口：按命令取标题级别，拼装文本并写入剪贴板。
- * 无内容、成功与失败均在此提示，调用方无需重复处理。
+ * 无内容、成功与失败均在此提示，调用方无需重复处理；
+ * 返回值只表示是否真正写入剪贴板，供需要联动出题状态的调用方判断。
  */
 export const copyFullMarkdown = async (
   command: string,
   question: MarkdownCopyQuestion,
   titleLine: string
-): Promise<void> => {
+): Promise<boolean> => {
   const level = resolveFullMarkdownLevel(command)
-  if (!level) return
+  if (!level) return false
 
   const text = buildFullMarkdown(question, titleLine, level)
   if (!text) {
     toast.warning('没有可复制的内容')
-    return
+    return false
   }
 
   try {
     await copyTextToClipboard(text)
     toast.success('完整内容已复制 (Markdown)')
+    return true
   } catch (error) {
     console.error('复制失败:', error)
     toast.error('复制失败，请重试')
+    return false
   }
 }

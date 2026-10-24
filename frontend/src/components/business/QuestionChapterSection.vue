@@ -33,7 +33,7 @@
         @select="selected => handleQuestionSelect(question, selected)"
         @preview="handleQuestionPreview(question)"
         @edit="handleQuestionEdit(question)"
-        @word-copied="result => handleQuestionWordCopied(question, result)"
+        @content-copied="handleQuestionContentCopied(question)"
         @toggle-exam-status="handleQuestionStatusToggle(question)"
       />
     </div>
@@ -47,7 +47,6 @@
  */
 import { computed, type PropType } from 'vue'
 import type { AdaptationQuestion, MockQuestion } from '@/types'
-import type { RichCopyResult } from '@/utils/questionCopy'
 import { getQuestionSelectionKey } from '@/composables/useQuestionSelection'
 import CustomButton from '@/components/basic/CustomButton.vue'
 import QuestionCard from '@/components/business/QuestionCard.vue'
@@ -79,7 +78,7 @@ const emit = defineEmits<{
   'select-question': [question: QuestionRow, selected: boolean]
   'preview': [question: QuestionRow]
   'edit': [question: QuestionRow]
-  'word-copied': [question: QuestionRow, result: RichCopyResult]
+  'content-copied': [question: QuestionRow]
   'toggle-exam-status': [question: QuestionRow]
 }>()
 
@@ -109,8 +108,8 @@ const handleQuestionEdit = (question: QuestionRow) => {
   emit('edit', question)
 }
 
-const handleQuestionWordCopied = (question: QuestionRow, result: RichCopyResult) => {
-  emit('word-copied', question, result)
+const handleQuestionContentCopied = (question: QuestionRow) => {
+  emit('content-copied', question)
 }
 
 const handleQuestionStatusToggle = (question: QuestionRow) => {
