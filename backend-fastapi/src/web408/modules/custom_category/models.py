@@ -11,8 +11,8 @@ from web408.modules.catalog.models import Subject
 class CustomCategory(BaseModel, table=True):
     """自定义分类模型。
 
-    与大纲分类平行存在，按科目组织为多级树；仅管理员维护，
-    当前不参与题目分类字段，题目关联留待后续阶段。
+    与大纲分类平行存在，按科目组织为多级树；仅管理员维护。
+    真题通过 custom_category 名称数组关联节点，而非保存分类 ID；改名需同步回写标签。
     """
 
     __tablename__ = "custom_category"

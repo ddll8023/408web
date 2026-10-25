@@ -49,7 +49,7 @@
 
 | 状态／资源 | 所有者 | 副本或消费者 | 生命周期／持久化 |
 | --- | --- | --- | --- |
-| 出题篮选题 | `composables/useQuestionSelection.ts`（页面内） | `QuestionBasket`、`QuestionBatchCopyMenu` | 仅内存，离页即丢 |
+| 出题篮选题 | `composables/useQuestionSelection.ts`（页面内） | `QuestionBasket`、`QuestionBatchCopyMenu` | 仅页面实例内存；`keepAlive` 缓存时保留，实例销毁或刷新后丢失 |
 | 筛选条件 | `composables/useAdminTable.ts` + 页面局部 ref | 表格与分页请求 | 内存；路由 `keepAlive` 保留 |
 | 出题状态 | 后端 `mock_question_exam_mark` / `adaptation_question_exam_mark` | 工作台筛选、管理页 | 数据库持久，本模块只切换不定义规则 |
 

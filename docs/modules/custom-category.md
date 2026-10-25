@@ -72,7 +72,6 @@
 - 标签是名称而非 ID，所以删除分类前必须先摘掉题目标签，接口直接拒绝而不是静默清理。
 - 名称唯一性只在科目内成立。
 - 结构写操作与大纲分类一致：先取写锁再改，冲突时提示重试。
-- 模型注释中「当前不参与题目分类字段」是旧描述，与 `exam_question.custom_category` 的实际使用不符，以字段与项目记忆 `.agents/memory/topics/conventions/custom-category-tags.md` 为准。
 
 ## 当前覆盖边界
 

@@ -58,7 +58,6 @@
 │   │   ├── shared/          # 跨页面共享能力
 │   │   │   └── responsive/  # 统一响应式断点与视口组合式能力
 │   │   └── styles/          # 样式文件
-│   ├── tests/              # Node 内置测试器回归测试
 │   ├── tsconfig.app.json    # 应用严格 TS 检查
 │   ├── tsconfig.node.json   # Vite 配置类型检查
 │   ├── vite.config.ts       # Vite 配置
@@ -77,8 +76,10 @@
 │   ├── pyproject.toml       # 依赖、项目元数据与 uv_build 打包配置
 │   └── uv.lock              # 依赖锁定结果
 │
-├── doc/                      # 项目文档
-│   └── 题目/                    # 题目录入、改编和排版规范
+├── docs/                     # 项目文档
+│   ├── modules/              # 业务模块文档
+│   ├── 项目结构文档.md
+│   └── 题目/                 # 题目录入、改编和排版规范
 │       ├── 公式排版规范.md
 │       ├── 分类标签清单.md
 │       ├── 答案解析风格规范.md
@@ -195,16 +196,13 @@ npm run dev
 # 应用 SFC/TS 与 Vite 配置类型检查
 npm run type-check
 
-# API、业务数据和基础组件回归测试
-npm test
-
 # 类型检查后生成 dist/，dist/ 预览服务同样监听 0.0.0.0 并代理 /api 与 /uploads
 npm run build
 ```
 
-应用源码使用 TypeScript，Vue 脚本使用 `lang="ts"`；`strict: true`、`allowJs: false`。PostCSS/Tailwind 使用独立的 JavaScript 工具配置，Node 测试脚本使用 `.mjs`；自动化测试使用模拟网络和自定义组件 renderer，不等同于真实浏览器全流程验证。
+应用源码使用 TypeScript，Vue 脚本使用 `lang="ts"`；`strict: true`、`allowJs: false`。PostCSS/Tailwind 使用独立的 JavaScript 工具配置。
 
-题目分类口径与出题约定见 [`doc/题目/分类标签清单.md`](./doc/题目/分类标签清单.md)；其余文档见文末「开发规范」。
+题目分类口径与出题约定见 [`docs/题目/分类标签清单.md`](./docs/题目/分类标签清单.md)；其余文档见文末「开发规范」。
 
 ### 4. 访问应用
 
@@ -327,11 +325,11 @@ JWT_ALGORITHM=HS256
 
 本项目遵循以下项目文档：
 
-- [分类标签清单](./doc/题目/分类标签清单.md)
-- [公式排版规范](./doc/题目/公式排版规范.md)
-- [答案解析风格规范](./doc/题目/答案解析风格规范.md)
-- [录入提示词](./doc/题目/录入提示词.md)
-- [改编提示词](./doc/题目/改编提示词.md)
+- [分类标签清单](./docs/题目/分类标签清单.md)
+- [公式排版规范](./docs/题目/公式排版规范.md)
+- [答案解析风格规范](./docs/题目/答案解析风格规范.md)
+- [录入提示词](./docs/题目/录入提示词.md)
+- [改编提示词](./docs/题目/改编提示词.md)
 
 ## License
 
