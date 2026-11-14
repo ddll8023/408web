@@ -138,7 +138,7 @@ const categories = computed(() => props.adaptation.category?.filter(Boolean) || 
 /* 元信息使用中性底色，让改编来源和题干成为阅读重点。 */
 .question-metadata :deep(.question-tag) {
   color: var(--brand-ink-soft);
-  background-color: #f4f5f6;
+  background-color: var(--brand-neutral-bg);
 }
 
 .question-actions {

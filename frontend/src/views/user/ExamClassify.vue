@@ -108,6 +108,7 @@
                       :id="`exam-${exam.id}`"
                       :exam="exam"
                       :is-admin="isAdmin"
+                      :delete-loading="deletingId === exam.id"
                       :show-answer="showAnswers[exam.id]"
                       density="compact"
                       @copy="(cmd) => handleCopy(cmd, exam)"
@@ -185,7 +186,7 @@ import { getExamList, deleteExam, getExamDetail } from '@/api/exam'
 import { getEnabledCategoryTreeBySubject } from '@/api/category'
 import { useAuthStore } from '@/stores/auth'
 import toast from '@/utils/toast'
-import confirm from '@/utils/confirm'
+import { useConfirm } from '@/composables/useConfirm'
 import CustomButton from '@/components/basic/CustomButton.vue'
 import Tag from '@/components/basic/Tag.vue'
 import RadioGroup from '@/components/basic/RadioGroup.vue'
@@ -689,18 +690,21 @@ const handleEditSuccess = (updatedExam: ExamQuestion | null) => {
   questionList.value[questionIndex] = updatedExam
 }
 
+// 删除进行中标记：条目删除按钮进入 loading，防连点
+const deletingId = ref<number | null>(null)
+const { showConfirm } = useConfirm()
+
 const handleDelete = async (id: number) => {
-  const confirmed = await confirm(
-    '此操作将永久删除该真题，是否继续？',
-    '警告',
-    {
-      confirmButtonText: '确定',
-      cancelButtonText: '取消',
-      type: 'danger'
-    }
-  )
+  const confirmed = await showConfirm({
+    title: '警告',
+    message: '此操作将永久删除该真题，是否继续？',
+    confirmText: '确定',
+    cancelText: '取消',
+    type: 'danger'
+  })
   if (!confirmed) return
 
+  deletingId.value = id
   try {
     const response = await deleteExam(id)
     if (response.code === 200) {
@@ -712,6 +716,8 @@ const handleDelete = async (id: number) => {
   } catch (error) {
     toast.error('删除失败')
     console.error('删除失败:', error)
+  } finally {
+    deletingId.value = null
   }
 }
 

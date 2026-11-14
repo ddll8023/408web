@@ -51,7 +51,7 @@
 | `frontend/src/api/request.ts` | axios 实例、Bearer 注入、信封校验、camelCase 转换、401/403/404/500 统一提示、`requestBlob` | 所有 `api/*.ts`；`aiSession.ts` 复用其 `API_BASE_URL` |
 | `frontend/src/utils/convertKeys.ts` | snake_case ↔ camelCase 字段转换 | 所有 `api/*.ts`、`ai.ts`、`aiSession.ts` |
 | `frontend/src/utils/toast.ts` + `components/basic/Toast.vue` | 全局轻提示单例 | `request.ts`、`useToast.ts`、多个页面与业务组件 |
-| `frontend/src/utils/confirm.ts` + `components/basic/Confirm.vue` | 全局确认/警告弹窗单例（独立 `createApp` 挂载） | `useConfirm.ts`、`useJsonImport.ts`、`ExamClassify.vue`、`ExamList.vue` |
+| `frontend/src/utils/confirm.ts` + `components/basic/Confirm.vue` | 全局确认/警告弹窗单例（独立 `createApp` 挂载） | `useConfirm.ts`、`useJsonImport.ts`；阅读页与管理页均经 `useConfirm` 调用 |
 | `frontend/src/composables/useToast.ts`、`useConfirm.ts` | 上述两个单例的薄封装 | 多数页面与业务组件 |
 | `frontend/src/utils/uuid.ts` | 生成 AI 请求标识 | `api/aiSession.ts`、`AiProviderSettings.vue` |
 | `frontend/src/utils/format.ts` | 时间等展示格式化 | `QuestionCard.vue`、`useAdminTable.ts` |

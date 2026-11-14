@@ -70,7 +70,7 @@
           v-show="isOpen"
           role="listbox"
           :aria-label="placeholder"
-          class="dropdown-panel fixed z-[99999] max-w-[calc(100vw-24px)] overflow-hidden"
+          class="dropdown-panel fixed z-dropdown max-w-[calc(100vw-24px)] overflow-hidden"
           :style="{ height: `${containerHeight}px` }"
           @click.stop
         >
@@ -144,7 +144,7 @@ import type { SelectInput, SelectOption, OptionValue } from './types'
  * - 可清除选择
  * 样式使用 Tailwind CSS，图标使用 Font Awesome
  */
-import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted, nextTick, getCurrentInstance } from 'vue'
 
 const props = defineProps({
   // v-model 绑定值
@@ -202,8 +202,8 @@ const props = defineProps({
 
 const emit = defineEmits<{ 'update:modelValue': [value: string | number | null]; change: [value: string | number | null] }>()
 
-let nextWheelPickerId = 0
-const generatedPickerId = `wheel-picker-${++nextWheelPickerId}`
+// 选择器可能同页多实例，input id 需按实例区分
+const generatedPickerId = `wheel-picker-${getCurrentInstance()?.uid ?? 0}`
 const containerRef = ref<HTMLElement | null>(null)
 const triggerRef = ref<HTMLElement | null>(null)
 const panelRef = ref<HTMLElement | null>(null)

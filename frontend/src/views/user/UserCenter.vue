@@ -30,7 +30,7 @@
         >
           <font-awesome-icon :icon="['fas', 'star']" />
           <span>我的收藏</span>
-          <span v-if="totalCount > 0" class="ml-auto inline-flex items-center justify-center bg-[#f56c6c] text-white text-[11px] font-medium w-[18px] h-[18px] rounded-full leading-1">
+          <span v-if="totalCount > 0" class="ml-auto inline-flex items-center justify-center bg-danger text-white text-[11px] font-medium w-[18px] h-[18px] rounded-full leading-1">
             {{ totalCount }}
           </span>
         </button>
@@ -90,14 +90,18 @@
             <button
               v-for="subject in subjects"
               :key="subject.id"
+              :id="`favorite-tab-${subject.id}`"
               type="button"
               role="tab"
               :aria-selected="activeSubjectTab === subject.id"
+              :aria-controls="`favorite-panel-${subject.id}`"
+              :tabindex="activeSubjectTab === subject.id ? 0 : -1"
               class="relative shrink-0 whitespace-nowrap px-4 py-3 text-base font-medium transition-colors sm:px-6"
               :class="activeSubjectTab === subject.id
                 ? 'text-accent font-semibold'
                 : 'text-gray-500 hover:text-[#9d825a]'"
               @click="activeSubjectTab = subject.id"
+              @keydown="handleTabKeydown"
             >
               {{ subject.name }}
               <div
@@ -110,13 +114,13 @@
           <!-- Tab 内容区 -->
           <div class="p-4">
             <template v-for="subject in subjects" :key="subject.id">
-              <div v-show="activeSubjectTab === subject.id" role="tabpanel">
+              <div v-show="activeSubjectTab === subject.id" :id="`favorite-panel-${subject.id}`" :aria-labelledby="`favorite-tab-${subject.id}`" role="tabpanel">
                 <template v-if="getFavoritesForSubject(subject.id).length > 0">
                   <div class="grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-4">
                     <div
                       v-for="item in getFavoritesForSubject(subject.id)"
                       :key="item.id"
-                      class="flex items-center justify-between p-4 bg-white border border-accent/20 rounded transition-all duration-300 hover:border-accent hover:shadow-[0_2px_4px_rgba(0,0,0,0.08)] group"
+                      class="flex items-center justify-between p-4 bg-white border border-accent/20 rounded-lg transition-all duration-300 hover:border-accent hover:shadow-[0_2px_4px_rgba(0,0,0,0.08)] group"
                     >
                       <button
                         type="button"
@@ -194,17 +198,17 @@
               :key="category"
               type="button"
               class="flex items-center justify-between p-3 bg-white border border-[#dfe2e5] rounded cursor-pointer transition-all duration-200 hover:border-accent hover:bg-accent/5"
-              :class="{ 'bg-[rgba(103,194,58,0.1)] border-[#67c23a]': isFavorite(activeAddSubject ?? 0, category) }"
+              :class="{ 'bg-success/10 border-success': isFavorite(activeAddSubject ?? 0, category) }"
               :aria-pressed="isFavorite(activeAddSubject ?? 0, category)"
               @click="toggleCategoryFavorite(category, activeAddSubject)"
             >
               <span class="text-sm truncate flex-1 mr-2 text-left overflow-hidden text-ellipsis whitespace-nowrap"
-                :class="isFavorite(activeAddSubject ?? 0, category) ? 'text-[#67c23a]' : 'text-ink-soft'">
+                :class="isFavorite(activeAddSubject ?? 0, category) ? 'text-success' : 'text-ink-soft'">
                 {{ category }}
               </span>
               <font-awesome-icon
                 class="text-base transition-all duration-200"
-                :class="isFavorite(activeAddSubject ?? 0, category) ? 'text-[#67c23a]' : 'text-ink-soft'"
+                :class="isFavorite(activeAddSubject ?? 0, category) ? 'text-success' : 'text-ink-soft'"
                 :icon="isFavorite(activeAddSubject ?? 0, category) ? ['fas', 'check'] : ['fas', 'plus']"
               />
             </button>
@@ -247,6 +251,22 @@ const activeMenu = ref<'favorites' | 'ai-settings'>('favorites')
 const subjects = ref<Subject[]>([])
 const loadingSubjects = ref(false)
 const activeSubjectTab = ref<number | null>(null)
+
+/** 方向键在收藏页签间移动焦点（ARIA tabs roving tabindex 契约）。 */
+function handleTabKeydown(event: KeyboardEvent): void {
+  if (subjects.value.length === 0) return
+  const ids = subjects.value.map(subject => subject.id)
+  const current = activeSubjectTab.value ?? ids[0]
+  let nextId: number | undefined
+  if (event.key === 'ArrowRight') nextId = ids[(ids.indexOf(current) + 1) % ids.length]
+  else if (event.key === 'ArrowLeft') nextId = ids[(ids.indexOf(current) - 1 + ids.length) % ids.length]
+  else if (event.key === 'Home') nextId = ids[0]
+  else if (event.key === 'End') nextId = ids[ids.length - 1]
+  if (nextId === undefined) return
+  event.preventDefault()
+  activeSubjectTab.value = nextId
+  document.getElementById(`favorite-tab-${nextId}`)?.focus()
+}
 
 // 添加弹窗状态
 const addDialogVisible = ref(false)

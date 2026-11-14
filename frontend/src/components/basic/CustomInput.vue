@@ -38,7 +38,7 @@
       <button
         v-if="clearable && modelValue !== '' && modelValue !== null && modelValue !== undefined && !disabled"
         type="button"
-        class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+        class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
         :class="{ 'right-10': type === 'password' }"
         aria-label="清空输入"
         @click="handleClear"
@@ -50,7 +50,7 @@
       <button
         v-if="type === 'password'"
         type="button"
-        class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+        class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
         :aria-label="showPassword ? '隐藏密码' : '显示密码'"
         @click="showPassword = !showPassword"
       >
@@ -72,7 +72,7 @@
  * 遵循 KISS 原则：简洁实现，只包含必需功能
  * 遵循 YAGNI 原则：只实现项目实际使用的 props
  */
-import { ref, computed } from 'vue'
+import { computed, getCurrentInstance, ref } from 'vue'
 
 const props = defineProps({
   // v-model 绑定值
@@ -145,7 +145,8 @@ const inputRef = ref<HTMLInputElement | null>(null)
 const showPassword = ref(false)
 
 // 生成唯一 ID
-const inputId = computed(() => props.id || `input-${Math.random().toString(36).substr(2, 9)}`)
+// 同页多实例时 id 需稳定且唯一，与 Select 等组件统一用实例 uid 生成
+const inputId = computed(() => props.id || `input-${getCurrentInstance()?.uid ?? 0}`)
 
 // 计算实际类型
 const computedType = computed(() => {

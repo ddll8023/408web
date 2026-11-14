@@ -4,15 +4,16 @@
 /* ==================== 基础样式重置 ==================== */
 
 /*
- * 响应式断点约定：全站只使用下面五档，Tailwind 工具类用 sm/md/lg/xl 对应 640/768/1024/1280，
+ * 响应式断点约定：全站只使用下面六档，Tailwind 工具类用 sm/md/lg/xl/2xl 对应 640/768/1024/1280/1536，
  * 组件内的自定义媒体查询必须取同一组数值，不再引入其它宽度。
  *   420px   超窄手机（iPhone SE/mini 竖屏），Tailwind 无对应档位，仅用于极端窄屏的降级
  *   640px   sm   手机横屏、大屏手机
  *   768px   md   平板竖屏
  *   1024px  lg   平板横屏、小尺寸笔记本
  *   1280px  xl   桌面
- * 自定义媒体查询写 max-width 时统一取「档位 − 1」（639/767/1023/1279），
- * 保证与 min-width 语义的 sm:/md:/lg:/xl: 严格互补，避免 1px 重叠。
+ *   1536px  2xl  宽屏桌面（管理页筛选网格）
+ * 自定义媒体查询写 max-width 时统一取「档位 − 1」（639/767/1023/1279/1535），
+ * 保证与 min-width 语义的 sm:/md:/lg:/xl:/2xl: 严格互补，避免 1px 重叠。
  */
 
 * {
@@ -39,6 +40,43 @@
   --brand-ink: #333;
   --brand-ink-soft: #666;
   --brand-ink-mute: #999;
+
+  /* 语义状态色：错误 / 成功 / 警告，替代散落各页的字面量（对比度按白底或白字 ≥4.5:1 核定） */
+  --brand-danger: #A63A2B;
+  --brand-success: #10613F;
+  --brand-warning: #B87542;
+
+  /* 界面角色色：面板线 / 抽屉隔线 / 深棕强调字 / 浅段底 / 中性钮底 / 深灰蓝标题 */
+  --brand-panel-line: #EADFD4;
+  --brand-sheet-line: #ECE5DB;
+  --brand-ink-strong: #704F2D;
+  --brand-wash: #F5EFE6;
+  --brand-neutral-bg: #F4F5F6;
+  --brand-ink-heading: #33404A;
+
+  /* 暖纸色卡底与装饰雾蓝（仅局部装饰使用） */
+  --brand-paper: #FFFDF8;
+  --brand-decor-veil: rgba(64, 158, 255, 0.05);
+
+  /* 全站遮罩：弹层与抽屉统一透明度，替代 0.38/0.42 两个漂移副本 */
+  --overlay-mask: rgba(27, 35, 35, 0.4);
+
+  /*
+   * z-index 分层令牌：全局弹层的唯一取值来源，顺序即层级。
+   * 下拉面板高于 Dialog（弹窗内可展开）但低于 Toast，避免弹层提示被面板遮挡。
+   */
+  --z-sticky: 20;
+  --z-float: 50;
+  --z-preview-drawer: 80;
+  --z-side-panel: 900;
+  --z-nav: 1000;
+  --z-bottom-sheet: 1050;
+  --z-dialog: 1100;
+  --z-dropdown: 1200;
+  --z-editor: 1400;
+  --z-immersive: 1500;
+  --z-toast: 2000;
+  --z-viewer: 2100;
 }
 
 /*
@@ -46,7 +84,8 @@
  * 按角色命名，改主题色时整组一起替换。
  */
 :root {
-  --theme-exam-accent: #56738A;
+  /* accent/subtitle 为正文级用色，对比度按各自主题底色 ≥4.5:1 核定（WCAG AA） */
+  --theme-exam-accent: #506D84;
   --theme-exam-strong: #486B84;
   --theme-exam-icon-fg: #49677F;
   --theme-exam-icon-bg: #DCE8F0;
@@ -54,17 +93,17 @@
   --theme-exam-surface-soft: #E7EFF4;
   --theme-exam-surface-badge: #DFECF3;
   --theme-exam-border: #C9D8E2;
-  --theme-exam-subtitle: #6B7E8D;
+  --theme-exam-subtitle: #5D7282;
   --theme-exam-soft-fg: #607888;
 
-  --theme-mock-accent: #3F8576;
+  --theme-mock-accent: #347265;
   --theme-mock-strong: #347465;
   --theme-mock-icon-bg: #DCEEE8;
   --theme-mock-surface: #EFF7F4;
   --theme-mock-surface-soft: #E4F1EC;
   --theme-mock-surface-badge: #DDEFE9;
   --theme-mock-border: #CBE1D9;
-  --theme-mock-subtitle: #668A80;
+  --theme-mock-subtitle: #4B776B;
   --theme-mock-soft-fg: #4B8276;
 }
 

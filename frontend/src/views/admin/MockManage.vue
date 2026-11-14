@@ -1,6 +1,6 @@
 <!-- 模拟题管理页面：筛选、表格与分页按视口自适应。 -->
 <template>
-  <main class="admin-manage-page mx-auto min-h-[var(--app-page-height)] w-full max-w-[1700px] min-w-0 px-2 py-4 sm:px-4 sm:py-6">
+  <main class="admin-manage-page mx-auto min-h-[var(--app-page-height)] w-full max-w-[1600px] min-w-0 px-2 py-4 sm:px-4 sm:py-6">
     <CustomCard shadow>
       <template #header>
         <header class="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -15,7 +15,7 @@
       </template>
 
       <!-- 筛选条件 -->
-      <section class="mb-6 rounded-xl border border-[#eadfd4] bg-white/70 p-3 shadow-sm backdrop-blur-sm sm:p-5">
+      <section class="mb-6 rounded-xl border border-[var(--brand-panel-line)] bg-white/70 p-3 shadow-sm backdrop-blur-sm sm:p-5">
         <div class="grid grid-cols-1 items-end gap-4 sm:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-7">
           <!-- 来源机构 -->
           <div class="flex flex-col gap-1.5">
@@ -200,7 +200,7 @@
 
           <!-- 更新时间列 -->
           <template #updateTime="{ row }">
-            <span class="text-gray-600 text-sm">{{ formatDateTime(row.updateTime) }}</span>
+            {{ formatDateTime(row.updateTime) }}
           </template>
 
           <!-- 操作列 -->

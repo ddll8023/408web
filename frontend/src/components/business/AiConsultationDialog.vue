@@ -213,7 +213,7 @@ watch(() => [messages.value.length, messages.value[messages.value.length - 1]?.t
 .ai-chat-panel,
 .ai-chat-launcher {
   position: fixed;
-  z-index: 900;
+  z-index: var(--z-side-panel);
   right: max(16px, env(safe-area-inset-right));
   bottom: max(16px, env(safe-area-inset-bottom));
 }

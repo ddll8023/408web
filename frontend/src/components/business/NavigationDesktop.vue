@@ -197,7 +197,7 @@ const handleManageCommand = (command: string | number) => {
   border: 0;
   border-radius: 50%;
   background: transparent;
-  color: #8b6f47;
+  color: var(--brand-accent);
   cursor: pointer;
 }
 
@@ -206,7 +206,13 @@ const handleManageCommand = (command: string | number) => {
 }
 
 .search-btn:focus-visible {
-  outline: 2px solid #8b6f47;
+  outline: 2px solid var(--brand-accent);
+  outline-offset: 2px;
+}
+
+.nav-link:focus-visible,
+.username:focus-visible {
+  outline: 2px solid var(--brand-accent);
   outline-offset: 2px;
 }
 
@@ -260,7 +266,7 @@ const handleManageCommand = (command: string | number) => {
 
 .username:hover {
   background: color-mix(in srgb, var(--brand-accent) 8%, transparent);
-  color: #8b6f47;
+  color: var(--brand-accent);
 }
 
 @media (max-width: 1279px) {

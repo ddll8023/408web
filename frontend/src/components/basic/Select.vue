@@ -92,7 +92,7 @@
           v-show="visible"
           role="listbox"
           :aria-label="placeholder"
-          class="dropdown-panel select-dropdown-panel fixed z-[99999] overflow-hidden"
+          class="dropdown-panel select-dropdown-panel fixed z-dropdown overflow-hidden"
         >
         <!-- 搜索框（可选） -->
         <div
@@ -163,7 +163,7 @@ import type { SelectInput, SelectOption, OptionValue } from './types'
  * 遵循YAGNI原则：仅实现实际使用的props
  * 与InputSelect的区别：此组件为纯选择器，InputSelect支持输入
  */
-import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, nextTick, onMounted, onUnmounted, getCurrentInstance } from 'vue'
 
 const props = defineProps({
   // v-model 绑定值；清空时组件自身会写入空字符串，因此契约必须容纳 ''。
@@ -232,8 +232,8 @@ const props = defineProps({
 
 const emit = defineEmits<{ 'update:modelValue': [value: V | '']; change: [value: V | ''] }>()
 
-let nextSelectId = 0
-const generatedSelectId = `select-${++nextSelectId}`
+// 下拉可能同页多实例，input id 需按实例区分
+const generatedSelectId = `select-${getCurrentInstance()?.uid ?? 0}`
 
 const rootRef = ref<HTMLElement | null>(null)
 const triggerRef = ref<HTMLElement | null>(null)

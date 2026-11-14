@@ -76,7 +76,7 @@
  */
 import type { PropType } from 'vue'
 import type { CategoryOutlineItem } from '@/types'
-import { computed, onDeactivated, watch } from 'vue'
+import { computed, getCurrentInstance, onDeactivated, watch } from 'vue'
 import { MEDIA_QUERIES } from '@/shared/responsive/breakpoints'
 import { useMediaQuery } from '@/shared/responsive/useViewport'
 import BottomSheet from '@/components/basic/BottomSheet.vue'
@@ -92,8 +92,8 @@ const outlineThemes = {
   adaptation: { active: 'bg-accent/10 text-accent', dot: 'bg-accent' },
 } satisfies Record<'exam' | 'mock' | 'adaptation', OutlineTheme>
 
-let nextNavId = 0
-const outlineTitleId = `mobile-nav-outline-title-${++nextNavId}`
+// 桌面/移动导航与阅读页可能同时挂载，标题 id 需按实例区分
+const outlineTitleId = `mobile-nav-outline-title-${getCurrentInstance()?.uid ?? 0}`
 
 const props = defineProps({
   // 是否展开抽屉
@@ -173,7 +173,7 @@ onDeactivated(() => {
 .mobile-question-nav {
   position: sticky;
   top: 0;
-  z-index: 20;
+  z-index: var(--z-sticky);
 }
 
 .mobile-question-nav__trigger {
@@ -193,7 +193,7 @@ onDeactivated(() => {
 }
 
 .mobile-question-nav__trigger:focus-visible {
-  outline: 2px solid #8b6f47;
+  outline: 2px solid var(--brand-accent);
   outline-offset: -2px;
 }
 
@@ -206,7 +206,7 @@ onDeactivated(() => {
   justify-content: center;
   border-radius: 8px;
   background: color-mix(in srgb, var(--brand-accent) 10%, transparent);
-  color: #8b6f47;
+  color: var(--brand-accent);
   font-size: 13px;
 }
 
@@ -225,13 +225,13 @@ onDeactivated(() => {
   border-radius: 999px;
   background: rgba(0, 0, 0, 0.05);
   padding: 2px 8px;
-  color: #8b6f47;
+  color: var(--brand-accent);
   font-size: 12px;
 }
 
 .mobile-question-nav__caret {
   flex: 0 0 auto;
-  color: #8b6f47;
+  color: var(--brand-accent);
   font-size: 12px;
 }
 
@@ -243,13 +243,13 @@ onDeactivated(() => {
 
 .mobile-question-nav__outline {
   margin-top: 14px;
-  border-top: 1px solid #ece5db;
+  border-top: 1px solid var(--brand-sheet-line);
   padding-top: 12px;
 }
 
 .mobile-question-nav__outline-title {
   margin: 0 0 6px;
-  color: #8b6f47;
+  color: var(--brand-accent);
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.06em;
@@ -263,7 +263,7 @@ onDeactivated(() => {
 
 .mobile-question-nav__outline-item {
   display: flex;
-  min-height: 36px;
+  min-height: 44px;
   width: 100%;
   align-items: center;
   gap: 8px;

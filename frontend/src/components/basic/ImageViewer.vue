@@ -9,7 +9,7 @@
       <div
         v-if="visible"
         ref="rootRef"
-        class="image-viewer fixed inset-0 z-[9999] flex items-center justify-center overflow-hidden bg-black/85 outline-none select-none"
+        class="image-viewer fixed inset-0 z-viewer flex items-center justify-center overflow-hidden bg-black/85 outline-none select-none"
         :class="dragging ? 'cursor-grabbing' : 'cursor-grab'"
         role="dialog"
         aria-modal="true"

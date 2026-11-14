@@ -12,7 +12,7 @@
       role="radio"
       :aria-checked="modelValue === option.value"
       :disabled="disabled"
-      class="px-4 py-1.5 text-sm font-medium rounded-md transition-all duration-200"
+      class="inline-flex min-h-11 items-center px-4 py-1.5 text-sm font-medium rounded-md transition-all duration-200"
       :class="[
         modelValue === option.value
           ? 'bg-accent-deep text-white shadow-sm'

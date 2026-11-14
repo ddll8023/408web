@@ -64,7 +64,7 @@ const {
 .navigation {
   position: fixed;
   inset: 0 0 auto;
-  z-index: 1000;
+  z-index: var(--z-nav);
   height: var(--app-nav-height);
   padding-top: env(safe-area-inset-top);
   border-bottom: 1px solid rgba(0, 0, 0, 0.08);

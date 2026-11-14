@@ -75,6 +75,7 @@
                   :id="`question-${exam.id}`"
                   :exam="exam"
                   :is-admin="isAdmin"
+                  :delete-loading="deletingId === exam.id"
                   :show-answer="showAnswers[exam.id]"
                   density="compact"
                   @copy="(cmd) => handleCopy(cmd, exam)"
@@ -100,8 +101,14 @@
             />
           </div>
 
+          <!-- 加载失败：持久化错误条 + 重试 -->
+          <div v-if="listError" class="mt-2 mx-5 my-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700" role="alert">
+            {{ listError }}
+            <CustomButton size="sm" type="text" :disabled="loading" @click="loadExamsByYear(activeYear)">重试</CustomButton>
+          </div>
+
           <!-- 默认提示 -->
-          <div v-else-if="!loading" class="mt-2 p-4 bg-gradient-to-br from-surface to-[#F5EFE6] rounded border-2 border-line min-h-[300px] mx-5 my-4">
+          <div v-else-if="!loading" class="mt-2 p-4 bg-gradient-to-br from-surface to-wash rounded border-2 border-line min-h-[300px] mx-5 my-4">
             <div class="flex items-center gap-2 mb-2">
               <font-awesome-icon :icon="['fas', 'book']" class="text-accent text-lg" />
               <h3 class="m-0 text-ink font-semibold text-lg">408历年真题</h3>
@@ -162,7 +169,7 @@ import { getExamNavIndex, getExamByYear, deleteExam } from '@/api/exam'
 import { useCategoryOutline } from '@/composables/useCategoryOutline'
 import { useAuthStore } from '@/stores/auth'
 import toast from '@/utils/toast'
-import confirm from '@/utils/confirm'
+import { useConfirm } from '@/composables/useConfirm'
 import CustomButton from '@/components/basic/CustomButton.vue'
 import Tag from '@/components/basic/Tag.vue'
 import ReadingLayout from '@/app/layouts/ReadingLayout.vue'
@@ -264,6 +271,8 @@ const {
 })
 
 const loading = ref(false)
+// 列表加载失败信息：持久化展示并支持重试，避免回落到「请选择年份」默认面板造成误导
+const listError = ref('')
 
 // 年份视图下,每道题的答案显示状态
 const showAnswers = ref<Record<number, boolean>>({})
@@ -396,6 +405,7 @@ const loadYearList = async () => {
  */
 const loadExamsByYear = async (year: number | null) => {
   const requestVersion = ++examsRequestVersion
+  listError.value = ''
   if (!year) {
     examList.value = []
     loading.value = false
@@ -415,12 +425,12 @@ const loadExamsByYear = async (year: number | null) => {
       examList.value = response.data || []
     } else {
       examList.value = []
-      toast.error(response.message || '加载失败')
+      listError.value = response.message || '加载真题失败'
     }
   } catch (error) {
     if (requestVersion !== examsRequestVersion) return
     examList.value = []
-    toast.error('加载真题失败')
+    listError.value = '加载真题失败，请检查网络后重试'
     console.error('加载真题失败:', error)
   } finally {
     if (requestVersion === examsRequestVersion) loading.value = false
@@ -543,18 +553,21 @@ const handleEditSuccess = async () => {
 /**
  * 处理删除
  */
+// 删除进行中标记：条目删除按钮进入 loading，防连点
+const deletingId = ref<number | null>(null)
+const { showConfirm } = useConfirm()
+
 const handleDelete = async (id: number) => {
-  const confirmed = await confirm(
-    '此操作将永久删除该真题，是否继续？',
-    '警告',
-    {
-      confirmButtonText: '确定',
-      cancelButtonText: '取消',
-      type: 'warning'
-    }
-  )
+  const confirmed = await showConfirm({
+    title: '警告',
+    message: '此操作将永久删除该真题，是否继续？',
+    confirmText: '确定',
+    cancelText: '取消',
+    type: 'danger'
+  })
   if (!confirmed) return
 
+  deletingId.value = id
   try {
     const response = await deleteExam(id)
     if (response.code === 200) {
@@ -572,6 +585,8 @@ const handleDelete = async (id: number) => {
   } catch (error) {
     toast.error('删除失败')
     console.error('删除失败:', error)
+  } finally {
+    deletingId.value = null
   }
 }
 

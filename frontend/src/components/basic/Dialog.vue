@@ -6,7 +6,7 @@
         ref="dialogRef"
         v-if="visible || !destroyOnClose"
         v-show="visible"
-        class="fixed inset-0 z-[1100] flex items-start justify-center w-full h-full m-0 p-0 border-0 bg-transparent"
+        class="fixed inset-0 z-dialog flex items-start justify-center w-full h-full m-0 p-0 border-0 bg-transparent"
         :open="visible"
         role="dialog"
         aria-modal="true"
@@ -35,7 +35,7 @@
             </slot>
             <button
               type="button"
-              class="p-1 text-gray-400 hover:text-gray-600 transition-colors rounded hover:bg-gray-100"
+              class="p-1 text-gray-400 hover:text-gray-600 transition-colors rounded hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
               @click="handleClose"
               aria-label="关闭"
             >
@@ -63,9 +63,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onUnmounted, ref, watch } from 'vue'
+import { computed, getCurrentInstance, nextTick, onUnmounted, ref, watch } from 'vue'
 
-let nextDialogId = 0
 
 const focusableSelector = [
   'a[href]',
@@ -104,7 +103,8 @@ const props = defineProps({
   },
   top: {
     type: String,
-    default: 'calc(60px + 24px)'  // 导航栏60px + 额外边距24px
+    // 顶距跟随全站导航高度令牌，safe-area 设备不与导航重叠
+    default: 'calc(var(--app-nav-height) + 24px)'
   },
   loading: {
     type: Boolean,
@@ -127,7 +127,8 @@ const props = defineProps({
 const emit = defineEmits<{ 'update:visible': [value: boolean]; close: [] }>()
 
 const dialogRef = ref<HTMLDialogElement | null>(null)
-const titleId = `dialog-title-${++nextDialogId}`
+// 弹窗可能同页多实例，标题 id 需按实例区分
+const titleId = `dialog-title-${getCurrentInstance()?.uid ?? 0}`
 let previouslyFocused: HTMLElement | null = null
 let previousBodyOverflow = ''
 

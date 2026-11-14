@@ -49,12 +49,12 @@
 
     <div class="min-h-full bg-surface">
           <div class="p-4">
-            <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div class="hidden min-w-0 flex-1 items-center gap-3 md:flex">
-                <h2 class="m-0 text-ink font-semibold text-xl">{{ currentTitle }}</h2>
-                <Tag v-if="displayTotal > 0" type="info">共 {{ displayTotal }} 题</Tag>
+            <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+              <div class="hidden min-w-0 items-center gap-3 md:flex">
+                <h2 class="m-0 min-w-0 text-ink font-semibold text-xl">{{ currentTitle }}</h2>
+                <Tag v-if="displayTotal > 0" type="info" size="sm">共 {{ displayTotal }} 题</Tag>
               </div>
-              <div class="flex flex-wrap gap-2" v-if="activeSubjectId">
+              <div class="flex w-full flex-wrap items-center justify-end gap-2 lg:w-auto" v-if="activeSubjectId">
                 <RadioGroup
                   v-model="filterQuestionType"
                   aria-label="题型筛选"
@@ -63,7 +63,7 @@
               </div>
             </div>
 
-          <div v-if="questionsLoading" class="flex items-center justify-center py-12" role="status" aria-live="polite">
+          <div v-if="questionsLoading" class="flex justify-center py-8" role="status" aria-live="polite">
             <font-awesome-icon :icon="['fas', 'spinner']" class="fa-spin text-accent text-2xl" aria-hidden="true" />
           </div>
 
@@ -106,6 +106,7 @@
                     :id="`mock-${mock.id}`"
                     :mock="mock"
                     :is-admin="isAdmin"
+                    :delete-loading="deletingId === mock.id"
                     :show-answer="showAnswers[mock.id]"
                     density="compact"
                     @copy="(cmd) => handleCopy(cmd, mock)"
@@ -124,6 +125,7 @@
               :items="outlineItems"
               :active-id="activeOutlineId"
               kind="mock"
+              hide-below-xl
               @jump="scrollToCategoryImmediately"
             />
           </div>
@@ -162,7 +164,6 @@
 import type { CategoryOutlineItem, MockQuestion, Subject, CategoryTreeNode } from "@/types"
 import { queryString } from "@/utils/storage"
 import { buildMockTitleLine, copyFullMarkdown } from '@/utils/questionMarkdown'
-import { errorMessage } from "@/utils/errors"
 /**
  * 模拟题分类浏览页面
  * 功能：按科目聚合展示模拟题，支持分类筛选
@@ -200,7 +201,6 @@ import type { AiAnswerCandidate } from '@/types/aiAnswer'
 import { answerSourceFromQuestion } from '@/utils/aiAnswer'
 import { useCategoryOutline } from '@/composables/useCategoryOutline'
 import { useInfiniteQuestionList } from '@/composables/useInfiniteQuestionList'
-import { getDifficultyLabel, getDifficultyType } from '@/constants/exam'
 import {
   findCategoryNode,
   getCategorySectionId,
@@ -651,15 +651,20 @@ const handleEditSuccess = async () => {
   editingMockData.value = null
 }
 
+// 删除进行中标记：条目删除按钮进入 loading，防连点
+const deletingId = ref<number | null>(null)
+
 const handleDelete = async (id: number) => {
   const confirmed = await showConfirm({
     message: '此操作将永久删除该模拟题，是否继续？',
     title: '警告',
     confirmText: '确定',
     cancelText: '取消',
-    type: 'warning'
+    type: 'danger'
   })
   if (!confirmed) return
+
+  deletingId.value = id
 
   try {
     const response = await deleteMockQuestion(id)
@@ -672,6 +677,9 @@ const handleDelete = async (id: number) => {
   } catch (error) {
     // 错误消息已由axios拦截器统一处理
     console.error('删除失败:', error)
+  }
+  } finally {
+    deletingId.value = null
   }
 }
 </script>

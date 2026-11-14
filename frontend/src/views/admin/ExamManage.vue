@@ -15,7 +15,7 @@
       </template>
 
       <!-- 筛选条件 -->
-      <div class="mb-6 rounded-xl border border-[#eadfd4] bg-white/70 p-3 shadow-sm backdrop-blur-sm sm:p-5">
+      <section class="mb-6 rounded-xl border border-[var(--brand-panel-line)] bg-white/70 p-3 shadow-sm backdrop-blur-sm sm:p-5">
         <div class="grid grid-cols-1 items-end gap-4 sm:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-6">
           <!-- 年份筛选 -->
           <div class="flex flex-col gap-1.5">
@@ -95,7 +95,7 @@
             </CustomButton>
           </div>
         </div>
-      </div>
+      </section>
 
       <div v-if="listError" class="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700" role="alert">
         {{ listError }}
@@ -504,7 +504,7 @@ const handleDelete = async (row: QuestionRow) => {
     message: `确定要删除真题"${row.title || row.year + '年 第' + row.questionNumber + '题'}"吗？`,
     confirmText: '确定',
     cancelText: '取消',
-    type: 'warning'
+    type: 'danger'
   })
 
   if (!ok) return

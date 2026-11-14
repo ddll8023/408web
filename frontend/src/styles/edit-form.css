@@ -98,7 +98,8 @@
 
 .edit-input::placeholder,
 .edit-textarea::placeholder {
-  color: var(--brand-ink-mute);
+  /* 占位属正文级文字，按 WCAG AA ≥4.5:1 取 ink-soft；ink-mute 仅用于禁用态 */
+  color: var(--brand-ink-soft);
 }
 
 .edit-input:focus,
@@ -183,7 +184,7 @@
 .edit-loading {
   position: absolute;
   inset: 0;
-  z-index: 50;
+  z-index: var(--z-float);
   display: flex;
   align-items: center;
   justify-content: center;

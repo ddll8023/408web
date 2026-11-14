@@ -5,8 +5,8 @@
       <div
         v-if="visible && question"
         class="question-preview-drawer"
-        role="dialog"
-        aria-modal="true"
+        <!-- 抽屉为非模态面板（z 低于导航、无焦点圈闭），按 region 语义声明，不谎报模态 -->
+        role="region"
         :aria-labelledby="titleId"
         @click.self="close"
         @keydown.esc.prevent="close"
@@ -59,7 +59,7 @@
  * 展示单道题目完整内容的右侧抽屉。
  * 默认题目卡片不渲染正文，只有打开预览时才加载 Markdown、公式和选项。
  */
-import { computed, nextTick, onBeforeUnmount, ref, watch, type PropType } from 'vue'
+import { computed, getCurrentInstance, nextTick, onBeforeUnmount, ref, watch, type PropType } from 'vue'
 import type { AdaptationQuestion, MockQuestion } from '@/types'
 import { parseQuestionOptions } from '@/utils/questionOptions'
 import MarkdownViewer from '@/components/basic/MarkdownViewer.vue'
@@ -87,8 +87,8 @@ const emit = defineEmits<{
   'update:visible': [visible: boolean]
 }>()
 
-let nextDrawerId = 0
-const titleId = `question-preview-title-${++nextDrawerId}`
+// 抽屉可能同页多实例，标题 id 需按实例区分
+const titleId = `question-preview-title-${getCurrentInstance()?.uid ?? 0}`
 const panelRef = ref<HTMLElement | null>(null)
 let previousBodyOverflow = ''
 
@@ -155,10 +155,10 @@ onBeforeUnmount(() => {
 .question-preview-drawer {
   position: fixed;
   inset: 0;
-  z-index: 80;
+  z-index: var(--z-preview-drawer);
   display: flex;
   justify-content: flex-end;
-  background: rgba(27, 35, 35, 0.38);
+  background: var(--overlay-mask);
 }
 
 .question-preview-drawer__panel {
@@ -185,7 +185,7 @@ onBeforeUnmount(() => {
 
 .question-preview-drawer__eyebrow {
   margin: 0 0 5px;
-  color: #8b6f47;
+  color: var(--brand-accent);
   font-size: 9px;
   font-weight: 800;
   letter-spacing: 0.16em;
@@ -234,7 +234,7 @@ onBeforeUnmount(() => {
   border: 0;
   border-radius: 10px;
   background: color-mix(in srgb, var(--brand-accent) 8%, transparent);
-  color: #8b6f47;
+  color: var(--brand-accent);
   cursor: pointer;
   font-size: 16px;
   transition: background-color 0.2s ease, color 0.2s ease;
@@ -243,7 +243,7 @@ onBeforeUnmount(() => {
 .question-preview-drawer__close:hover,
 .question-preview-drawer__close:focus-visible {
   background: color-mix(in srgb, var(--brand-accent) 16%, transparent);
-  color: #704f2d;
+  color: var(--brand-ink-strong);
   outline: none;
 }
 
@@ -255,7 +255,7 @@ onBeforeUnmount(() => {
 }
 
 .question-preview-drawer__section {
-  border-bottom: 1px solid #ece5db;
+  border-bottom: 1px solid var(--brand-sheet-line);
   padding-bottom: 22px;
 }
 
@@ -269,7 +269,7 @@ onBeforeUnmount(() => {
 
 .question-preview-drawer__section h3 {
   margin: 0 0 12px;
-  color: #8b6f47;
+  color: var(--brand-accent);
   font-size: 13px;
   font-weight: 800;
   letter-spacing: 0.06em;
@@ -299,13 +299,13 @@ onBeforeUnmount(() => {
   justify-content: center;
   border: 1px solid color-mix(in srgb, var(--brand-accent) 35%, transparent);
   border-radius: 7px;
-  color: #8b6f47;
+  color: var(--brand-accent);
   font-size: 12px;
   font-weight: 800;
 }
 
 .question-preview-drawer__answer {
-  border-left: 3px solid #8b6f47;
+  border-left: 3px solid var(--brand-accent);
   padding-left: 15px;
 }
 

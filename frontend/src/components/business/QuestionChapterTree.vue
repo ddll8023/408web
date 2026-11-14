@@ -134,7 +134,7 @@ const handleChildSelect = (node: CategoryTreeNode) => {
 
 .question-chapter-tree__item:hover {
   background: color-mix(in srgb, var(--brand-accent) 6%, transparent);
-  color: #33404a;
+  color: var(--brand-ink-heading);
 }
 
 .question-chapter-tree__item:focus-visible {
@@ -144,8 +144,8 @@ const handleChildSelect = (node: CategoryTreeNode) => {
 
 .question-chapter-tree__item--active {
   background: linear-gradient(90deg, color-mix(in srgb, var(--brand-accent) 14%, transparent), color-mix(in srgb, var(--brand-accent) 4%, transparent));
-  box-shadow: inset 3px 0 0 #8b6f47;
-  color: #704f2d;
+  box-shadow: inset 3px 0 0 var(--brand-accent);
+  color: var(--brand-ink-strong);
   font-weight: 650;
 }
 
@@ -175,7 +175,7 @@ const handleChildSelect = (node: CategoryTreeNode) => {
 
 .question-chapter-tree__expand:hover {
   background: color-mix(in srgb, var(--brand-accent) 10%, transparent);
-  color: #8b6f47;
+  color: var(--brand-accent);
 }
 
 .question-chapter-tree__expand svg {
@@ -195,11 +195,11 @@ const handleChildSelect = (node: CategoryTreeNode) => {
   width: 8px;
   height: 8px;
   flex-basis: 8px;
-  background: #8b6f47;
+  background: var(--brand-accent);
 }
 
 .question-chapter-tree__item--active .question-chapter-tree__marker {
-  background: #8b6f47;
+  background: var(--brand-accent);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand-accent) 12%, transparent);
 }
 
@@ -214,7 +214,7 @@ const handleChildSelect = (node: CategoryTreeNode) => {
 
 .question-chapter-tree__selected-count {
   background: color-mix(in srgb, var(--brand-accent) 12%, transparent);
-  color: #8b6f47;
+  color: var(--brand-accent);
   font-weight: 700;
 }
 

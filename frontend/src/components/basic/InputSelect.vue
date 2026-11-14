@@ -62,7 +62,7 @@
           v-show="visible"
           role="listbox"
           :aria-label="placeholder"
-          class="dropdown-panel fixed z-[99999] overflow-hidden"
+          class="dropdown-panel fixed z-dropdown overflow-hidden"
         >
           <ul class="dropdown-scroll dropdown-option-list overflow-y-auto py-1">
             <li
@@ -105,7 +105,7 @@
 <script setup lang="ts">
 import type { PropType } from 'vue'
 import type { SelectOption } from './types'
-import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
+import { computed, getCurrentInstance, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 
 /**
  * 自定义可输入下拉选择组件
@@ -148,7 +148,6 @@ const props = defineProps({
 
 const emit = defineEmits<{ 'update:modelValue': [value: string | number]; change: [value: string | number] }>()
 
-let nextInputSelectId = 0
 
 const rootRef = ref<HTMLElement | null>(null)
 const triggerRef = ref<HTMLElement | null>(null)
@@ -157,7 +156,8 @@ const dropdownRef = ref<HTMLElement | null>(null)
 const visible = ref(false)
 const inputValue = ref('')
 const activeIndex = ref(-1)
-const generatedInputId = `input-select-${++nextInputSelectId}`
+// 组件可能同页多实例，input id 需按实例区分
+const generatedInputId = `input-select-${getCurrentInstance()?.uid ?? 0}`
 
 const inputId = computed(() => props.id || generatedInputId)
 const listId = computed(() => `${inputId.value}-list`)

@@ -47,12 +47,12 @@
 
     <div class="min-h-full bg-surface">
           <div class="p-4">
-            <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
               <div class="hidden min-w-0 flex-1 items-center gap-3 md:flex">
-                <h2 class="m-0 text-xl font-semibold text-ink">{{ currentTitle }}</h2>
-                <Tag v-if="displayTotal > 0" type="info">共 {{ displayTotal }} 题</Tag>
+                <h2 class="m-0 min-w-0 text-xl font-semibold text-ink">{{ currentTitle }}</h2>
+                <Tag v-if="displayTotal > 0" type="info" size="sm">共 {{ displayTotal }} 题</Tag>
               </div>
-              <div v-if="activeSubjectId" class="flex flex-wrap gap-2">
+              <div v-if="activeSubjectId" class="flex w-full flex-wrap items-center justify-end gap-2 lg:w-auto">
                 <RadioGroup
                   v-model="filterQuestionType"
                   aria-label="题型筛选"
@@ -62,7 +62,7 @@
               </div>
             </div>
 
-            <div v-if="questionsLoading" class="flex items-center justify-center py-12" role="status" aria-live="polite">
+            <div v-if="questionsLoading" class="flex justify-center py-8" role="status" aria-live="polite">
               <font-awesome-icon :icon="['fas', 'spinner']" class="fa-spin text-2xl text-accent" aria-hidden="true" />
             </div>
 
@@ -123,6 +123,7 @@
                 :items="outlineItems"
                 :active-id="activeOutlineId"
                 kind="adaptation"
+                hide-below-xl
                 @jump="scrollToCategoryImmediately"
               />
             </div>
@@ -514,7 +515,7 @@ const handleDelete = async (id: number) => {
     message: `确定要删除改编题“${label}”吗？其来源引用会一并删除。`,
     confirmText: '确定',
     cancelText: '取消',
-    type: 'warning',
+    type: 'danger',
   })
   if (!confirmed) return
 

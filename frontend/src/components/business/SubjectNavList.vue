@@ -16,7 +16,7 @@
         <div class="item-content flex items-center h-11 w-full">
           <button
             type="button"
-            class="icon-area flex items-center justify-center w-6 h-6 mr-1 shrink-0 rounded border-0 bg-transparent p-0 cursor-pointer transition-colors duration-200 hover:bg-black/5"
+            class="icon-area relative flex items-center justify-center w-6 h-6 mr-1 shrink-0 rounded border-0 bg-transparent p-0 cursor-pointer transition-colors duration-200 hover:bg-black/5 before:absolute before:-inset-2 before:rounded before:content-['']"
             :aria-label="(expandedSubjectId === sub.id ? '收起 ' : '展开 ') + sub.name + '分类'"
             :aria-expanded="!collapsed && expandedSubjectId === sub.id"
             :aria-controls="`${listId}-categories-${sub.id}`"

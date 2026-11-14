@@ -181,7 +181,7 @@
           <CustomButton @click="handleCancel">取消</CustomButton>
           <CustomButton type="primary" :loading="saving" @click="handleSubmit">
             <font-awesome-icon :icon="isEditMode ? ['fas', 'save'] : ['fas', 'plus']" />
-            {{ isEditMode ? '保存修改' : '创建真题' }}
+            保存
           </CustomButton>
         </div>
       </div>
@@ -299,7 +299,7 @@ function applyGeneratedAnswer(candidate: AiAnswerCandidate): void {
     return
   }
   form.answer = candidate.answer
-  showToast('新答案已填入，点击保存修改后才会更新题库', 'success')
+  showToast('新答案已填入，点击保存后才会更新题库', 'success')
 }
 
 const {

@@ -85,7 +85,7 @@
           v-show="dropdownVisible && !disabled"
           role="listbox"
           :aria-multiselectable="multiple ? 'true' : undefined"
-          class="dropdown-panel category-cascader-panel fixed z-[99999] flex flex-col overflow-hidden"
+          class="dropdown-panel category-cascader-panel fixed z-dropdown flex flex-col overflow-hidden"
         >
           <!-- 搜索框 -->
           <div v-if="enableSearch" class="dropdown-panel__header">
@@ -228,7 +228,7 @@
 <script setup lang="ts">
 import type { PropType } from 'vue'
 import type { CascaderOption, NormalizedCascaderOption } from './types'
-import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted, nextTick, getCurrentInstance } from 'vue'
 
 /**
  * 多选级联选择器组件
@@ -281,8 +281,8 @@ const dropdownVisible = ref(false)
 const searchKeyword = ref('')
 const expandedKeys = ref<string[]>([])
 
-let nextCascaderId = 0
-const generatedTriggerId = `cascader-${++nextCascaderId}`
+// 级联可能同页多实例，触发器 id 需按实例区分
+const generatedTriggerId = `cascader-${getCurrentInstance()?.uid ?? 0}`
 const triggerId = computed(() => props.id || generatedTriggerId)
 const listId = computed(() => `${triggerId.value}-list`)
 

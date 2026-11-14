@@ -9,6 +9,7 @@
     <MockItemHeader
       :mock="mock"
       :is-admin="isAdmin"
+      :delete-loading="deleteLoading"
       :fullscreen-active="isActive"
       @copy="(cmd) => $emit('copy', cmd)"
       @edit="$emit('edit', mock)"
@@ -57,6 +58,11 @@ const props = defineProps({
   },
   /** 是否显示管理员操作按钮（编辑、删除） */
   isAdmin: {
+    type: Boolean,
+    default: false
+  },
+  /** 删除请求进行中：透传给头部删除按钮 */
+  deleteLoading: {
     type: Boolean,
     default: false
   },
@@ -137,7 +143,4 @@ async function openConsultation(): Promise<void> {
   }
 }
 
-@media (max-width: 767px) {
-  /* 响应式样式已通过 Tailwind 的 sm: 前缀处理 */
-}
 </style>

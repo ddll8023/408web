@@ -78,7 +78,7 @@
           <!-- 右上角暖色光晕 -->
           <div class="absolute top-0 right-0 w-[600px] h-[600px] bg-gradient-to-br from-accent/8 to-transparent rounded-full blur-3xl transform translate-x-1/3 -translate-y-1/3"></div>
           <!-- 左下角冷色光晕 -->
-          <div class="absolute bottom-0 left-0 w-[400px] h-[400px] bg-gradient-to-tr from-[rgba(64,158,255,0.05)] to-transparent rounded-full blur-3xl transform -translate-x-1/3 translate-y-1/3"></div>
+          <div class="absolute bottom-0 left-0 w-[400px] h-[400px] bg-gradient-to-tr from-[var(--brand-decor-veil)] to-transparent rounded-full blur-3xl transform -translate-x-1/3 translate-y-1/3"></div>
           <!-- 几何网格纹理 -->
           <div class="absolute inset-0 opacity-[0.03]" style="background-image: radial-gradient(var(--brand-accent) 1px, transparent 1px); background-size: 24px 24px;"></div>
         </div>
@@ -257,7 +257,7 @@
                     <CustomTooltip content="删除" placement="top">
                       <button
                         type="button"
-                        class="outline-action-btn hover:text-[#c45656]! hover:bg-[rgba(196,86,86,0.08)]!"
+                        class="outline-action-btn hover:text-danger! hover:bg-danger/8!"
                         aria-label="删除分类"
                         :disabled="moveSaving || draggingId !== null"
                         @click.stop="handleDelete(row.node)"
@@ -1333,14 +1333,14 @@ onBeforeUnmount(() => {
   border: 1px dashed color-mix(in srgb, var(--brand-accent) 35%, transparent);
   border-radius: 8px;
   text-align: center;
-  color: #8b6f47;
+  color: var(--brand-accent);
   font-size: 12px;
 }
 
 .root-drop-zone.is-root-target,
 .outline-row.is-drop-inside {
   background: #f3eadb;
-  outline: 2px solid #8b6f47;
+  outline: 2px solid var(--brand-accent);
   outline-offset: -2px;
 }
 
@@ -1365,7 +1365,7 @@ onBeforeUnmount(() => {
 
 .outline-drag-handle:focus-visible,
 .outline-action-btn:focus-visible {
-  outline: 2px solid #8b6f47;
+  outline: 2px solid var(--brand-accent);
   outline-offset: 2px;
 }
 
@@ -1379,7 +1379,7 @@ onBeforeUnmount(() => {
 
 .outline-row.is-drop-invalid {
   background: #fff0ed;
-  outline: 1px dashed #c45656;
+  outline: 1px dashed var(--brand-danger);
   outline-offset: -1px;
 }
 
@@ -1390,7 +1390,7 @@ onBeforeUnmount(() => {
   left: var(--drop-indent);
   right: 12px;
   height: 3px;
-  background: #8b6f47;
+  background: var(--brand-accent);
   border-radius: 2px;
   pointer-events: none;
   z-index: 2;
@@ -1457,7 +1457,7 @@ onBeforeUnmount(() => {
   border: none;
   border-radius: 6px;
   background: transparent;
-  color: #8b6f47;
+  color: var(--brand-accent);
   cursor: pointer;
   transition: transform 0.2s ease, background-color 0.2s ease;
 }
@@ -1496,7 +1496,7 @@ onBeforeUnmount(() => {
   flex-shrink: 0;
   border-radius: 8px;
   background: linear-gradient(135deg, color-mix(in srgb, var(--brand-accent) 12%, transparent), color-mix(in srgb, var(--brand-accent) 5%, transparent));
-  color: #8b6f47;
+  color: var(--brand-accent);
   font-size: 11px;
   transition: transform 0.2s ease;
 }
@@ -1529,7 +1529,7 @@ onBeforeUnmount(() => {
   flex-shrink: 0;
   font-size: 12px;
   font-weight: 500;
-  color: #8b6f47;
+  color: var(--brand-accent);
   background: color-mix(in srgb, var(--brand-accent) 12%, transparent);
   padding: 2px 8px;
   border-radius: 10px;
@@ -1565,7 +1565,7 @@ onBeforeUnmount(() => {
 }
 
 .outline-action-btn:hover {
-  color: #8b6f47;
+  color: var(--brand-accent);
   background: color-mix(in srgb, var(--brand-accent) 10%, transparent);
 }
 

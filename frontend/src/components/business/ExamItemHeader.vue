@@ -57,7 +57,7 @@
         <ExamProcessMenu :exam="exam" :is-admin="isAdmin" />
         <template v-if="isAdmin">
           <CustomButton size="sm" type="text" @click="$emit('edit', exam)">编辑</CustomButton>
-          <CustomButton size="sm" type="text" @click="$emit('delete', exam.id)">删除</CustomButton>
+          <CustomButton size="sm" type="text-danger" :loading="deleteLoading" @click="$emit('delete', exam.id)">删除</CustomButton>
         </template>
       </template>
     </div>
@@ -90,6 +90,11 @@ const props = defineProps({
     required: true
   },
   isAdmin: {
+    type: Boolean,
+    default: false
+  },
+  /** 删除请求进行中：按钮进入 loading 并禁点，防连点 */
+  deleteLoading: {
     type: Boolean,
     default: false
   },
@@ -141,7 +146,7 @@ function handleAiCommand(command: string): void {
 /* 元信息使用中性底色，让年份题号和题干成为阅读重点。 */
 .question-metadata :deep(.question-tag) {
   color: var(--brand-ink-soft);
-  background-color: #f4f5f6;
+  background-color: var(--brand-neutral-bg);
 }
 
 .question-actions {

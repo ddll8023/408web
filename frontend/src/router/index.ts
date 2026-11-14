@@ -17,6 +17,7 @@ declare module 'vue-router' {
   }
 }
 import { useAuthStore } from '@/stores/auth'
+import { toast } from '@/utils/toast'
 
 // 路由配置
 const routes: RouteRecordRaw[] = [
@@ -142,7 +143,7 @@ router.beforeEach((to, from, next) => {
           next()
         } else {
           // 不是管理员，拒绝访问
-          alert('权限不足，需要管理员权限')
+          toast.warning('权限不足，需要管理员权限')
           next({ path: '/' })
         }
       } else {

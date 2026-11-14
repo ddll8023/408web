@@ -158,7 +158,7 @@ const handlePreview = () => {
   overflow: hidden;
   border: 1px solid #e8e1d7;
   border-radius: 14px;
-  background: rgba(255, 253, 248, 0.92);
+  background: color-mix(in srgb, var(--brand-paper) 92%, transparent);
   padding: 16px 18px;
   box-shadow: 0 5px 18px rgba(79, 63, 42, 0.05);
   transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
@@ -185,7 +185,7 @@ const handlePreview = () => {
 }
 
 .question-card--selected::before {
-  background: #8b6f47;
+  background: var(--brand-accent);
 }
 
 .question-card__select {
@@ -214,7 +214,7 @@ const handlePreview = () => {
 }
 
 .question-card__title:hover {
-  color: #8b6f47;
+  color: var(--brand-accent);
 }
 
 .question-card__title:focus-visible {
@@ -245,7 +245,7 @@ const handlePreview = () => {
   border-radius: 999px;
   background: color-mix(in srgb, var(--brand-accent) 8%, transparent);
   padding: 2px 7px;
-  color: #8b6f47;
+  color: var(--brand-accent);
 }
 
 .question-card__actions {

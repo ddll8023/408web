@@ -74,7 +74,7 @@
 
 .dropdown-menu {
   position: fixed;
-  z-index: 99999;
+  z-index: var(--z-dropdown); /* 高于 Dialog（弹窗内可展开）、低于 Toast */
   min-width: 180px;
   padding: 4px;
   overflow: hidden;
@@ -154,7 +154,8 @@
 }
 
 .dropdown-filter::placeholder {
-  color: var(--dropdown-muted);
+  /* 占位属正文级文字，按 WCAG AA ≥4.5:1 加深；--dropdown-muted 保留给禁用/空态 */
+  color: #6b7280;
 }
 
 .dropdown-filter--with-icon {

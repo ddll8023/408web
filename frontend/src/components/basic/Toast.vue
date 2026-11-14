@@ -4,7 +4,7 @@
     <transition name="toast">
       <div
         v-if="visible"
-        class="fixed top-4 left-1/2 z-[9999] max-w-[calc(100vw-32px)] -translate-x-1/2 rounded-lg px-4 py-3 text-sm font-medium text-white shadow-lg"
+        class="fixed top-4 left-1/2 z-toast max-w-[calc(100vw-32px)] -translate-x-1/2 rounded-lg px-4 py-3 text-sm font-medium text-white shadow-lg"
         :class="typeClass"
         :role="type === 'error' ? 'alert' : 'status'"
         :aria-live="type === 'error' ? 'assertive' : 'polite'"

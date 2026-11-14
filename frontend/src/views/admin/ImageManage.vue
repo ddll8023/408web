@@ -127,7 +127,7 @@
       <div
         v-if="previewVisible"
         ref="previewRef"
-        class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80"
+        class="fixed inset-0 z-viewer flex items-center justify-center bg-black/80"
         role="dialog"
         aria-modal="true"
         aria-label="图片预览"

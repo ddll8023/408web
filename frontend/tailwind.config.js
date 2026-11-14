@@ -3,7 +3,9 @@
  *
  * 语义色令牌定义在 `src/styles/tailwind.css` 的 :root（--brand-*），这里只做映射，
  * 保证组件类名（text-accent、bg-surface、text-ink…）与 scoped CSS 的 var() 同源；
- * 改色只需改 tailwind.css 一处。其余颜色一律使用 Tailwind 内置调色板。
+ * 改色只需改 tailwind.css 一处。语义状态色（danger/success/warning）与界面角色色
+ * （panel-line/sheet-line/ink-strong/wash/neutral-bg/ink-heading）同样映射自 :root 令牌；
+ * 其余非令牌颜色一律使用 Tailwind 内置调色板。
  *
  * 注意：不要向 theme.extend.spacing 添加 xs/sm/md/lg/xl 等同名键。Tailwind v4 会把
  * theme.spacing 合并进 max-w-* 取值表末尾，同名键会把 max-w-sm/md/lg/xl 覆盖为
@@ -27,6 +29,16 @@ export default {
         ink: 'var(--brand-ink)',
         'ink-soft': 'var(--brand-ink-soft)',
         'ink-mute': 'var(--brand-ink-mute)',
+        // 语义状态色与界面角色色，值定义在 tailwind.css 的 :root
+        danger: 'var(--brand-danger)',
+        success: 'var(--brand-success)',
+        warning: 'var(--brand-warning)',
+        'panel-line': 'var(--brand-panel-line)',
+        'sheet-line': 'var(--brand-sheet-line)',
+        'ink-strong': 'var(--brand-ink-strong)',
+        wash: 'var(--brand-wash)',
+        'neutral-bg': 'var(--brand-neutral-bg)',
+        'ink-heading': 'var(--brand-ink-heading)',
         // 内容主题色（真题 / 模拟题），值定义在 tailwind.css 的 :root
         exam: {
           accent: 'var(--theme-exam-accent)',
@@ -51,6 +63,21 @@ export default {
           subtitle: 'var(--theme-mock-subtitle)',
           'soft-fg': 'var(--theme-mock-soft-fg)',
         },
+      },
+      // z-index 分层令牌，值定义在 tailwind.css 的 :root（--z-*）
+      zIndex: {
+        sticky: 'var(--z-sticky)',
+        float: 'var(--z-float)',
+        'preview-drawer': 'var(--z-preview-drawer)',
+        'side-panel': 'var(--z-side-panel)',
+        nav: 'var(--z-nav)',
+        'bottom-sheet': 'var(--z-bottom-sheet)',
+        dialog: 'var(--z-dialog)',
+        dropdown: 'var(--z-dropdown)',
+        editor: 'var(--z-editor)',
+        immersive: 'var(--z-immersive)',
+        toast: 'var(--z-toast)',
+        viewer: 'var(--z-viewer)',
       },
     },
   },

@@ -27,7 +27,7 @@
         <div
           v-for="yearData in yearList"
           :key="yearData.year"
-          class="p-5 bg-white rounded border-2 border-[#dfe2e5] cursor-pointer transition-all duration-300 flex flex-col min-h-[200px] hover:border-accent hover:shadow-[0_4px_12px_color-mix(in srgb, var(--brand-accent) 15%, transparent)] hover:-translate-y-1"
+          class="p-5 bg-white rounded-lg border-2 border-[#dfe2e5] cursor-pointer transition-all duration-300 flex flex-col min-h-[200px] hover:border-accent hover:shadow-[0_4px_12px_color-mix(in srgb, var(--brand-accent) 15%, transparent)] hover:-translate-y-1"
           role="button"
           tabindex="0"
           :aria-label="`查看 ${yearData.year} 年真题`"

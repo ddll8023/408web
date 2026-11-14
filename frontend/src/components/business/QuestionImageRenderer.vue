@@ -896,7 +896,7 @@ defineExpose({ capture, getClipboardContent })
 
 .question-image-renderer__title {
   margin: 0;
-  color: #374151;
+  color: var(--brand-ink);
   font-size: 22px;
   font-weight: 700;
   line-height: 1.4;
@@ -907,7 +907,7 @@ defineExpose({ capture, getClipboardContent })
   flex-wrap: wrap;
   gap: 8px;
   margin-top: 10px;
-  color: #8b6f47;
+  color: var(--brand-accent);
   font-size: 13px;
 }
 
@@ -925,7 +925,7 @@ defineExpose({ capture, getClipboardContent })
 
 .question-image-renderer__section h2 {
   margin: 0 0 10px;
-  color: #4b5563;
+  color: var(--brand-ink-soft);
   font-size: 17px;
   font-weight: 700;
 }
@@ -949,7 +949,7 @@ defineExpose({ capture, getClipboardContent })
   flex: 0 0 auto;
   font-size: 14px;
   line-height: 1.5;
-  color: #8b6f47;
+  color: var(--brand-accent);
   font-weight: 700;
 }
 

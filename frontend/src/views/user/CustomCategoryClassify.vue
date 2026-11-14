@@ -106,6 +106,7 @@
                   :id="`exam-${exam.id}`"
                   :exam="exam"
                   :is-admin="isAdmin"
+                  :delete-loading="deletingId === exam.id"
                   :show-answer="showAnswers[exam.id]"
                   density="compact"
                   category-source="custom"
@@ -513,6 +514,9 @@ const handleEditSuccess = (updatedExam: ExamQuestion | null) => {
 }
 
 /** 管理员删除真题；服务端已确认删除，本地移除以避免重载重置滚动位置。 */
+// 删除进行中标记：条目删除按钮进入 loading，防连点
+const deletingId = ref<number | null>(null)
+
 const handleDelete = async (id: number) => {
   if (!isAdmin.value) return
   const confirmed = await showConfirm({
@@ -523,6 +527,8 @@ const handleDelete = async (id: number) => {
     type: 'danger',
   })
   if (!confirmed) return
+
+  deletingId.value = id
 
   try {
     const response = await deleteExam(id)
@@ -536,6 +542,9 @@ const handleDelete = async (id: number) => {
   } catch (error) {
     toast.error('删除失败')
     console.error('删除真题失败:', error)
+  }
+  } finally {
+    deletingId.value = null
   }
 }
 

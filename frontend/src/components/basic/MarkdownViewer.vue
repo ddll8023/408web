@@ -299,7 +299,7 @@ onBeforeUnmount(() => {
 }
 
 .markdown-viewer :deep(.markdown-media:focus-visible) {
-  outline: 2px solid #8b6f47;
+  outline: 2px solid var(--brand-accent);
   outline-offset: 3px;
 }
 
@@ -386,7 +386,7 @@ onBeforeUnmount(() => {
   width: 14px;
   height: 14px;
   border-radius: 3px;
-  background-color: #8b6f47;
+  background-color: var(--brand-accent);
   color: #fff;
   cursor: nwse-resize;
   touch-action: none;
@@ -407,7 +407,7 @@ onBeforeUnmount(() => {
   border: 1px solid color-mix(in srgb, var(--brand-accent) 35%, transparent);
   border-radius: 9999px;
   background-color: rgb(255 255 255 / 0.92);
-  color: #8b6f47;
+  color: var(--brand-accent);
   cursor: pointer;
   visibility: hidden;
   pointer-events: none;
@@ -445,7 +445,7 @@ onBeforeUnmount(() => {
 
 .markdown-viewer :deep(.markdown-media-reset:focus-visible) {
   opacity: 1;
-  outline: 2px solid #8b6f47;
+  outline: 2px solid var(--brand-accent);
   outline-offset: 2px;
 }
 

@@ -118,7 +118,7 @@
                   <span class="edit-hint m-0">支持 Markdown、公式和图片</span>
                 </div>
                 <FormLabel :label="form.questionType === 'CHOICE' ? '题干' : '题目内容'" required :for-id="form.questionType === 'CHOICE' ? 'mock-choice-content' : 'mock-essay-content'" />
-                <MarkdownEditor :id="form.questionType === 'CHOICE' ? 'mock-choice-content' : 'mock-essay-content'" aria-label="题干" v-model="form.content" :height="form.questionType === 'CHOICE' ? '260px' : '320px'" placeholder="请输入题目内容（支持 Markdown、公式和图片）..." />
+                <MarkdownEditor :id="form.questionType === 'CHOICE' ? 'mock-choice-content' : 'mock-essay-content'" aria-label="题干" v-model="form.content" height="400px" placeholder="请输入题目内容（支持 Markdown、公式和图片）..." />
                 <div v-if="form.questionType === 'CHOICE'" class="edit-options-grid mt-4">
                   <div class="edit-option">
                     <FormLabel label="选项 A" required for-id="mock-option-a" />
@@ -144,7 +144,7 @@
                   <CustomButton v-if="isEditMode && authStore.isAdmin()" size="sm" type="text-primary" :disabled="loading || saving" @click="aiAnswerVisible = true">AI 生成答案</CustomButton>
                   <span class="edit-hint m-0">可选</span>
                 </div>
-                <MarkdownEditor :id="form.questionType === 'CHOICE' ? 'mock-choice-answer' : 'mock-essay-answer'" aria-label="答案解析" v-model="form.answer" height="260px" placeholder="请输入答案与解析..." />
+                <MarkdownEditor :id="form.questionType === 'CHOICE' ? 'mock-choice-answer' : 'mock-essay-answer'" aria-label="答案解析" v-model="form.answer" height="400px" placeholder="请输入答案与解析..." />
               </section>
             </div>
           </div>
@@ -166,7 +166,7 @@
           <CustomButton @click="handleCancel">取消</CustomButton>
           <CustomButton type="primary" :loading="saving" @click="handleSubmit">
             <font-awesome-icon :icon="isEditMode ? ['fas', 'save'] : ['fas', 'plus']" />
-            {{ isEditMode ? '保存修改' : '创建模拟题' }}
+            保存
           </CustomButton>
         </div>
       </div>
@@ -248,7 +248,7 @@ function applyGeneratedAnswer(candidate: AiAnswerCandidate): void {
     return
   }
   form.answer = candidate.answer
-  showToast('新答案已填入，点击保存修改后才会更新题库', 'success')
+  showToast('新答案已填入，点击保存后才会更新题库', 'success')
 }
 
 const {

@@ -465,14 +465,14 @@ const optionStatusLabel = (key: string) => {
 
 .exam-question-card__option-row--correct .exam-question-card__option-letter {
   border-color: #7cc39c;
-  color: #10613f;
+  color: var(--brand-success);
   background-color: #d8efe3;
 }
 
 .exam-question-card__option-row--selected-correct .exam-question-card__option-letter {
-  border-color: #10613f;
+  border-color: var(--brand-success);
   color: #fff;
-  background-color: #10613f;
+  background-color: var(--brand-success);
 }
 
 .exam-question-card__option-row--wrong {
@@ -482,7 +482,7 @@ const optionStatusLabel = (key: string) => {
 
 .exam-question-card__option-row--wrong .exam-question-card__option-letter {
   border-color: #d99c93;
-  color: #a63a2b;
+  color: var(--brand-danger);
   background-color: #f9dcd5;
 }
 
@@ -494,7 +494,7 @@ const optionStatusLabel = (key: string) => {
   margin-top: 4px;
   margin-left: auto;
   /* 默认取错误色，正确状态由下方修饰类覆盖为绿色。 */
-  color: #a63a2b;
+  color: var(--brand-danger);
   font-size: 12px;
   font-weight: 500;
   line-height: 1.6;
@@ -502,7 +502,7 @@ const optionStatusLabel = (key: string) => {
 }
 
 .exam-question-card__option-status--correct {
-  color: #10613f;
+  color: var(--brand-success);
 }
 
 .answer-card {

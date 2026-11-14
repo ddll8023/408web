@@ -21,7 +21,7 @@
           <span>全部折叠</span>
         </button>
         <button
-          class="toggle-btn w-7 h-7 flex items-center justify-center rounded border-0 bg-transparent cursor-pointer text-gray-400 transition-all flex-shrink-0"
+          class="toggle-btn relative w-7 h-7 flex items-center justify-center rounded border-0 bg-transparent cursor-pointer text-gray-400 transition-all flex-shrink-0 before:absolute before:-inset-2 before:rounded before:content-['']"
           type="button"
           :aria-label="isCollapsed ? '展开科目导航' : '折叠科目导航'"
           @click="toggleCollapse"

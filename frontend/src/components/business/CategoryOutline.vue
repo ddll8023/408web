@@ -15,7 +15,7 @@
     >
       <span class="flex min-w-0 items-center gap-2">
         <font-awesome-icon :icon="['fas', 'list']" :class="theme.icon" aria-hidden="true" />
-        <span class="font-semibold text-[#33404A]">{{ props.title }}</span>
+        <span class="font-semibold text-ink-heading">{{ props.title }}</span>
         <span v-if="props.showSummary" class="text-xs text-gray-400">{{ items.length }} 个分组</span>
       </span>
       <font-awesome-icon
@@ -35,7 +35,7 @@
           <div class="flex items-center justify-between gap-3">
             <div class="flex min-w-0 items-center gap-2">
               <font-awesome-icon :icon="['fas', 'list']" :class="theme.icon" aria-hidden="true" />
-              <h3 class="truncate text-sm font-semibold text-[#33404A]">{{ props.title }}</h3>
+              <h3 class="truncate text-sm font-semibold text-ink-heading">{{ props.title }}</h3>
             </div>
             <span v-if="props.showSummary" class="shrink-0 text-xs text-gray-400">{{ items.length }} 个分组</span>
           </div>
@@ -93,7 +93,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, getCurrentInstance, ref } from 'vue'
 import type { CategoryOutlineItem } from '@/types'
 
 interface Props {
@@ -120,8 +120,8 @@ const props = withDefaults(defineProps<Props>(), {
 })
 const emit = defineEmits<{ jump: [anchorId: string] }>()
 
-let nextOutlineId = 0
-const outlineContentId = `category-outline-content-${++nextOutlineId}`
+// 大纲可能同页多实例，内容 id 需按实例区分
+const outlineContentId = `category-outline-content-${getCurrentInstance()?.uid ?? 0}`
 const isOpen = ref(false)
 
 const theme = computed(() => {
@@ -177,8 +177,8 @@ const isGridNumberItem = (item: CategoryOutlineItem) => gridVariant.value && ite
 
 /** 条目形状：网格方块、分组标题或层级列表项。 */
 const buttonShapeClass = (item: CategoryOutlineItem) => {
-  if (isGridNumberItem(item)) return 'min-h-9 justify-center rounded-lg border text-sm font-normal'
-  return `min-h-9 gap-2 rounded-lg pr-2 text-left text-sm ${item.depth === 0 ? 'font-medium' : 'font-normal'}`
+  if (isGridNumberItem(item)) return 'min-h-11 justify-center rounded-lg border text-sm font-normal'
+  return `min-h-11 gap-2 rounded-lg pr-2 text-left text-sm ${item.depth === 0 ? 'font-medium' : 'font-normal'}`
 }
 
 /** 条目配色：网格方块用边框和背景表达状态，其余沿用列表配色。 */

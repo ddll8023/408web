@@ -3,8 +3,8 @@
   <ResponsiveDialog
     v-model:visible="dialogVisible"
     :title="isEditMode ? '编辑改编题' : '新增改编题'"
-    width="1000px"
-    max-width="calc(100vw - 24px)"
+    width="1200px"
+    max-width="1600px"
     @close="handleClose"
   >
     <form id="adaptation-edit-form" class="edit-form" :aria-busy="loading" @submit.prevent="handleSubmit">
@@ -90,7 +90,7 @@
         <MarkdownEditor
           id="adaptation-content"
           v-model="form.content"
-          height="320px"
+          height="400px"
           placeholder="请输入题干（支持 Markdown 与 LaTeX）"
           aria-label="题干"
         />
@@ -123,7 +123,7 @@
         <MarkdownEditor
           id="adaptation-answer"
           v-model="form.answer"
-          height="240px"
+          height="400px"
           placeholder="请输入答案解析"
           aria-label="答案解析"
         />

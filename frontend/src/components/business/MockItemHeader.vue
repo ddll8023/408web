@@ -2,10 +2,14 @@
 <template>
   <div class="mock-item-header flex items-start justify-between gap-4 mb-3 pb-3 border-b border-gray-100">
     <div class="min-w-0 flex-1">
-      <h3 v-if="mock.questionNumber || mock.title" class="question-title m-0 flex flex-wrap items-baseline gap-x-2 gap-y-1 font-semibold">
-        <span v-if="mock.title" class="min-w-0">{{ mock.title }}</span>
-        <span v-if="mock.questionNumber && mock.title" class="title-separator text-gray-400 font-normal" aria-hidden="true">·</span>
-        <span v-if="mock.questionNumber" class="question-number">第{{ mock.questionNumber }}题</span>
+      <h3 class="question-title m-0 flex flex-wrap items-baseline gap-x-2 gap-y-1 font-semibold">
+        <template v-if="mock.questionNumber || mock.title">
+          <span v-if="mock.title" class="min-w-0">{{ mock.title }}</span>
+          <span v-if="mock.questionNumber && mock.title" class="title-separator text-gray-400 font-normal" aria-hidden="true">·</span>
+          <span v-if="mock.questionNumber" class="question-number">第{{ mock.questionNumber }}题</span>
+        </template>
+        <!-- 旧数据可能无题号与标题，兜底保证标题语义节点始终存在 -->
+        <span v-else class="min-w-0">模拟题 #{{ mock.id }}</span>
       </h3>
       <div class="question-metadata mt-2 flex flex-wrap gap-1.5">
         <Tag class="question-tag" size="sm" :type="mock.questionType === 'CHOICE' ? 'success' : 'primary'">
@@ -51,7 +55,7 @@
         <!-- 管理员操作 -->
         <template v-if="isAdmin">
           <CustomButton size="sm" type="text" @click="$emit('edit', mock)">编辑</CustomButton>
-          <CustomButton size="sm" type="text" @click="$emit('delete', mock.id)">删除</CustomButton>
+          <CustomButton size="sm" type="text-danger" :loading="deleteLoading" @click="$emit('delete', mock.id)">删除</CustomButton>
         </template>
       </template>
     </div>
@@ -76,6 +80,8 @@ import { getDifficultyLabel, getDifficultyType } from '@/constants/exam'
 const props = defineProps({
   mock: { type: Object as PropType<MockQuestion>, required: true },
   isAdmin: { type: Boolean, default: false },
+  /** 删除请求进行中：按钮进入 loading 并禁点，防连点 */
+  deleteLoading: { type: Boolean, default: false },
   /** 当前卡片是否处于全屏或沉浸模式 */
   fullscreenActive: { type: Boolean, default: false }
 })
@@ -101,7 +107,7 @@ function handleAiCommand(command: string): void {
 /* 元信息使用中性底色，让来源标题和题干成为阅读重点。 */
 .question-metadata :deep(.question-tag) {
   color: var(--brand-ink-soft);
-  background-color: #f4f5f6;
+  background-color: var(--brand-neutral-bg);
 }
 
 .question-actions {

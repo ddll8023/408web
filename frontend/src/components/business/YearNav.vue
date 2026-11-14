@@ -10,7 +10,7 @@
     <div class="year-nav-header h-14 flex items-center justify-between px-4 border-b border-black/[0.05] flex-shrink-0 gap-2">
       <button
         type="button"
-        class="toggle-btn w-8 h-8 flex items-center justify-center rounded-md border-0 bg-transparent cursor-pointer text-accent transition-all duration-200 flex-shrink-0 hover:bg-black/[0.05]"
+        class="toggle-btn relative w-8 h-8 flex items-center justify-center rounded-md border-0 bg-transparent cursor-pointer text-accent transition-all duration-200 flex-shrink-0 hover:bg-black/[0.05] before:absolute before:-inset-1.5 before:rounded-md before:content-['']"
         :aria-label="isCollapsed ? '展开年份导航' : '折叠年份导航'"
         @click="toggleCollapse"
       >

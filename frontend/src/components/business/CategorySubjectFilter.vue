@@ -34,7 +34,7 @@
             {{ stat.name }}
           </span>
           <CustomTooltip v-if="stat.enabledCount < stat.count" :content="`${stat.count - stat.enabledCount} 个分类已禁用`" placement="top">
-            <font-awesome-icon :icon="['fas', 'exclamation-triangle']" class="ml-1 text-sm text-[#e6a23c]" />
+            <font-awesome-icon :icon="['fas', 'exclamation-triangle']" class="ml-1 text-sm text-warning" />
           </CustomTooltip>
         </span>
         <span

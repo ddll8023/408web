@@ -18,7 +18,7 @@
         v-if="visible"
         ref="tooltipRef"
         role="tooltip"
-        class="pointer-events-none absolute z-50 max-w-[min(280px,calc(100vw-24px))] break-words rounded-md bg-gray-800 px-2.5 py-1.5 text-xs text-white shadow-lg"
+        class="pointer-events-none absolute z-float max-w-[min(280px,calc(100vw-24px))] break-words rounded-md bg-gray-800 px-2.5 py-1.5 text-xs text-white shadow-lg"
         :class="placementClass"
       >
         <slot name="content">{{ content }}</slot>

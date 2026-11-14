@@ -143,7 +143,7 @@ const handleWordCopied = (result: RichCopyResult, questionKeys: string[]) => {
   max-height: calc(var(--app-page-height) - 48px);
   flex-direction: column;
   overflow: hidden;
-  border: 1px solid #eadfd4;
+  border: 1px solid var(--brand-panel-line);
   border-radius: 12px;
   background: #fff;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
@@ -153,14 +153,14 @@ const handleWordCopied = (result: RichCopyResult, questionKeys: string[]) => {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  border-bottom: 1px solid #eadfd4;
+  border-bottom: 1px solid var(--brand-panel-line);
   background: #fbf7f2;
   padding: 16px 17px 14px;
 }
 
 .question-basket__eyebrow {
   margin: 0 0 3px;
-  color: #8b6f47;
+  color: var(--brand-accent);
   font-size: 12px;
   font-weight: 600;
 }
@@ -179,7 +179,7 @@ const handleWordCopied = (result: RichCopyResult, questionKeys: string[]) => {
   align-items: center;
   justify-content: center;
   border-radius: 999px;
-  background: #8b6f47;
+  background: var(--brand-accent);
   color: white;
   font-size: 14px;
   font-weight: 800;
@@ -205,7 +205,7 @@ const handleWordCopied = (result: RichCopyResult, questionKeys: string[]) => {
   margin-bottom: 12px;
   border: 1px dashed #d4c4a8;
   border-radius: 12px;
-  color: #8b6f47;
+  color: var(--brand-accent);
   font-size: 25px;
   font-weight: 300;
 }
@@ -239,7 +239,7 @@ const handleWordCopied = (result: RichCopyResult, questionKeys: string[]) => {
 }
 
 .question-basket__index {
-  color: #8b6f47;
+  color: var(--brand-accent);
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 10px;
   font-weight: 800;
@@ -276,12 +276,12 @@ const handleWordCopied = (result: RichCopyResult, questionKeys: string[]) => {
 
 .question-basket__icon-button:hover:not(:disabled) {
   background: color-mix(in srgb, var(--brand-accent) 10%, transparent);
-  color: #8b6f47;
+  color: var(--brand-accent);
 }
 
 .question-basket__icon-button--danger:hover:not(:disabled) {
   background: rgba(180, 80, 64, 0.1);
-  color: #b45040;
+  color: var(--brand-danger);
 }
 
 .question-basket__icon-button:disabled {
@@ -290,7 +290,7 @@ const handleWordCopied = (result: RichCopyResult, questionKeys: string[]) => {
 }
 
 .question-basket__footer {
-  border-top: 1px solid #eadfd4;
+  border-top: 1px solid var(--brand-panel-line);
   background: #fbf7f2;
   padding: 12px;
 }

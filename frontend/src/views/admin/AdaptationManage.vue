@@ -15,7 +15,7 @@
       </template>
 
       <!-- 筛选条件 -->
-      <div class="mb-6 rounded-xl border border-[#eadfd4] bg-white/70 p-3 shadow-sm backdrop-blur-sm sm:p-5">
+      <section class="mb-6 rounded-xl border border-[var(--brand-panel-line)] bg-white/70 p-3 shadow-sm backdrop-blur-sm sm:p-5">
         <div class="grid grid-cols-1 items-end gap-4 sm:grid-cols-2 xl:grid-cols-6 2xl:grid-cols-8">
           <div class="flex flex-col gap-1.5">
             <label class="text-sm font-medium text-gray-700">来源年份</label>
@@ -121,7 +121,7 @@
             </CustomButton>
           </div>
         </div>
-      </div>
+      </section>
 
       <div v-if="listError" class="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700" role="alert">
         {{ listError }}

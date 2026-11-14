@@ -4,7 +4,7 @@
       ref="buttonRef"
       v-show="visible"
       type="button"
-      class="fixed z-50 w-10 h-10 rounded-full bg-accent flex items-center justify-center text-white shadow-[0_4px_12px_rgba(0,0,0,0.25)] transition-opacity hover:bg-accent-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2"
+      class="fixed z-float relative w-10 h-10 rounded-full bg-accent flex items-center justify-center text-white shadow-[0_4px_12px_rgba(0,0,0,0.25)] transition-opacity hover:bg-accent-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 before:absolute before:-inset-1 before:rounded-full before:content-['']"
       :style="{
         right: `calc(${right}px + env(safe-area-inset-right, 0px))`,
         bottom: `calc(${bottom}px + env(safe-area-inset-bottom, 0px))`

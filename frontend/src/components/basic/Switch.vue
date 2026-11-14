@@ -1,7 +1,7 @@
 <template>
   <button
     type="button"
-    class="relative inline-flex h-6 w-11 items-center rounded-full transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2"
+    class="relative inline-flex h-6 w-11 items-center rounded-full transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2"
     :class="[
       modelValue ? 'bg-accent' : 'bg-gray-300',
       disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
@@ -55,10 +55,6 @@ const handleClick = () => {
 button {
   border: none;
   padding: 0;
-}
-
-button:focus:not(:focus-visible) {
-  outline: none;
 }
 
 button:focus-visible {

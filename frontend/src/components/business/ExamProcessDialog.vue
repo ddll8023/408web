@@ -38,7 +38,7 @@
           <div v-if="props.isAdmin" class="flex items-center gap-1">
             <button
               type="button"
-              class="inline-flex h-8 w-8 items-center justify-center rounded-md border border-[#DCCBB5] bg-white text-accent transition-colors hover:bg-[#F5EFE6] focus:outline-none focus:ring-2 focus:ring-accent disabled:cursor-not-allowed disabled:opacity-40"
+              class="inline-flex h-8 w-8 items-center justify-center rounded-md border border-[#DCCBB5] bg-white text-accent transition-colors hover:bg-wash focus:outline-none focus:ring-2 focus:ring-accent disabled:cursor-not-allowed disabled:opacity-40"
               :disabled="props.saving || props.deletingImageId !== null || index === 0"
               :aria-label="`过程图片第 ${index + 1} 张上移`"
               @click="moveImage(index, -1)"
@@ -47,7 +47,7 @@
             </button>
             <button
               type="button"
-              class="inline-flex h-8 w-8 items-center justify-center rounded-md border border-[#DCCBB5] bg-white text-accent transition-colors hover:bg-[#F5EFE6] focus:outline-none focus:ring-2 focus:ring-accent disabled:cursor-not-allowed disabled:opacity-40"
+              class="inline-flex h-8 w-8 items-center justify-center rounded-md border border-[#DCCBB5] bg-white text-accent transition-colors hover:bg-wash focus:outline-none focus:ring-2 focus:ring-accent disabled:cursor-not-allowed disabled:opacity-40"
               :disabled="props.saving || props.deletingImageId !== null || index === props.images.length - 1"
               :aria-label="`过程图片第 ${index + 1} 张下移`"
               @click="moveImage(index, 1)"

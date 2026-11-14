@@ -22,7 +22,7 @@
 
       <!-- 筛选区 -->
       <section
-        class="compose-filters mb-6 rounded-xl border border-[#eadfd4] bg-white/70 p-5 shadow-sm backdrop-blur-sm"
+        class="compose-filters mb-6 rounded-xl border border-[var(--brand-panel-line)] bg-white/70 p-5 shadow-sm backdrop-blur-sm"
         :class="{ 'compose-filters--adaptation': isAdaptationKind }"
         aria-label="出题筛选条件"
       >
@@ -1077,13 +1077,13 @@ watch(() => route.query.keyword, newKeyword => {
 
 <style scoped>
 .compose-page {
-  --compose-line: #eadfd4;
+  --compose-line: var(--brand-panel-line);
 }
 
 .chapter-panel__eyebrow,
 .question-content__eyebrow {
   margin: 0 0 5px;
-  color: #8b6f47;
+  color: var(--brand-accent);
   font-size: 12px;
   font-weight: 600;
   letter-spacing: normal;
@@ -1098,7 +1098,7 @@ watch(() => route.query.keyword, newKeyword => {
 }
 
 .compose-kind-switch__hint {
-  color: #8b9593;
+  color: var(--brand-ink-soft);
   font-size: 12px;
 }
 
@@ -1126,7 +1126,7 @@ watch(() => route.query.keyword, newKeyword => {
 .compose-filters__label {
   display: block;
   margin-bottom: 6px;
-  color: #6f7778;
+  color: var(--brand-ink-soft);
   font-size: 11px;
   font-weight: 700;
 }
@@ -1147,7 +1147,7 @@ watch(() => route.query.keyword, newKeyword => {
   border-radius: 10px;
   background: #fff4f4;
   padding: 10px 12px;
-  color: #a23d3d;
+  color: var(--brand-danger);
   font-size: 12px;
 }
 
@@ -1180,14 +1180,14 @@ watch(() => route.query.keyword, newKeyword => {
 .chapter-panel__title,
 .question-content__title {
   margin: 0;
-  color: #344047;
+  color: var(--brand-ink-heading);
   font-size: 17px;
   font-weight: 800;
 }
 
 .chapter-panel__count,
 .question-content__total {
-  color: #9a9f9d;
+  color: var(--brand-ink-soft);
   font-size: 11px;
 }
 
@@ -1201,7 +1201,7 @@ watch(() => route.query.keyword, newKeyword => {
   border-radius: 10px;
   background: transparent;
   padding: 9px 10px;
-  color: #65706f;
+  color: var(--brand-ink-soft);
   cursor: pointer;
   font-size: 12px;
   transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
@@ -1211,7 +1211,7 @@ watch(() => route.query.keyword, newKeyword => {
 .chapter-panel__all--active {
   border-color: color-mix(in srgb, var(--brand-accent) 18%, transparent);
   background: color-mix(in srgb, var(--brand-accent) 8%, transparent);
-  color: #704f2d;
+  color: var(--brand-ink-strong);
 }
 
 .chapter-panel__all-mark {
@@ -1222,7 +1222,7 @@ watch(() => route.query.keyword, newKeyword => {
   justify-content: center;
   border-radius: 6px;
   background: color-mix(in srgb, var(--brand-accent) 12%, transparent);
-  color: #8b6f47;
+  color: var(--brand-accent);
   font-size: 16px;
 }
 
@@ -1240,7 +1240,7 @@ watch(() => route.query.keyword, newKeyword => {
   justify-content: center;
   flex-direction: column;
   min-height: 210px;
-  color: #9aa3a2;
+  color: var(--brand-ink-soft);
   text-align: center;
   font-size: 12px;
 }
@@ -1285,13 +1285,13 @@ watch(() => route.query.keyword, newKeyword => {
   justify-content: center;
   flex-direction: column;
   min-height: 340px;
-  color: #899392;
+  color: var(--brand-ink-soft);
   text-align: center;
 }
 
 .question-content__empty h3 {
   margin: 12px 0 4px;
-  color: #596664;
+  color: var(--brand-ink-soft);
   font-size: 16px;
 }
 
@@ -1315,7 +1315,7 @@ watch(() => route.query.keyword, newKeyword => {
 .question-content__loading {
   gap: 10px;
   min-height: 340px;
-  color: #8b6f47;
+  color: var(--brand-accent);
   font-size: 13px;
 }
 
@@ -1330,7 +1330,7 @@ watch(() => route.query.keyword, newKeyword => {
   justify-content: center;
   border-top: 1px solid var(--compose-line);
   margin-top: 16px;
-  color: #8a9693;
+  color: var(--brand-ink-soft);
   font-size: 12px;
 }
 
@@ -1343,7 +1343,7 @@ watch(() => route.query.keyword, newKeyword => {
 .question-content__retry {
   border: 0;
   background: transparent;
-  color: #9d5b4d;
+  color: var(--brand-danger);
   cursor: pointer;
   font-size: 12px;
   text-decoration: underline;
@@ -1356,7 +1356,7 @@ watch(() => route.query.keyword, newKeyword => {
   padding: 5px 8px 5px 18px;
 }
 
-@media (max-width: 1399px) {
+@media (max-width: 1279px) {
   .compose-filters--adaptation {
     grid-template-columns: repeat(5, minmax(0, 1fr));
   }

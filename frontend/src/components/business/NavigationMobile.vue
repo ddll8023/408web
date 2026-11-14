@@ -185,21 +185,21 @@ const handleManageCommand = (command: ManageCommand) => {
 
   .mobile-menu-button {
     display: inline-flex;
-    width: 42px;
-    height: 42px;
+    width: 44px;
+    height: 44px;
     align-items: center;
     justify-content: center;
     border: 0;
     border-radius: 10px;
     background: color-mix(in srgb, var(--brand-accent) 8%, transparent);
-    color: #8b6f47;
+    color: var(--brand-accent);
     cursor: pointer;
     font-size: 18px;
   }
 
   .mobile-menu-button:focus-visible,
   .mobile-search-button:focus-visible {
-    outline: 2px solid #8b6f47;
+    outline: 2px solid var(--brand-accent);
     outline-offset: 2px;
   }
 
@@ -247,19 +247,19 @@ const handleManageCommand = (command: ManageCommand) => {
   }
 
   .mobile-search-input:focus {
-    border-color: #8b6f47;
+    border-color: var(--brand-accent);
     box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand-accent) 12%, transparent);
   }
 
   .mobile-search-button {
     display: inline-flex;
-    width: 42px;
-    height: 42px;
+    width: 44px;
+    height: 44px;
     align-items: center;
     justify-content: center;
     border: 0;
     border-radius: 10px;
-    background: #8b6f47;
+    background: var(--brand-accent);
     color: #fff;
     cursor: pointer;
   }
@@ -329,7 +329,7 @@ const handleManageCommand = (command: ManageCommand) => {
   }
 }
 
-@media (max-width: 420px) {
+@media (max-width: 419px) {
   .mobile-links,
   .mobile-manage-grid,
   .mobile-user-actions {

@@ -121,7 +121,7 @@ const handleQuestionStatusToggle = (question: QuestionRow) => {
 .question-chapter-section {
   border: 1px solid #e6ded2;
   border-radius: 18px;
-  background: rgba(255, 253, 248, 0.68);
+  background: color-mix(in srgb, var(--brand-paper) 68%, transparent);
   padding: 16px;
 }
 
@@ -143,7 +143,7 @@ const handleQuestionStatusToggle = (question: QuestionRow) => {
 
 .question-chapter-section__title {
   margin: 0;
-  color: #344047;
+  color: var(--brand-ink-heading);
   font-size: 17px;
   font-weight: 750;
   letter-spacing: 0.01em;
@@ -162,7 +162,7 @@ const handleQuestionStatusToggle = (question: QuestionRow) => {
   border-radius: 999px;
   background: color-mix(in srgb, var(--brand-accent) 12%, transparent);
   padding: 3px 8px;
-  color: #8b6f47;
+  color: var(--brand-accent);
   font-weight: 700;
 }
 

@@ -49,7 +49,7 @@
  * 关闭时不挂载插槽内容，避免被隐藏的导航列表继续占用渲染开销；
  * 遮罩层与全局导航的层级关系固定为低于 Dialog（1100），高于全站导航（1000）
  */
-import { nextTick, onUnmounted, ref, watch } from 'vue'
+import { getCurrentInstance, nextTick, onUnmounted, ref, watch } from 'vue'
 
 const focusableSelector = [
   'button:not([disabled])',
@@ -60,7 +60,6 @@ const focusableSelector = [
   '[tabindex]:not([tabindex="-1"])'
 ].join(', ')
 
-let nextSheetId = 0
 
 const props = defineProps({
   // 是否显示抽屉
@@ -93,7 +92,8 @@ const props = defineProps({
 const emit = defineEmits<{ 'update:visible': [value: boolean]; close: [] }>()
 
 const panelRef = ref<HTMLElement | null>(null)
-const titleId = `bottom-sheet-title-${++nextSheetId}`
+// 面板可能同页多实例，标题 id 需按实例区分
+const titleId = `bottom-sheet-title-${getCurrentInstance()?.uid ?? 0}`
 let previouslyFocused: HTMLElement | null = null
 let previousBodyOverflow = ''
 
@@ -183,11 +183,11 @@ onUnmounted(() => {
 .bottom-sheet {
   position: fixed;
   inset: 0;
-  z-index: 1050;
+  z-index: var(--z-bottom-sheet);
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
-  background: rgba(27, 35, 35, 0.42);
+  background: var(--overlay-mask);
 }
 
 .bottom-sheet__panel {
@@ -219,7 +219,7 @@ onUnmounted(() => {
   justify-content: space-between;
   gap: 12px;
   padding: 10px 16px;
-  border-bottom: 1px solid #ece5db;
+  border-bottom: 1px solid var(--brand-sheet-line);
 }
 
 .bottom-sheet__title {
@@ -234,6 +234,7 @@ onUnmounted(() => {
 }
 
 .bottom-sheet__close {
+  position: relative;
   display: inline-flex;
   width: 34px;
   height: 34px;
@@ -243,9 +244,17 @@ onUnmounted(() => {
   border: 0;
   border-radius: 10px;
   background: color-mix(in srgb, var(--brand-accent) 8%, transparent);
-  color: #8b6f47;
+  color: var(--brand-accent);
   cursor: pointer;
   transition: background-color 0.2s ease;
+}
+
+.bottom-sheet__close::before {
+  /* 视觉 34px，透明热区扩至 ≥44px 触达目标 */
+  content: '';
+  position: absolute;
+  inset: -5px;
+  border-radius: inherit;
 }
 
 .bottom-sheet__close:hover,
@@ -264,7 +273,7 @@ onUnmounted(() => {
 
 .bottom-sheet__footer {
   flex: 0 0 auto;
-  border-top: 1px solid #ece5db;
+  border-top: 1px solid var(--brand-sheet-line);
   padding: 10px 16px;
 }
 

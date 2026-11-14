@@ -724,11 +724,11 @@ onMounted(async () => {
   --tree-step: 22px;
   --tree-slot: 88px;
   --rail-max: 620px;
-  --guide: rgba(139, 111, 71, 0.16);
-  --row-track: rgba(139, 111, 71, 0.14);
-  --row-divider: rgba(139, 111, 71, 0.09);
-  --row-divider-strong: rgba(139, 111, 71, 0.16);
-  --row-hover: rgba(139, 111, 71, 0.04);
+  --guide: color-mix(in srgb, var(--brand-accent) 16%, transparent);
+  --row-track: color-mix(in srgb, var(--brand-accent) 14%, transparent);
+  --row-divider: color-mix(in srgb, var(--brand-accent) 9%, transparent);
+  --row-divider-strong: color-mix(in srgb, var(--brand-accent) 16%, transparent);
+  --row-hover: color-mix(in srgb, var(--brand-accent) 4%, transparent);
   --row-group-bg: #f6f4f0;
   --row-unfiled: #e7d3ae;
   --row-unfiled-ink: #8a6b3e;
@@ -1178,7 +1178,7 @@ onMounted(async () => {
   background: var(--brand-line);
 }
 
-.stats-row.is-disabled .stats-row__rail i { background: rgba(86, 115, 138, 0.32); }
+.stats-row.is-disabled .stats-row__rail i { background: color-mix(in srgb, var(--theme-exam-accent) 32%, transparent); }
 
 .stats-row.is-unfiled .stats-row__rail i { background: var(--row-unfiled-fill); }
 

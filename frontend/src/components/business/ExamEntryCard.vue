@@ -9,6 +9,7 @@
     <ExamItemHeader
       :exam="exam"
       :is-admin="isAdmin"
+      :delete-loading="deleteLoading"
       :fullscreen-active="isActive"
       :category-source="categorySource"
       @copy="(cmd) => $emit('copy', cmd)"
@@ -60,6 +61,11 @@ const props = defineProps({
   },
   /** 是否显示管理员操作按钮（编辑、删除） */
   isAdmin: {
+    type: Boolean,
+    default: false
+  },
+  /** 删除请求进行中：透传给头部删除按钮 */
+  deleteLoading: {
     type: Boolean,
     default: false
   },

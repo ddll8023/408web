@@ -82,6 +82,7 @@
  */
 import { ref, computed, watch, nextTick, onMounted, onUpdated, onUnmounted, useAttrs, type PropType } from 'vue'
 import { MEDIA_QUERIES } from '@/shared/responsive/breakpoints'
+import { toast } from '@/utils/toast'
 import { useMediaQuery } from '@/shared/responsive/useViewport'
 import '@/styles/edit-form.css'
 
@@ -396,7 +397,7 @@ const handleSave = (text: string, html: string) => {
 const uploadImageFile = async (file: File, editor: EditorInstance) => {
   // 验证文件大小（100MB）
   if (file.size > 100 * 1024 * 1024) {
-    alert('图片大小不能超过100MB')
+    toast.error('图片大小不能超过100MB')
     return false
   }
 
@@ -606,7 +607,7 @@ onUnmounted(() => {
 .markdown-editor.is-fullscreen {
   position: fixed;
   inset: 0;
-  z-index: 1400;
+  z-index: var(--z-editor);
   height: 100dvh;
   border: 0;
   border-radius: 0;
