@@ -542,7 +542,6 @@ const handleDelete = async (id: number) => {
   } catch (error) {
     toast.error('删除失败')
     console.error('删除真题失败:', error)
-  }
   } finally {
     deletingId.value = null
   }

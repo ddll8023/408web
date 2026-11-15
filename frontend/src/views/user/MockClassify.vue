@@ -677,7 +677,6 @@ const handleDelete = async (id: number) => {
   } catch (error) {
     // 错误消息已由axios拦截器统一处理
     console.error('删除失败:', error)
-  }
   } finally {
     deletingId.value = null
   }
