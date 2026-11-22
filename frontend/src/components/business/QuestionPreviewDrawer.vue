@@ -2,10 +2,10 @@
 <template>
   <Teleport to="body">
     <Transition name="question-preview-drawer">
+      <!-- 抽屉为非模态面板（z 低于导航、无焦点圈闭），按 region 语义声明，不谎报模态 -->
       <div
         v-if="visible && question"
         class="question-preview-drawer"
-        <!-- 抽屉为非模态面板（z 低于导航、无焦点圈闭），按 region 语义声明，不谎报模态 -->
         role="region"
         :aria-labelledby="titleId"
         @click.self="close"
