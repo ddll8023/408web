@@ -13,6 +13,9 @@ __pycache__/
 # Backend build and runtime files
 backend-fastapi/.venv
 backend-fastapi/.env
+# 运行时数据：数据库与上传文件不入库，服务器使用外置数据目录
+backend-fastapi/data/
+backend-fastapi/uploads/
 backend-fastapi/data/*.pre_*.db.backup
 backend-fastapi/data/*.pre_*.db.backup-wal
 backend-fastapi/data/*.pre_*.db.backup-shm
